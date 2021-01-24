@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="game" />
+		<Option makefile="c:/gamedev/sega/sgdk/makefile.gen" />
+		<Option makefile_is_custom="1" />
+		<Option pch_mode="2" />
+		<Option compiler="sgdk" />
+		<Option virtualFolders="c:/gamedev/sega/sgdk/inc/" />
+		<MakeCommands>
+			<Build command="$make -f $makefile" />
+			<CompileFile command="$make -f $makefile $file" />
+			<Clean command="$make -f $makefile clean" />
+			<DistClean command="$make -f $makefile distclean$target" />
+			<AskRebuildNeeded command="$make -f $makefile clean" />
+			<SilentBuild command="$make -f $makefile &gt; $(CMD_NULL)" />
+		</MakeCommands>
+		<Build>
+			<Target title="default">
+				<Option output="out/game" prefix_auto="1" extension_auto="1" />
+				<Option object_output="out/" />
+				<Option type="1" />
+				<Option compiler="sgdk" />
+				<Option host_application="C:/games/_console/sega/genesis/blastem-win32-0.6.2/blastem.exe" />
+				<Option run_host_application_in_terminal="0" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+		</Compiler>
+		<Unit filename="inc/asm.h" />
+		<Unit filename="inc/bmp.h" />
+		<Unit filename="inc/config.h" />
+		<Unit filename="inc/dma.h" />
+		<Unit filename="inc/everdrive.h" />
+		<Unit filename="inc/fat16.h" />
+		<Unit filename="inc/font.h" />
+		<Unit filename="inc/genesis.h" />
+		<Unit filename="inc/joy.h" />
+		<Unit filename="inc/kdebug.h" />
+		<Unit filename="inc/map.h" />
+		<Unit filename="inc/mapper.h" />
+		<Unit filename="inc/maths.h" />
+		<Unit filename="inc/maths3D.h" />
+		<Unit filename="inc/memory.h" />
+		<Unit filename="inc/pal.h" />
+		<Unit filename="inc/psg.h" />
+		<Unit filename="inc/smp_null.h" />
+		<Unit filename="inc/smp_null_pcm.h" />
+		<Unit filename="inc/sound.h" />
+		<Unit filename="inc/sprite_eng.h" />
+		<Unit filename="inc/sram.h" />
+		<Unit filename="inc/string.h" />
+		<Unit filename="inc/sys.h" />
+		<Unit filename="inc/tab_cnv.h" />
+		<Unit filename="inc/tab_vol.h" />
+		<Unit filename="inc/timer.h" />
+		<Unit filename="inc/tools.h" />
+		<Unit filename="inc/types.h" />
+		<Unit filename="inc/vdp.h" />
+		<Unit filename="inc/vdp_bg.h" />
+		<Unit filename="inc/vdp_dma.h" />
+		<Unit filename="inc/vdp_pal.h" />
+		<Unit filename="inc/vdp_spr.h" />
+		<Unit filename="inc/vdp_tile.h" />
+		<Unit filename="inc/vram.h" />
+		<Unit filename="inc/xgm.h" />
+		<Unit filename="inc/ym2612.h" />
+		<Unit filename="inc/z80_ctrl.h" />
+		<Unit filename="inc/z80_mvsc.h" />
+		<Unit filename="inc/z80_vgm.h" />
+		<Unit filename="res/fontdata.res" />
+		<Unit filename="res/graphics.res" />
+		<Unit filename="res/samples.res" />
+		<Unit filename="src/MDT_Chips.h" />
+		<Unit filename="src/MDT_GUI.h" />
+		<Unit filename="src/MDT_Info.h" />
+		<Unit filename="src/MDT_Main.h" />
+		<Unit filename="src/MDT_ModuleData.h" />
+		<Unit filename="src/MDT_NoteTables.h" />
+		<Unit filename="src/MDT_PCM.h" />
+		<Unit filename="src/MDT_SRAM.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/MDT_SRAM.h" />
+		<Unit filename="src/boot/rom_head.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Extensions>
+			<code_completion>
+				<search_path add="C:\gamedev\sega\sgdk\inc" />
+			</code_completion>
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
