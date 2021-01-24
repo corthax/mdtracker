@@ -5,8 +5,8 @@
 
 //{ Instrument data SRAM offsets
 #define INST_ALG 0 // 1 byte ..
-#define INST_AMS 1
-#define INST_FMS 2
+#define INST_FMS 1
+#define INST_AMS 2
 #define INST_PAN 3
 #define INST_FB 4
 

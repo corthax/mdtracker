@@ -27,13 +27,15 @@ bugs:
 		something everdrive specific.
 	low perfomance.
 		save instrument parameters as direct register writes.
-		no ram temp struct.
+		no ram temp struct for curent instrument storage.
 
 ideas:
 	instrument presets bank in ROM based on general midi
-	PSG "PWM" simulation. make for separate cannels. follow current note. - slow playback speed without hBlank skipping.. manual counter is unstable
-	pattern name. - no sram space left in X2, only for X5
-	extend fm lower notes. - really usable?
+	PSG "PWM" simulation. make for separate cannels, follow current note.
+	pattern name.
+		no sram space left in X2, only for X5
+	extend fm lower notes.
+		really usable?
 	ROM editor: pcm bank, instrument presets bank.
 	save converter between versions.
 	X3, X1 versions
@@ -586,4 +588,4 @@ xx: 09 .. 5F; A-0 .. B-7, can be altered with pitch modifying commands.
 ------------------------------------------------	
 + EOF
 ------------------------------------------------
-SGDK 1.60
+Powered by SGDK 1.60

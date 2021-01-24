@@ -412,8 +412,8 @@ void NavigateInstrument(u8 direction) {
         switch (selectedInstrumentParameter)
         {
         case GUI_INST_PARAM_ALG:
-        case GUI_INST_PARAM_AMS:
         case GUI_INST_PARAM_FMS:
+        case GUI_INST_PARAM_AMS:
         case GUI_INST_PARAM_PAN:
         case GUI_INST_PARAM_FB:
         case GUI_INST_PARAM_LFO:
@@ -458,8 +458,8 @@ void NavigateInstrument(u8 direction) {
         switch (selectedInstrumentParameter)
         {
         case GUI_INST_PARAM_ALG:
-        case GUI_INST_PARAM_AMS:
         case GUI_INST_PARAM_FMS:
+        case GUI_INST_PARAM_AMS:
         case GUI_INST_PARAM_PAN:
         case GUI_INST_PARAM_FB:
         case GUI_INST_PARAM_LFO:
@@ -1852,8 +1852,8 @@ void DrawStaticHeaders()
     DrawText(BG_A, PAL3, "INST", 81, 0); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 85, 0);
     //
     DrawText(BG_A, PAL3, "ALG", 81, 2);
-    DrawText(BG_A, PAL3, "AMS", 81, 3);
-    DrawText(BG_A, PAL3, "FMS", 81, 4);
+    DrawText(BG_A, PAL3, "FMS", 81, 3);
+    DrawText(BG_A, PAL3, "AMS", 81, 4);
     DrawText(BG_A, PAL3, "PAN", 81, 5);
     DrawText(BG_A, PAL3, "FB", 81, 6);
     for (u8 y=2; y<7; y++) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 85, y);
@@ -1886,9 +1886,9 @@ void DrawStaticHeaders()
     DrawText(BG_A, PAL3, "DETUNE", 81, 12);
 
     DrawText(BG_A, PAL3, "ATTACK", 81, 14);
-    DrawText(BG_A, PAL3, "DECAY", 81, 15); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_1), 87, 15);
+    DrawText(BG_A, PAL3, "DECAY", 81, 15); //VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_1), 87, 15);
     DrawText(BG_A, PAL3, "SUSTAIN", 81, 16);
-    DrawText(BG_A, PAL3, "DECAY", 81, 17); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_1), 87, 17);
+    DrawText(BG_A, PAL3, "DECAY", 81, 17); //VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_1), 87, 17);
     DrawText(BG_A, PAL3, "RELEASE", 81, 18);
     for (u8 i=0; i<4; i++)
     {
@@ -1993,8 +1993,8 @@ void DrawSelectionBrackets(u8 x, u8 y, u8 bClear)
         switch (selectedInstrumentParameter)
         {
         case GUI_INST_PARAM_ALG:
-        case GUI_INST_PARAM_AMS:
         case GUI_INST_PARAM_FMS:
+        case GUI_INST_PARAM_AMS:
         case GUI_INST_PARAM_PAN:
         case GUI_INST_PARAM_FB:
             offsetX2 = 87; offsetY = 2; mult = 0; selectedInstrumentOperator = 0;
@@ -2527,15 +2527,15 @@ static void ChangeInstrumentParameter(s8 modifier)
         if (value < 0) value = 0; else if (value > 7) value = 7;
         WriteInstrumentSRAM(selectedInstrumentID, INST_ALG, value);
         break;
-    case GUI_INST_PARAM_AMS:
-        value = ReadInstrumentSRAM(selectedInstrumentID, INST_AMS) + modifier;
-        if (value < 0) value = 0; else if (value > 7) value = 7;
-        WriteInstrumentSRAM(selectedInstrumentID, INST_AMS, value);
-        break;
     case GUI_INST_PARAM_FMS:
         value = ReadInstrumentSRAM(selectedInstrumentID, INST_FMS) + modifier;
-        if (value < 0) value = 0; else if (value > 3) value = 3;
+        if (value < 0) value = 0; else if (value > 7) value = 7;
         WriteInstrumentSRAM(selectedInstrumentID, INST_FMS, value);
+        break;
+    case GUI_INST_PARAM_AMS:
+        value = ReadInstrumentSRAM(selectedInstrumentID, INST_AMS) + modifier;
+        if (value < 0) value = 0; else if (value > 3) value = 3;
+        WriteInstrumentSRAM(selectedInstrumentID, INST_AMS, value);
         break;
     case GUI_INST_PARAM_PAN:
         value = ReadInstrumentSRAM(selectedInstrumentID, INST_PAN) + modifier;
@@ -2775,13 +2775,13 @@ void DisplayInstrumentEditor()
                 }
             }
             break;
-        case GUI_INST_PARAM_AMS: case 254:
-            value = ReadInstrumentSRAM(selectedInstrumentID, INST_AMS);
+        case GUI_INST_PARAM_FMS: case 254:
+            value = ReadInstrumentSRAM(selectedInstrumentID, INST_FMS);
             if (value == 0) FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_MINUS, 2, 87, 3);
             else DrawHex2(PAL0, value, 87, 3);
             break;
-        case GUI_INST_PARAM_FMS: case 253:
-            value = ReadInstrumentSRAM(selectedInstrumentID, INST_FMS);
+        case GUI_INST_PARAM_AMS: case 253:
+            value = ReadInstrumentSRAM(selectedInstrumentID, INST_AMS);
             if (value == 0) FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_MINUS, 2, 87, 4);
             else DrawHex2(PAL0, value, 87, 4);
             break;
@@ -2805,7 +2805,7 @@ void DisplayInstrumentEditor()
             DrawHex2(PAL0, ReadInstrumentSRAM(selectedInstrumentID, INST_FB), 87, 6);
             break;
         case GUI_INST_PARAM_TL: case 250:
-            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 0x7F - ReadInstrumentSRAM(selectedInstrumentID, INST_TL1 + i), 94 + i*3, 9);
+            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 0x80 - ReadInstrumentSRAM(selectedInstrumentID, INST_TL1 + i), 94 + i*3, 9);
             break;
         case GUI_INST_PARAM_RS: case 249:
             for (u8 i=0; i<4; i++)
@@ -2829,21 +2829,19 @@ void DisplayInstrumentEditor()
             }
             break;
         case GUI_INST_PARAM_AR: case 246:
-            for (u8 i=0; i<4; i++) DrawHex2(PAL0, ReadInstrumentSRAM(selectedInstrumentID, INST_AR1 + i), 94 + i*3, 14);
+            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ ReadInstrumentSRAM(selectedInstrumentID, INST_AR1 + i), 94 + i*3, 14);
             break;
         case GUI_INST_PARAM_D1R: case 245:
-            for (u8 i=0; i<4; i++) DrawHex2(PAL0, ReadInstrumentSRAM(selectedInstrumentID, INST_D1R1 + i), 94 + i*3, 15);
+            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ ReadInstrumentSRAM(selectedInstrumentID, INST_D1R1 + i), 94 + i*3, 15);
             break;
         case GUI_INST_PARAM_D1L: case 244:
-            for (u8 i=0; i<4; i++)
-                VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + ReadInstrumentSRAM(selectedInstrumentID, INST_D1L1 + i)), 95 + i*3, 16);
+            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ ReadInstrumentSRAM(selectedInstrumentID, INST_D1L1 + i), 94 + i*3, 16);
             break;
         case GUI_INST_PARAM_D2R: case 243:
-            for (u8 i=0; i<4; i++) DrawHex2(PAL0, ReadInstrumentSRAM(selectedInstrumentID, INST_D2R1 + i), 94 + i*3, 17);
+            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ ReadInstrumentSRAM(selectedInstrumentID, INST_D2R1 + i), 94 + i*3, 17);
             break;
         case GUI_INST_PARAM_RR: case 242:
-            for (u8 i=0; i<4; i++)
-                VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + ReadInstrumentSRAM(selectedInstrumentID, INST_RR1 + i)), 95 + i*3, 18);
+            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ ReadInstrumentSRAM(selectedInstrumentID, INST_RR1 + i), 94 + i*3, 18);
             break;
         case GUI_INST_PARAM_AM: case 241:
             for (u8 i=0; i<4; i++)
@@ -3618,8 +3616,8 @@ static void InitGlobals()
 static void ReadInstrument(u8 id)
 {
     tmpInst.ALG = ReadInstrumentSRAM(id, INST_ALG);
-    tmpInst.AMS = ReadInstrumentSRAM(id, INST_AMS);
-    tmpInst.FMS = ReadInstrumentSRAM(id, INST_FMS);
+    tmpInst.AMS = ReadInstrumentSRAM(id, INST_FMS);
+    tmpInst.FMS = ReadInstrumentSRAM(id, INST_AMS);
     tmpInst.PAN = ReadInstrumentSRAM(id, INST_PAN);
     tmpInst.FB = ReadInstrumentSRAM(id, INST_FB);
 
@@ -3807,11 +3805,11 @@ static void WriteInstrument(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // 
     auto void write_alg(u8 value) { data = (ReadInstrumentSRAM(id, INST_FB) << 3) | value; YM2612_writeReg(port, YM2612REG_FB_ALG + fmChannel, data); }
     auto void write_fb(u8 value) { data = (value << 3) | ReadInstrumentSRAM(id, INST_ALG); YM2612_writeReg(port, YM2612REG_FB_ALG + fmChannel, data); }
 
-    auto void write_pan(u8 value) { data = ((value << 6) | (ReadInstrumentSRAM(id, INST_AMS) << 3)) | ReadInstrumentSRAM(id, INST_FMS);
+    auto void write_pan(u8 value) { data = ((value << 6) | (ReadInstrumentSRAM(id, INST_FMS) << 3)) | ReadInstrumentSRAM(id, INST_AMS);
         YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS + fmChannel, data); }
-    auto void write_ams(u8 value) { data = ((ReadInstrumentSRAM(id, INST_PAN) << 6) | value << 3) | ReadInstrumentSRAM(id, INST_FMS);
+    auto void write_ams(u8 value) { data = ((ReadInstrumentSRAM(id, INST_PAN) << 6) | value << 3) | ReadInstrumentSRAM(id, INST_AMS);
         YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS + fmChannel, data); }
-    auto void write_fms(u8 value) { data = ((ReadInstrumentSRAM(id, INST_PAN) << 6) | (ReadInstrumentSRAM(id, INST_AMS) << 3)) | value;
+    auto void write_fms(u8 value) { data = ((ReadInstrumentSRAM(id, INST_PAN) << 6) | (ReadInstrumentSRAM(id, INST_FMS) << 3)) | value;
         YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS + fmChannel, data); }
 
     auto void write_am1(u8 value) { data = (value << 7) | ReadInstrumentSRAM(id, INST_D1R1); YM2612_writeReg(port, YM2612REG_OP1_AM_D1R + fmChannel, data); }
@@ -4214,14 +4212,14 @@ static void WriteInstrument(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // 
 
             // AMS
             case 0x0C:
-                if (fxValue == 0) write_ams(ReadInstrumentSRAM(id, INST_AMS));
+                if (fxValue == 0) write_ams(ReadInstrumentSRAM(id, INST_FMS));
                 else if (fxValue < 8) { tmpInst.AMS = fxValue; write_ams(tmpInst.AMS); }
                 else if (fxValue == 0x0F) { tmpInst.AMS = 0; write_ams(0); }
                 break;
 
             // FMS
             case 0x0D:
-                if (fxValue == 0) write_fms(ReadInstrumentSRAM(id, INST_FMS));
+                if (fxValue == 0) write_fms(ReadInstrumentSRAM(id, INST_AMS));
                 else if (fxValue < 4) { tmpInst.FMS = fxValue; write_fms(tmpInst.FMS); }
                 else if (fxValue == 0x0F) { tmpInst.FMS = 0; write_fms(0); }
                 break;
@@ -4763,8 +4761,8 @@ static void InitTracker()
             WriteInstrumentSRAM(i, INST_FB, 3);
             WriteInstrumentSRAM(i, INST_ALG, 3);
             WriteInstrumentSRAM(i, INST_PAN, 3);
-            WriteInstrumentSRAM(i, INST_AMS, 0);
             WriteInstrumentSRAM(i, INST_FMS, 0);
+            WriteInstrumentSRAM(i, INST_AMS, 0);
 
             for (u8 j = 0; j < 16; j++)
             {

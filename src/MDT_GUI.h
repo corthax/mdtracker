@@ -5,8 +5,8 @@
 
 // -----------------------------------------------------------
 #define GUI_INST_PARAM_ALG      0
-#define GUI_INST_PARAM_AMS      1
-#define GUI_INST_PARAM_FMS      2
+#define GUI_INST_PARAM_FMS      1
+#define GUI_INST_PARAM_AMS      2
 #define GUI_INST_PARAM_PAN      3
 #define GUI_INST_PARAM_FB       4
 #define GUI_INST_PARAM_TL       5
