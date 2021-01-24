@@ -1,6 +1,7 @@
 #include <types.h>
 
-#define MD_TRACKER_VERSION 2
+#define MD_TRACKER_VERSION  2
+#define ENABLE_BANK_SWITCH  0
 
 __attribute__((externally_visible))
 const struct
@@ -33,8 +34,8 @@ const struct
 //    "SEGA PICO      "	Pico
 //    "SEGA TERA68K   "	Tera Drive (boot from 68000 side)
 //    "SEGA TERA286   "	Tera Drive (boot from x86 side)
-#if (ENABLE_BANK_SWITCH != 0)
-    "SEGA SSF        ",
+#if (ENABLE_BANK_SWITCH == 1)
+    "SEGA SSF        ", // corrupted
 #else
     "SEGA EVERDRIVE  ",
 #endif

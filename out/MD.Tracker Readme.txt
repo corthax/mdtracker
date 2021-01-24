@@ -18,6 +18,7 @@ TODO:
 
 need:
 	solo/mute instrument.
+	extend pattern help info.
 
 bugs:
 	hanging notes on hw.
@@ -27,7 +28,7 @@ bugs:
 		something everdrive specific.
 	low perfomance.
 		save instrument parameters as direct register writes.
-		no ram temp struct for curent instrument storage.
+		no ram temp struct for curent writen instrument.
 
 ideas:
 	instrument presets bank in ROM based on general midi

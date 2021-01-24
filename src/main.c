@@ -1,6 +1,6 @@
 #include <genesis.h>
 //#include <maths.h>
-//#include <everdrive.h>
+#include <everdrive.h>
 #include <sram.h>
 
 #include "fontdata.h"
@@ -77,7 +77,6 @@ u8 ticksPerEvenRow = 16;
 u8 maxFrame = 16;
 s8 frameCounter = 0; // 8 PPL
 
-//u16 timerB = 0;
 u16 subTicksToSkip = 0;
 
 // channel effects
@@ -350,27 +349,27 @@ void NavigateMatrix(u8 direction) {
     switch (direction) {
     case BUTTON_LEFT:
         if (selectedMatrixScreenRow <= MAX_MATRIX_SCREEN_ROW) { // not BPM
-        DrawSelectionBrackets(selectedChannel, selectedMatrixScreenRow, TRUE);
+        DrawSelectionCursor(selectedChannel, selectedMatrixScreenRow, TRUE);
         if (selectedChannel > CHANNEL_FM1) selectedChannel--; else selectedChannel = CHANNELS_TOTAL - 1;
-        DrawSelectionBrackets(selectedChannel, selectedMatrixScreenRow, FALSE);
+        DrawSelectionCursor(selectedChannel, selectedMatrixScreenRow, FALSE);
         }
         break;
     case BUTTON_RIGHT:
         if (selectedMatrixScreenRow <= MAX_MATRIX_SCREEN_ROW) { // not BPM
-        DrawSelectionBrackets(selectedChannel, selectedMatrixScreenRow, TRUE);
+        DrawSelectionCursor(selectedChannel, selectedMatrixScreenRow, TRUE);
         if (selectedChannel < CHANNELS_TOTAL - 1) selectedChannel++; else selectedChannel = CHANNEL_FM1;
-        DrawSelectionBrackets(selectedChannel, selectedMatrixScreenRow, FALSE);
+        DrawSelectionCursor(selectedChannel, selectedMatrixScreenRow, FALSE);
         }
         break;
     case BUTTON_UP:
-        DrawSelectionBrackets(selectedChannel, selectedMatrixScreenRow, TRUE);
+        DrawSelectionCursor(selectedChannel, selectedMatrixScreenRow, TRUE);
         if (selectedMatrixScreenRow > 0) selectedMatrixScreenRow--; else selectedMatrixScreenRow = MAX_MATRIX_SCREEN_ROW;
-        DrawSelectionBrackets(selectedChannel, selectedMatrixScreenRow, FALSE);
+        DrawSelectionCursor(selectedChannel, selectedMatrixScreenRow, FALSE);
         break;
     case BUTTON_DOWN:
-        DrawSelectionBrackets(selectedChannel, selectedMatrixScreenRow, TRUE);
+        DrawSelectionCursor(selectedChannel, selectedMatrixScreenRow, TRUE);
         if (selectedMatrixScreenRow < MAX_MATRIX_SCREEN_ROW + 1) selectedMatrixScreenRow++; else selectedMatrixScreenRow = 0;
-        DrawSelectionBrackets(selectedChannel, selectedMatrixScreenRow, FALSE);
+        DrawSelectionCursor(selectedChannel, selectedMatrixScreenRow, FALSE);
         break;
     }
 }
@@ -378,28 +377,28 @@ void NavigateMatrix(u8 direction) {
 void NavigatePattern(u8 direction) {
     switch (direction) {
     case BUTTON_LEFT:
-        DrawSelectionBrackets(selectedPatternColumn, selectedPatternRow, TRUE);
+        DrawSelectionCursor(selectedPatternColumn, selectedPatternRow, TRUE);
         if (selectedPatternColumn > 0) selectedPatternColumn--;
         else selectedPatternColumn = GUI_PATTERN_COLUMN_LAST; // jump right
-        DrawSelectionBrackets(selectedPatternColumn, selectedPatternRow, FALSE);
+        DrawSelectionCursor(selectedPatternColumn, selectedPatternRow, FALSE);
         break;
     case BUTTON_RIGHT:
-        DrawSelectionBrackets(selectedPatternColumn, selectedPatternRow, TRUE);
+        DrawSelectionCursor(selectedPatternColumn, selectedPatternRow, TRUE);
         if (selectedPatternColumn < GUI_PATTERN_COLUMN_LAST) selectedPatternColumn++;
         else selectedPatternColumn = 0; // jump left
-        DrawSelectionBrackets(selectedPatternColumn, selectedPatternRow, FALSE);
+        DrawSelectionCursor(selectedPatternColumn, selectedPatternRow, FALSE);
         break;
     case BUTTON_UP:
-        DrawSelectionBrackets(selectedPatternColumn, selectedPatternRow, TRUE);
+        DrawSelectionCursor(selectedPatternColumn, selectedPatternRow, TRUE);
         if (selectedPatternRow > 0) selectedPatternRow--;
         else selectedPatternRow = GUI_PATTERN_ROW_LAST; // jump down; 0-15 = pattern;
-        DrawSelectionBrackets(selectedPatternColumn, selectedPatternRow, FALSE);
+        DrawSelectionCursor(selectedPatternColumn, selectedPatternRow, FALSE);
         break;
     case BUTTON_DOWN:
-        DrawSelectionBrackets(selectedPatternColumn, selectedPatternRow, TRUE);
+        DrawSelectionCursor(selectedPatternColumn, selectedPatternRow, TRUE);
         if (selectedPatternRow < GUI_PATTERN_ROW_LAST) selectedPatternRow++; // MAX_PATTERN_LINES - 16
         else selectedPatternRow = 0; // jump up
-        DrawSelectionBrackets(selectedPatternColumn, selectedPatternRow, FALSE);
+        DrawSelectionCursor(selectedPatternColumn, selectedPatternRow, FALSE);
         break;
     }
 }
@@ -407,7 +406,7 @@ void NavigatePattern(u8 direction) {
 void NavigateInstrument(u8 direction) {
     switch (direction) {
     case BUTTON_LEFT:
-        DrawSelectionBrackets(selectedInstrumentOperator, selectedInstrumentParameter, 1);
+        DrawSelectionCursor(selectedInstrumentOperator, selectedInstrumentParameter, TRUE);
 
         switch (selectedInstrumentParameter)
         {
@@ -449,11 +448,11 @@ void NavigateInstrument(u8 direction) {
             break;
         }
 
-        DrawSelectionBrackets(selectedInstrumentOperator, selectedInstrumentParameter, 0);
+        DrawSelectionCursor(selectedInstrumentOperator, selectedInstrumentParameter, FALSE);
         break;
 
     case BUTTON_RIGHT:
-        DrawSelectionBrackets(selectedInstrumentOperator, selectedInstrumentParameter, 1);
+        DrawSelectionCursor(selectedInstrumentOperator, selectedInstrumentParameter, TRUE);
 
         switch (selectedInstrumentParameter)
         {
@@ -495,11 +494,11 @@ void NavigateInstrument(u8 direction) {
             break;
         }
 
-        DrawSelectionBrackets(selectedInstrumentOperator, selectedInstrumentParameter, 0);
+        DrawSelectionCursor(selectedInstrumentOperator, selectedInstrumentParameter, FALSE);
         break;
 
     case BUTTON_UP:
-        DrawSelectionBrackets(selectedInstrumentOperator, selectedInstrumentParameter, 1);
+        DrawSelectionCursor(selectedInstrumentOperator, selectedInstrumentParameter, TRUE);
         switch (selectedInstrumentParameter)
         {
         case GUI_INST_PARAM_ALG:
@@ -511,11 +510,11 @@ void NavigateInstrument(u8 direction) {
         }
 
         if (selectedInstrumentParameter > 0) selectedInstrumentParameter--; else selectedInstrumentParameter = GUI_INST_MAX_PARAMETER; // jump down
-        DrawSelectionBrackets(selectedInstrumentOperator, selectedInstrumentParameter, 0);
+        DrawSelectionCursor(selectedInstrumentOperator, selectedInstrumentParameter, FALSE);
         break;
 
     case BUTTON_DOWN:
-        DrawSelectionBrackets(selectedInstrumentOperator, selectedInstrumentParameter, 1);
+        DrawSelectionCursor(selectedInstrumentOperator, selectedInstrumentParameter, TRUE);
         switch (selectedInstrumentParameter)
         {
         case GUI_INST_PARAM_ARPSEQ:
@@ -527,7 +526,7 @@ void NavigateInstrument(u8 direction) {
         }
 
         if (selectedInstrumentParameter < GUI_INST_MAX_PARAMETER) selectedInstrumentParameter++; else selectedInstrumentParameter = 0; // jump up
-        DrawSelectionBrackets(selectedInstrumentOperator, selectedInstrumentParameter, 0);
+        DrawSelectionCursor(selectedInstrumentOperator, selectedInstrumentParameter, FALSE);
         break;
     }
 }
@@ -798,9 +797,9 @@ static void DoEngine()
                     // write only when instrument is changed and not empty
                     static u8 inst = 0;
                     inst = ReadPatternSRAM(playingPatternID, playingPatternRow, DATA_INSTRUMENT);
-                    if (inst != 0)
+                    if (inst != NULL)
                     {
-                        //! nor necessary, can be redone to write registers directly from SRAM without temporal RAM storage.
+                        //! nor necessary, can be redone to write registers directly from SRAM without temporal RAM storage. but then need to redone commands.
                         ReadInstrument(inst); // read into temp storage structure, also sets the base channel volume
                         previousInstrument[channel] = inst;
                     }
@@ -828,8 +827,7 @@ static void DoEngine()
                     command(DATA_FX6_TYPE, DATA_FX6_VALUE, 5);
 #endif
 
-                    if (inst != 0)
-                    {
+                    if (inst != NULL) {
                         WriteInstrument(channel, inst, FALSE, FALSE);
                     }
 
@@ -864,7 +862,7 @@ static void DoEngine()
                         }
                     }
 
-                    /*if (inst == 0)
+                    /*if (inst == NULL)
                     {
                         SetChannelVolume(channel); // why? uncomment if bugs
                     }*/
@@ -1722,10 +1720,10 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
 void DrawStaticHeaders()
 {
     // draw default initial brackets
-    currentScreen = 0; DrawSelectionBrackets(0, 0, 0); // matrix
-    currentScreen = 1; DrawSelectionBrackets(0, 0, 0); // pattern
-    currentScreen = 2; DrawSelectionBrackets(0, 0, 0); // instrument
-    currentScreen = 0;
+    currentScreen = 2; DrawSelectionCursor(0, 0, 0); // instrument
+    currentScreen = 1; DrawSelectionCursor(0, 0, 0); // pattern
+    currentScreen = 0; DrawSelectionCursor(0, 0, 0); // matrix
+
     // pattern matrix
     VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_VERSION),     38, 27); // version
     VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_VERSION+1),   39, 27);
@@ -1886,16 +1884,15 @@ void DrawStaticHeaders()
     DrawText(BG_A, PAL3, "DETUNE", 81, 12);
 
     DrawText(BG_A, PAL3, "ATTACK", 81, 14);
-    DrawText(BG_A, PAL3, "DECAY", 81, 15); //VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_1), 87, 15);
+    DrawText(BG_A, PAL3, "DECAY", 81, 15); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_1), 87, 15);
     DrawText(BG_A, PAL3, "SUSTAIN", 81, 16);
-    DrawText(BG_A, PAL3, "DECAY", 81, 17); //VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_1), 87, 17);
+    DrawText(BG_A, PAL3, "DECAY", 81, 17); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_2), 87, 17);
     DrawText(BG_A, PAL3, "RELEASE", 81, 18);
+
     for (u8 i=0; i<4; i++)
     {
         VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_0), 94 + i*3, 10);
         VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_0), 94 + i*3, 11);
-        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_0), 94 + i*3, 16);
-        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_0), 94 + i*3, 18);
     }
 
     DrawText(BG_A, PAL3, "AM", 81, 20); DrawText(BG_A, PAL3, "LFO", 84, 20);
@@ -1916,7 +1913,7 @@ void DrawStaticHeaders()
     for (u8 y=24; y<27; y++) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 84, y);
 }
 // draw brackets at selected parameter in grid
-void DrawSelectionBrackets(u8 x, u8 y, u8 bClear)
+void DrawSelectionCursor(u8 x, u8 y, u8 bClear)
 {
     static s8 offsetX2 = 7;
     static s8 offsetY = 3;
@@ -4579,12 +4576,8 @@ static void WriteSampleRegionSRAM(u8 bank, u8 note, u8 byteNum, u8 data)
 
 static void InitTracker()
 {
-    // everdrive initialization.
-    // def_rom_bank = 0 if app placed in 0-0x400000 area, 1 if in 0x400000-0x800000 area
-    //_is_ram_app = 0 if app assembled for work in rom, 1 if app assembled for work in ram
-    //evd_init(0, 1);
-    // SD/MMC card initialization. should be run just one times, after this cart will be ready for work
-    //evd_mmcInit();
+    evd_init(0, 1);
+    //evd_mmcInit(); // black screen in BlastEm
 
 	SYS_disableInts();
 
@@ -4595,10 +4588,6 @@ static void InitTracker()
     VDP_setHilightShadow(FALSE);
     VDP_setScanMode(INTERLACED_NONE);
 
-    // set all palette to black
-    //VDP_setPaletteColors(0, (u16*) palette_black, 64);
-
-    //VDP_drawImageEx(BG_B, &imag, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, ind), 0, 0, TRUE, TRUE);
     //each plane can be a maximum of 4,096 tiles in memory (at dimensions 32x32, 32x64, 64x64, or 32x128, with up to 40x28 visible on screen)
     //Foreground (Plane A) 	0, $2000, $4000, $6000, $8000, $A000, $C000, $E000
     //Background (Plane B) 	0, $2000, $4000, $6000, $8000, $A000, $C000, $E000
@@ -4638,12 +4627,11 @@ static void InitTracker()
     bgBaseTileIndex[1] = ind; asciiBaseLetters = ind - 55; asciiBaseNumbers = ind - 48;
     VDP_loadTileSet(&numletters, ind, DMA);
     ind += numletters.numTile;
-    // gui symbols
+    // GUI symbols
     bgBaseTileIndex[2] = ind;
     VDP_loadTileSet(&gui, ind, DMA);
     ind += numletters.numTile;
 
-	//MEM_init();
     PSG_init();
     SRAM_enable();
     YM2612_reset();
@@ -4651,7 +4639,7 @@ static void InitTracker()
     Z80_init();
     Z80_loadDriver(Z80_DRIVER_PCM, TRUE);
 
-    // sprite engine
+    // sprite engine. very slow
     /*SPR_initEx(1, 1);
     patCur = SPR_addSpriteSafe(&pat_cur, 10, 20, TILE_ATTR(PAL0, TRUE, FALSE, FALSE));
     SPR_setDepth(patCur, SPR_MIN_DEPTH);
@@ -4686,10 +4674,10 @@ static void InitTracker()
 
     DrawStaticHeaders();
 
-    if (SRAMW_readWord(DEAD_INSTRUMENT) != 0xDEAD) // there is no sram file, needs fresh init.
+    if (SRAMW_readWord(DEAD_INSTRUMENT) != 0xDEAD) // there is no SRAM file, needs fresh init.
     {
         SetBPM(0x1D); // 120 BPM PAL; 144 BPM NTSC
-        // init with default instrument; 49 non-global params (5 for whole channel, 11x4 per operator)
+        // init with default instrument; 49 non-global parameters (5 for whole channel, 11*4 per operator)
         DrawText(BG_A, PAL0, "GENERATING", 3, 3); DrawText(BG_A, PAL0, "MODULE", 14, 3); DrawText(BG_A, PAL0, "DATA", 21, 3);
         for (u16 i = 0; i <= MAX_INSTRUMENT; i++)
         {
@@ -4776,7 +4764,7 @@ static void InitTracker()
         }
 
         SRAMW_writeByte(GLOBAL_LFO, 7);
-        SRAMW_writeWord(DEAD_INSTRUMENT, 0xDEAD);
+        SRAMW_writeWord(DEAD_INSTRUMENT, 0xDEAD); // checker
 
         // init matrix
         for (u8 i = CHANNEL_FM1; i < CHANNELS_TOTAL; i++) // 12
@@ -4818,7 +4806,6 @@ static void InitTracker()
     }
 
     InitGlobals(); // dac off, normal ch3, no lfo
-    //samplesSize = sizeof(sample_bank_bin) / sizeof(sample_bank_bin[0]) - 1;
     sampleBankSize = sizeof(sample_bank_1);
 
     /*

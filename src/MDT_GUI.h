@@ -178,7 +178,7 @@ void DisplayPatternEditor();
 void DisplayInstrumentEditor();
 
 void DrawStaticHeaders();
-void DrawSelectionBrackets(u8 x, u8 y, u8 bClear);
+void DrawSelectionCursor(u8 x, u8 y, u8 bClear);
 
 void DrawMatrixPlaybackCursor();
 void ClearMatrixPlaybackCursor();
