@@ -31,6 +31,7 @@
 #define GUI_INST_PARAM_PCM_RATE     24
 #define GUI_INST_PARAM_NAME     25
 #define GUI_INST_PARAM_COPY     26
+#define GUI_INST_PARAM_STATE    27
 
 #define GUI_INST_MAX_PARAMETER  26
 // -----------------------------------------------------------

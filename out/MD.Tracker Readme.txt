@@ -12,35 +12,17 @@ Native music tracker for SEGA MEGA DRIVE / GENESIS / NOMAD
 ░░░░░     ░░░░░ ░░░░░░░░░░   ░░    ░░░░░    ░░░░░      ░░░░░░░░  ░░░░░░  ░░░░ ░░░░░  ░░░░░░  ░░░░░     
 
 //////////////////
-TODO:
+Supported emulators:
+	BlastEm, PicoDrive.
+		(Turn on overclocking for better experience.)
+	???
+
 //////////////////
-!!! dont forget to change ROM pcm sample region start address when changing ROM code
+Supported flashcarts:
+	Mega Everdrive X7.
+		(Partially. Saves not working. Note OFF is bugged.)
+	???
 
-need:
-	solo/mute instrument.
-	extend pattern help info.
-
-bugs:
-	hanging notes on hw.
-		disable interrupts?
-	no SRAM save on everdrive.
-		all the data is there, so SRAM can be dumped if needed.
-		something everdrive specific.
-	low perfomance.
-		save instrument parameters as direct register writes.
-		no ram temp struct for curent writen instrument.
-
-ideas:
-	instrument presets bank in ROM based on general midi
-	PSG "PWM" simulation. make for separate cannels, follow current note.
-	pattern name.
-		no sram space left in X2, only for X5
-	extend fm lower notes.
-		really usable?
-	ROM editor: pcm bank, instrument presets bank.
-	save converter between versions.
-	X3, X1 versions
-	visualisations?
 //////////////////
 
 SRAM Requirement:
@@ -53,18 +35,18 @@ If there is no song data, default is generated.
 To save as new song just rename the rom. Or move/rename SRAM file. Or whatever :)
 
 In case of BlastEm:
-Make a folder for each song and then copy/replace save.sram files.
-Or rename the rom when creating a new song, then a new folder will be created with the name of rom and a save.sram file inside. To load song, load the renamed rom.
-Usual BlastEm save.sram path: Users\[USERNAME]\AppData\Local\blastem\
+	Make a folder for each song and then copy/replace save.sram files.
+	Or rename the rom when creating a new song, then a new folder will be created with the name of rom and a save.sram file inside. To load song, load the renamed rom.
+	Usual BlastEm save.sram path: Users\[USERNAME]\AppData\Local\blastem\
 
-//////////////////
-WARNING
-//////////////////
-Keep in mind, when updating to new BlastEm or version, save.sram files in the user folder may be deleted.
-Backup them first!
-!!! SOME EFFECT COMMANDS MAY CHANGE AT RELEASE
+	//////////////////
+	WARNING
+	//////////////////
+	Keep in mind, when updating to new BlastEm or version, save.sram files in the user folder may be deleted.
+	Backup them first!
+
 There is a little playback slowdown when changing screens due graphics redraw.
-Flashcart should support SRAM in 16bit mode (both even and odd bytes).
+Operational environment must support SRAM reads/writes in 16 bit mode (both even and odd bytes).
 //////////////////
 
 ----------------
@@ -114,38 +96,53 @@ SRAM used as additional RAM, but only holds the module data.
 Global Controls
 ----------------
 
-X		Select Pattern Matrix.
+When selecting Pattern Editor, current selected pattern will be opened. Nothing if no pattern is selected.
+When selecting Instrument Editor, current selected instrument will be opened. Last if no instument or anything else is selected.
 
-Y		Select Pattern Editor.
-		Current selected pattern will be opened. Nothing if no pattern is selected.
+	Start	Play song from the beginning of selected pattern in the matrix.
 
-Z		Select Instrument Editor.
-		Current selected instrument will be opened. Last if no instument or anything else is selected.
+	Mode	Play song from position of selected pattern in the matrix + selected row in pattern editor.
 
-Start	Play song from the beginning of selected pattern in the matrix.
-
-Mode	Play song from position of selected pattern in the matrix + selected row in pattern editor.
 
 ----------------
 Patterm Matrix
 ----------------
 
-D-Pad	Navigate through rows / channels.
+Playback cursor indicate the current playing row on screen, even if it is on different page.
 
-X+L/R	Change current page.
-X+U		Mute channel. Unmute all channels if resulting all channels muted.
-X+D		Un-Mute channel. Solo channel if all channels Un-Muted.
-X+Y		Un-Mute all channels.
+'
+	Navigate:
+	
+	D-Pad	Navigate through rows / channels.
 
-A+L/R	Change value (+-1).
-A+U/D	Change value (+-16).
+	X+L		Go to NSTRUMENT editor.
+	X+R		Go to PATTERN editor.
+	
+	Z+R		Select matrix page (+1).
+	Z+L		Select matrix page (-1).
+	Z+U		Select matrix page (+4).
+	Z+D		Select matrix page (-4).
+	
+	Mute, Un-mute, Solo:
+	
+	X+U		Mute channel. Unmute all channels if resulting all channels muted.
+	X+D		Un-Mute channel. Solo channel if all channels Un-Muted.
+	X+Y		Un-Mute all channels.
+	
+	Edit:
+	
+	A+R		Change value (+1).
+	A+L		Change value (-1).
+	A+U		Change value (+16).
+	A+D		Change value (-16).
 
-C		Clear matrix cell.
+	C		Clear matrix cell.
 
-B+U		Delete selected matrix row, move rows below selected 1 up.
-B+D		Copy and insert selected matrix row, move rows below selected 1 down, last matrix row will be lost.
+	Copy+Insert, Delete:
 
-Playback cursor indicates current playing row on screen, even if it is on different page.
+	B+U		Delete selected matrix row, move rows below selected 1 up.
+	B+D		Copy and insert selected matrix row, move rows below selected 1 down, last matrix row will be lost.
+'
 
 ----------------
 Patterm Editor
@@ -154,55 +151,112 @@ Patterm Editor
 Split into two parts to fit nice on the screen, each consist of:
 Note, Instrument, Effect 1 type, Effect 1 value, Effect 2 type, Effect 2 value ...
 
-D-Pad	Navigate through rows / columns.
-
-Y+L/R	Select pattern for editing (+-1).
-Y+U/D	Select pattern for editing (+-16).
-
-A+L/R	Change selected value by +-1.
-A+U/D	Change selected value by +-16.
-		Note: Modify current value or insert last entered note/fx if empty.
-
-C		Clear value.
-C+B		Set note OFF on note column.
-
-Copy/Paste:
-
-B+D		Select range, in current pattern, starting from selected row and below. Pressing B always clears the range.
-B+U 	Select all;
-
-A+C 	Copy and Paste data from previously selected range into current pattern's selected column, starting from selected row.
-A+B 	Same but paste all data columns.
-
 Current pattern is looped when pattern or instrument editor is active.
 Setting instrument explicitly rewrites the channel's FM registers, if there are any effects, they're written after that.
+
+'
+	Navigate:
+	
+	D-Pad	Navigate through rows / columns.
+	
+	X+L		Go to MATRIX editor.
+	X+R		Go to INSTRUMENT editor.
+	
+	Z+R		Select pattern (+1).
+	Z+L		Select pattern (-1).
+	Z+U		Select pattern (+16).
+	Z+D		Select pattern (-16).
+	
+	Y		Jump to opposite side.
+	
+	Edit:
+	
+	A+R		Change value (+1).
+	A+L		Change value (-1).
+	A+U		Change value (+16).
+	A+D		Change value (-16).
+			Note: Modify current value or insert last entered note/fx if empty.
+	
+	C		Clear value.
+	C+B		Set note OFF on note column.
+	
+	Copy/Paste:
+
+	B+D		Select range, in current pattern, starting from selected row and below. Pressing B always clears selection range.
+	B+U 	Select all;
+
+	A+C 	Copy and Paste data from previously selected range into selected column of current pattern, starting from selected row.
+	A+B 	Same as above, but paste all data columns.
+	
+	Multi-edit:
+	
+	Y+R		Link cell for multi-edit.
+	Y+L		Un-link cell.
+	Y+U		Link all cells of same type.
+	Y+D		Un-link all cells.
+'
 
 ----------------
 Instrument Editor
 ----------------
 
-Z+L/R	Select instrument for editing (+-1).
-Z+U/D	Select instrument for editing (+-16).
+'
+	Navigate:
+	
+	D-Pad	Navigate through parameters.
+	
+	X+L		Go to PATTERN editor.
+	X+R		Go to MATRIX editor.
+	
+	Z+R		Select instrument (+1).
+	Z+L		Select instrument (-1).
+	Z+U		Select instrument (+16).
+	Z+D		Select instrument (-16).
+	
+	Mute, Un-mute, Solo:
+	
+	X+U 	Mute instrument. Ignore instrument writes, set instrument notes to OFF.
+	X+D 	Solo instrument. All other instruments are muted.
+	X+Y 	Un-Mute all instruments.
+	
+	Edit:
+	
+	A+R		Change value (+1).
+	A+L		Change value (-1).
+	A+U		Change value (+4).
+	A+D		Change value (-4).
+	
+	Multi-edit:
+	
+	Y+L		Mark/Un-mark FM OP1 for multi-edit.
+	Y+R		Mark/Un-mark FM OP2 for multi-edit.
+	Y+U		Mark/Un-mark FM OP3 for multi-edit.
+	Y+D		Mark/Un-mark FM OP4 for multi-edit.
 
-A+L/R	Change selected value by +-1.
-A+U/D	Change selected value by +-4.
+	Z+L/R	Select instrument for editing (+-1).
+	Z+U/D	Select instrument for editing (+-16).
 
-There are two 16 step instrument sequencers there, ARP and VOL.
+	A+L/R	Change value (+-1).
+	A+U/D	Change value (+-4).
 
-Sample:
-Bank			Select bank for editing.
-Note			Select note in bank, which region is edited.
-Region Start	Playback start time (samples, HEX).
-Region End		Playback end time (samples, HEX). Should be greater than start time.
-Loop			Is sample playback oneshot or looped.
+	There are two 16 step instrument sequencers there, ARP and VOL.
+
+	Sample:
+	Bank			Select bank for editing.
+	Note			Select note in bank, which region is edited.
+	Region Start	Playback start time (samples, HEX).
+	Region End		Playback end time (samples, HEX). Should be greater than start time.
+	Loop			Is sample playback oneshot or looped.
+
+'
 
 ------
 VOL:
 Volume attenuation sequence. Substracted from FM slots TL or PSG max volume. In case of PSG, divided by 16.
 ------
-B		Set --: to skip step. 
+	B		Set --: to skip step. 
 
-C 		Set step to max volume.
+	C 		Set step to max volume.
 
 ------
 ARP:
@@ -210,9 +264,9 @@ Arpeggiator note sequence.
 ".." base note.
 Arp range is +- 24 semitones, if resulting note is not in C-0 .. B-7 range, then the base note is played instead.
 ------
-B 		Set --: to skip step.
+	B 		Set --: to skip step.
 
-C 		Enable step.
+	C 		Enable step.
 
 NAME: 8 symbols.
 COPY: B to copy instrument to selected instrument. Only FM parameters are copied.

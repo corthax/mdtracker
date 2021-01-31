@@ -33,8 +33,13 @@
 
 #define MAX_MATRIX_ROWS         250
 #define MAX_MATRIX_SCREEN_ROW   24      // index of max line on SCREEN; starts from 0; 25 lines per page; 10 pages
+#define MAX_MATRIX_PAGE         9       // MAX_MATRIX_ROWS / (MAX_MATRIX_SCREEN_ROW + 1)) - 1
 
 #define INST_SIZE               89
+#define INST_MUTE               1
+#define INST_PLAY               0
+#define INST_SOLO               2
+
 #define MAX_INSTRUMENT          0xFF
 
 #define NOTE_EMPTY              254

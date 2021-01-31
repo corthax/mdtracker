@@ -27,7 +27,7 @@ u8 selectedMatrixScreenRow = 0; // selected matrix line on SCREEN
 u8 selectedMatrixRow = 0; // selected pattern matrix index according to page
 u8 selectedChannel = 0; // playback channel
 u8 updateCursor = 1; // playback cursor
-u8 currentPage = 0; // pattern matrix page; 25 lines per page
+s8 currentPage = 0; // pattern matrix page
 
 u8 selectedPatternRow = 0;
 u8 selectedPatternColumn = 0;
@@ -120,6 +120,8 @@ u8 patternRowJumpTo = EVALUATE_0xFF;
 u8 channelNoteDelay[CHANNELS_TOTAL];
 
 u8 ch3OpFreq[4];
+
+u8 instrumentIsMuted[MAX_INSTRUMENT]; // 1 = mute
 
 // dac
 u32 samplesSize = 0;
@@ -562,7 +564,10 @@ static void DoEngine()
 {
     static u8 bTimerB_Switch = 0; // timer switch
     static u8 value = 0;
-    static u8 fxVal = 0;
+    static u8 arptick_value = 0;
+    static u8 voltick_value = 0;
+    static u8 fxtype_value = 0;
+    static u8 fxval_value = 0;
     static u16 playingPatternID = 0;
 
     //static u32 counter = 0;
@@ -788,36 +793,48 @@ static void DoEngine()
                 playingPatternID = ReadMatrixSRAM(channel, playingMatrixRow);
                 if ((playingPatternID != 0) && (BIT_CHECK(channelFlags, channel) == 1)) // if there is some pattern and channel is not muted
                 {
-                    value = ReadInstrumentSRAM(channelVolSeqID[channel], INST_VOL_TICK_01); // volume tick sequencer
-                    if (value < 0x80)
+                    auto void command(u8 type, u8 val, u8 effect)
                     {
-                        channelSeqAttenuation[channel] = value;
+                        fxtype_value = ReadPatternSRAM(playingPatternID, playingPatternRow, type);
+                        fxval_value = ReadPatternSRAM(playingPatternID, playingPatternRow, val);
+                        if (fxtype_value != NULL) {
+                            WriteInstrument(channel, previousInstrument[channel], fxtype_value, fxval_value);
+                            previousEffect[channel][effect] = fxtype_value;
+                        }
+                        else if (fxval_value != NULL) {
+                            WriteInstrument(channel, previousInstrument[channel], previousEffect[channel][effect], fxval_value);
+                        }
+                    }
+
+                    voltick_value = ReadInstrumentSRAM(channelVolSeqID[channel], INST_VOL_TICK_01); // volume tick sequencer
+                    arptick_value = ReadInstrumentSRAM(channelArpSeqID[channel], INST_ARP_TICK_01); // arpegiator
+                    if (voltick_value < 0x80)
+                    {
+                        channelSeqAttenuation[channel] = voltick_value;
                     }
 
                     // write only when instrument is changed and not empty
                     static u8 inst = 0;
+                    static u8 note = 0;
                     inst = ReadPatternSRAM(playingPatternID, playingPatternRow, DATA_INSTRUMENT);
+
+                    if (instrumentIsMuted[inst] == INST_MUTE) // check if instrument is muted. ignore writes, replace note with OFF if so
+                    {
+                        inst = NULL; note = NOTE_OFF;
+                    }
+                    else
+                    {
+                        note = ReadPatternSRAM(playingPatternID, playingPatternRow, DATA_NOTE);
+                    }
+
                     if (inst != NULL)
                     {
-                        //! nor necessary, can be redone to write registers directly from SRAM without temporal RAM storage. but then need to redone commands.
+                        //! nor necessary, can be redone to write registers directly from SRAM without temporal RAM storage. but then need redo commands.
                         ReadInstrument(inst); // read into temp storage structure, also sets the base channel volume
                         previousInstrument[channel] = inst;
                     }
 
-                    // --------- commands
-                    auto void command(u8 type, u8 val, u8 effect)
-                    {
-                        value = ReadPatternSRAM(playingPatternID, playingPatternRow, type);
-                        fxVal = ReadPatternSRAM(playingPatternID, playingPatternRow, val);
-                        if (value != NULL) {
-                            WriteInstrument(channel, previousInstrument[channel], value, fxVal);
-                            previousEffect[channel][effect] = value;
-                        }
-                        else if (fxVal != NULL) {
-                            WriteInstrument(channel, previousInstrument[channel], previousEffect[channel][effect], fxVal);
-                        }
-                    }
-
+                    // --------- apply commands to temp instrument
                     command(DATA_FX1_TYPE, DATA_FX1_VALUE, 0);
                     command(DATA_FX2_TYPE, DATA_FX2_VALUE, 1);
                     command(DATA_FX3_TYPE, DATA_FX3_VALUE, 2);
@@ -827,15 +844,12 @@ static void DoEngine()
                     command(DATA_FX6_TYPE, DATA_FX6_VALUE, 5);
 #endif
 
+                    // write YM2612 registers values after applying commands
                     if (inst != NULL) {
                         WriteInstrument(channel, inst, FALSE, FALSE);
                     }
 
                     // --------- trigger note playback; check empty note later; pass note id: 0..95, 254, 255
-                    static u8 note = 0;
-                    note = ReadPatternSRAM(playingPatternID, playingPatternRow, DATA_NOTE);
-                    value = ReadInstrumentSRAM(channelArpSeqID[channel], INST_ARP_TICK_01);
-
                     static s16 key = 0;
                     key = note;
 
@@ -846,19 +860,19 @@ static void DoEngine()
                         if (channelNoteRetrigger[channel] > 0) channelNoteRetriggerCounter[channel] = 0;
                     }
 
-                    if (value != NOTE_EMPTY) // arp not empty
+                    if (arptick_value != NOTE_EMPTY) // arp not empty
                     {
                         if (note <= MAX_NOTE) // if there is note, modify it with arp seq.
                         {
-                            if (value > ARP_BASE) key = note + (value - ARP_BASE);
-                            else if (value < ARP_BASE) key = note - (ARP_BASE - value);
+                            if (arptick_value > ARP_BASE) key = note + (arptick_value - ARP_BASE);
+                            else if (arptick_value < ARP_BASE) key = note - (ARP_BASE - arptick_value);
                             if (key < 0 || key > MAX_NOTE) key = note; // return same note if ARP is out of range
                         }
                         else if (note == NOTE_EMPTY && previousNote[channel] != NOTE_OFF)
                         {
-                            if (value > ARP_BASE) key = previousNote[channel] + (value - ARP_BASE);
-                            else if (value < ARP_BASE) key = previousNote[channel] - (ARP_BASE - value);
-                            if (key < 0 || key > MAX_NOTE || value == ARP_BASE) key = previousNote[channel];
+                            if (arptick_value > ARP_BASE) key = previousNote[channel] + (arptick_value - ARP_BASE);
+                            else if (arptick_value < ARP_BASE) key = previousNote[channel] - (ARP_BASE - arptick_value);
+                            if (key < 0 || key > MAX_NOTE || arptick_value == ARP_BASE) key = previousNote[channel];
                         }
                     }
 
@@ -1062,60 +1076,54 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
         }
     }
 
+    auto void switch_to_pattern_editor()
+    {
+        selectedPatternID = ReadMatrixSRAM(selectedChannel, selectedMatrixRow);
+        if (selectedPatternID != 0x00) // -- pattern should not be editable
+        {
+            currentScreen = SCREEN_PATTERN;
+            bInitScreen = TRUE;
+            bRefreshScreen = TRUE;
+            VDP_setHorizontalScroll(BG_A, -320);
+            VDP_setHorizontalScroll(BG_B, -320);
+        }
+    }
+
+    auto void switch_to_instrument_editor()
+    {
+        currentScreen = SCREEN_INSTRUMENT;
+        bInitScreen = TRUE;
+        bRefreshScreen = TRUE;
+        VDP_setHorizontalScroll(BG_A, -640);
+        VDP_setHorizontalScroll(BG_B, -640);
+
+        // go to selected instrument if not --
+        if
+        (
+            (selectedPatternColumn == DATA_INSTRUMENT) ||
+            (selectedPatternColumn == DATA_INSTRUMENT + PATTERN_COLUMNS)
+        )
+        {
+            u8 value = ReadPatternSRAM(selectedPatternID, selectedPatternRow, DATA_INSTRUMENT);
+            if (value != 0x00) selectedInstrumentID = value;
+        }
+    }
+
+    auto void switch_to_matrix_editor()
+    {
+        selectedPatternID = ReadMatrixSRAM(selectedChannel, selectedMatrixRow);
+        currentScreen = SCREEN_MATRIX;
+        bInitScreen = TRUE;
+        bRefreshScreen = TRUE;
+        VDP_setHorizontalScroll(BG_A, 0);
+        VDP_setHorizontalScroll(BG_B, 0);
+        matrixRowToRefresh = EVALUATE_0xFFFF;
+    }
+
     if (joy == JOY_1 || joy == JOY_2)
     {
         switch (state)
         {
-        case BUTTON_X:
-            if (currentScreen != SCREEN_MATRIX)
-            {
-                selectedPatternID = ReadMatrixSRAM(selectedChannel, selectedMatrixRow);
-                currentScreen = SCREEN_MATRIX;
-                bInitScreen = TRUE;
-                bRefreshScreen = TRUE;
-                VDP_setHorizontalScroll(BG_A, 0);
-                VDP_setHorizontalScroll(BG_B, 0);
-                matrixRowToRefresh = EVALUATE_0xFFFF;
-            }
-            break;
-
-        case BUTTON_Y:
-            if (currentScreen != SCREEN_PATTERN)
-            {
-                selectedPatternID = ReadMatrixSRAM(selectedChannel, selectedMatrixRow);
-                if (selectedPatternID != 0x00) // -- pattern should not be editable
-                {
-                    currentScreen = SCREEN_PATTERN;
-                    bInitScreen = TRUE;
-                    bRefreshScreen = TRUE;
-                    VDP_setHorizontalScroll(BG_A, -320);
-                    VDP_setHorizontalScroll(BG_B, -320);
-                }
-            }
-            break;
-
-        case BUTTON_Z:
-            if (currentScreen != SCREEN_INSTRUMENT)
-            {
-                currentScreen = SCREEN_INSTRUMENT;
-                bInitScreen = TRUE;
-                bRefreshScreen = TRUE;
-                VDP_setHorizontalScroll(BG_A, -640);
-                VDP_setHorizontalScroll(BG_B, -640);
-
-                // go to selected instrument if not --
-                if
-                (
-                    (selectedPatternColumn == DATA_INSTRUMENT) ||
-                    (selectedPatternColumn == DATA_INSTRUMENT + PATTERN_COLUMNS)
-                )
-                {
-                    u8 value = ReadPatternSRAM(selectedPatternID, selectedPatternRow, DATA_INSTRUMENT);
-                    if (value != 0x00) selectedInstrumentID = value;
-                }
-            }
-            break;
-
         case BUTTON_START:
             if (bPlayback == FALSE)
             {
@@ -1160,25 +1168,13 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
             case BUTTON_X:
                 switch (changed)
                 {
-                // X+L/R - pattern matrix page select
+                // X+L/R - switch screen
                 case BUTTON_RIGHT:
-                    if (currentPage < ((MAX_MATRIX_ROWS / 25) - 1))
-                    {
-                        currentPage++;
-                        bRefreshScreen = bInitScreen = TRUE;
-                        matrixRowToRefresh = EVALUATE_0xFFFF;
-                        if (bPlayback == TRUE) DrawMatrixPlaybackCursor();
-                    }
+                    switch_to_pattern_editor();
                     break;
 
                 case BUTTON_LEFT:
-                    if (currentPage > 0)
-                    {
-                        currentPage--;
-                        bRefreshScreen = bInitScreen = TRUE;
-                        matrixRowToRefresh = EVALUATE_0xFFFF;
-                        if (bPlayback == TRUE) DrawMatrixPlaybackCursor();
-                    }
+                    switch_to_instrument_editor();
                     break;
                 // X+U/D - mute/un-mute/solo channel
                 case BUTTON_UP:
@@ -1210,6 +1206,48 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     channelFlags = 0b0001111111111111; // un-mute all
                     for (u8 i=0; i<CHANNELS_TOTAL; i++)
                         VDP_fillTileMapRect(BG_B, NULL, (i * 3) + 1, 1, 2, 1); // clear all marks
+                    break;
+                }
+                break;
+
+            case BUTTON_Z:
+                switch (changed)
+                {
+                // Z+L/R - pattern matrix page select
+                case BUTTON_RIGHT:
+                    if (currentPage < MAX_MATRIX_PAGE)
+                    {
+                        currentPage++;
+                        bRefreshScreen = bInitScreen = TRUE;
+                        matrixRowToRefresh = EVALUATE_0xFFFF;
+                        if (bPlayback == TRUE) DrawMatrixPlaybackCursor();
+                    }
+                    break;
+
+                case BUTTON_LEFT:
+                    if (currentPage > 0)
+                    {
+                        currentPage--;
+                        bRefreshScreen = bInitScreen = TRUE;
+                        matrixRowToRefresh = EVALUATE_0xFFFF;
+                        if (bPlayback == TRUE) DrawMatrixPlaybackCursor();
+                    }
+                    break;
+
+                case BUTTON_UP:
+                    currentPage += 4;
+                    if (currentPage > MAX_MATRIX_PAGE) currentPage = MAX_MATRIX_PAGE;
+                    bRefreshScreen = bInitScreen = TRUE;
+                    matrixRowToRefresh = EVALUATE_0xFFFF;
+                    if (bPlayback == TRUE) DrawMatrixPlaybackCursor();
+                    break;
+
+                case BUTTON_DOWN:
+                    currentPage -= 4;
+                    if (currentPage < 0) currentPage = 0;
+                    bRefreshScreen = bInitScreen = TRUE;
+                    matrixRowToRefresh = EVALUATE_0xFFFF;
+                    if (bPlayback == TRUE) DrawMatrixPlaybackCursor();
                     break;
                 }
                 break;
@@ -1278,8 +1316,22 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
         case SCREEN_PATTERN:
             switch (state)
             {
-            case BUTTON_Y:
-                // Y + D-Pad: select pattern for editing
+            case BUTTON_X:
+                switch (changed)
+                {
+                // X+L/R - switch screen
+                case BUTTON_RIGHT:
+                    switch_to_instrument_editor();
+                    break;
+
+                case BUTTON_LEFT:
+                    switch_to_matrix_editor();
+                    break;
+                }
+                break;
+
+            case BUTTON_Z:
+                // Z + D-Pad: select pattern for editing
                 switch (changed)
                 {
                 case BUTTON_RIGHT:
@@ -1622,6 +1674,36 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
         {
             switch (state)
             {
+            case BUTTON_X:
+                switch (changed)
+                {
+                // X+L/R - switch screen
+                case BUTTON_RIGHT:
+                    switch_to_matrix_editor();
+                    break;
+
+                case BUTTON_LEFT:
+                    switch_to_pattern_editor();
+                    break;
+
+                case BUTTON_UP: // mute instrument
+                    instrumentIsMuted[selectedInstrumentID] = INST_MUTE;
+                    bRefreshScreen = TRUE; instrumentParameterToRefresh = GUI_INST_PARAM_STATE;
+                    break;
+
+                case BUTTON_DOWN: // solo instrument
+                    for (u8 i = 0; i < MAX_INSTRUMENT; i++) instrumentIsMuted[i] = INST_MUTE; // mute all
+                    instrumentIsMuted[selectedInstrumentID] = INST_SOLO; // set to solo
+                    bRefreshScreen = TRUE; instrumentParameterToRefresh = GUI_INST_PARAM_STATE;
+                    break;
+
+                case BUTTON_Y: // un-mute all instruments
+                    for (u8 i = 0; i < MAX_INSTRUMENT; i++) instrumentIsMuted[i] = INST_PLAY;
+                    bRefreshScreen = TRUE; instrumentParameterToRefresh = GUI_INST_PARAM_STATE;
+                    break;
+                }
+                break;
+
             case BUTTON_Z:
                 // Z + D-Pad: select instrument for editing
                 switch (changed)
@@ -1724,7 +1806,7 @@ void DrawStaticHeaders()
     currentScreen = 1; DrawSelectionCursor(0, 0, 0); // pattern
     currentScreen = 0; DrawSelectionCursor(0, 0, 0); // matrix
 
-    // pattern matrix
+    // ----------------------------------- matrix editor
     VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_VERSION),     38, 27); // version
     VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_VERSION+1),   39, 27);
 
@@ -1778,7 +1860,7 @@ void DrawStaticHeaders()
 
     for (u8 y=2; y<27; y++) VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 27, y); // fm/psg
 
-    // pattern editor
+    // ----------------------------------- pattern editor
     for (u8 i=0; i<7; i++) VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_LOGO + i), i + 72, 22); // MD.TRACKER logo
 
     FillRowRight(BG_A, PAL3, FALSE, TRUE, GUI_LOWLINE, 29, 40, 22); // low line
@@ -1816,7 +1898,8 @@ void DrawStaticHeaders()
 
     //DrawText(BG_A, PAL3, "INFO", 41, 23); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 45, 23);
     VDP_drawTextBG(BG_A, "INFO: --------", 41, 23);
-    // instrument editor
+
+    // ----------------------------------- instrument editor
     for (u8 i=0; i<7; i++) VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_LOGO + i), i + 112, 22); // MD.TRACKER logo
 
     FillRowRight(BG_A, PAL3, FALSE, TRUE, GUI_LOWLINE, 29, 80, 22); // low line
@@ -1869,8 +1952,8 @@ void DrawStaticHeaders()
     DrawText(BG_A, PAL3, "RATE", 106, 6); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_ARROW), 113, 6);
     for (u8 y=3; y<7; y++) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 111, y);
 
-    //DrawText(BG_A, PAL3, "STATE", 106, 20); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 111, 20);
-    //VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_ARROW), 113, 20);
+    DrawText(BG_A, PAL3, "STATE", 106, 20); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 111, 20);
+    DrawText(BG_A, PAL0, "PLAY", 113, 20);
 
     for (u8 i=0; i<4; i++) // op4 op3 op2 op1
     {
@@ -2912,7 +2995,15 @@ void DisplayInstrumentEditor()
                 VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_ALPHABET[ReadInstrumentSRAM(selectedInstrumentID, INST_NAME_1 + i)]), GUI_INST_NAME_START + i, 0);
             }
             break;
-        case GUI_INST_PARAM_PCM_BANK: case GUI_INST_PARAM_PCM_NOTE: case 235:
+        case GUI_INST_PARAM_STATE: case 235:
+            switch(instrumentIsMuted[selectedInstrumentID])
+            {
+                case INST_MUTE: DrawText(BG_A, PAL0, "MUTE", 113, 20); break;
+                case INST_PLAY: DrawText(BG_A, PAL0, "PLAY", 113, 20); break;
+                case INST_SOLO: DrawText(BG_A, PAL0, "SOLO", 113, 20); break;
+            }
+        // these parameters are separate from instrument
+        case GUI_INST_PARAM_PCM_BANK: case GUI_INST_PARAM_PCM_NOTE:
             DrawHex2(PAL0, selectedSampleBank, 113, 0);
 
             // note
@@ -2945,8 +3036,8 @@ void DisplayInstrumentEditor()
             break;
         }
 
-        instrumentParameterToRefresh--; // refresh one parameter by frame
-        if (instrumentParameterToRefresh < 235) bRefreshScreen = FALSE; // put last case here
+        instrumentParameterToRefresh--; // refresh one parameter by frame to avoid song freeze
+        if (instrumentParameterToRefresh < 235) bRefreshScreen = FALSE; // put last case here; redraw only changed parameter
     }
 }
 // ------------------------------ ENGINE
@@ -4674,6 +4765,8 @@ static void InitTracker()
 
     DrawStaticHeaders();
 
+    for (u8 i = 0; i < MAX_INSTRUMENT; i++) instrumentIsMuted[i] = INST_PLAY; // fill array with 0 for the case of ram garbage at start
+
     if (SRAMW_readWord(DEAD_INSTRUMENT) != 0xDEAD) // there is no SRAM file, needs fresh init.
     {
         SetBPM(0x1D); // 120 BPM PAL; 144 BPM NTSC
@@ -4681,7 +4774,7 @@ static void InitTracker()
         DrawText(BG_A, PAL0, "GENERATING", 3, 3); DrawText(BG_A, PAL0, "MODULE", 14, 3); DrawText(BG_A, PAL0, "DATA", 21, 3);
         for (u16 i = 0; i <= MAX_INSTRUMENT; i++)
         {
-            // test inst
+            // create default instruments
             WriteInstrumentSRAM(i, INST_MUL1, 1);
             WriteInstrumentSRAM(i, INST_MUL2, 4);
             WriteInstrumentSRAM(i, INST_MUL3, 2);
