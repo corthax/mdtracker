@@ -142,7 +142,7 @@ u8 bDAC_enable = FALSE; // global, 0xF0 to enable. 0 to disable
 //u8 sampleStack[1024];
 
 // sys
-u16 bBusTaken = 0;
+u16 bBusTaken = FALSE;
 
 // copy/paste
 u16 patternCopyFrom = 1;
@@ -567,6 +567,8 @@ static void DoEngine()
     static u8 fxval_value = 0;
     static u16 playingPatternID = 0;
 
+    static u8 beginPlay = TRUE;
+
     // vibrato tool
     auto s8 vibrato(u8 channel)
     {
@@ -737,6 +739,22 @@ static void DoEngine()
 
     if (bPlayback)
     {
+        // need to be this way to avoid playback cursor glitches and hang notes at stop
+        if (beginPlay == TRUE)
+        {
+            beginPlay = FALSE;
+
+            // start timer B
+            RequestZ80();
+                YM2612_writeReg(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00001111);
+            ReleaseZ80();
+
+            // set frame length
+            if (playingPatternRow & 1) maxFrame = ticksPerOddRow; // ticks per line
+            else maxFrame = ticksPerEvenRow;
+
+            DrawMatrixPlaybackCursor();
+        }
 #if (YM_TIMER_TEMPO == 1)
         RequestZ80(); //! CAUSE DAC PLAYBACK SLOWDOWN
         if (BIT_CHECK(YM2612_read(PORT_1), 1) == TRUE) // D7 Busy, D6-D2 unused, D1 Overflow B, D0 Overflow A
@@ -823,6 +841,7 @@ static void DoEngine()
                     {
                         previousInstrument[channel] = inst;
                         apply_commands();
+                        //! slow
                         WriteInstrument(channel, inst, NULL, NULL); // write YM2612 registers values after applying commands
                     }
                     else
@@ -916,6 +935,21 @@ static void DoEngine()
             DrawPatternPlaybackCursor();
             frameCounter = -1; // changes are applied only when timer expires, not at every while loop ticks
         }
+    }
+    else
+    {
+        beginPlay = TRUE;
+
+        // stop timer A (load: 1 to start, 0 to stop; enable: 1 to set register flag when overflowed, 0 to keep cycling without setting flag)
+        // reset read register flag, timer overflowing is enabled
+        RequestZ80();
+            YM2612_writeReg(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00111100);
+        ReleaseZ80();
+
+        StopAllSound();
+
+        ClearPatternPlaybackCursor();
+        ClearMatrixPlaybackCursor();
     }
 }
 
@@ -1025,28 +1059,6 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
     {
         frameCounter = 0;
         bPlayback = FALSE;
-
-        // stop timer A (load: 1 to start, 0 to stop; enable: 1 to set register flag when overflowed, 0 to keep cycling without setting flag)
-        // reset read register flag, timer overflowing is enabled
-        RequestZ80();
-            YM2612_writeReg(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00111100);
-        ReleaseZ80();
-
-        StopAllSound();
-        ClearPatternPlaybackCursor();
-        ClearMatrixPlaybackCursor();
-    }
-
-    auto void prepare_playback()
-    {
-        // start timer B
-        RequestZ80();
-            YM2612_writeReg(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00001111);
-        ReleaseZ80();
-
-        // set frame length
-        if (playingPatternRow & 1) maxFrame = ticksPerOddRow; // ticks per line
-        else maxFrame = ticksPerEvenRow;
     }
 
     auto void selection_clear()
@@ -1113,12 +1125,8 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 playingPatternRow = 0; // start from the first line of current pattern
                 playingMatrixRow = selectedMatrixRow; // actual line in array
                 bPlayback = TRUE;
-                DrawMatrixPlaybackCursor();
-
-                prepare_playback();
             }
             else stop_playback();
-
             break;
 
         case BUTTON_MODE:
@@ -1129,9 +1137,6 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 else playingPatternRow = selectedPatternRow + PATTEN_ROWS_PER_SIDE;
                 playingMatrixRow = selectedMatrixRow; // actual line in array
                 bPlayback = TRUE;
-                DrawMatrixPlaybackCursor();
-
-                prepare_playback();
             }
             else stop_playback();
             break;
@@ -3877,7 +3882,6 @@ static void SetChannelBaseVolume(u8 matrixChannel, u8 id)
     SetChannelVolume(matrixChannel); // if there is vol command, resulting same values
 }
 
-//! can reduce CPU usage by using lookup tables (?)
 // write instrument registers into FM channel
 static void WriteInstrument(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // matrix channel; instrument id
 {
@@ -4430,6 +4434,7 @@ static void WriteInstrument(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // 
             case 0x24: PSG_setNoise(PSG_NOISE_TYPE_WHITE, PSG_NOISE_FREQ_CLOCK8); psg_noise_mode = PSG_FIXED; break;
             }
             break;
+
         // PWM/Waveform
         case 0x17:
             if (fxValue < 0x0D) psgPWM = fxValue;
