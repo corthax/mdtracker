@@ -293,6 +293,7 @@ int main()
 	return(NULL);
 }
 
+// must not be very cpu hungry
 void hIntCallback()
 {
     //static u8 flipEnvelope = 0;
@@ -336,15 +337,12 @@ void hIntCallback()
     hIntSkipCounter--;*/
 
     // fast GUI, playback slowdown when updating screen
-    //if (hIntCounter == hIntToSkip)
-    //{
-        switch (currentScreen)
-        {
-        case SCREEN_MATRIX: DisplayPatternMatrix(); break;
-        case SCREEN_PATTERN: DisplayPatternEditor(); break;
-        case SCREEN_INSTRUMENT: DisplayInstrumentEditor(); break;
-        }
-    //}
+    switch (currentScreen)
+    {
+    case SCREEN_MATRIX: DisplayPatternMatrix(); break;
+    case SCREEN_PATTERN: DisplayPatternEditor(); break;
+    case SCREEN_INSTRUMENT: DisplayInstrumentEditor(); break;
+    }
 }
 // -------------------------------------------------------------------------------------------------------------
 void NavigateMatrix(u8 direction) {
@@ -551,7 +549,7 @@ void vIntCallback()
             }
         }
     }
-    // slow GUI, less CPU
+    // slow GUI, less CPU (not that much really...)
     /*switch (currentScreen)
     {
     case 0: DisplayPatternMatrix(); break;
@@ -562,15 +560,12 @@ void vIntCallback()
 
 static void DoEngine()
 {
-    static u8 bTimerB_Switch = 0; // timer switch
     static u8 value = 0;
     static u8 arptick_value = 0;
     static u8 voltick_value = 0;
     static u8 fxtype_value = 0;
     static u8 fxval_value = 0;
     static u16 playingPatternID = 0;
-
-    //static u32 counter = 0;
 
     // vibrato tool
     auto s8 vibrato(u8 channel)
@@ -742,20 +737,6 @@ static void DoEngine()
 
     if (bPlayback)
     {
-        if (!bTimerB_Switch) // start timer and play
-        {
-            //startTimer(0);
-            RequestZ80();
-                YM2612_writeReg(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00001111);
-            ReleaseZ80();
-
-            bTimerB_Switch = TRUE;
-
-            if (playingPatternRow & 1) maxFrame = ticksPerOddRow; // ticks per line
-            else maxFrame = ticksPerEvenRow;
-        }
-
-        //if (getTimer(0, FALSE) > 500)  //! FLUCTUATING TEMPO
 #if (YM_TIMER_TEMPO == 1)
         RequestZ80(); //! CAUSE DAC PLAYBACK SLOWDOWN
         if (BIT_CHECK(YM2612_read(PORT_1), 1) == TRUE) // D7 Busy, D6-D2 unused, D1 Overflow B, D0 Overflow A
@@ -763,12 +744,10 @@ static void DoEngine()
             YM2612_writeReg(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00101111); // timer B only restarted
             ReleaseZ80();
 #else
-        if (hIntCounter <= 0)
+        if (hIntCounter <= 0) // ticks counter
         {
             hIntCounter = hIntToSkip;
 #endif
-            //startTimer(0);
-
             if (frameCounter == -1) frameCounter = 1;
             else frameCounter++;
 
@@ -791,7 +770,7 @@ static void DoEngine()
             for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++) // 13 channels; 0 .. 12
             {
                 playingPatternID = ReadMatrixSRAM(channel, playingMatrixRow);
-                if ((playingPatternID != 0) && (BIT_CHECK(channelFlags, channel) == 1)) // if there is some pattern and channel is not muted
+                if ((playingPatternID != 0) && (BIT_CHECK(channelFlags, channel) == 1)) // if there is pattern and channel is not muted
                 {
                     auto void command(u8 type, u8 val, u8 effect)
                     {
@@ -806,8 +785,21 @@ static void DoEngine()
                         }
                     }
 
+                    // apply commands to temp RAM instrument
+                    auto void apply_commands()
+                    {
+                        command(DATA_FX1_TYPE, DATA_FX1_VALUE, 0);
+                        command(DATA_FX2_TYPE, DATA_FX2_VALUE, 1);
+                        command(DATA_FX3_TYPE, DATA_FX3_VALUE, 2);
+#if (MD_TRACKER_VERSION == 5)
+                        command(DATA_FX4_TYPE, DATA_FX4_VALUE, 3);
+                        command(DATA_FX5_TYPE, DATA_FX5_VALUE, 4);
+                        command(DATA_FX6_TYPE, DATA_FX6_VALUE, 5);
+#endif
+                    }
+
                     voltick_value = ReadInstrumentSRAM(channelVolSeqID[channel], INST_VOL_TICK_01); // volume tick sequencer
-                    arptick_value = ReadInstrumentSRAM(channelArpSeqID[channel], INST_ARP_TICK_01); // arpegiator
+                    arptick_value = ReadInstrumentSRAM(channelArpSeqID[channel], INST_ARP_TICK_01); // note tick sequencer
                     if (voltick_value < 0x80)
                     {
                         channelSeqAttenuation[channel] = voltick_value;
@@ -829,24 +821,13 @@ static void DoEngine()
 
                     if (inst != NULL)
                     {
-                        //! nor necessary, can be redone to write registers directly from SRAM without temporal RAM storage. but then need redo commands.
-                        ReadInstrument(inst); // read into temp storage structure, also sets the base channel volume
                         previousInstrument[channel] = inst;
+                        apply_commands();
+                        WriteInstrument(channel, inst, NULL, NULL); // write YM2612 registers values after applying commands
                     }
-
-                    // --------- apply commands to temp instrument
-                    command(DATA_FX1_TYPE, DATA_FX1_VALUE, 0);
-                    command(DATA_FX2_TYPE, DATA_FX2_VALUE, 1);
-                    command(DATA_FX3_TYPE, DATA_FX3_VALUE, 2);
-#if (MD_TRACKER_VERSION == 5)
-                    command(DATA_FX4_TYPE, DATA_FX4_VALUE, 3);
-                    command(DATA_FX5_TYPE, DATA_FX5_VALUE, 4);
-                    command(DATA_FX6_TYPE, DATA_FX6_VALUE, 5);
-#endif
-
-                    // write YM2612 registers values after applying commands
-                    if (inst != NULL) {
-                        WriteInstrument(channel, inst, FALSE, FALSE);
+                    else
+                    {
+                        apply_commands();
                     }
 
                     // --------- trigger note playback; check empty note later; pass note id: 0..95, 254, 255
@@ -855,14 +836,14 @@ static void DoEngine()
 
                     if (note != NOTE_EMPTY)
                     {
-                        previousNote[channel] = note; // note or off
+                        previousNote[channel] = note; // note or OFF
                         arpNote[channel] = note;
                         if (channelNoteRetrigger[channel] > 0) channelNoteRetriggerCounter[channel] = 0;
                     }
 
-                    if (arptick_value != NOTE_EMPTY) // arp not empty
+                    if (arptick_value != NOTE_EMPTY) // ARP is not empty
                     {
-                        if (note <= MAX_NOTE) // if there is note, modify it with arp seq.
+                        if (note <= MAX_NOTE) // if there is note, modify it with ARP seq
                         {
                             if (arptick_value > ARP_BASE) key = note + (arptick_value - ARP_BASE);
                             else if (arptick_value < ARP_BASE) key = note - (ARP_BASE - arptick_value);
@@ -875,11 +856,6 @@ static void DoEngine()
                             if (key < 0 || key > MAX_NOTE || arptick_value == ARP_BASE) key = previousNote[channel];
                         }
                     }
-
-                    /*if (inst == NULL)
-                    {
-                        SetChannelVolume(channel); // why? uncomment if bugs
-                    }*/
 
                     if (channelNoteDelay[channel] == 0) PlayNote(key, channel);
                 }
@@ -941,22 +917,6 @@ static void DoEngine()
             frameCounter = -1; // changes are applied only when timer expires, not at every while loop ticks
         }
     }
-    else
-    {
-        if (bTimerB_Switch)
-        {
-            // stop timer A (load: 1 to start, 0 to stop; enable: 1 to set register flag when overflowed, 0 to keep cycling without setting flag)
-            // reset read register flag, timer overflowing is enabled
-            RequestZ80();
-                YM2612_writeReg(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00111100);
-            ReleaseZ80();
-            bTimerB_Switch = FALSE; // enable timer again later
-
-            StopAllSound();
-            ClearPatternPlaybackCursor();
-            ClearMatrixPlaybackCursor();
-        }
-    }
 }
 
 static void SetBPM(u16 counter)
@@ -980,7 +940,7 @@ static void SetBPM(u16 counter)
     //subTicksToSkip = timer;
 
     BPM = (600000000 / microseconds) / ((ticksPerEvenRow + ticksPerOddRow) * 2);
-    SRAMW_writeWord(TEMPO, counter);
+    SRAMW_writeWord(TEMPO, counter); // store
 
     if (BPM < 1000)
     {
@@ -1065,6 +1025,28 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
     {
         frameCounter = 0;
         bPlayback = FALSE;
+
+        // stop timer A (load: 1 to start, 0 to stop; enable: 1 to set register flag when overflowed, 0 to keep cycling without setting flag)
+        // reset read register flag, timer overflowing is enabled
+        RequestZ80();
+            YM2612_writeReg(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00111100);
+        ReleaseZ80();
+
+        StopAllSound();
+        ClearPatternPlaybackCursor();
+        ClearMatrixPlaybackCursor();
+    }
+
+    auto void prepare_playback()
+    {
+        // start timer B
+        RequestZ80();
+            YM2612_writeReg(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00001111);
+        ReleaseZ80();
+
+        // set frame length
+        if (playingPatternRow & 1) maxFrame = ticksPerOddRow; // ticks per line
+        else maxFrame = ticksPerEvenRow;
     }
 
     auto void selection_clear()
@@ -1132,8 +1114,11 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 playingMatrixRow = selectedMatrixRow; // actual line in array
                 bPlayback = TRUE;
                 DrawMatrixPlaybackCursor();
+
+                prepare_playback();
             }
             else stop_playback();
+
             break;
 
         case BUTTON_MODE:
@@ -1145,6 +1130,8 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 playingMatrixRow = selectedMatrixRow; // actual line in array
                 bPlayback = TRUE;
                 DrawMatrixPlaybackCursor();
+
+                prepare_playback();
             }
             else stop_playback();
             break;
@@ -2772,6 +2759,8 @@ static void ChangeInstrumentParameter(s8 modifier)
         if (value < 0x01) instCopyTo = 0xFF; else if (value > 0xFF) instCopyTo = 0x01; else instCopyTo = value; // guard, wrap
         break;
     }
+
+    CacheIstrumentToRAM(selectedInstrumentID); // update RAM struct
 }
 void DisplayInstrumentEditor()
 {
@@ -3080,7 +3069,7 @@ static void SetChannelVolume(u8 matrixChannel)
                 if (volT4 > 0x7F) volT4 = 0x7F;
 
                 RequestZ80();
-                    YM2612_writeReg(port, YM2612REG_OP4_TL + fmChannel, (u8)volT4);
+                    YM2612_writeReg(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
                 ReleaseZ80();
                 break;
             case 4:
@@ -3099,8 +3088,8 @@ static void SetChannelVolume(u8 matrixChannel)
                 if (volT4 > 0x7F) volT4 = 0x7F;
 
                 RequestZ80();
-                    YM2612_writeReg(port, YM2612REG_OP3_TL + fmChannel, (u8)volT3);
-                    YM2612_writeReg(port, YM2612REG_OP4_TL + fmChannel, (u8)volT4);
+                    YM2612_writeReg(port, YM2612REG_OP3_TL_CH0 + fmChannel, (u8)volT3);
+                    YM2612_writeReg(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
                 ReleaseZ80();
                 break;
             case 5: case 6:
@@ -3126,9 +3115,9 @@ static void SetChannelVolume(u8 matrixChannel)
                 if (volT4 > 0x7F) volT4 = 0x7F;
 
                 RequestZ80();
-                    YM2612_writeReg(port, YM2612REG_OP2_TL + fmChannel, (u8)volT2);
-                    YM2612_writeReg(port, YM2612REG_OP3_TL + fmChannel, (u8)volT3);
-                    YM2612_writeReg(port, YM2612REG_OP4_TL + fmChannel, (u8)volT4);
+                    YM2612_writeReg(port, YM2612REG_OP2_TL_CH0 + fmChannel, (u8)volT2);
+                    YM2612_writeReg(port, YM2612REG_OP3_TL_CH0 + fmChannel, (u8)volT3);
+                    YM2612_writeReg(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
                 ReleaseZ80();
                 break;
             case 7:
@@ -3161,10 +3150,10 @@ static void SetChannelVolume(u8 matrixChannel)
                 if (volT4 > 0x7F) volT4 = 0x7F;
 
                 RequestZ80();
-                    YM2612_writeReg(port, YM2612REG_OP1_TL + fmChannel, (u8)volT1);
-                    YM2612_writeReg(port, YM2612REG_OP2_TL + fmChannel, (u8)volT2);
-                    YM2612_writeReg(port, YM2612REG_OP3_TL + fmChannel, (u8)volT3);
-                    YM2612_writeReg(port, YM2612REG_OP4_TL + fmChannel, (u8)volT4);
+                    YM2612_writeReg(port, YM2612REG_OP1_TL_CH0 + fmChannel, (u8)volT1);
+                    YM2612_writeReg(port, YM2612REG_OP2_TL_CH0 + fmChannel, (u8)volT2);
+                    YM2612_writeReg(port, YM2612REG_OP3_TL_CH0 + fmChannel, (u8)volT3);
+                    YM2612_writeReg(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
                 ReleaseZ80();
                 break;
             }
@@ -3183,7 +3172,7 @@ static void SetChannelVolume(u8 matrixChannel)
                 if (volT4 > 0x7F) volT4 = 0x7F;
 
                 RequestZ80();
-                    YM2612_writeReg(port, YM2612REG_OP4_TL + fmChannel, (u8)volT4);
+                    YM2612_writeReg(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
                 ReleaseZ80();
                 break;
             case CHANNEL_FM3_OP3:
@@ -3195,7 +3184,7 @@ static void SetChannelVolume(u8 matrixChannel)
                 if (volT3 > 0x7F) volT3 = 0x7F;
 
                 RequestZ80();
-                    YM2612_writeReg(port, YM2612REG_OP3_TL + fmChannel, (u8)volT3);
+                    YM2612_writeReg(port, YM2612REG_OP3_TL_CH0 + fmChannel, (u8)volT3);
                 ReleaseZ80();
                 break;
             case CHANNEL_FM3_OP2:
@@ -3207,7 +3196,7 @@ static void SetChannelVolume(u8 matrixChannel)
                 if (volT2 > 0x7F) volT2 = 0x7F;
 
                 RequestZ80();
-                    YM2612_writeReg(port, YM2612REG_OP2_TL + fmChannel, (u8)volT2);
+                    YM2612_writeReg(port, YM2612REG_OP2_TL_CH0 + fmChannel, (u8)volT2);
                 ReleaseZ80();
                 break;
             case CHANNEL_FM3_OP1:
@@ -3219,7 +3208,7 @@ static void SetChannelVolume(u8 matrixChannel)
                 if (volT1 > 0x7F) volT1 = 0x7F;
 
                 RequestZ80();
-                    YM2612_writeReg(port, YM2612REG_OP1_TL + fmChannel, (u8)volT1);
+                    YM2612_writeReg(port, YM2612REG_OP1_TL_CH0 + fmChannel, (u8)volT1);
                 ReleaseZ80();
                 break;
             }
@@ -3249,16 +3238,14 @@ static void SetChannelVolume(u8 matrixChannel)
 
 static void RequestZ80()
 {
-    SYS_disableInts();
     bBusTaken = Z80_isBusTaken();
-    if (!bBusTaken) Z80_requestBus(TRUE);
+    if (!bBusTaken) Z80_requestBus(FALSE);
 }
 
 static void ReleaseZ80()
 {
     YM2612_write(PORT_1, YM2612REG_DAC); // for DAC
     if (bBusTaken) Z80_releaseBus();
-    SYS_enableInts();
 }
 
 static void SetPitchPSG(u8 matrixChannel, u8 note)
@@ -3336,7 +3323,8 @@ static void SetPitchFM(u8 matrixChannel, u8 note)
         YM2612_writeReg(PORT_1, YM2612REG_TIMER_A_LSB, csmMicrotone[note] & 0b0000000000000011);
 
         // play CSM note
-        YM2612_writeReg(PORT_1, YM2612REG_CH3_FREQ_MSB, CH3_SPECIAL_CSM | 0b00001111); // bb Ch3 mode, Reset B, Reset A, Enable B, Enable A, Load B, Load A
+        YM2612_writeReg(PORT_1, YM2612REG_CH3_FREQ_MSB, 0b10001111);
+        //YM2612_writeReg(PORT_1, YM2612REG_CH3_FREQ_MSB, CH3_SPECIAL_CSM | 0b00001111); // bb Ch3 mode, Reset B, Reset A, Enable B, Enable A, Load B, Load A
         ch3Mode = CH3_SPECIAL_CSM;
     }
 
@@ -3403,10 +3391,10 @@ static void SetPitchFM(u8 matrixChannel, u8 note)
         case CHANNEL_FM3_OP3:
             if (ch3Mode == CH3_SPECIAL)
             {
+                BIT_SET(ch3OpNoteStatus, 5); // 0b??1?0010
             RequestZ80();
                 YM2612_writeReg(PORT_1, YM2612REG_CH3SP_FREQ_OP3_MSB, part1);
                 YM2612_writeReg(PORT_1, YM2612REG_CH3SP_FREQ_OP3_LSB, part2);
-                BIT_SET(ch3OpNoteStatus, 5); // 0b??1?0010
                 YM2612_writeReg(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // 2
             ReleaseZ80();
             }
@@ -3414,10 +3402,10 @@ static void SetPitchFM(u8 matrixChannel, u8 note)
         case CHANNEL_FM3_OP2:
             if (ch3Mode == CH3_SPECIAL)
             {
+                BIT_SET(ch3OpNoteStatus, 6); // 0b?1??0010
             RequestZ80();
                 YM2612_writeReg(PORT_1, YM2612REG_CH3SP_FREQ_OP2_MSB, part1);
                 YM2612_writeReg(PORT_1, YM2612REG_CH3SP_FREQ_OP2_LSB, part2);
-                BIT_SET(ch3OpNoteStatus, 6); // 0b?1??0010
                 YM2612_writeReg(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // 2
             ReleaseZ80();
             }
@@ -3425,10 +3413,10 @@ static void SetPitchFM(u8 matrixChannel, u8 note)
         case CHANNEL_FM3_OP1:
             if (ch3Mode == CH3_SPECIAL)
             {
+                BIT_SET(ch3OpNoteStatus, 4); // 0b???10010
             RequestZ80();
                 YM2612_writeReg(PORT_1, YM2612REG_CH3SP_FREQ_OP1_MSB, part1);
                 YM2612_writeReg(PORT_1, YM2612REG_CH3SP_FREQ_OP1_LSB, part2);
-                BIT_SET(ch3OpNoteStatus, 4); // 0b???10010
                 YM2612_writeReg(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // 2
             ReleaseZ80();
             }
@@ -3447,7 +3435,7 @@ static void SetPitchFM(u8 matrixChannel, u8 note)
             YM2612_writeReg(PORT_1, YM2612REG_KEY, 0b11110101); // 5
         ReleaseZ80();
             break;
-        case CHANNEL_FM6_DAC: // in DAC mode fm is still working normally, but sound output is muted
+        case CHANNEL_FM6_DAC: // in DAC mode FM is still working normally, but sound output is muted
             if (bDAC_enable)
             {
                 static u32 sampleStart = 0, sampleEnd = 0;
@@ -3489,10 +3477,10 @@ static void PlayNote(u8 note, u8 matrixChannel)
 {
     if (note <= MAX_NOTE)
     {
-        vibratoPhase[matrixChannel] = 0;
-        channelTremoloPhase[matrixChannel] = 512;
+        vibratoPhase[matrixChannel] = 0; // neutral state
+        channelTremoloPhase[matrixChannel] = 512; // neutral state
 
-        if (matrixChannel < CHANNEL_PSG1)
+        if (matrixChannel < CHANNEL_PSG1) // FM
         {
             // S1>S3>S2>S4 for common registers and S4>S3>S1>S2 for CH3 frequencies
             StopChannelSound(matrixChannel); // need to stop current playing note to write new data; OFF needed also for CSM
@@ -3669,6 +3657,7 @@ static void SetGlobalLFO(u8 freq)
     ReleaseZ80();
 }
 
+// write defaults, cache instruments to RAM
 static void InitGlobals()
 {
     RequestZ80();
@@ -3690,7 +3679,7 @@ static void InitGlobals()
 
         // set timer A time; 1111 1111 11 = 0.018 ms (minimum step), 0000 0000 00 = 18.4 ms; 1024 values; 18 * (1024 - Timer A) microseconds
         // 3FFh CSM: always key-on
-        // timer A is for CSM. timer B is for song playback and tempo
+        // timer A is for CSM. timer B usually is for song playback and tempo
         YM2612_writeReg(PORT_1, YM2612REG_TIMER_A_MSB, 0); // 8 bit MSB
         YM2612_writeReg(PORT_1, YM2612REG_TIMER_A_LSB, 0); // 2 bit LSB
         // timer B; 1111 1111 = 0.288 ms (minimum step), 0000 0000 = 73.44 ms; 288 * (256 - Timer B ) microseconds
@@ -3699,117 +3688,148 @@ static void InitGlobals()
 
     psg_noise_mode = PSG_TONAL_CH3_MUTED;
     PSG_setNoise(PSG_NOISE_TYPE_WHITE, PSG_NOISE_FREQ_TONE3);
+
+    for (u16 id = 0; id <= MAX_INSTRUMENT; id++)
+    {
+        CacheIstrumentToRAM(id);
+    }
 }
 
-static void ReadInstrument(u8 id)
+// cache instrument
+static void CacheIstrumentToRAM(u8 id)
 {
-    tmpInst.ALG = ReadInstrumentSRAM(id, INST_ALG);
-    tmpInst.AMS = ReadInstrumentSRAM(id, INST_FMS);
-    tmpInst.FMS = ReadInstrumentSRAM(id, INST_AMS);
-    tmpInst.PAN = ReadInstrumentSRAM(id, INST_PAN);
-    tmpInst.FB = ReadInstrumentSRAM(id, INST_FB);
+    tmpInst[id].ALG = ReadInstrumentSRAM(id, INST_ALG);
+    tmpInst[id].AMS = ReadInstrumentSRAM(id, INST_FMS);
+    tmpInst[id].FMS = ReadInstrumentSRAM(id, INST_AMS);
+    tmpInst[id].PAN = ReadInstrumentSRAM(id, INST_PAN);
+    tmpInst[id].FB = ReadInstrumentSRAM(id, INST_FB);
 
-    tmpInst.TL1 = ReadInstrumentSRAM(id, INST_TL1);
-    tmpInst.TL2 = ReadInstrumentSRAM(id, INST_TL2);
-    tmpInst.TL3 = ReadInstrumentSRAM(id, INST_TL3);
-    tmpInst.TL4 = ReadInstrumentSRAM(id, INST_TL4);
+    tmpInst[id].TL1 = ReadInstrumentSRAM(id, INST_TL1);
+    tmpInst[id].TL2 = ReadInstrumentSRAM(id, INST_TL2);
+    tmpInst[id].TL3 = ReadInstrumentSRAM(id, INST_TL3);
+    tmpInst[id].TL4 = ReadInstrumentSRAM(id, INST_TL4);
 
-    tmpInst.RS1 = ReadInstrumentSRAM(id, INST_RS1);
-    tmpInst.RS2 = ReadInstrumentSRAM(id, INST_RS2);
-    tmpInst.RS3 = ReadInstrumentSRAM(id, INST_RS3);
-    tmpInst.RS4 = ReadInstrumentSRAM(id, INST_RS4);
+    tmpInst[id].RS1 = ReadInstrumentSRAM(id, INST_RS1);
+    tmpInst[id].RS2 = ReadInstrumentSRAM(id, INST_RS2);
+    tmpInst[id].RS3 = ReadInstrumentSRAM(id, INST_RS3);
+    tmpInst[id].RS4 = ReadInstrumentSRAM(id, INST_RS4);
 
-    tmpInst.MUL1 = ReadInstrumentSRAM(id, INST_MUL1);
-    tmpInst.MUL2 = ReadInstrumentSRAM(id, INST_MUL2);
-    tmpInst.MUL3 = ReadInstrumentSRAM(id, INST_MUL3);
-    tmpInst.MUL4 = ReadInstrumentSRAM(id, INST_MUL4);
+    tmpInst[id].MUL1 = ReadInstrumentSRAM(id, INST_MUL1);
+    tmpInst[id].MUL2 = ReadInstrumentSRAM(id, INST_MUL2);
+    tmpInst[id].MUL3 = ReadInstrumentSRAM(id, INST_MUL3);
+    tmpInst[id].MUL4 = ReadInstrumentSRAM(id, INST_MUL4);
 
-    tmpInst.DT1 = ReadInstrumentSRAM(id, INST_DT1);
-    tmpInst.DT2 = ReadInstrumentSRAM(id, INST_DT2);
-    tmpInst.DT3 = ReadInstrumentSRAM(id, INST_DT3);
-    tmpInst.DT4 = ReadInstrumentSRAM(id, INST_DT4);
+    tmpInst[id].DT1 = ReadInstrumentSRAM(id, INST_DT1);
+    tmpInst[id].DT2 = ReadInstrumentSRAM(id, INST_DT2);
+    tmpInst[id].DT3 = ReadInstrumentSRAM(id, INST_DT3);
+    tmpInst[id].DT4 = ReadInstrumentSRAM(id, INST_DT4);
 
-    tmpInst.AR1 = ReadInstrumentSRAM(id, INST_AR1);
-    tmpInst.AR2 = ReadInstrumentSRAM(id, INST_AR2);
-    tmpInst.AR3 = ReadInstrumentSRAM(id, INST_AR3);
-    tmpInst.AR4 = ReadInstrumentSRAM(id, INST_AR4);
+    tmpInst[id].AR1 = ReadInstrumentSRAM(id, INST_AR1);
+    tmpInst[id].AR2 = ReadInstrumentSRAM(id, INST_AR2);
+    tmpInst[id].AR3 = ReadInstrumentSRAM(id, INST_AR3);
+    tmpInst[id].AR4 = ReadInstrumentSRAM(id, INST_AR4);
 
-    tmpInst.D1R1 = ReadInstrumentSRAM(id, INST_D1R1);
-    tmpInst.D1R2 = ReadInstrumentSRAM(id, INST_D1R2);
-    tmpInst.D1R3 = ReadInstrumentSRAM(id, INST_D1R3);
-    tmpInst.D1R4 = ReadInstrumentSRAM(id, INST_D1R4);
+    tmpInst[id].D1R1 = ReadInstrumentSRAM(id, INST_D1R1);
+    tmpInst[id].D1R2 = ReadInstrumentSRAM(id, INST_D1R2);
+    tmpInst[id].D1R3 = ReadInstrumentSRAM(id, INST_D1R3);
+    tmpInst[id].D1R4 = ReadInstrumentSRAM(id, INST_D1R4);
 
-    tmpInst.D1L1 = ReadInstrumentSRAM(id, INST_D1L1);
-    tmpInst.D1L2 = ReadInstrumentSRAM(id, INST_D1L2);
-    tmpInst.D1L3 = ReadInstrumentSRAM(id, INST_D1L3);
-    tmpInst.D1L4 = ReadInstrumentSRAM(id, INST_D1L4);
+    tmpInst[id].D1L1 = ReadInstrumentSRAM(id, INST_D1L1);
+    tmpInst[id].D1L2 = ReadInstrumentSRAM(id, INST_D1L2);
+    tmpInst[id].D1L3 = ReadInstrumentSRAM(id, INST_D1L3);
+    tmpInst[id].D1L4 = ReadInstrumentSRAM(id, INST_D1L4);
 
-    tmpInst.D2R1 = ReadInstrumentSRAM(id, INST_D2R1);
-    tmpInst.D2R2 = ReadInstrumentSRAM(id, INST_D2R2);
-    tmpInst.D2R3 = ReadInstrumentSRAM(id, INST_D2R3);
-    tmpInst.D2R4 = ReadInstrumentSRAM(id, INST_D2R4);
+    tmpInst[id].D2R1 = ReadInstrumentSRAM(id, INST_D2R1);
+    tmpInst[id].D2R2 = ReadInstrumentSRAM(id, INST_D2R2);
+    tmpInst[id].D2R3 = ReadInstrumentSRAM(id, INST_D2R3);
+    tmpInst[id].D2R4 = ReadInstrumentSRAM(id, INST_D2R4);
 
-    tmpInst.RR1 = ReadInstrumentSRAM(id, INST_RR1);
-    tmpInst.RR2 = ReadInstrumentSRAM(id, INST_RR2);
-    tmpInst.RR3 = ReadInstrumentSRAM(id, INST_RR3);
-    tmpInst.RR4 = ReadInstrumentSRAM(id, INST_RR4);
+    tmpInst[id].RR1 = ReadInstrumentSRAM(id, INST_RR1);
+    tmpInst[id].RR2 = ReadInstrumentSRAM(id, INST_RR2);
+    tmpInst[id].RR3 = ReadInstrumentSRAM(id, INST_RR3);
+    tmpInst[id].RR4 = ReadInstrumentSRAM(id, INST_RR4);
 
-    tmpInst.AM1 = ReadInstrumentSRAM(id, INST_AM1);
-    tmpInst.AM2 = ReadInstrumentSRAM(id, INST_AM2);
-    tmpInst.AM3 = ReadInstrumentSRAM(id, INST_AM3);
-    tmpInst.AM4 = ReadInstrumentSRAM(id, INST_AM4);
+    tmpInst[id].AM1 = ReadInstrumentSRAM(id, INST_AM1);
+    tmpInst[id].AM2 = ReadInstrumentSRAM(id, INST_AM2);
+    tmpInst[id].AM3 = ReadInstrumentSRAM(id, INST_AM3);
+    tmpInst[id].AM4 = ReadInstrumentSRAM(id, INST_AM4);
 
-    tmpInst.SSGEG1 = ReadInstrumentSRAM(id, INST_SSGEG1);
-    tmpInst.SSGEG2 = ReadInstrumentSRAM(id, INST_SSGEG2);
-    tmpInst.SSGEG3 = ReadInstrumentSRAM(id, INST_SSGEG3);
-    tmpInst.SSGEG4 = ReadInstrumentSRAM(id, INST_SSGEG4);
+    tmpInst[id].SSGEG1 = ReadInstrumentSRAM(id, INST_SSGEG1);
+    tmpInst[id].SSGEG2 = ReadInstrumentSRAM(id, INST_SSGEG2);
+    tmpInst[id].SSGEG3 = ReadInstrumentSRAM(id, INST_SSGEG3);
+    tmpInst[id].SSGEG4 = ReadInstrumentSRAM(id, INST_SSGEG4);
+
+    // calculate YM2612 combined registers from module data
+    tmpInst[id].FB_ALG = (tmpInst[id].FB << 3) | tmpInst[id].ALG;
+
+    tmpInst[id].PAN_AMS_FMS = ((tmpInst[id].PAN << 6) | (tmpInst[id].AMS << 3)) | tmpInst[id].FMS;
+
+    tmpInst[id].DT1_MUL1 = (tmpInst[id].DT1 << 4) | tmpInst[id].MUL1;
+    tmpInst[id].DT2_MUL2 = (tmpInst[id].DT2 << 4) | tmpInst[id].MUL2;
+    tmpInst[id].DT3_MUL3 = (tmpInst[id].DT3 << 4) | tmpInst[id].MUL3;
+    tmpInst[id].DT4_MUL4 = (tmpInst[id].DT4 << 4) | tmpInst[id].MUL4;
+
+    tmpInst[id].RS1_AR1 = (tmpInst[id].RS1 << 6) | tmpInst[id].AR1;
+    tmpInst[id].RS2_AR2 = (tmpInst[id].RS2 << 6) | tmpInst[id].AR2;
+    tmpInst[id].RS3_AR3 = (tmpInst[id].RS3 << 6) | tmpInst[id].AR3;
+    tmpInst[id].RS4_AR4 = (tmpInst[id].RS4 << 6) | tmpInst[id].AR4;
+
+    tmpInst[id].AM1_D1R1 = (tmpInst[id].AM1 << 7) | tmpInst[id].D1R1;
+    tmpInst[id].AM2_D1R2 = (tmpInst[id].AM2 << 7) | tmpInst[id].D1R2;
+    tmpInst[id].AM3_D1R3 = (tmpInst[id].AM3 << 7) | tmpInst[id].D1R3;
+    tmpInst[id].AM4_D1R4 = (tmpInst[id].AM4 << 7) | tmpInst[id].D1R4;
+
+    tmpInst[id].D1L1_RR1 = (tmpInst[id].D1L1 << 4) | tmpInst[id].RR1;
+    tmpInst[id].D1L2_RR2 = (tmpInst[id].D1L2 << 4) | tmpInst[id].RR2;
+    tmpInst[id].D1L3_RR3 = (tmpInst[id].D1L3 << 4) | tmpInst[id].RR3;
+    tmpInst[id].D1L4_RR4 = (tmpInst[id].D1L4 << 4) | tmpInst[id].RR4;
 }
 
-static void SetChannelBaseVolume(u8 matrixChannel)
+static void SetChannelBaseVolume(u8 matrixChannel, u8 id)
 {
     auto void set_normal_slots()
     {
         if (matrixChannel < CHANNEL_PSG1) // FM only
         {
-            switch (tmpInst.ALG)
+            switch (tmpInst[id].ALG)
             {
             case 0: case 1: case 2: case 3:
-                channelSlotBaseLevel[matrixChannel][3] = tmpInst.TL4;
-                tmpInst.TL4 += channelAttenuation[matrixChannel];
-                if (tmpInst.TL4 > 0x7F) tmpInst.TL4 = 0x7F;
+                channelSlotBaseLevel[matrixChannel][3] = tmpInst[id].TL4;
+                tmpInst[id].TL4 += channelAttenuation[matrixChannel];
+                if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL4 = 0x7F;
                 break;
             case 4:
-                channelSlotBaseLevel[matrixChannel][2] = tmpInst.TL3;
-                channelSlotBaseLevel[matrixChannel][3] = tmpInst.TL4;
-                tmpInst.TL3 += channelAttenuation[matrixChannel];
-                tmpInst.TL4 += channelAttenuation[matrixChannel];
-                if (tmpInst.TL3 > 0x7F) tmpInst.TL3 = 0x7F;
-                if (tmpInst.TL4 > 0x7F) tmpInst.TL4 = 0x7F;
+                channelSlotBaseLevel[matrixChannel][2] = tmpInst[id].TL3;
+                channelSlotBaseLevel[matrixChannel][3] = tmpInst[id].TL4;
+                tmpInst[id].TL3 += channelAttenuation[matrixChannel];
+                tmpInst[id].TL4 += channelAttenuation[matrixChannel];
+                if (tmpInst[id].TL3 > 0x7F) tmpInst[id].TL3 = 0x7F;
+                if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL4 = 0x7F;
                 break;
             case 5: case 6:
-                channelSlotBaseLevel[matrixChannel][1] = tmpInst.TL2;
-                channelSlotBaseLevel[matrixChannel][2] = tmpInst.TL3;
-                channelSlotBaseLevel[matrixChannel][3] = tmpInst.TL4;
-                tmpInst.TL2 += channelAttenuation[matrixChannel];
-                tmpInst.TL3 += channelAttenuation[matrixChannel];
-                tmpInst.TL4 += channelAttenuation[matrixChannel];
-                if (tmpInst.TL2 > 0x7F) tmpInst.TL2 = 0x7F;
-                if (tmpInst.TL3 > 0x7F) tmpInst.TL3 = 0x7F;
-                if (tmpInst.TL4 > 0x7F) tmpInst.TL4 = 0x7F;
+                channelSlotBaseLevel[matrixChannel][1] = tmpInst[id].TL2;
+                channelSlotBaseLevel[matrixChannel][2] = tmpInst[id].TL3;
+                channelSlotBaseLevel[matrixChannel][3] = tmpInst[id].TL4;
+                tmpInst[id].TL2 += channelAttenuation[matrixChannel];
+                tmpInst[id].TL3 += channelAttenuation[matrixChannel];
+                tmpInst[id].TL4 += channelAttenuation[matrixChannel];
+                if (tmpInst[id].TL2 > 0x7F) tmpInst[id].TL2 = 0x7F;
+                if (tmpInst[id].TL3 > 0x7F) tmpInst[id].TL3 = 0x7F;
+                if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL4 = 0x7F;
                 break;
             case 7:
-                channelSlotBaseLevel[matrixChannel][0] = tmpInst.TL1;
-                channelSlotBaseLevel[matrixChannel][1] = tmpInst.TL2;
-                channelSlotBaseLevel[matrixChannel][2] = tmpInst.TL3;
-                channelSlotBaseLevel[matrixChannel][3] = tmpInst.TL4;
-                tmpInst.TL1 += channelAttenuation[matrixChannel];
-                tmpInst.TL2 += channelAttenuation[matrixChannel];
-                tmpInst.TL3 += channelAttenuation[matrixChannel];
-                tmpInst.TL4 += channelAttenuation[matrixChannel];
-                if (tmpInst.TL1 > 0x7F) tmpInst.TL1 = 0x7F;
-                if (tmpInst.TL2 > 0x7F) tmpInst.TL2 = 0x7F;
-                if (tmpInst.TL3 > 0x7F) tmpInst.TL3 = 0x7F;
-                if (tmpInst.TL4 > 0x7F) tmpInst.TL4 = 0x7F;
+                channelSlotBaseLevel[matrixChannel][0] = tmpInst[id].TL1;
+                channelSlotBaseLevel[matrixChannel][1] = tmpInst[id].TL2;
+                channelSlotBaseLevel[matrixChannel][2] = tmpInst[id].TL3;
+                channelSlotBaseLevel[matrixChannel][3] = tmpInst[id].TL4;
+                tmpInst[id].TL1 += channelAttenuation[matrixChannel];
+                tmpInst[id].TL2 += channelAttenuation[matrixChannel];
+                tmpInst[id].TL3 += channelAttenuation[matrixChannel];
+                tmpInst[id].TL4 += channelAttenuation[matrixChannel];
+                if (tmpInst[id].TL1 > 0x7F) tmpInst[id].TL1 = 0x7F;
+                if (tmpInst[id].TL2 > 0x7F) tmpInst[id].TL2 = 0x7F;
+                if (tmpInst[id].TL3 > 0x7F) tmpInst[id].TL3 = 0x7F;
+                if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL4 = 0x7F;
                 break;
             }
         }
@@ -3821,33 +3841,33 @@ static void SetChannelBaseVolume(u8 matrixChannel)
         if (ch3Mode == CH3_NORMAL) set_normal_slots();
         else
         {
-            channelSlotBaseLevel[matrixChannel][3] = tmpInst.TL4;
-            tmpInst.TL4 += channelAttenuation[matrixChannel];
-            if (tmpInst.TL4 > 0x7F) tmpInst.TL1 = 0x7F;
+            channelSlotBaseLevel[matrixChannel][3] = tmpInst[id].TL4;
+            tmpInst[id].TL4 += channelAttenuation[matrixChannel];
+            if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL1 = 0x7F;
         }
         break;
     case CHANNEL_FM3_OP3:
         if (ch3Mode != CH3_NORMAL)
         {
-            channelSlotBaseLevel[matrixChannel][2] = tmpInst.TL3;
-            tmpInst.TL3 += channelAttenuation[matrixChannel];
-            if (tmpInst.TL3 > 0x7F) tmpInst.TL1 = 0x7F;
+            channelSlotBaseLevel[matrixChannel][2] = tmpInst[id].TL3;
+            tmpInst[id].TL3 += channelAttenuation[matrixChannel];
+            if (tmpInst[id].TL3 > 0x7F) tmpInst[id].TL1 = 0x7F;
         }
         break;
     case CHANNEL_FM3_OP2:
         if (ch3Mode != CH3_NORMAL)
         {
-            channelSlotBaseLevel[matrixChannel][1] = tmpInst.TL2;
-            tmpInst.TL2 += channelAttenuation[matrixChannel];
-            if (tmpInst.TL2 > 0x7F) tmpInst.TL1 = 0x7F;
+            channelSlotBaseLevel[matrixChannel][1] = tmpInst[id].TL2;
+            tmpInst[id].TL2 += channelAttenuation[matrixChannel];
+            if (tmpInst[id].TL2 > 0x7F) tmpInst[id].TL1 = 0x7F;
         }
         break;
     case CHANNEL_FM3_OP1:
         if (ch3Mode != CH3_NORMAL)
         {
-            channelSlotBaseLevel[matrixChannel][0] = tmpInst.TL1;
-            tmpInst.TL1 += channelAttenuation[matrixChannel];
-            if (tmpInst.TL1 > 0x7F) tmpInst.TL1 = 0x7F;
+            channelSlotBaseLevel[matrixChannel][0] = tmpInst[id].TL1;
+            tmpInst[id].TL1 += channelAttenuation[matrixChannel];
+            if (tmpInst[id].TL1 > 0x7F) tmpInst[id].TL1 = 0x7F;
         }
         break;
     default:
@@ -3865,177 +3885,235 @@ static void WriteInstrument(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // 
     static u16 port = 0;
     static u8 fmChannel = 0;
 
+    // auto functions used only for effects, not for instrument change
+
     // TL; 0 - unused, 000 0000 - TL (0..127) high to low ~0.75db step
-    auto void write_tl1(u8 value) { YM2612_writeReg(port, YM2612REG_OP1_TL + fmChannel, value); }
-    auto void write_tl2(u8 value) { YM2612_writeReg(port, YM2612REG_OP2_TL + fmChannel, value); }
-    auto void write_tl3(u8 value) { YM2612_writeReg(port, YM2612REG_OP3_TL + fmChannel, value); }
-    auto void write_tl4(u8 value) { YM2612_writeReg(port, YM2612REG_OP4_TL + fmChannel, value); }
+    auto void write_tl1(u8 value) { YM2612_writeReg(port, YM2612REG_OP1_TL_CH0 + fmChannel, value); }
+    auto void write_tl2(u8 value) { YM2612_writeReg(port, YM2612REG_OP2_TL_CH0 + fmChannel, value); }
+    auto void write_tl3(u8 value) { YM2612_writeReg(port, YM2612REG_OP3_TL_CH0 + fmChannel, value); }
+    auto void write_tl4(u8 value) { YM2612_writeReg(port, YM2612REG_OP4_TL_CH0 + fmChannel, value); }
 
-    auto void write_rs1(u8 value) { data = (value << 6) | ReadInstrumentSRAM(id, INST_AR1); YM2612_writeReg(port, YM2612REG_OP1_RS_AR + fmChannel, data); }
-    auto void write_rs2(u8 value) { data = (value << 6) | ReadInstrumentSRAM(id, INST_AR2); YM2612_writeReg(port, YM2612REG_OP2_RS_AR + fmChannel, data); }
-    auto void write_rs3(u8 value) { data = (value << 6) | ReadInstrumentSRAM(id, INST_AR3); YM2612_writeReg(port, YM2612REG_OP3_RS_AR + fmChannel, data); }
-    auto void write_rs4(u8 value) { data = (value << 6) | ReadInstrumentSRAM(id, INST_AR4); YM2612_writeReg(port, YM2612REG_OP4_RS_AR + fmChannel, data); }
-    auto void write_ar1(u8 value) { data = (ReadInstrumentSRAM(id, INST_RS1) << 6) | value; YM2612_writeReg(port, YM2612REG_OP1_RS_AR + fmChannel, data); }
-    auto void write_ar2(u8 value) { data = (ReadInstrumentSRAM(id, INST_RS2) << 6) | value; YM2612_writeReg(port, YM2612REG_OP2_RS_AR + fmChannel, data); }
-    auto void write_ar3(u8 value) { data = (ReadInstrumentSRAM(id, INST_RS3) << 6) | value; YM2612_writeReg(port, YM2612REG_OP3_RS_AR + fmChannel, data); }
-    auto void write_ar4(u8 value) { data = (ReadInstrumentSRAM(id, INST_RS4) << 6) | value; YM2612_writeReg(port, YM2612REG_OP4_RS_AR + fmChannel, data); }
+    // RS, AR
+    // 2b - RS (0..3), 1b - unused, 5b - AR (0..31)
+    auto void write_rs1(u8 value) { data = (value << 6) | ReadInstrumentSRAM(id, INST_AR1); YM2612_writeReg(port, YM2612REG_OP1_RS_AR_CH0 + fmChannel, data); }
+    auto void write_rs2(u8 value) { data = (value << 6) | ReadInstrumentSRAM(id, INST_AR2); YM2612_writeReg(port, YM2612REG_OP2_RS_AR_CH0 + fmChannel, data); }
+    auto void write_rs3(u8 value) { data = (value << 6) | ReadInstrumentSRAM(id, INST_AR3); YM2612_writeReg(port, YM2612REG_OP3_RS_AR_CH0 + fmChannel, data); }
+    auto void write_rs4(u8 value) { data = (value << 6) | ReadInstrumentSRAM(id, INST_AR4); YM2612_writeReg(port, YM2612REG_OP4_RS_AR_CH0 + fmChannel, data); }
+    auto void write_ar1(u8 value) { data = (ReadInstrumentSRAM(id, INST_RS1) << 6) | value; YM2612_writeReg(port, YM2612REG_OP1_RS_AR_CH0 + fmChannel, data); }
+    auto void write_ar2(u8 value) { data = (ReadInstrumentSRAM(id, INST_RS2) << 6) | value; YM2612_writeReg(port, YM2612REG_OP2_RS_AR_CH0 + fmChannel, data); }
+    auto void write_ar3(u8 value) { data = (ReadInstrumentSRAM(id, INST_RS3) << 6) | value; YM2612_writeReg(port, YM2612REG_OP3_RS_AR_CH0 + fmChannel, data); }
+    auto void write_ar4(u8 value) { data = (ReadInstrumentSRAM(id, INST_RS4) << 6) | value; YM2612_writeReg(port, YM2612REG_OP4_RS_AR_CH0 + fmChannel, data); }
 
+    // DT, MUL (FM channels 0, 1, 2)
+    // 1b - unused, 3b - DT1, 4b - MUL; DT1 = 1..-4+..8, MUL = 0..15
+    auto void write_mul1(u8 value) { data = (ReadInstrumentSRAM(id, INST_DT1) << 4) | value; YM2612_writeReg(port, YM2612REG_OP1_DT_MUL_CH0 + fmChannel, data); }
+    auto void write_mul2(u8 value) { data = (ReadInstrumentSRAM(id, INST_DT2) << 4) | value; YM2612_writeReg(port, YM2612REG_OP2_DT_MUL_CH0 + fmChannel, data); }
+    auto void write_mul3(u8 value) { data = (ReadInstrumentSRAM(id, INST_DT3) << 4) | value; YM2612_writeReg(port, YM2612REG_OP3_DT_MUL_CH0 + fmChannel, data); }
+    auto void write_mul4(u8 value) { data = (ReadInstrumentSRAM(id, INST_DT4) << 4) | value; YM2612_writeReg(port, YM2612REG_OP4_DT_MUL_CH0 + fmChannel, data); }
+    auto void write_dt1(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_MUL1); YM2612_writeReg(port, YM2612REG_OP1_DT_MUL_CH0 + fmChannel, data); }
+    auto void write_dt2(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_MUL2); YM2612_writeReg(port, YM2612REG_OP2_DT_MUL_CH0 + fmChannel, data); }
+    auto void write_dt3(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_MUL3); YM2612_writeReg(port, YM2612REG_OP3_DT_MUL_CH0 + fmChannel, data); }
+    auto void write_dt4(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_MUL4); YM2612_writeReg(port, YM2612REG_OP4_DT_MUL_CH0 + fmChannel, data); }
 
-    auto void write_mul1(u8 value) { data = (ReadInstrumentSRAM(id, INST_DT1) << 4) | value; YM2612_writeReg(port, YM2612REG_OP1_DT_MUL + fmChannel, data); }
-    auto void write_mul2(u8 value) { data = (ReadInstrumentSRAM(id, INST_DT2) << 4) | value; YM2612_writeReg(port, YM2612REG_OP2_DT_MUL + fmChannel, data); }
-    auto void write_mul3(u8 value) { data = (ReadInstrumentSRAM(id, INST_DT3) << 4) | value; YM2612_writeReg(port, YM2612REG_OP3_DT_MUL + fmChannel, data); }
-    auto void write_mul4(u8 value) { data = (ReadInstrumentSRAM(id, INST_DT4) << 4) | value; YM2612_writeReg(port, YM2612REG_OP4_DT_MUL + fmChannel, data); }
-    auto void write_dt1(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_MUL1); YM2612_writeReg(port, YM2612REG_OP1_DT_MUL + fmChannel, data); }
-    auto void write_dt2(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_MUL2); YM2612_writeReg(port, YM2612REG_OP2_DT_MUL + fmChannel, data); }
-    auto void write_dt3(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_MUL3); YM2612_writeReg(port, YM2612REG_OP3_DT_MUL + fmChannel, data); }
-    auto void write_dt4(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_MUL4); YM2612_writeReg(port, YM2612REG_OP4_DT_MUL + fmChannel, data); }
+    // FB, ALG
+    // 2b - unused, 3b (0..7) - FB, 3b - ALG (0..7)
+    auto void write_alg(u8 value) { data = (ReadInstrumentSRAM(id, INST_FB) << 3) | value; YM2612_writeReg(port, YM2612REG_FB_ALG_CH0 + fmChannel, data); }
+    auto void write_fb(u8 value) { data = (value << 3) | ReadInstrumentSRAM(id, INST_ALG); YM2612_writeReg(port, YM2612REG_FB_ALG_CH0 + fmChannel, data); }
 
-    auto void write_alg(u8 value) { data = (ReadInstrumentSRAM(id, INST_FB) << 3) | value; YM2612_writeReg(port, YM2612REG_FB_ALG + fmChannel, data); }
-    auto void write_fb(u8 value) { data = (value << 3) | ReadInstrumentSRAM(id, INST_ALG); YM2612_writeReg(port, YM2612REG_FB_ALG + fmChannel, data); }
-
+    // PAN, AMS, FMS
+    // 2b - PAN (1..3), 3b - AMS (0..7), 1b - unused, 2b - FMS (0..3)
     auto void write_pan(u8 value) { data = ((value << 6) | (ReadInstrumentSRAM(id, INST_FMS) << 3)) | ReadInstrumentSRAM(id, INST_AMS);
-        YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS + fmChannel, data); }
+        YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS_CH0 + fmChannel, data); }
     auto void write_ams(u8 value) { data = ((ReadInstrumentSRAM(id, INST_PAN) << 6) | value << 3) | ReadInstrumentSRAM(id, INST_AMS);
-        YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS + fmChannel, data); }
+        YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS_CH0 + fmChannel, data); }
     auto void write_fms(u8 value) { data = ((ReadInstrumentSRAM(id, INST_PAN) << 6) | (ReadInstrumentSRAM(id, INST_FMS) << 3)) | value;
-        YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS + fmChannel, data); }
+        YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS_CH0 + fmChannel, data); }
 
-    auto void write_am1(u8 value) { data = (value << 7) | ReadInstrumentSRAM(id, INST_D1R1); YM2612_writeReg(port, YM2612REG_OP1_AM_D1R + fmChannel, data); }
-    auto void write_am2(u8 value) { data = (value << 7) | ReadInstrumentSRAM(id, INST_D1R2); YM2612_writeReg(port, YM2612REG_OP2_AM_D1R + fmChannel, data); }
-    auto void write_am3(u8 value) { data = (value << 7) | ReadInstrumentSRAM(id, INST_D1R3); YM2612_writeReg(port, YM2612REG_OP3_AM_D1R + fmChannel, data); }
-    auto void write_am4(u8 value) { data = (value << 7) | ReadInstrumentSRAM(id, INST_D1R4); YM2612_writeReg(port, YM2612REG_OP4_AM_D1R + fmChannel, data); }
-    auto void write_d1r1(u8 value) { data = (ReadInstrumentSRAM(id, INST_AM1) << 7) | value; YM2612_writeReg(port, YM2612REG_OP1_AM_D1R + fmChannel, data); }
-    auto void write_d1r2(u8 value) { data = (ReadInstrumentSRAM(id, INST_AM2) << 7) | value; YM2612_writeReg(port, YM2612REG_OP2_AM_D1R + fmChannel, data); }
-    auto void write_d1r3(u8 value) { data = (ReadInstrumentSRAM(id, INST_AM3) << 7) | value; YM2612_writeReg(port, YM2612REG_OP3_AM_D1R + fmChannel, data); }
-    auto void write_d1r4(u8 value) { data = (ReadInstrumentSRAM(id, INST_AM4) << 7) | value; YM2612_writeReg(port, YM2612REG_OP4_AM_D1R + fmChannel, data); }
+    // AM, D1R
+    // 1b - AM (0 or 1), 2b - unused, 5b - D1R (0..31)
+    auto void write_am1(u8 value) { data = (value << 7) | ReadInstrumentSRAM(id, INST_D1R1); YM2612_writeReg(port, YM2612REG_OP1_AM_D1R_CH0 + fmChannel, data); }
+    auto void write_am2(u8 value) { data = (value << 7) | ReadInstrumentSRAM(id, INST_D1R2); YM2612_writeReg(port, YM2612REG_OP2_AM_D1R_CH0 + fmChannel, data); }
+    auto void write_am3(u8 value) { data = (value << 7) | ReadInstrumentSRAM(id, INST_D1R3); YM2612_writeReg(port, YM2612REG_OP3_AM_D1R_CH0 + fmChannel, data); }
+    auto void write_am4(u8 value) { data = (value << 7) | ReadInstrumentSRAM(id, INST_D1R4); YM2612_writeReg(port, YM2612REG_OP4_AM_D1R_CH0 + fmChannel, data); }
+    auto void write_d1r1(u8 value) { data = (ReadInstrumentSRAM(id, INST_AM1) << 7) | value; YM2612_writeReg(port, YM2612REG_OP1_AM_D1R_CH0 + fmChannel, data); }
+    auto void write_d1r2(u8 value) { data = (ReadInstrumentSRAM(id, INST_AM2) << 7) | value; YM2612_writeReg(port, YM2612REG_OP2_AM_D1R_CH0 + fmChannel, data); }
+    auto void write_d1r3(u8 value) { data = (ReadInstrumentSRAM(id, INST_AM3) << 7) | value; YM2612_writeReg(port, YM2612REG_OP3_AM_D1R_CH0 + fmChannel, data); }
+    auto void write_d1r4(u8 value) { data = (ReadInstrumentSRAM(id, INST_AM4) << 7) | value; YM2612_writeReg(port, YM2612REG_OP4_AM_D1R_CH0 + fmChannel, data); }
 
-    auto void write_ssgeg1(u8 value) { YM2612_writeReg(port, YM2612REG_OP1_SSGEG + fmChannel, value); }
-    auto void write_ssgeg2(u8 value) { YM2612_writeReg(port, YM2612REG_OP2_SSGEG + fmChannel, value); }
-    auto void write_ssgeg3(u8 value) { YM2612_writeReg(port, YM2612REG_OP3_SSGEG + fmChannel, value); }
-    auto void write_ssgeg4(u8 value) { YM2612_writeReg(port, YM2612REG_OP4_SSGEG + fmChannel, value); }
+    // SSG-EG
+    // 4b - unused, 1b - enable, 3b - SSG-EG (0..7), <8 disable, 8>= enable and set
+    // ---------------------------------
+    // | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+    // |---------------|---|---|---|---|
+    // | /   /   /   / | E |ATT|ALT|HLD|
+    auto void write_ssgeg1(u8 value) { YM2612_writeReg(port, YM2612REG_OP1_SSGEG_CH0 + fmChannel, value); }
+    auto void write_ssgeg2(u8 value) { YM2612_writeReg(port, YM2612REG_OP2_SSGEG_CH0 + fmChannel, value); }
+    auto void write_ssgeg3(u8 value) { YM2612_writeReg(port, YM2612REG_OP3_SSGEG_CH0 + fmChannel, value); }
+    auto void write_ssgeg4(u8 value) { YM2612_writeReg(port, YM2612REG_OP4_SSGEG_CH0 + fmChannel, value); }
 
-    auto void write_d1l1(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_RR1); YM2612_writeReg(port, YM2612REG_OP1_D1L_RR + fmChannel, data); }
-    auto void write_d1l2(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_RR2); YM2612_writeReg(port, YM2612REG_OP2_D1L_RR + fmChannel, data); }
-    auto void write_d1l3(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_RR3); YM2612_writeReg(port, YM2612REG_OP3_D1L_RR + fmChannel, data); }
-    auto void write_d1l4(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_RR4); YM2612_writeReg(port, YM2612REG_OP4_D1L_RR + fmChannel, data); }
-    auto void write_rr1(u8 value) { data = (ReadInstrumentSRAM(id, INST_D1L1) << 4) | value; YM2612_writeReg(port, YM2612REG_OP1_D1L_RR + fmChannel, data); }
-    auto void write_rr2(u8 value) { data = (ReadInstrumentSRAM(id, INST_D1L2) << 4) | value; YM2612_writeReg(port, YM2612REG_OP2_D1L_RR + fmChannel, data); }
-    auto void write_rr3(u8 value) { data = (ReadInstrumentSRAM(id, INST_D1L3) << 4) | value; YM2612_writeReg(port, YM2612REG_OP3_D1L_RR + fmChannel, data); }
-    auto void write_rr4(u8 value) { data = (ReadInstrumentSRAM(id, INST_D1L4) << 4) | value; YM2612_writeReg(port, YM2612REG_OP4_D1L_RR + fmChannel, data); }
+    // D1L, RR
+    // 4b - D1L (0..15), 4b - RR (0..15)
+    auto void write_d1l1(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_RR1); YM2612_writeReg(port, YM2612REG_OP1_D1L_RR_CH0 + fmChannel, data); }
+    auto void write_d1l2(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_RR2); YM2612_writeReg(port, YM2612REG_OP2_D1L_RR_CH0 + fmChannel, data); }
+    auto void write_d1l3(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_RR3); YM2612_writeReg(port, YM2612REG_OP3_D1L_RR_CH0 + fmChannel, data); }
+    auto void write_d1l4(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_RR4); YM2612_writeReg(port, YM2612REG_OP4_D1L_RR_CH0 + fmChannel, data); }
+    auto void write_rr1(u8 value) { data = (ReadInstrumentSRAM(id, INST_D1L1) << 4) | value; YM2612_writeReg(port, YM2612REG_OP1_D1L_RR_CH0 + fmChannel, data); }
+    auto void write_rr2(u8 value) { data = (ReadInstrumentSRAM(id, INST_D1L2) << 4) | value; YM2612_writeReg(port, YM2612REG_OP2_D1L_RR_CH0 + fmChannel, data); }
+    auto void write_rr3(u8 value) { data = (ReadInstrumentSRAM(id, INST_D1L3) << 4) | value; YM2612_writeReg(port, YM2612REG_OP3_D1L_RR_CH0 + fmChannel, data); }
+    auto void write_rr4(u8 value) { data = (ReadInstrumentSRAM(id, INST_D1L4) << 4) | value; YM2612_writeReg(port, YM2612REG_OP4_D1L_RR_CH0 + fmChannel, data); }
 
-    auto void write_d2r1(u8 value) { YM2612_writeReg(port, YM2612REG_OP1_D2R + fmChannel, value); }
-    auto void write_d2r2(u8 value) { YM2612_writeReg(port, YM2612REG_OP2_D2R + fmChannel, value); }
-    auto void write_d2r3(u8 value) { YM2612_writeReg(port, YM2612REG_OP3_D2R + fmChannel, value); }
-    auto void write_d2r4(u8 value) { YM2612_writeReg(port, YM2612REG_OP4_D2R + fmChannel, value); }
+    // D2R
+    // 3b - unused, 5b - D2R (0..31)
+    auto void write_d2r1(u8 value) { YM2612_writeReg(port, YM2612REG_OP1_D2R_CH0 + fmChannel, value); }
+    auto void write_d2r2(u8 value) { YM2612_writeReg(port, YM2612REG_OP2_D2R_CH0 + fmChannel, value); }
+    auto void write_d2r3(u8 value) { YM2612_writeReg(port, YM2612REG_OP3_D2R_CH0 + fmChannel, value); }
+    auto void write_d2r4(u8 value) { YM2612_writeReg(port, YM2612REG_OP4_D2R_CH0 + fmChannel, value); }
 
     if (matrixChannel < CHANNEL_PSG1) // FM channel
     {
         switch (matrixChannel)
         {
         case CHANNEL_FM1: case CHANNEL_FM2: case CHANNEL_FM3_OP4:
-            port = PORT_1; fmChannel = matrixChannel;
+            port = PORT_1; fmChannel = matrixChannel; // 0, 1, 2
             break;
         case CHANNEL_FM3_OP3: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP1:
-            port = PORT_1; fmChannel = CHANNEL_FM3_OP4;
+            port = PORT_1; fmChannel = CHANNEL_FM3_OP4; // 2
             break;
         case CHANNEL_FM4: case CHANNEL_FM5: case CHANNEL_FM6_DAC:
-            port = PORT_2; fmChannel = matrixChannel - 6;
+            port = PORT_2; fmChannel = matrixChannel - 6; // 0, 1, 2
             break;
         }
 
-        if (fxParam == 0) // write all from instrument data
+        if (fxParam == NULL) // write all from instrument data
         {
-            SetChannelBaseVolume(matrixChannel);
+            SetChannelBaseVolume(matrixChannel, id);
 
-            // FB, ALG
-            // 2b - unused, 3b (0..7) - FB, 3b - ALG (0..7)
-            data = (tmpInst.FB << 3) | tmpInst.ALG;
-        RequestZ80();
-            YM2612_writeReg(port, YM2612REG_FB_ALG + fmChannel, data);
+            switch (fmChannel)
+            {
+                case 0:
+                    RequestZ80();
+                    YM2612_writeReg(port, YM2612REG_FB_ALG_CH0, tmpInst[id].FB_ALG);
 
-            write_tl1(tmpInst.TL1);
-            write_tl2(tmpInst.TL2);
-            write_tl3(tmpInst.TL3);
-            write_tl4(tmpInst.TL4);
+                    YM2612_writeReg(port, YM2612REG_OP1_TL_CH0, tmpInst[id].TL1);
+                    YM2612_writeReg(port, YM2612REG_OP2_TL_CH0, tmpInst[id].TL2);
+                    YM2612_writeReg(port, YM2612REG_OP3_TL_CH0, tmpInst[id].TL3);
+                    YM2612_writeReg(port, YM2612REG_OP4_TL_CH0, tmpInst[id].TL4);
 
-            // PAN, AMS, FMS
-            // 2b - PAN (1..3), 3b - AMS (0..7), 1b - unused, 2b - FMS (0..3)
-            data = ((tmpInst.PAN << 6) | (tmpInst.AMS << 3)) | tmpInst.FMS;
-            YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS + fmChannel, data);
+                    YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS_CH0, tmpInst[id].PAN_AMS_FMS);
 
-            // DT, MUL (FM channels 0, 1, 2)
-            // 1b - unused, 3b - DT1, 4b - MUL; DT1 = 1..-4+..8, MUL = 0..15
-            data = (tmpInst.DT1 << 4) | tmpInst.MUL1;
-            YM2612_writeReg(port, YM2612REG_OP1_DT_MUL + fmChannel, data);
+                    YM2612_writeReg(port, YM2612REG_OP1_DT_MUL_CH0, tmpInst[id].DT1_MUL1);
+                    YM2612_writeReg(port, YM2612REG_OP2_DT_MUL_CH0, tmpInst[id].DT2_MUL2);
+                    YM2612_writeReg(port, YM2612REG_OP3_DT_MUL_CH0, tmpInst[id].DT3_MUL3);
+                    YM2612_writeReg(port, YM2612REG_OP4_DT_MUL_CH0, tmpInst[id].DT4_MUL4);
 
-            data = (tmpInst.DT2 << 4) | tmpInst.MUL2;
-            YM2612_writeReg(port, YM2612REG_OP2_DT_MUL + fmChannel, data);
+                    YM2612_writeReg(port, YM2612REG_OP1_RS_AR_CH0, tmpInst[id].RS1_AR1);
+                    YM2612_writeReg(port, YM2612REG_OP2_RS_AR_CH0, tmpInst[id].RS2_AR2);
+                    YM2612_writeReg(port, YM2612REG_OP3_RS_AR_CH0, tmpInst[id].RS3_AR3);
+                    YM2612_writeReg(port, YM2612REG_OP4_RS_AR_CH0, tmpInst[id].RS4_AR4);
 
-            data = (tmpInst.DT3 << 4) | tmpInst.MUL3;
-            YM2612_writeReg(port, YM2612REG_OP3_DT_MUL + fmChannel, data);
+                    YM2612_writeReg(port, YM2612REG_OP1_AM_D1R_CH0, tmpInst[id].AM1_D1R1);
+                    YM2612_writeReg(port, YM2612REG_OP2_AM_D1R_CH0, tmpInst[id].AM2_D1R2);
+                    YM2612_writeReg(port, YM2612REG_OP3_AM_D1R_CH0, tmpInst[id].AM3_D1R3);
+                    YM2612_writeReg(port, YM2612REG_OP4_AM_D1R_CH0, tmpInst[id].AM4_D1R4);
 
-            data = (tmpInst.DT4 << 4) | tmpInst.MUL4;
-            YM2612_writeReg(port, YM2612REG_OP4_DT_MUL + fmChannel, data);
+                    YM2612_writeReg(port, YM2612REG_OP1_D2R_CH0, tmpInst[id].D2R1);
+                    YM2612_writeReg(port, YM2612REG_OP2_D2R_CH0, tmpInst[id].D2R2);
+                    YM2612_writeReg(port, YM2612REG_OP3_D2R_CH0, tmpInst[id].D2R3);
+                    YM2612_writeReg(port, YM2612REG_OP4_D2R_CH0, tmpInst[id].D2R4);
 
-            // RS, AR
-            // 2b - RS (0..3), 1b - unused, 5b - AR (0..31)
-            data = (tmpInst.RS1 << 6) | tmpInst.AR1;
-            YM2612_writeReg(port, YM2612REG_OP1_RS_AR + fmChannel, data);
+                    YM2612_writeReg(port, YM2612REG_OP1_D1L_RR_CH0, tmpInst[id].D1L1_RR1);
+                    YM2612_writeReg(port, YM2612REG_OP2_D1L_RR_CH0, tmpInst[id].D1L2_RR2);
+                    YM2612_writeReg(port, YM2612REG_OP3_D1L_RR_CH0, tmpInst[id].D1L3_RR3);
+                    YM2612_writeReg(port, YM2612REG_OP4_D1L_RR_CH0, tmpInst[id].D1L4_RR4);
 
-            data = (tmpInst.RS2 << 6) | tmpInst.AR2;
-            YM2612_writeReg(port, YM2612REG_OP2_RS_AR + fmChannel, data);
+                    YM2612_writeReg(port, YM2612REG_OP1_SSGEG_CH0, tmpInst[id].SSGEG1);
+                    YM2612_writeReg(port, YM2612REG_OP2_SSGEG_CH0, tmpInst[id].SSGEG2);
+                    YM2612_writeReg(port, YM2612REG_OP3_SSGEG_CH0, tmpInst[id].SSGEG3);
+                    YM2612_writeReg(port, YM2612REG_OP4_SSGEG_CH0, tmpInst[id].SSGEG4);
+                    break;
+                case 1:
+                    RequestZ80();
+                    YM2612_writeReg(port, YM2612REG_FB_ALG_CH1, tmpInst[id].FB_ALG);
 
-            data = (tmpInst.RS3 << 6) | tmpInst.AR3;
-            YM2612_writeReg(port, YM2612REG_OP3_RS_AR + fmChannel, data);
+                    YM2612_writeReg(port, YM2612REG_OP1_TL_CH1, tmpInst[id].TL1);
+                    YM2612_writeReg(port, YM2612REG_OP2_TL_CH1, tmpInst[id].TL2);
+                    YM2612_writeReg(port, YM2612REG_OP3_TL_CH1, tmpInst[id].TL3);
+                    YM2612_writeReg(port, YM2612REG_OP4_TL_CH1, tmpInst[id].TL4);
 
-            data = (tmpInst.RS4 << 6) | tmpInst.AR4;
-            YM2612_writeReg(port, YM2612REG_OP4_RS_AR + fmChannel, data);
+                    YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS_CH1, tmpInst[id].PAN_AMS_FMS);
 
-            // AM, D1R
-            // 1b - AM (0 or 1), 2b - unused, 5b - D1R (0..31)
-            data = (tmpInst.AM1 << 7) | tmpInst.D1R1;
-            YM2612_writeReg(port, YM2612REG_OP1_AM_D1R + fmChannel, data);
+                    YM2612_writeReg(port, YM2612REG_OP1_DT_MUL_CH1, tmpInst[id].DT1_MUL1);
+                    YM2612_writeReg(port, YM2612REG_OP2_DT_MUL_CH1, tmpInst[id].DT2_MUL2);
+                    YM2612_writeReg(port, YM2612REG_OP3_DT_MUL_CH1, tmpInst[id].DT3_MUL3);
+                    YM2612_writeReg(port, YM2612REG_OP4_DT_MUL_CH1, tmpInst[id].DT4_MUL4);
 
-            data = (tmpInst.AM2 << 7) | tmpInst.D1R2;
-            YM2612_writeReg(port, YM2612REG_OP2_AM_D1R + fmChannel, data);
+                    YM2612_writeReg(port, YM2612REG_OP1_RS_AR_CH1, tmpInst[id].RS1_AR1);
+                    YM2612_writeReg(port, YM2612REG_OP2_RS_AR_CH1, tmpInst[id].RS2_AR2);
+                    YM2612_writeReg(port, YM2612REG_OP3_RS_AR_CH1, tmpInst[id].RS3_AR3);
+                    YM2612_writeReg(port, YM2612REG_OP4_RS_AR_CH1, tmpInst[id].RS4_AR4);
 
-            data = (tmpInst.AM3 << 7) | tmpInst.D1R3;
-            YM2612_writeReg(port, YM2612REG_OP3_AM_D1R + fmChannel, data);
+                    YM2612_writeReg(port, YM2612REG_OP1_AM_D1R_CH1, tmpInst[id].AM1_D1R1);
+                    YM2612_writeReg(port, YM2612REG_OP2_AM_D1R_CH1, tmpInst[id].AM2_D1R2);
+                    YM2612_writeReg(port, YM2612REG_OP3_AM_D1R_CH1, tmpInst[id].AM3_D1R3);
+                    YM2612_writeReg(port, YM2612REG_OP4_AM_D1R_CH1, tmpInst[id].AM4_D1R4);
 
-            data = (tmpInst.AM4 << 7) | tmpInst.D1R4;
-            YM2612_writeReg(port, YM2612REG_OP4_AM_D1R + fmChannel, data);
+                    YM2612_writeReg(port, YM2612REG_OP1_D2R_CH1, tmpInst[id].D2R1);
+                    YM2612_writeReg(port, YM2612REG_OP2_D2R_CH1, tmpInst[id].D2R2);
+                    YM2612_writeReg(port, YM2612REG_OP3_D2R_CH1, tmpInst[id].D2R3);
+                    YM2612_writeReg(port, YM2612REG_OP4_D2R_CH1, tmpInst[id].D2R4);
 
-            // D2R
-            // 3b - unused, 5b - D2R (0..31)
-            YM2612_writeReg(port, YM2612REG_OP1_D2R + fmChannel, tmpInst.D2R1);
-            YM2612_writeReg(port, YM2612REG_OP2_D2R + fmChannel, tmpInst.D2R2);
-            YM2612_writeReg(port, YM2612REG_OP3_D2R + fmChannel, tmpInst.D2R3);
-            YM2612_writeReg(port, YM2612REG_OP4_D2R + fmChannel, tmpInst.D2R4);
+                    YM2612_writeReg(port, YM2612REG_OP1_D1L_RR_CH1, tmpInst[id].D1L1_RR1);
+                    YM2612_writeReg(port, YM2612REG_OP2_D1L_RR_CH1, tmpInst[id].D1L2_RR2);
+                    YM2612_writeReg(port, YM2612REG_OP3_D1L_RR_CH1, tmpInst[id].D1L3_RR3);
+                    YM2612_writeReg(port, YM2612REG_OP4_D1L_RR_CH1, tmpInst[id].D1L4_RR4);
 
-            // D1L, RR
-            // 4b - D1L (0..15), 4b - RR (0..15)
-            data = (tmpInst.D1L1 << 4) | tmpInst.RR1;
-            YM2612_writeReg(port, YM2612REG_OP1_D1L_RR + fmChannel, data);
+                    YM2612_writeReg(port, YM2612REG_OP1_SSGEG_CH1, tmpInst[id].SSGEG1);
+                    YM2612_writeReg(port, YM2612REG_OP2_SSGEG_CH1, tmpInst[id].SSGEG2);
+                    YM2612_writeReg(port, YM2612REG_OP3_SSGEG_CH1, tmpInst[id].SSGEG3);
+                    YM2612_writeReg(port, YM2612REG_OP4_SSGEG_CH1, tmpInst[id].SSGEG4);
+                    break;
+                case 2:
+                    RequestZ80();
+                    YM2612_writeReg(port, YM2612REG_FB_ALG_CH2, tmpInst[id].FB_ALG);
 
-            data = (tmpInst.D1L2 << 4) | tmpInst.RR2;
-            YM2612_writeReg(port, YM2612REG_OP2_D1L_RR + fmChannel, data);
+                    YM2612_writeReg(port, YM2612REG_OP1_TL_CH2, tmpInst[id].TL1);
+                    YM2612_writeReg(port, YM2612REG_OP2_TL_CH2, tmpInst[id].TL2);
+                    YM2612_writeReg(port, YM2612REG_OP3_TL_CH2, tmpInst[id].TL3);
+                    YM2612_writeReg(port, YM2612REG_OP4_TL_CH2, tmpInst[id].TL4);
 
-            data = (tmpInst.D1L3 << 4) | tmpInst.RR3;
-            YM2612_writeReg(port, YM2612REG_OP3_D1L_RR + fmChannel, data);
+                    YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS_CH2, tmpInst[id].PAN_AMS_FMS);
 
-            data = (tmpInst.D1L4 << 4) | tmpInst.RR3;
-            YM2612_writeReg(port, YM2612REG_OP4_D1L_RR + fmChannel, data);
+                    YM2612_writeReg(port, YM2612REG_OP1_DT_MUL_CH2, tmpInst[id].DT1_MUL1);
+                    YM2612_writeReg(port, YM2612REG_OP2_DT_MUL_CH2, tmpInst[id].DT2_MUL2);
+                    YM2612_writeReg(port, YM2612REG_OP3_DT_MUL_CH2, tmpInst[id].DT3_MUL3);
+                    YM2612_writeReg(port, YM2612REG_OP4_DT_MUL_CH2, tmpInst[id].DT4_MUL4);
 
-            // SSG-EG
-            // 4b - unused, 1b - enable, 3b - SSG-EG (0..7), <8 disable, 8>= enable and set
-            // ---------------------------------
-            // | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
-            // |---------------|---|---|---|---|
-            // | /   /   /   / | E |ATT|ALT|HLD|
-            YM2612_writeReg(port, YM2612REG_OP1_SSGEG + fmChannel, tmpInst.SSGEG1);
-            YM2612_writeReg(port, YM2612REG_OP2_SSGEG + fmChannel, tmpInst.SSGEG2);
-            YM2612_writeReg(port, YM2612REG_OP3_SSGEG + fmChannel, tmpInst.SSGEG3);
-            YM2612_writeReg(port, YM2612REG_OP4_SSGEG + fmChannel, tmpInst.SSGEG4);
+                    YM2612_writeReg(port, YM2612REG_OP1_RS_AR_CH2, tmpInst[id].RS1_AR1);
+                    YM2612_writeReg(port, YM2612REG_OP2_RS_AR_CH2, tmpInst[id].RS2_AR2);
+                    YM2612_writeReg(port, YM2612REG_OP3_RS_AR_CH2, tmpInst[id].RS3_AR3);
+                    YM2612_writeReg(port, YM2612REG_OP4_RS_AR_CH2, tmpInst[id].RS4_AR4);
+
+                    YM2612_writeReg(port, YM2612REG_OP1_AM_D1R_CH2, tmpInst[id].AM1_D1R1);
+                    YM2612_writeReg(port, YM2612REG_OP2_AM_D1R_CH2, tmpInst[id].AM2_D1R2);
+                    YM2612_writeReg(port, YM2612REG_OP3_AM_D1R_CH2, tmpInst[id].AM3_D1R3);
+                    YM2612_writeReg(port, YM2612REG_OP4_AM_D1R_CH2, tmpInst[id].AM4_D1R4);
+
+                    YM2612_writeReg(port, YM2612REG_OP1_D2R_CH2, tmpInst[id].D2R1);
+                    YM2612_writeReg(port, YM2612REG_OP2_D2R_CH2, tmpInst[id].D2R2);
+                    YM2612_writeReg(port, YM2612REG_OP3_D2R_CH2, tmpInst[id].D2R3);
+                    YM2612_writeReg(port, YM2612REG_OP4_D2R_CH2, tmpInst[id].D2R4);
+
+                    YM2612_writeReg(port, YM2612REG_OP1_D1L_RR_CH2, tmpInst[id].D1L1_RR1);
+                    YM2612_writeReg(port, YM2612REG_OP2_D1L_RR_CH2, tmpInst[id].D1L2_RR2);
+                    YM2612_writeReg(port, YM2612REG_OP3_D1L_RR_CH2, tmpInst[id].D1L3_RR3);
+                    YM2612_writeReg(port, YM2612REG_OP4_D1L_RR_CH2, tmpInst[id].D1L4_RR4);
+
+                    YM2612_writeReg(port, YM2612REG_OP1_SSGEG_CH2, tmpInst[id].SSGEG1);
+                    YM2612_writeReg(port, YM2612REG_OP2_SSGEG_CH2, tmpInst[id].SSGEG2);
+                    YM2612_writeReg(port, YM2612REG_OP3_SSGEG_CH2, tmpInst[id].SSGEG3);
+                    YM2612_writeReg(port, YM2612REG_OP4_SSGEG_CH2, tmpInst[id].SSGEG4);
+                    break;
+            }
         ReleaseZ80();
         }
         else // FM only FX. write only one param
@@ -4047,34 +4125,34 @@ static void WriteInstrument(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // 
             // TOTAL LEVEL
             case 0x01:
                 if (fxValue == 0) write_tl1(ReadInstrumentSRAM(id, INST_TL1));
-                else if (fxValue <= 128) { tmpInst.TL1 = fxValue - 1; write_tl1(tmpInst.TL1); }
+                else if (fxValue <= 128) { tmpInst[id].TL1 = fxValue - 1; write_tl1(tmpInst[id].TL1); }
                 break;
             case 0x02:
                 if (fxValue == 0) write_tl2(ReadInstrumentSRAM(id, INST_TL2));
-                else if (fxValue <= 128) { tmpInst.TL2 = fxValue - 1; write_tl2(tmpInst.TL2); }
+                else if (fxValue <= 128) { tmpInst[id].TL2 = fxValue - 1; write_tl2(tmpInst[id].TL2); }
                 break;
             case 0x03:
                 if (fxValue == 0) write_tl3(ReadInstrumentSRAM(id, INST_TL3));
-                else if (fxValue <= 128) { tmpInst.TL3 = fxValue - 1; write_tl3(tmpInst.TL3); }
+                else if (fxValue <= 128) { tmpInst[id].TL3 = fxValue - 1; write_tl3(tmpInst[id].TL3); }
                 break;
             case 0x04:
                 if (fxValue == 0) write_tl4(ReadInstrumentSRAM(id, INST_TL4));
-                else if (fxValue <= 128) { tmpInst.TL4 = fxValue - 1; write_tl4(tmpInst.TL4); }
+                else if (fxValue <= 128) { tmpInst[id].TL4 = fxValue - 1; write_tl4(tmpInst[id].TL4); }
                 break;
 
             // RATE SCALE
             case 0x05:
                 if (fxValue == 0x10) write_rs1(ReadInstrumentSRAM(id, INST_RS1)); // reset
-                else if ((fxValue >= 0x11) && (fxValue <= 0x14)) { tmpInst.RS1 = fxValue - 0x11; write_rs1(tmpInst.RS1); }
+                else if ((fxValue >= 0x11) && (fxValue <= 0x14)) { tmpInst[id].RS1 = fxValue - 0x11; write_rs1(tmpInst[id].RS1); }
 
                 else if (fxValue == 0x20) write_rs2(ReadInstrumentSRAM(id, INST_RS2));
-                else if ((fxValue >= 0x21) && (fxValue <= 0x24)) { tmpInst.RS2 = fxValue - 0x21; write_rs2(tmpInst.RS2); }
+                else if ((fxValue >= 0x21) && (fxValue <= 0x24)) { tmpInst[id].RS2 = fxValue - 0x21; write_rs2(tmpInst[id].RS2); }
 
                 else if (fxValue == 0x30) write_rs3(ReadInstrumentSRAM(id, INST_RS3));
-                else if ((fxValue >= 0x31) && (fxValue <= 0x34)) { tmpInst.RS3 = fxValue - 0x31; write_rs3(tmpInst.RS3); }
+                else if ((fxValue >= 0x31) && (fxValue <= 0x34)) { tmpInst[id].RS3 = fxValue - 0x31; write_rs3(tmpInst[id].RS3); }
 
                 else if (fxValue == 0x40) write_rs4(ReadInstrumentSRAM(id, INST_RS4));
-                else if ((fxValue >= 0x41) && (fxValue <= 0x44)) { tmpInst.RS4 = fxValue - 0x41; write_rs4(tmpInst.RS4); }
+                else if ((fxValue >= 0x41) && (fxValue <= 0x44)) { tmpInst[id].RS4 = fxValue - 0x41; write_rs4(tmpInst[id].RS4); }
 
                 else if (fxValue == 0x00 || fxValue == 0x50) // reset all
                 {
@@ -4085,27 +4163,27 @@ static void WriteInstrument(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // 
                 }
                 else if ((fxValue >= 0x51) && (fxValue <= 0x54))
                 {
-                    tmpInst.RS1 = tmpInst.RS2 = tmpInst.RS3 = tmpInst.RS4 = fxValue - 0x51;
-                    write_rs1(tmpInst.RS1);
-                    write_rs2(tmpInst.RS2);
-                    write_rs3(tmpInst.RS3);
-                    write_rs4(tmpInst.RS4);
+                    tmpInst[id].RS1 = tmpInst[id].RS2 = tmpInst[id].RS3 = tmpInst[id].RS4 = fxValue - 0x51;
+                    write_rs1(tmpInst[id].RS1);
+                    write_rs2(tmpInst[id].RS2);
+                    write_rs3(tmpInst[id].RS3);
+                    write_rs4(tmpInst[id].RS4);
                 }
                 break;
 
             // MULTIPLIER
             case 0x06:
                 if (fxValue == 0x01) write_mul1(ReadInstrumentSRAM(id, INST_MUL1)); // reset
-                else if ((fxValue >= 0x10) && (fxValue < 0x20)) { tmpInst.MUL1 = fxValue - 0x10; write_mul1(tmpInst.MUL1); }
+                else if ((fxValue >= 0x10) && (fxValue < 0x20)) { tmpInst[id].MUL1 = fxValue - 0x10; write_mul1(tmpInst[id].MUL1); }
 
                 else if (fxValue == 0x02) write_mul1(ReadInstrumentSRAM(id, INST_MUL2));
-                else if ((fxValue >= 0x20) && (fxValue < 0x30)) { tmpInst.MUL2 = fxValue - 0x20; write_mul2(tmpInst.MUL2); }
+                else if ((fxValue >= 0x20) && (fxValue < 0x30)) { tmpInst[id].MUL2 = fxValue - 0x20; write_mul2(tmpInst[id].MUL2); }
 
                 else if (fxValue == 0x03) write_mul1(ReadInstrumentSRAM(id, INST_MUL3));
-                else if ((fxValue >= 0x30) && (fxValue < 0x40)) { tmpInst.MUL3 = fxValue - 0x30; write_mul3(tmpInst.MUL3); }
+                else if ((fxValue >= 0x30) && (fxValue < 0x40)) { tmpInst[id].MUL3 = fxValue - 0x30; write_mul3(tmpInst[id].MUL3); }
 
                 else if (fxValue == 0x04) write_mul1(ReadInstrumentSRAM(id, INST_MUL4));
-                else if ((fxValue >= 0x40) && (fxValue < 0x50)) { tmpInst.MUL4 = fxValue - 0x40; write_mul4(tmpInst.MUL4); }
+                else if ((fxValue >= 0x40) && (fxValue < 0x50)) { tmpInst[id].MUL4 = fxValue - 0x40; write_mul4(tmpInst[id].MUL4); }
 
 
                 else if (fxValue == 0x00) // reset all
@@ -4120,16 +4198,16 @@ static void WriteInstrument(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // 
             // DETUNE
             case 0x07:
                 if (fxValue == 0x10) write_dt1(ReadInstrumentSRAM(id, INST_DT1));
-                else if ((fxValue >= 0x11) && (fxValue <= 0x18)) { tmpInst.DT1 = fxValue - 0x11; write_dt1(tmpInst.DT1); }
+                else if ((fxValue >= 0x11) && (fxValue <= 0x18)) { tmpInst[id].DT1 = fxValue - 0x11; write_dt1(tmpInst[id].DT1); }
 
                 else if (fxValue == 0x20) write_dt2(ReadInstrumentSRAM(id, INST_DT2));
-                else if ((fxValue >= 0x21) && (fxValue <= 0x28)) { tmpInst.DT2 = fxValue - 0x21; write_dt2(tmpInst.DT2); }
+                else if ((fxValue >= 0x21) && (fxValue <= 0x28)) { tmpInst[id].DT2 = fxValue - 0x21; write_dt2(tmpInst[id].DT2); }
 
                 else if (fxValue == 0x30) write_dt3(ReadInstrumentSRAM(id, INST_DT3));
-                else if ((fxValue >= 0x31) && (fxValue <= 0x38)) { tmpInst.DT3 = fxValue - 0x31; write_dt3(tmpInst.DT3); }
+                else if ((fxValue >= 0x31) && (fxValue <= 0x38)) { tmpInst[id].DT3 = fxValue - 0x31; write_dt3(tmpInst[id].DT3); }
 
                 else if (fxValue == 0x40) write_dt4(ReadInstrumentSRAM(id, INST_DT4));
-                else if ((fxValue >= 0x41) && (fxValue <= 0x48)) { tmpInst.DT4 = fxValue - 0x41; write_dt4(tmpInst.DT4); }
+                else if ((fxValue >= 0x41) && (fxValue <= 0x48)) { tmpInst[id].DT4 = fxValue - 0x41; write_dt4(tmpInst[id].DT4); }
 
                 else if (fxValue == 0x00) // reset all
                 {
@@ -4142,72 +4220,72 @@ static void WriteInstrument(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // 
 
             // ATTACK
             case 0xA1: if (fxValue == 0) write_ar1(ReadInstrumentSRAM(id, INST_AR1));
-                else if (fxValue <= 0x20) { tmpInst.AR1 = fxValue; write_ar1(tmpInst.AR1); }
+                else if (fxValue <= 0x20) { tmpInst[id].AR1 = fxValue; write_ar1(tmpInst[id].AR1); }
                 break;
             case 0xA2: if (fxValue == 0) write_ar2(ReadInstrumentSRAM(id, INST_AR2));
-                else if (fxValue <= 0x20) { tmpInst.AR2 = fxValue; write_ar2(tmpInst.AR2); }
+                else if (fxValue <= 0x20) { tmpInst[id].AR2 = fxValue; write_ar2(tmpInst[id].AR2); }
                 break;
             case 0xA3: if (fxValue == 0) write_ar3(ReadInstrumentSRAM(id, INST_AR3));
-                else if (fxValue <= 0x20) { tmpInst.AR3 = fxValue; write_ar3(tmpInst.AR3); }
+                else if (fxValue <= 0x20) { tmpInst[id].AR3 = fxValue; write_ar3(tmpInst[id].AR3); }
                 break;
             case 0xA4: if (fxValue == 0) write_ar4(ReadInstrumentSRAM(id, INST_AR4));
-                else if (fxValue <= 0x20) { tmpInst.AR4 = fxValue; write_ar4(tmpInst.AR4); }
+                else if (fxValue <= 0x20) { tmpInst[id].AR4 = fxValue; write_ar4(tmpInst[id].AR4); }
                 break;
 
             // DECAY 1
             case 0xB1: if (fxValue == 0) write_d1r1(ReadInstrumentSRAM(id, INST_D1R1));
-                else if (fxValue <= 0x20) { tmpInst.D1R1 = fxValue; write_d1r1(tmpInst.D1R1); }
+                else if (fxValue <= 0x20) { tmpInst[id].D1R1 = fxValue; write_d1r1(tmpInst[id].D1R1); }
                 break;
             case 0xB2: if (fxValue == 0) write_d1r2(ReadInstrumentSRAM(id, INST_D1R2));
-                else if (fxValue <= 0x20) { tmpInst.D1R2 = fxValue; write_d1r2(tmpInst.D1R2); }
+                else if (fxValue <= 0x20) { tmpInst[id].D1R2 = fxValue; write_d1r2(tmpInst[id].D1R2); }
                 break;
             case 0xB3: if (fxValue == 0) write_d1r3(ReadInstrumentSRAM(id, INST_D1R3));
-                else if (fxValue <= 0x20) { tmpInst.D1R3 = fxValue; write_d1r3(tmpInst.D1R3); }
+                else if (fxValue <= 0x20) { tmpInst[id].D1R3 = fxValue; write_d1r3(tmpInst[id].D1R3); }
                 break;
             case 0xB4: if (fxValue == 0) write_d1r4(ReadInstrumentSRAM(id, INST_D1R4));
-                else if (fxValue <= 0x20) { tmpInst.D1R4 = fxValue; write_d1r4(tmpInst.D1R4); }
+                else if (fxValue <= 0x20) { tmpInst[id].D1R4 = fxValue; write_d1r4(tmpInst[id].D1R4); }
                 break;
 
             // SUSTAIN
             case 0xC1: if (fxValue == 0) write_d1l1(ReadInstrumentSRAM(id, INST_D1L1));
-                else if (fxValue <= 0x10) { tmpInst.D1L1 = fxValue; write_d1l1(tmpInst.D1L1); }
+                else if (fxValue <= 0x10) { tmpInst[id].D1L1 = fxValue; write_d1l1(tmpInst[id].D1L1); }
                 break;
             case 0xC2: if (fxValue == 0) write_d1l2(ReadInstrumentSRAM(id, INST_D1L2));
-                else if (fxValue <= 0x10) { tmpInst.D1L2 = fxValue; write_d1l2(tmpInst.D1L2); }
+                else if (fxValue <= 0x10) { tmpInst[id].D1L2 = fxValue; write_d1l2(tmpInst[id].D1L2); }
                 break;
             case 0xC3: if (fxValue == 0) write_d1l3(ReadInstrumentSRAM(id, INST_D1L3));
-                else if (fxValue <= 0x10) { tmpInst.D1L3 = fxValue; write_d1l3(tmpInst.D1L3); }
+                else if (fxValue <= 0x10) { tmpInst[id].D1L3 = fxValue; write_d1l3(tmpInst[id].D1L3); }
                 break;
             case 0xC4: if (fxValue == 0) write_d1l4(ReadInstrumentSRAM(id, INST_D1L4));
-                else if (fxValue <= 0x10) { tmpInst.D1L4 = fxValue; write_d1l4(tmpInst.D1L4); }
+                else if (fxValue <= 0x10) { tmpInst[id].D1L4 = fxValue; write_d1l4(tmpInst[id].D1L4); }
                 break;
 
             // DECAY 2
             case 0xD1: if (fxValue == 0) write_d2r1(ReadInstrumentSRAM(id, INST_D2R1));
-                else if (fxValue <= 0x20) { tmpInst.D2R1 = fxValue; write_d2r1(tmpInst.D2R1); }
+                else if (fxValue <= 0x20) { tmpInst[id].D2R1 = fxValue; write_d2r1(tmpInst[id].D2R1); }
                 break;
             case 0xD2: if (fxValue == 0) write_d2r2(ReadInstrumentSRAM(id, INST_D2R2));
-                else if (fxValue <= 0x20) { tmpInst.D2R2 = fxValue; write_d2r2(tmpInst.D2R2); }
+                else if (fxValue <= 0x20) { tmpInst[id].D2R2 = fxValue; write_d2r2(tmpInst[id].D2R2); }
                 break;
             case 0xD3: if (fxValue == 0) write_d2r3(ReadInstrumentSRAM(id, INST_D2R3));
-                else if (fxValue <= 0x20) { tmpInst.D2R3 = fxValue; write_d2r3(tmpInst.D2R3); }
+                else if (fxValue <= 0x20) { tmpInst[id].D2R3 = fxValue; write_d2r3(tmpInst[id].D2R3); }
                 break;
             case 0xD4: if (fxValue == 0) write_d2r4(ReadInstrumentSRAM(id, INST_D2R4));
-                else if (fxValue <= 0x20) { tmpInst.D2R4 = fxValue; write_d2r4(tmpInst.D2R4); }
+                else if (fxValue <= 0x20) { tmpInst[id].D2R4 = fxValue; write_d2r4(tmpInst[id].D2R4); }
                 break;
 
             // RELEASE
             case 0xE1: if (fxValue == 0) write_rr1(ReadInstrumentSRAM(id, INST_RR1));
-                else if (fxValue <= 0x10) { tmpInst.RR1 = fxValue; write_rr1(tmpInst.RR1); }
+                else if (fxValue <= 0x10) { tmpInst[id].RR1 = fxValue; write_rr1(tmpInst[id].RR1); }
                 break;
             case 0xE2: if (fxValue == 0) write_rr2(ReadInstrumentSRAM(id, INST_RR2));
-                else if (fxValue <= 0x10) { tmpInst.RR2 = fxValue; write_rr2(tmpInst.RR2); }
+                else if (fxValue <= 0x10) { tmpInst[id].RR2 = fxValue; write_rr2(tmpInst[id].RR2); }
                 break;
             case 0xE3: if (fxValue == 0) write_rr3(ReadInstrumentSRAM(id, INST_RR3));
-                else if (fxValue <= 0x10) { tmpInst.RR3 = fxValue; write_rr3(tmpInst.RR3); }
+                else if (fxValue <= 0x10) { tmpInst[id].RR3 = fxValue; write_rr3(tmpInst[id].RR3); }
                 break;
             case 0xE4: if (fxValue == 0) write_rr4(ReadInstrumentSRAM(id, INST_RR4));
-                else if (fxValue <= 0x10) { tmpInst.RR4 = fxValue; write_rr4(tmpInst.RR4); }
+                else if (fxValue <= 0x10) { tmpInst[id].RR4 = fxValue; write_rr4(tmpInst[id].RR4); }
                 break;
 
             // AMPLITUDE MODULATION
@@ -4216,27 +4294,27 @@ static void WriteInstrument(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // 
                 {
                     case 0x10: write_am1(ReadInstrumentSRAM(id, INST_AM1));
                         break;
-                    case 0x11: { tmpInst.AM1 = 1; write_am1(1); }
+                    case 0x11: { tmpInst[id].AM1 = 1; write_am1(1); }
                         break;
-                    case 0x12: { tmpInst.AM1 = 0; write_am1(0); }
+                    case 0x12: { tmpInst[id].AM1 = 0; write_am1(0); }
                         break;
                     case 0x20: write_am2(ReadInstrumentSRAM(id, INST_AM2));
                         break;
-                    case 0x21: { tmpInst.AM2 = 1; write_am2(1); }
+                    case 0x21: { tmpInst[id].AM2 = 1; write_am2(1); }
                         break;
-                    case 0x22: { tmpInst.AM2 = 0; write_am2(0); }
+                    case 0x22: { tmpInst[id].AM2 = 0; write_am2(0); }
                         break;
                     case 0x30: write_am3(ReadInstrumentSRAM(id, INST_AM3));
                         break;
-                    case 0x31: { tmpInst.AM3 = 1; write_am3(1); }
+                    case 0x31: { tmpInst[id].AM3 = 1; write_am3(1); }
                         break;
-                    case 0x32: { tmpInst.AM3 = 0; write_am3(0); }
+                    case 0x32: { tmpInst[id].AM3 = 0; write_am3(0); }
                         break;
                     case 0x40: write_am4(ReadInstrumentSRAM(id, INST_AM4));
                         break;
-                    case 0x41: { tmpInst.AM4 = 1; write_am4(1); }
+                    case 0x41: { tmpInst[id].AM4 = 1; write_am4(1); }
                         break;
-                    case 0x42: { tmpInst.AM4 = 0; write_am4(0); }
+                    case 0x42: { tmpInst[id].AM4 = 0; write_am4(0); }
                         break;
                     case 0x00: case 0x50:
                         write_am1(ReadInstrumentSRAM(id, INST_AM1));
@@ -4245,11 +4323,11 @@ static void WriteInstrument(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // 
                         write_am4(ReadInstrumentSRAM(id, INST_AM4));
                         break;
                     case 0x51:
-                        tmpInst.AM1 = tmpInst.AM2 = tmpInst.AM3 = tmpInst.AM4 = 1;
+                        tmpInst[id].AM1 = tmpInst[id].AM2 = tmpInst[id].AM3 = tmpInst[id].AM4 = 1;
                         write_am1(1); write_am2(1); write_am3(1); write_am4(1);
                         break;
                     case 0x52:
-                        tmpInst.AM1 = tmpInst.AM2 = tmpInst.AM3 = tmpInst.AM4 = 0;
+                        tmpInst[id].AM1 = tmpInst[id].AM2 = tmpInst[id].AM3 = tmpInst[id].AM4 = 0;
                         write_am1(0); write_am2(0); write_am3(0); write_am4(0);
                         break;
                 }
@@ -4258,16 +4336,16 @@ static void WriteInstrument(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // 
             // SSG-EG
             case 0x09:
                 if (fxValue == 0x10) write_ssgeg1(ReadInstrumentSRAM(id, INST_SSGEG1));
-                else if ((fxValue >= 0x11) && (fxValue <= 0x19)) { tmpInst.SSGEG1 = fxValue - 0x0A; write_ssgeg1(tmpInst.SSGEG1); }
+                else if ((fxValue >= 0x11) && (fxValue <= 0x19)) { tmpInst[id].SSGEG1 = fxValue - 0x0A; write_ssgeg1(tmpInst[id].SSGEG1); }
 
                 else if (fxValue == 0x20) write_ssgeg2(ReadInstrumentSRAM(id, INST_SSGEG2));
-                else if ((fxValue >= 0x21) && (fxValue <= 0x29)) { tmpInst.SSGEG2 = fxValue - 0x1A; write_ssgeg2(tmpInst.SSGEG2); }
+                else if ((fxValue >= 0x21) && (fxValue <= 0x29)) { tmpInst[id].SSGEG2 = fxValue - 0x1A; write_ssgeg2(tmpInst[id].SSGEG2); }
 
                 else if (fxValue == 0x30) write_ssgeg3(ReadInstrumentSRAM(id, INST_SSGEG3));
-                else if ((fxValue >= 0x31) && (fxValue <= 0x39)) { tmpInst.SSGEG3 = fxValue - 0x2A; write_ssgeg3(tmpInst.SSGEG3); }
+                else if ((fxValue >= 0x31) && (fxValue <= 0x39)) { tmpInst[id].SSGEG3 = fxValue - 0x2A; write_ssgeg3(tmpInst[id].SSGEG3); }
 
                 else if (fxValue == 0x40) write_ssgeg4(ReadInstrumentSRAM(id, INST_SSGEG4));
-                else if ((fxValue >= 0x41) && (fxValue <= 0x49)) { tmpInst.SSGEG4 = fxValue - 0x3A; write_ssgeg4(tmpInst.SSGEG4); }
+                else if ((fxValue >= 0x41) && (fxValue <= 0x49)) { tmpInst[id].SSGEG4 = fxValue - 0x3A; write_ssgeg4(tmpInst[id].SSGEG4); }
 
                 else if (fxValue == 0x00 || fxValue == 0x50) // reset all
                 {
@@ -4278,38 +4356,38 @@ static void WriteInstrument(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // 
                 }
                 else if ((fxValue >= 0x51) && (fxValue <= 0x59))
                 {
-                    tmpInst.SSGEG1 = tmpInst.SSGEG2 = tmpInst.SSGEG3 = tmpInst.SSGEG4 = fxValue - 0x4A;
-                    write_ssgeg1(tmpInst.SSGEG1);
-                    write_ssgeg2(tmpInst.SSGEG2);
-                    write_ssgeg3(tmpInst.SSGEG3);
-                    write_ssgeg4(tmpInst.SSGEG4);
+                    tmpInst[id].SSGEG1 = tmpInst[id].SSGEG2 = tmpInst[id].SSGEG3 = tmpInst[id].SSGEG4 = fxValue - 0x4A;
+                    write_ssgeg1(tmpInst[id].SSGEG1);
+                    write_ssgeg2(tmpInst[id].SSGEG2);
+                    write_ssgeg3(tmpInst[id].SSGEG3);
+                    write_ssgeg4(tmpInst[id].SSGEG4);
                 }
                 break;
 // ------------FM GENERAL
             // ALGORITHM
             case 0x0A:
                 if (fxValue == 0) write_alg(ReadInstrumentSRAM(id, INST_ALG));
-                else if (fxValue < 9) { tmpInst.ALG = fxValue - 1; write_alg(tmpInst.ALG); }
+                else if (fxValue < 9) { tmpInst[id].ALG = fxValue - 1; write_alg(tmpInst[id].ALG); }
                 break;
 
             // OP1 FEEDBACK
             case 0x0B:
                 if (fxValue == 0) write_fb(ReadInstrumentSRAM(id, INST_FB));
-                else if (fxValue < 9) { tmpInst.FB = fxValue - 1; write_fb(tmpInst.FB); }
+                else if (fxValue < 9) { tmpInst[id].FB = fxValue - 1; write_fb(tmpInst[id].FB); }
                 break;
 
             // AMS
             case 0x0C:
                 if (fxValue == 0) write_ams(ReadInstrumentSRAM(id, INST_FMS));
-                else if (fxValue < 8) { tmpInst.AMS = fxValue; write_ams(tmpInst.AMS); }
-                else if (fxValue == 0x0F) { tmpInst.AMS = 0; write_ams(0); }
+                else if (fxValue < 8) { tmpInst[id].AMS = fxValue; write_ams(tmpInst[id].AMS); }
+                else if (fxValue == 0x0F) { tmpInst[id].AMS = 0; write_ams(0); }
                 break;
 
             // FMS
             case 0x0D:
                 if (fxValue == 0) write_fms(ReadInstrumentSRAM(id, INST_AMS));
-                else if (fxValue < 4) { tmpInst.FMS = fxValue; write_fms(tmpInst.FMS); }
-                else if (fxValue == 0x0F) { tmpInst.FMS = 0; write_fms(0); }
+                else if (fxValue < 4) { tmpInst[id].FMS = fxValue; write_fms(tmpInst[id].FMS); }
+                else if (fxValue == 0x0F) { tmpInst[id].FMS = 0; write_fms(0); }
                 break;
 
             // PAN
@@ -4318,13 +4396,13 @@ static void WriteInstrument(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // 
                 {
                 case 0x00: write_pan(ReadInstrumentSRAM(id, INST_PAN));
                     break;
-                case 0x10: { tmpInst.PAN = 2; write_pan(2); }
+                case 0x10: { tmpInst[id].PAN = 2; write_pan(2); }
                     break;
-                case 0x01: { tmpInst.PAN = 1; write_pan(1); }
+                case 0x01: { tmpInst[id].PAN = 1; write_pan(1); }
                     break;
-                case 0x11: { tmpInst.PAN = 3; write_pan(3); }
+                case 0x11: { tmpInst[id].PAN = 3; write_pan(3); }
                     break;
-                case 0xFF: { tmpInst.PAN = 0; write_pan(0); }
+                case 0xFF: { tmpInst[id].PAN = 0; write_pan(0); }
                     break;
                 }
                 break;
@@ -4577,7 +4655,7 @@ static void WriteInstrument(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // 
         channelNoteDelay[matrixChannel] = fxValue;
         break;
 
-    // CH3 CSM FILTER
+    // CH3 CSM FILTER (OP4 only)
     case 0x55:
         if (fxValue >= 0x09 && fxValue <= MAX_NOTE)
         {
@@ -4668,7 +4746,7 @@ static void WriteSampleRegionSRAM(u8 bank, u8 note, u8 byteNum, u8 data)
 static void InitTracker()
 {
     evd_init(0, 1);
-    //evd_mmcInit(); // black screen in BlastEm
+    //evd_mmcInit(); // cause black screen in BlastEm
 
 	SYS_disableInts();
 
@@ -4679,7 +4757,7 @@ static void InitTracker()
     VDP_setHilightShadow(FALSE);
     VDP_setScanMode(INTERLACED_NONE);
 
-    //each plane can be a maximum of 4,096 tiles in memory (at dimensions 32x32, 32x64, 64x64, or 32x128, with up to 40x28 visible on screen)
+    //each plane can be a maximum of 4096 tiles in memory (at dimensions 32x32, 32x64, 64x64, or 32x128, with up to 40x28 visible on screen)
     //Foreground (Plane A) 	0, $2000, $4000, $6000, $8000, $A000, $C000, $E000
     //Background (Plane B) 	0, $2000, $4000, $6000, $8000, $A000, $C000, $E000
     //Window (320 pixel wide mode) 	0, $1000, $2000, $3000, $4000, $5000, $6000,
@@ -4729,16 +4807,6 @@ static void InitTracker()
 
     Z80_init();
     Z80_loadDriver(Z80_DRIVER_PCM, TRUE);
-
-    // sprite engine. very slow
-    /*SPR_initEx(1, 1);
-    patCur = SPR_addSpriteSafe(&pat_cur, 10, 20, TILE_ATTR(PAL0, TRUE, FALSE, FALSE));
-    SPR_setDepth(patCur, SPR_MIN_DEPTH);
-    SPR_setVRAMTileIndex(patCur, -1);
-    SPR_setAnim(patCur, 0);
-    SPR_setSpriteTableIndex(patCur, -1);
-    SPR_setAutoTileUpload(patCur, TRUE);
-    SPR_update();*/
 
 	// Game-pad
 	JOY_reset();
@@ -4867,7 +4935,6 @@ static void InitTracker()
                 WriteMatrixSRAM(i, j, 0x0000);
             }
         }
-        //SRAMW_writeWord(DEAD_MATRIX, 0xDEAD); // tempo word here
 
         // initialize patterns
         for (u16 i = 0; i <= MAX_PATTERN; i++)

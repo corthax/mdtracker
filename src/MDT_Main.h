@@ -76,9 +76,9 @@
 #define SCREEN_PATTERN          1
 #define SCREEN_INSTRUMENT       2
 
-#define H_INT_SKIP              6 // (0, 1, 3, 6) 224 / H_INT_SKIP+1 ticks per frame (1/60 sec)
-#define TICK_SKIP_MIN           6 // faster tempo
-#define TICK_SKIP_MAX           128 // slower tempo
+#define H_INT_SKIP              6   // (0, 1, 3, 6) 224 / H_INT_SKIP+1 ticks per frame (1/60 sec)
+#define TICK_SKIP_MIN           6   // fast tempo limit
+#define TICK_SKIP_MAX           128 // slow tempo limit
 
 #if (MD_TRACKER_VERSION == 5)
     #define EFFECTS_TOTAL          6
@@ -109,7 +109,7 @@ static void SetChannelVolume(u8 channel);
 static void SetBPM(u16 counter);
 
 static void WriteInstrument(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue);
-static void ReadInstrument(u8 id);
+static void CacheIstrumentToRAM(u8 id);
 
 static void ChangeInstrumentParameter(s8 modifier);
 static void ChangePatternParameter(s8 note, s8 par);
@@ -131,11 +131,14 @@ void vIntCallback();
 // temporal instrument storage
 struct Instrument
 {
+    u8 FB;
     u8 ALG;
+    u8 FB_ALG;
+
+    u8 PAN;
     u8 AMS;
     u8 FMS;
-    u8 PAN;
-    u8 FB;
+    u8 PAN_AMS_FMS;
 
     u8 TL1;
     u8 TL2;
@@ -146,46 +149,58 @@ struct Instrument
     u8 RS2;
     u8 RS3;
     u8 RS4;
-
-    u8 MUL1;
-    u8 MUL2;
-    u8 MUL3;
-    u8 MUL4;
+    u8 AR1;
+    u8 AR2;
+    u8 AR3;
+    u8 AR4;
+    u8 RS1_AR1;
+    u8 RS2_AR2;
+    u8 RS3_AR3;
+    u8 RS4_AR4;
 
     u8 DT1;
     u8 DT2;
     u8 DT3;
     u8 DT4;
-
-    u8 AR1;
-    u8 AR2;
-    u8 AR3;
-    u8 AR4;
-
-    u8 D1R1;
-    u8 D1R2;
-    u8 D1R3;
-    u8 D1R4;
-
-    u8 D1L1;
-    u8 D1L2;
-    u8 D1L3;
-    u8 D1L4;
-
-    u8 D2R1;
-    u8 D2R2;
-    u8 D2R3;
-    u8 D2R4;
-
-    u8 RR1;
-    u8 RR2;
-    u8 RR3;
-    u8 RR4;
+    u8 MUL1;
+    u8 MUL2;
+    u8 MUL3;
+    u8 MUL4;
+    u8 DT1_MUL1;
+    u8 DT2_MUL2;
+    u8 DT3_MUL3;
+    u8 DT4_MUL4;
 
     u8 AM1;
     u8 AM2;
     u8 AM3;
     u8 AM4;
+    u8 D1R1;
+    u8 D1R2;
+    u8 D1R3;
+    u8 D1R4;
+    u8 AM1_D1R1;
+    u8 AM2_D1R2;
+    u8 AM3_D1R3;
+    u8 AM4_D1R4;
+
+    u8 D1L1;
+    u8 D1L2;
+    u8 D1L3;
+    u8 D1L4;
+    u8 RR1;
+    u8 RR2;
+    u8 RR3;
+    u8 RR4;
+    u8 D1L1_RR1;
+    u8 D1L2_RR2;
+    u8 D1L3_RR3;
+    u8 D1L4_RR4;
+
+    u8 D2R1;
+    u8 D2R2;
+    u8 D2R3;
+    u8 D2R4;
 
     u8 SSGEG1;
     u8 SSGEG2;
@@ -193,6 +208,6 @@ struct Instrument
     u8 SSGEG4;
 };
 typedef struct Instrument Instrument;
-Instrument tmpInst;
+Instrument tmpInst[MAX_INSTRUMENT]; // cache instruments to RAM for faster access
 
 #endif // MDT_MAIN_H_INCLUDED
