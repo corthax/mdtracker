@@ -76,7 +76,7 @@
 #define SCREEN_PATTERN          1
 #define SCREEN_INSTRUMENT       2
 
-#define H_INT_SKIP              6   // (0, 1, 3, 6) 224 / H_INT_SKIP+1 ticks per frame (1/60 sec)
+#define H_INT_SKIP              1   // (0, 1, 3, 6, 7, 9, 15) 224 / H_INT_SKIP+1 ticks per frame (1/60 sec)
 #define TICK_SKIP_MIN           6   // fast tempo limit
 #define TICK_SKIP_MAX           128 // slow tempo limit
 
@@ -108,7 +108,8 @@ static void SetGlobalLFO(u8 freq);
 static void SetChannelVolume(u8 channel);
 static void SetBPM(u16 counter);
 
-static void WriteInstrument(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue);
+static void WriteYM2612(u8 matrixChannel, u8 id);
+static void ApplyCommand(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue);
 static void CacheIstrumentToRAM(u8 id);
 
 static void ChangeInstrumentParameter(s8 modifier);

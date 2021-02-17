@@ -52,11 +52,13 @@
 		<Unit filename="inc/memory.h" />
 		<Unit filename="inc/pal.h" />
 		<Unit filename="inc/psg.h" />
+		<Unit filename="inc/segalib.h" />
 		<Unit filename="inc/smp_null.h" />
 		<Unit filename="inc/smp_null_pcm.h" />
 		<Unit filename="inc/sound.h" />
 		<Unit filename="inc/sprite_eng.h" />
 		<Unit filename="inc/sram.h" />
+		<Unit filename="inc/ssf.h" />
 		<Unit filename="inc/string.h" />
 		<Unit filename="inc/sys.h" />
 		<Unit filename="inc/tab_cnv.h" />
@@ -94,6 +96,12 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/segalib.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/ssf.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Extensions>

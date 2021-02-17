@@ -1,7 +1,7 @@
 #include <types.h>
 
 #define MD_TRACKER_VERSION  2
-#define ENABLE_BANK_SWITCH  0
+#define ENABLE_BANK_SWITCH  1
 
 __attribute__((externally_visible))
 const struct
@@ -78,15 +78,11 @@ const struct
 //"F"	Floppy drive
 //"D"	Download?
     "6               ",
-    0x00000000,
-#if (ENABLE_BANK_SWITCH != 0)
-    0x003FFFFF,
-#else
-    0x001FFFFF,
-#endif
-    0x00FF0000,
-    0x00FFFFFF,
-    "RA",
+    0x00000000, // ROM start
+    0x001FFFFF, // ROM end (2MB)
+    0x00FF0000, // BRAM start
+    0x00FFFFFF, // BRAM end
+    "RA",       // uses SRAM
 //      Saves:
 //A0	No	    16-bit
 //B0	No	    8-bit (even addresses)
@@ -95,20 +91,20 @@ const struct
 //F0	Yes	    8-bit (even addresses)
 //F8	Yes	    8-bit (odd addresses)
 //"RA", 0xE840; EEPROM type
-    0xE020,
-    0x00200000,
+    0xE020,     // 16 bit SRAM mode
+    0x00240000, // SRAM start; default is 0x00200000; or upper half of 512 block of 31 bank, in case of MED V2 (0x00240000)
 #if (MD_TRACKER_VERSION == 5)
-    0x0027FFFF,
+    0x0027FFFF, // SRAM end 512 KB
 #elif (MD_TRACKER_VERSION == 3)
-    0x0025FFFF,
+    0x0025FFFF, // 384 KB
 #elif (MD_TRACKER_VERSION == 2)
-    0x0023FFFF,
+    0x0027FFFF, // SRAM end (256 KB)
 #else
-    0x0021FFFF,
+    0x0021FFFF, // 128 KB
 #endif
-    "            ",
-    "MUSIC TRACKER                           ",
-    "JUE             "
+    "            ", // modem
+    "MUSIC TRACKER                           ", // memo
+    "JUE             "  // country
 };
 /*$1B0 - 'R'
 $1B1 - 'A'

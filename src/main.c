@@ -1,7 +1,9 @@
 #include <genesis.h>
 //#include <maths.h>
-#include <everdrive.h>
+//#include <everdrive.h>
 #include <sram.h>
+#include <segalib.h>
+#include <ssf.h>
 
 #include "fontdata.h"
 //#include "sprites.h"
@@ -164,7 +166,7 @@ u8 navigationDirection = BUTTON_RIGHT;
 u8 psgPWM = FALSE;
 u8 psgPulseCounter = 0;
 // cant put in header. build bug
-const u8 GUI_FM_ALG_GRID[8][4][12] =
+static const u8 GUI_FM_ALG_GRID[8][4][12] =
 {
     {
         { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
@@ -216,7 +218,7 @@ const u8 GUI_FM_ALG_GRID[8][4][12] =
     },
 };
 
-const u8 GUI_NOTE_NAMES[2][12] =
+static const u8 GUI_NOTE_NAMES[2][12] =
 {
     {
         GUI_LETTER_C, GUI_LETTER_C,
@@ -238,7 +240,7 @@ const u8 GUI_NOTE_NAMES[2][12] =
     }
 };
 
-const s16 GUI_ALPHABET[38] =
+static const s16 GUI_ALPHABET[38] =
 {
     GUI_MINUS + 36,
     GUI_LETTER_A,
@@ -285,10 +287,7 @@ int main()
     InitTracker();
 	while(TRUE)
 	{
-	    //SYS_disableInts();
         DoEngine();
-        //SYS_enableInts();
-        //SYS_doVBlankProcessEx(ON_VBLANK);
 	}
 	return(NULL);
 }
@@ -566,7 +565,6 @@ static void DoEngine()
     static u8 fxtype_value = 0;
     static u8 fxval_value = 0;
     static u16 playingPatternID = 0;
-
     static u8 beginPlay = TRUE;
 
     // vibrato tool
@@ -795,11 +793,11 @@ static void DoEngine()
                         fxtype_value = ReadPatternSRAM(playingPatternID, playingPatternRow, type);
                         fxval_value = ReadPatternSRAM(playingPatternID, playingPatternRow, val);
                         if (fxtype_value != NULL) {
-                            WriteInstrument(channel, previousInstrument[channel], fxtype_value, fxval_value);
+                            ApplyCommand(channel, previousInstrument[channel], fxtype_value, fxval_value);
                             previousEffect[channel][effect] = fxtype_value;
                         }
                         else if (fxval_value != NULL) {
-                            WriteInstrument(channel, previousInstrument[channel], previousEffect[channel][effect], fxval_value);
+                            ApplyCommand(channel, previousInstrument[channel], previousEffect[channel][effect], fxval_value);
                         }
                     }
 
@@ -841,8 +839,10 @@ static void DoEngine()
                     {
                         previousInstrument[channel] = inst;
                         apply_commands();
-                        //! slow
-                        WriteInstrument(channel, inst, NULL, NULL); // write YM2612 registers values after applying commands
+
+                        // write YM2612 registers values after applying commands
+                        WriteYM2612(channel, inst);
+                        //WriteInstrument(channel, inst, NULL, NULL);
                     }
                     else
                     {
@@ -939,7 +939,6 @@ static void DoEngine()
     else
     {
         beginPlay = TRUE;
-
         // stop timer A (load: 1 to start, 0 to stop; enable: 1 to set register flag when overflowed, 0 to keep cycling without setting flag)
         // reset read register flag, timer overflowing is enabled
         RequestZ80();
@@ -947,7 +946,6 @@ static void DoEngine()
         ReleaseZ80();
 
         StopAllSound();
-
         ClearPatternPlaybackCursor();
         ClearMatrixPlaybackCursor();
     }
@@ -981,7 +979,7 @@ static void SetBPM(u16 counter)
         uintToStr(BPM, str, 3); // show timer value
         DrawNum(BG_A, PAL0, str, 3, 27);
     }
-    else DrawText(BG_A, PAL3, "BAD", 3, 27);
+    else { VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "BAD", 3, 7); }
 }
 
 // cursors
@@ -1779,7 +1777,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         {
                             WriteInstrumentSRAM(instCopyTo, param, ReadInstrumentSRAM(selectedInstrumentID, param));
                         }
-                        DrawText(BG_A, PAL3, "OK", GUI_INST_NAME_START, 1);
+                        VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "OK", GUI_INST_NAME_START, 1);
                     }
                     break;
                 }
@@ -3034,13 +3032,12 @@ void DisplayInstrumentEditor()
         if (instrumentParameterToRefresh < 235) bRefreshScreen = FALSE; // put last case here; redraw only changed parameter
     }
 }
-// ------------------------------ ENGINE
+//! slow
 static void SetChannelVolume(u8 matrixChannel)
 {
     static s16 volT = 0, volT1 = 0, volT2 = 0, volT3 =0 , volT4 = 0; // volume, tremolo
 
-    // PSG
-    if (matrixChannel > 8)
+    if (matrixChannel > 8) // PSG
     {
         if (bPsgIsPlayingNote[matrixChannel - CHANNEL_PSG1] == TRUE)
         {
@@ -3055,15 +3052,14 @@ static void SetChannelVolume(u8 matrixChannel)
             PSG_setEnvelope(matrixChannel - CHANNEL_PSG1, (u8)volT);
         }
     }
-    // FM
-    else
+    else // FM
     {
         static u8 port = 0;
         static u8 fmChannel = 0;
 
         auto void set_normal_channel_vol()
         {
-            switch (ReadInstrumentSRAM(previousInstrument[matrixChannel], INST_ALG))
+            switch (tmpInst[previousInstrument[matrixChannel]].ALG)
             {
             case 0: case 1: case 2: case 3:
                 volT4 =
@@ -3244,7 +3240,7 @@ static void SetChannelVolume(u8 matrixChannel)
 static void RequestZ80()
 {
     bBusTaken = Z80_isBusTaken();
-    if (!bBusTaken) Z80_requestBus(FALSE);
+    if (!bBusTaken) Z80_requestBus(TRUE);
 }
 
 static void ReleaseZ80()
@@ -3882,8 +3878,161 @@ static void SetChannelBaseVolume(u8 matrixChannel, u8 id)
     SetChannelVolume(matrixChannel); // if there is vol command, resulting same values
 }
 
+// write all YM2612 registers
+static void WriteYM2612(u8 matrixChannel, u8 id)
+{
+    static u16 port = 0;
+    static u8 fmChannel = 0;
+
+    if (matrixChannel < CHANNEL_PSG1) // FM channel
+    {
+        switch (matrixChannel)
+        {
+        case CHANNEL_FM1: case CHANNEL_FM2: case CHANNEL_FM3_OP4:
+            port = PORT_1; fmChannel = matrixChannel; // 0, 1, 2
+            break;
+        case CHANNEL_FM3_OP3: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP1:
+            port = PORT_1; fmChannel = CHANNEL_FM3_OP4; // 2
+            break;
+        case CHANNEL_FM4: case CHANNEL_FM5: case CHANNEL_FM6_DAC:
+            port = PORT_2; fmChannel = matrixChannel - 6; // 0, 1, 2
+            break;
+        }
+
+        SetChannelBaseVolume(matrixChannel, id); //! SLOW!
+
+        switch (fmChannel)
+        {
+        case 0:
+            RequestZ80();
+            YM2612_writeReg(port, YM2612REG_FB_ALG_CH0, tmpInst[id].FB_ALG);
+
+            YM2612_writeReg(port, YM2612REG_OP1_TL_CH0, tmpInst[id].TL1);
+            YM2612_writeReg(port, YM2612REG_OP2_TL_CH0, tmpInst[id].TL2);
+            YM2612_writeReg(port, YM2612REG_OP3_TL_CH0, tmpInst[id].TL3);
+            YM2612_writeReg(port, YM2612REG_OP4_TL_CH0, tmpInst[id].TL4);
+
+            YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS_CH0, tmpInst[id].PAN_AMS_FMS);
+
+            YM2612_writeReg(port, YM2612REG_OP1_DT_MUL_CH0, tmpInst[id].DT1_MUL1);
+            YM2612_writeReg(port, YM2612REG_OP2_DT_MUL_CH0, tmpInst[id].DT2_MUL2);
+            YM2612_writeReg(port, YM2612REG_OP3_DT_MUL_CH0, tmpInst[id].DT3_MUL3);
+            YM2612_writeReg(port, YM2612REG_OP4_DT_MUL_CH0, tmpInst[id].DT4_MUL4);
+
+            YM2612_writeReg(port, YM2612REG_OP1_RS_AR_CH0, tmpInst[id].RS1_AR1);
+            YM2612_writeReg(port, YM2612REG_OP2_RS_AR_CH0, tmpInst[id].RS2_AR2);
+            YM2612_writeReg(port, YM2612REG_OP3_RS_AR_CH0, tmpInst[id].RS3_AR3);
+            YM2612_writeReg(port, YM2612REG_OP4_RS_AR_CH0, tmpInst[id].RS4_AR4);
+
+            YM2612_writeReg(port, YM2612REG_OP1_AM_D1R_CH0, tmpInst[id].AM1_D1R1);
+            YM2612_writeReg(port, YM2612REG_OP2_AM_D1R_CH0, tmpInst[id].AM2_D1R2);
+            YM2612_writeReg(port, YM2612REG_OP3_AM_D1R_CH0, tmpInst[id].AM3_D1R3);
+            YM2612_writeReg(port, YM2612REG_OP4_AM_D1R_CH0, tmpInst[id].AM4_D1R4);
+
+            YM2612_writeReg(port, YM2612REG_OP1_D2R_CH0, tmpInst[id].D2R1);
+            YM2612_writeReg(port, YM2612REG_OP2_D2R_CH0, tmpInst[id].D2R2);
+            YM2612_writeReg(port, YM2612REG_OP3_D2R_CH0, tmpInst[id].D2R3);
+            YM2612_writeReg(port, YM2612REG_OP4_D2R_CH0, tmpInst[id].D2R4);
+
+            YM2612_writeReg(port, YM2612REG_OP1_D1L_RR_CH0, tmpInst[id].D1L1_RR1);
+            YM2612_writeReg(port, YM2612REG_OP2_D1L_RR_CH0, tmpInst[id].D1L2_RR2);
+            YM2612_writeReg(port, YM2612REG_OP3_D1L_RR_CH0, tmpInst[id].D1L3_RR3);
+            YM2612_writeReg(port, YM2612REG_OP4_D1L_RR_CH0, tmpInst[id].D1L4_RR4);
+
+            YM2612_writeReg(port, YM2612REG_OP1_SSGEG_CH0, tmpInst[id].SSGEG1);
+            YM2612_writeReg(port, YM2612REG_OP2_SSGEG_CH0, tmpInst[id].SSGEG2);
+            YM2612_writeReg(port, YM2612REG_OP3_SSGEG_CH0, tmpInst[id].SSGEG3);
+            YM2612_writeReg(port, YM2612REG_OP4_SSGEG_CH0, tmpInst[id].SSGEG4);
+            break;
+        case 1:
+            RequestZ80();
+            YM2612_writeReg(port, YM2612REG_FB_ALG_CH1, tmpInst[id].FB_ALG);
+
+            YM2612_writeReg(port, YM2612REG_OP1_TL_CH1, tmpInst[id].TL1);
+            YM2612_writeReg(port, YM2612REG_OP2_TL_CH1, tmpInst[id].TL2);
+            YM2612_writeReg(port, YM2612REG_OP3_TL_CH1, tmpInst[id].TL3);
+            YM2612_writeReg(port, YM2612REG_OP4_TL_CH1, tmpInst[id].TL4);
+
+            YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS_CH1, tmpInst[id].PAN_AMS_FMS);
+
+            YM2612_writeReg(port, YM2612REG_OP1_DT_MUL_CH1, tmpInst[id].DT1_MUL1);
+            YM2612_writeReg(port, YM2612REG_OP2_DT_MUL_CH1, tmpInst[id].DT2_MUL2);
+            YM2612_writeReg(port, YM2612REG_OP3_DT_MUL_CH1, tmpInst[id].DT3_MUL3);
+            YM2612_writeReg(port, YM2612REG_OP4_DT_MUL_CH1, tmpInst[id].DT4_MUL4);
+
+            YM2612_writeReg(port, YM2612REG_OP1_RS_AR_CH1, tmpInst[id].RS1_AR1);
+            YM2612_writeReg(port, YM2612REG_OP2_RS_AR_CH1, tmpInst[id].RS2_AR2);
+            YM2612_writeReg(port, YM2612REG_OP3_RS_AR_CH1, tmpInst[id].RS3_AR3);
+            YM2612_writeReg(port, YM2612REG_OP4_RS_AR_CH1, tmpInst[id].RS4_AR4);
+
+            YM2612_writeReg(port, YM2612REG_OP1_AM_D1R_CH1, tmpInst[id].AM1_D1R1);
+            YM2612_writeReg(port, YM2612REG_OP2_AM_D1R_CH1, tmpInst[id].AM2_D1R2);
+            YM2612_writeReg(port, YM2612REG_OP3_AM_D1R_CH1, tmpInst[id].AM3_D1R3);
+            YM2612_writeReg(port, YM2612REG_OP4_AM_D1R_CH1, tmpInst[id].AM4_D1R4);
+
+            YM2612_writeReg(port, YM2612REG_OP1_D2R_CH1, tmpInst[id].D2R1);
+            YM2612_writeReg(port, YM2612REG_OP2_D2R_CH1, tmpInst[id].D2R2);
+            YM2612_writeReg(port, YM2612REG_OP3_D2R_CH1, tmpInst[id].D2R3);
+            YM2612_writeReg(port, YM2612REG_OP4_D2R_CH1, tmpInst[id].D2R4);
+
+            YM2612_writeReg(port, YM2612REG_OP1_D1L_RR_CH1, tmpInst[id].D1L1_RR1);
+            YM2612_writeReg(port, YM2612REG_OP2_D1L_RR_CH1, tmpInst[id].D1L2_RR2);
+            YM2612_writeReg(port, YM2612REG_OP3_D1L_RR_CH1, tmpInst[id].D1L3_RR3);
+            YM2612_writeReg(port, YM2612REG_OP4_D1L_RR_CH1, tmpInst[id].D1L4_RR4);
+
+            YM2612_writeReg(port, YM2612REG_OP1_SSGEG_CH1, tmpInst[id].SSGEG1);
+            YM2612_writeReg(port, YM2612REG_OP2_SSGEG_CH1, tmpInst[id].SSGEG2);
+            YM2612_writeReg(port, YM2612REG_OP3_SSGEG_CH1, tmpInst[id].SSGEG3);
+            YM2612_writeReg(port, YM2612REG_OP4_SSGEG_CH1, tmpInst[id].SSGEG4);
+            break;
+        case 2:
+            RequestZ80();
+            YM2612_writeReg(port, YM2612REG_FB_ALG_CH2, tmpInst[id].FB_ALG);
+
+            YM2612_writeReg(port, YM2612REG_OP1_TL_CH2, tmpInst[id].TL1);
+            YM2612_writeReg(port, YM2612REG_OP2_TL_CH2, tmpInst[id].TL2);
+            YM2612_writeReg(port, YM2612REG_OP3_TL_CH2, tmpInst[id].TL3);
+            YM2612_writeReg(port, YM2612REG_OP4_TL_CH2, tmpInst[id].TL4);
+
+            YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS_CH2, tmpInst[id].PAN_AMS_FMS);
+
+            YM2612_writeReg(port, YM2612REG_OP1_DT_MUL_CH2, tmpInst[id].DT1_MUL1);
+            YM2612_writeReg(port, YM2612REG_OP2_DT_MUL_CH2, tmpInst[id].DT2_MUL2);
+            YM2612_writeReg(port, YM2612REG_OP3_DT_MUL_CH2, tmpInst[id].DT3_MUL3);
+            YM2612_writeReg(port, YM2612REG_OP4_DT_MUL_CH2, tmpInst[id].DT4_MUL4);
+
+            YM2612_writeReg(port, YM2612REG_OP1_RS_AR_CH2, tmpInst[id].RS1_AR1);
+            YM2612_writeReg(port, YM2612REG_OP2_RS_AR_CH2, tmpInst[id].RS2_AR2);
+            YM2612_writeReg(port, YM2612REG_OP3_RS_AR_CH2, tmpInst[id].RS3_AR3);
+            YM2612_writeReg(port, YM2612REG_OP4_RS_AR_CH2, tmpInst[id].RS4_AR4);
+
+            YM2612_writeReg(port, YM2612REG_OP1_AM_D1R_CH2, tmpInst[id].AM1_D1R1);
+            YM2612_writeReg(port, YM2612REG_OP2_AM_D1R_CH2, tmpInst[id].AM2_D1R2);
+            YM2612_writeReg(port, YM2612REG_OP3_AM_D1R_CH2, tmpInst[id].AM3_D1R3);
+            YM2612_writeReg(port, YM2612REG_OP4_AM_D1R_CH2, tmpInst[id].AM4_D1R4);
+
+            YM2612_writeReg(port, YM2612REG_OP1_D2R_CH2, tmpInst[id].D2R1);
+            YM2612_writeReg(port, YM2612REG_OP2_D2R_CH2, tmpInst[id].D2R2);
+            YM2612_writeReg(port, YM2612REG_OP3_D2R_CH2, tmpInst[id].D2R3);
+            YM2612_writeReg(port, YM2612REG_OP4_D2R_CH2, tmpInst[id].D2R4);
+
+            YM2612_writeReg(port, YM2612REG_OP1_D1L_RR_CH2, tmpInst[id].D1L1_RR1);
+            YM2612_writeReg(port, YM2612REG_OP2_D1L_RR_CH2, tmpInst[id].D1L2_RR2);
+            YM2612_writeReg(port, YM2612REG_OP3_D1L_RR_CH2, tmpInst[id].D1L3_RR3);
+            YM2612_writeReg(port, YM2612REG_OP4_D1L_RR_CH2, tmpInst[id].D1L4_RR4);
+
+            YM2612_writeReg(port, YM2612REG_OP1_SSGEG_CH2, tmpInst[id].SSGEG1);
+            YM2612_writeReg(port, YM2612REG_OP2_SSGEG_CH2, tmpInst[id].SSGEG2);
+            YM2612_writeReg(port, YM2612REG_OP3_SSGEG_CH2, tmpInst[id].SSGEG3);
+            YM2612_writeReg(port, YM2612REG_OP4_SSGEG_CH2, tmpInst[id].SSGEG4);
+            break;
+        }
+        ReleaseZ80();
+    }
+}
+
 // write instrument registers into FM channel
-static void WriteInstrument(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // matrix channel; instrument id
+static void ApplyCommand(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // matrix channel; instrument id
 {
     static u8 data = 0; // for combined registers
     static u16 port = 0;
@@ -3988,139 +4137,11 @@ static void WriteInstrument(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // 
             break;
         }
 
-        if (fxParam == NULL) // write all from instrument data
+        if ((fxParam == 255) && (fxValue == 255)) //! WTF!!! this code will never run... but build is bugged without it
         {
-            SetChannelBaseVolume(matrixChannel, id);
-
-            switch (fmChannel)
-            {
-                case 0:
-                    RequestZ80();
-                    YM2612_writeReg(port, YM2612REG_FB_ALG_CH0, tmpInst[id].FB_ALG);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_TL_CH0, tmpInst[id].TL1);
-                    YM2612_writeReg(port, YM2612REG_OP2_TL_CH0, tmpInst[id].TL2);
-                    YM2612_writeReg(port, YM2612REG_OP3_TL_CH0, tmpInst[id].TL3);
-                    YM2612_writeReg(port, YM2612REG_OP4_TL_CH0, tmpInst[id].TL4);
-
-                    YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS_CH0, tmpInst[id].PAN_AMS_FMS);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_DT_MUL_CH0, tmpInst[id].DT1_MUL1);
-                    YM2612_writeReg(port, YM2612REG_OP2_DT_MUL_CH0, tmpInst[id].DT2_MUL2);
-                    YM2612_writeReg(port, YM2612REG_OP3_DT_MUL_CH0, tmpInst[id].DT3_MUL3);
-                    YM2612_writeReg(port, YM2612REG_OP4_DT_MUL_CH0, tmpInst[id].DT4_MUL4);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_RS_AR_CH0, tmpInst[id].RS1_AR1);
-                    YM2612_writeReg(port, YM2612REG_OP2_RS_AR_CH0, tmpInst[id].RS2_AR2);
-                    YM2612_writeReg(port, YM2612REG_OP3_RS_AR_CH0, tmpInst[id].RS3_AR3);
-                    YM2612_writeReg(port, YM2612REG_OP4_RS_AR_CH0, tmpInst[id].RS4_AR4);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_AM_D1R_CH0, tmpInst[id].AM1_D1R1);
-                    YM2612_writeReg(port, YM2612REG_OP2_AM_D1R_CH0, tmpInst[id].AM2_D1R2);
-                    YM2612_writeReg(port, YM2612REG_OP3_AM_D1R_CH0, tmpInst[id].AM3_D1R3);
-                    YM2612_writeReg(port, YM2612REG_OP4_AM_D1R_CH0, tmpInst[id].AM4_D1R4);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_D2R_CH0, tmpInst[id].D2R1);
-                    YM2612_writeReg(port, YM2612REG_OP2_D2R_CH0, tmpInst[id].D2R2);
-                    YM2612_writeReg(port, YM2612REG_OP3_D2R_CH0, tmpInst[id].D2R3);
-                    YM2612_writeReg(port, YM2612REG_OP4_D2R_CH0, tmpInst[id].D2R4);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_D1L_RR_CH0, tmpInst[id].D1L1_RR1);
-                    YM2612_writeReg(port, YM2612REG_OP2_D1L_RR_CH0, tmpInst[id].D1L2_RR2);
-                    YM2612_writeReg(port, YM2612REG_OP3_D1L_RR_CH0, tmpInst[id].D1L3_RR3);
-                    YM2612_writeReg(port, YM2612REG_OP4_D1L_RR_CH0, tmpInst[id].D1L4_RR4);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_SSGEG_CH0, tmpInst[id].SSGEG1);
-                    YM2612_writeReg(port, YM2612REG_OP2_SSGEG_CH0, tmpInst[id].SSGEG2);
-                    YM2612_writeReg(port, YM2612REG_OP3_SSGEG_CH0, tmpInst[id].SSGEG3);
-                    YM2612_writeReg(port, YM2612REG_OP4_SSGEG_CH0, tmpInst[id].SSGEG4);
-                    break;
-                case 1:
-                    RequestZ80();
-                    YM2612_writeReg(port, YM2612REG_FB_ALG_CH1, tmpInst[id].FB_ALG);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_TL_CH1, tmpInst[id].TL1);
-                    YM2612_writeReg(port, YM2612REG_OP2_TL_CH1, tmpInst[id].TL2);
-                    YM2612_writeReg(port, YM2612REG_OP3_TL_CH1, tmpInst[id].TL3);
-                    YM2612_writeReg(port, YM2612REG_OP4_TL_CH1, tmpInst[id].TL4);
-
-                    YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS_CH1, tmpInst[id].PAN_AMS_FMS);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_DT_MUL_CH1, tmpInst[id].DT1_MUL1);
-                    YM2612_writeReg(port, YM2612REG_OP2_DT_MUL_CH1, tmpInst[id].DT2_MUL2);
-                    YM2612_writeReg(port, YM2612REG_OP3_DT_MUL_CH1, tmpInst[id].DT3_MUL3);
-                    YM2612_writeReg(port, YM2612REG_OP4_DT_MUL_CH1, tmpInst[id].DT4_MUL4);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_RS_AR_CH1, tmpInst[id].RS1_AR1);
-                    YM2612_writeReg(port, YM2612REG_OP2_RS_AR_CH1, tmpInst[id].RS2_AR2);
-                    YM2612_writeReg(port, YM2612REG_OP3_RS_AR_CH1, tmpInst[id].RS3_AR3);
-                    YM2612_writeReg(port, YM2612REG_OP4_RS_AR_CH1, tmpInst[id].RS4_AR4);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_AM_D1R_CH1, tmpInst[id].AM1_D1R1);
-                    YM2612_writeReg(port, YM2612REG_OP2_AM_D1R_CH1, tmpInst[id].AM2_D1R2);
-                    YM2612_writeReg(port, YM2612REG_OP3_AM_D1R_CH1, tmpInst[id].AM3_D1R3);
-                    YM2612_writeReg(port, YM2612REG_OP4_AM_D1R_CH1, tmpInst[id].AM4_D1R4);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_D2R_CH1, tmpInst[id].D2R1);
-                    YM2612_writeReg(port, YM2612REG_OP2_D2R_CH1, tmpInst[id].D2R2);
-                    YM2612_writeReg(port, YM2612REG_OP3_D2R_CH1, tmpInst[id].D2R3);
-                    YM2612_writeReg(port, YM2612REG_OP4_D2R_CH1, tmpInst[id].D2R4);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_D1L_RR_CH1, tmpInst[id].D1L1_RR1);
-                    YM2612_writeReg(port, YM2612REG_OP2_D1L_RR_CH1, tmpInst[id].D1L2_RR2);
-                    YM2612_writeReg(port, YM2612REG_OP3_D1L_RR_CH1, tmpInst[id].D1L3_RR3);
-                    YM2612_writeReg(port, YM2612REG_OP4_D1L_RR_CH1, tmpInst[id].D1L4_RR4);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_SSGEG_CH1, tmpInst[id].SSGEG1);
-                    YM2612_writeReg(port, YM2612REG_OP2_SSGEG_CH1, tmpInst[id].SSGEG2);
-                    YM2612_writeReg(port, YM2612REG_OP3_SSGEG_CH1, tmpInst[id].SSGEG3);
-                    YM2612_writeReg(port, YM2612REG_OP4_SSGEG_CH1, tmpInst[id].SSGEG4);
-                    break;
-                case 2:
-                    RequestZ80();
-                    YM2612_writeReg(port, YM2612REG_FB_ALG_CH2, tmpInst[id].FB_ALG);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_TL_CH2, tmpInst[id].TL1);
-                    YM2612_writeReg(port, YM2612REG_OP2_TL_CH2, tmpInst[id].TL2);
-                    YM2612_writeReg(port, YM2612REG_OP3_TL_CH2, tmpInst[id].TL3);
-                    YM2612_writeReg(port, YM2612REG_OP4_TL_CH2, tmpInst[id].TL4);
-
-                    YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS_CH2, tmpInst[id].PAN_AMS_FMS);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_DT_MUL_CH2, tmpInst[id].DT1_MUL1);
-                    YM2612_writeReg(port, YM2612REG_OP2_DT_MUL_CH2, tmpInst[id].DT2_MUL2);
-                    YM2612_writeReg(port, YM2612REG_OP3_DT_MUL_CH2, tmpInst[id].DT3_MUL3);
-                    YM2612_writeReg(port, YM2612REG_OP4_DT_MUL_CH2, tmpInst[id].DT4_MUL4);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_RS_AR_CH2, tmpInst[id].RS1_AR1);
-                    YM2612_writeReg(port, YM2612REG_OP2_RS_AR_CH2, tmpInst[id].RS2_AR2);
-                    YM2612_writeReg(port, YM2612REG_OP3_RS_AR_CH2, tmpInst[id].RS3_AR3);
-                    YM2612_writeReg(port, YM2612REG_OP4_RS_AR_CH2, tmpInst[id].RS4_AR4);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_AM_D1R_CH2, tmpInst[id].AM1_D1R1);
-                    YM2612_writeReg(port, YM2612REG_OP2_AM_D1R_CH2, tmpInst[id].AM2_D1R2);
-                    YM2612_writeReg(port, YM2612REG_OP3_AM_D1R_CH2, tmpInst[id].AM3_D1R3);
-                    YM2612_writeReg(port, YM2612REG_OP4_AM_D1R_CH2, tmpInst[id].AM4_D1R4);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_D2R_CH2, tmpInst[id].D2R1);
-                    YM2612_writeReg(port, YM2612REG_OP2_D2R_CH2, tmpInst[id].D2R2);
-                    YM2612_writeReg(port, YM2612REG_OP3_D2R_CH2, tmpInst[id].D2R3);
-                    YM2612_writeReg(port, YM2612REG_OP4_D2R_CH2, tmpInst[id].D2R4);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_D1L_RR_CH2, tmpInst[id].D1L1_RR1);
-                    YM2612_writeReg(port, YM2612REG_OP2_D1L_RR_CH2, tmpInst[id].D1L2_RR2);
-                    YM2612_writeReg(port, YM2612REG_OP3_D1L_RR_CH2, tmpInst[id].D1L3_RR3);
-                    YM2612_writeReg(port, YM2612REG_OP4_D1L_RR_CH2, tmpInst[id].D1L4_RR4);
-
-                    YM2612_writeReg(port, YM2612REG_OP1_SSGEG_CH2, tmpInst[id].SSGEG1);
-                    YM2612_writeReg(port, YM2612REG_OP2_SSGEG_CH2, tmpInst[id].SSGEG2);
-                    YM2612_writeReg(port, YM2612REG_OP3_SSGEG_CH2, tmpInst[id].SSGEG3);
-                    YM2612_writeReg(port, YM2612REG_OP4_SSGEG_CH2, tmpInst[id].SSGEG4);
-                    break;
-            }
-        ReleaseZ80();
+            waitTick(1);
         }
-        else // FM only FX. write only one param
+        //else // FM only FX. write only one param
         {
         RequestZ80();
             switch (fxParam)
@@ -4750,10 +4771,24 @@ static void WriteSampleRegionSRAM(u8 bank, u8 note, u8 byteNum, u8 data)
 
 static void InitTracker()
 {
-    evd_init(0, 1);
+    SYS_disableInts();
+    /*
+    0 $A130F1 	SRAM access register
+    1 $A130F3 	Bank register for address $80000-$FFFFF
+    2 $A130F5 	Bank register for address $100000-$17FFFF
+    3 $A130F7 	Bank register for address $180000-$1FFFFF
+    4 $A130F9 	Bank register for address $200000-$27FFFF
+    5 $A130FB 	Bank register for address $280000-$2FFFFF
+    6 $A130FD 	Bank register for address $300000-$37FFFF
+    7 $A130FF 	Bank register for address $380000-$3FFFFF
+    */
+
+    //evd_init(0, 1); // ED V1
     //evd_mmcInit(); // cause black screen in BlastEm
 
-	SYS_disableInts();
+    ssf_init(); // MED V2 | X7
+    ssf_rom_wr_off();
+    ssf_set_rom_bank(4, 31);
 
     VDP_init();
     VDP_setDMAEnabled(TRUE);
@@ -4972,7 +5007,6 @@ static void InitTracker()
 
     InitGlobals(); // dac off, normal ch3, no lfo
     sampleBankSize = sizeof(sample_bank_1);
-
     /*
     Vertical interrupt (V-INT): level 6
     Horizontal interrupt (H-INT): level 4
