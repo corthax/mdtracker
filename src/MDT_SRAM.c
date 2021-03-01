@@ -1,6 +1,8 @@
 #include <genesis.h>
 #include <sram.h>
 
+#define SRAM_BASE   0x240000
+
 u8 SRAMW_readByte(u32 offset)
 {
     if (offset & 1) offset -= 2;

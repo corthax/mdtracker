@@ -14,22 +14,17 @@ Native music tracker for SEGA MEGA DRIVE / GENESIS / NOMAD
 //////////////////
 Supported emulators:
 	BlastEm, PicoDrive.
-		(Turn on overclocking for better experience.)
+		Turn on overclocking for better pefromance.
 	???
 
 //////////////////
 Supported flashcarts:
 	Mega Everdrive X7.
-		(Partially. Saves not working. Note OFF is bugged.)
+		Saves not working.
+		Note OFF is bugged.
 	???
 
 //////////////////
-
-SRAM Requirement:
-MD.Tracker X5: 512Kb
-MD.Tracker X3: 384Kb
-MD.Tracker X2: 256Kb
-MD.Tracker X1: 128Kb
 
 If there is no song data, default is generated.
 To save as new song just rename the rom. Or move/rename SRAM file. Or whatever :)

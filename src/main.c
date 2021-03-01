@@ -1,9 +1,9 @@
 #include <genesis.h>
 //#include <maths.h>
-//#include <everdrive.h>
+//#include <everdrive.h>    // ED V1
 #include <sram.h>
-#include <segalib.h>
-#include <ssf.h>
+//#include <segalib.h>
+#include <ssf.h>            // ED V2, MED X7
 
 #include "fontdata.h"
 //#include "sprites.h"
@@ -4783,12 +4783,21 @@ static void InitTracker()
     7 $A130FF 	Bank register for address $380000-$3FFFFF
     */
 
-    //evd_init(0, 1); // ED V1
+    // V1
+    //evd_init(0, 1);
     //evd_mmcInit(); // cause black screen in BlastEm
 
-    ssf_init(); // MED V2 | X7
-    ssf_rom_wr_off();
+    // X3 X5
+    // Bank 28 can be used for saves. First 32Kbyte of this bank will be copied to SD card.
+
+    // X7
+    // Bank 31 can be used for saves. Upper 256K of this bank mapped to battery SRAM.
+    ssf_init();
     ssf_set_rom_bank(4, 31);
+    ssf_rom_wr_on();
+
+    // PRO
+    // Backup ram mapped to the last 31th bank.
 
     VDP_init();
     VDP_setDMAEnabled(TRUE);

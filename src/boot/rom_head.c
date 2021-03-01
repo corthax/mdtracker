@@ -35,12 +35,11 @@ const struct
 //    "SEGA TERA68K   "	Tera Drive (boot from 68000 side)
 //    "SEGA TERA286   "	Tera Drive (boot from x86 side)
 #if (ENABLE_BANK_SWITCH == 1)
-    "SEGA SSF        ", // corrupted
+    "SEGA SSF        ",
 #else
-    "SEGA EVERDRIVE  ",
+    "SEGA MEGA DRIVE ",
 #endif
     "(C)CORTHAX 2021 ",
-
 #if (MD_TRACKER_VERSION == 5)
     "MD.Tracker X5                                   ",
     "MD.Tracker X5                                   ",
@@ -58,7 +57,7 @@ const struct
 //    "AI"	Educational Aid
 //    "OS"	Boot ROM (TMSS)
 //    "BR"	Boot ROM (Sega CD)
-    "AI 00000000-00",
+    "GM 00000000-00",
     0x0000,
 //"J"	3-button controller
 //"6"	6-button controller
@@ -92,19 +91,22 @@ const struct
 //F8	Yes	    8-bit (odd addresses)
 //"RA", 0xE840; EEPROM type
     0xE020,     // 16 bit SRAM mode
-    0x00240000, // SRAM start; default is 0x00200000; or upper half of 512 block of 31 bank, in case of MED V2 (0x00240000)
 #if (MD_TRACKER_VERSION == 5)
-    0x0027FFFF, // SRAM end 512 KB
+    0x00200000,
+    0x0027FFFF,
 #elif (MD_TRACKER_VERSION == 3)
-    0x0025FFFF, // 384 KB
-#elif (MD_TRACKER_VERSION == 2)
-    0x0027FFFF, // SRAM end (256 KB)
+    0x00200000,
+    0x0025FFFF,
+#elif (MD_TRACKER_VERSION == 2) // X7
+    0x00240000,
+    0x0027FFFF,
 #else
-    0x0021FFFF, // 128 KB
+    0x00200000,
+    0x0021FFFF,
 #endif
-    "            ", // modem
+    "            ",                             // modem
     "MUSIC TRACKER                           ", // memo
-    "JUE             "  // country
+    "JUE             "                          // country
 };
 /*$1B0 - 'R'
 $1B1 - 'A'
