@@ -11,7 +11,7 @@
 *
 *-------------------------------------------------------
 
-    .globl 	_hard_reset
+    .globl  rom_header
 
     .org    0x00000000
 
@@ -42,6 +42,7 @@ _Vecteurs_68K:
         dc.l    _INT,_INT,_INT,_INT,_INT,_INT,_INT,_INT
         dc.l    _INT,_INT,_INT,_INT,_INT,_INT,_INT,_INT
 
+rom_header:
         .incbin "out/rom_head.bin", 0x10, 0x100
 
 _Entry_Point:
@@ -234,23 +235,23 @@ _HINT:
 
 _VINT:
         movem.l %d0-%d1/%a0-%a1,-(%sp)
-        ori.w   #0x0001, intTrace           // in V-Int
-        addq.l  #1, vtimer                  // increment frame counter (more a vint counter)
-        btst    #3, VBlankProcess+1         // PROCESS_XGM_TASK ? (use VBlankProcess+1 as btst is a byte operation)
+        ori.w   #0x0001, intTrace           /* in V-Int */
+        addq.l  #1, vtimer                  /* increment frame counter (more a vint counter) */
+        btst    #3, VBlankProcess+1         /* PROCESS_XGM_TASK ? (use VBlankProcess+1 as btst is a byte operation) */
         beq.s   _no_xgm_task
 
-        jsr     XGM_doVBlankProcess         // do XGM vblank task
+        jsr     XGM_doVBlankProcess         /* do XGM vblank task */
 
 _no_xgm_task:
-        btst    #1, VBlankProcess+1         // PROCESS_BITMAP_TASK ? (use VBlankProcess+1 as btst is a byte operation)
+        btst    #1, VBlankProcess+1         /* PROCESS_BITMAP_TASK ? (use VBlankProcess+1 as btst is a byte operation) */
         beq.s   _no_bmp_task
 
-        jsr     BMP_doVBlankProcess         // do BMP vblank task
+        jsr     BMP_doVBlankProcess         /* do BMP vblank task */
 
 _no_bmp_task:
-        move.l  vintCB, %a0                 // load user callback
-        jsr    (%a0)                        // call user callback
-        andi.w  #0xFFFE, intTrace           // out V-Int
+        move.l  vintCB, %a0                 /* load user callback */
+        jsr    (%a0)                        /* call user callback */
+        andi.w  #0xFFFE, intTrace           /* out V-Int */
         movem.l (%sp)+,%d0-%d1/%a0-%a1
         rte
 

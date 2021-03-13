@@ -39,9 +39,9 @@
  *
  * This callback is used to compare 2 objects.<br>
  * Return value should be:<br>
- * negatif if o1 is below o2<br>
- * 0 if o1 is equal to o2<br>
- * positif if o1 is above o2
+ * < 0 if o1 is below o2<br>
+ * = 0 if o1 is equal to o2<br>
+ * > 0 if o1 is above o2
  */
 typedef s16 _comparatorCallback(void* o1, void* o2);
 
@@ -53,7 +53,7 @@ typedef s16 _comparatorCallback(void* o1, void* o2);
 void setRandomSeed(u16 seed);
 /**
  *  \brief
- *      Return a random u16 integer.
+ *      Returns a random u16 integer value.
  */
 u16 random();
 
@@ -408,7 +408,7 @@ void qsort_s32(s32 *data, u16 left, u16 right);
  *      Quick sort algo on array of pointer (object)
  *
  *  \param data
- *      array of pointer (pointer design object to sort).
+ *      array of pointer (pointer of object to sort).
  *  \param len
  *      number of element in the data array
  *  \param cb

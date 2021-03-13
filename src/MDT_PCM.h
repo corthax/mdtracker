@@ -3,7 +3,7 @@
 
 #define SAMPLE_DATA_SIZE    8   // 3 bytes start, 3 bytes end, 1 byte loop, 1 byte rate
 //#define DAC_DATA_START       0x00027700 // sample_bank_1
-#define DAC_DATA_END        0x0020FA00 // see symbols.txt for sgdk_logo_palette_data;
+#define DAC_DATA_END        0x00186A00 // see symbols.txt for sgdk_logo_palette_data;
 // resulting ROM size must be <= 2MB (2097152 Byte); 2 500 000 samples
 
 /**

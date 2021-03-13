@@ -36,8 +36,25 @@ u8 XGM_isPlaying();
  *  \see XGM_stopPlay
  *  \see XGM_pausePlay
  *  \see XGM_nextFrame
+ *  \see XGM_startPlay_FAR
  */
 void XGM_startPlay(const u8 *song);
+/**
+ *  \brief
+ *      Same as #XGM_startPlay(..) except it supports music accessible through bank switch
+ *
+ *  \param song
+ *      XGM track address.
+ *  \param size
+ *      XGM track size (in byte)
+ *
+ *  \see XGM_startPlay
+ *  \see XGM_stopPlay
+ *  \see XGM_pausePlay
+ *  \see XGM_nextFrame
+ */
+void XGM_startPlay_FAR(const u8 *song, u32 size);
+
 /**
  *  \brief
  *      Stop playing music (XGM music player driver).
@@ -288,7 +305,7 @@ void XGM_setForceDelayDMA(u16 value);
  *      spent waiting in the DMA contention (see #XGM_set68KBUSProtection method).<br>
  *      The method computes CPU load mean over 32 frames and so it's important to call it at
  *      each frame (on VInt for instance) to get meaningful value.<br>
- *      Note that it returns CPu load only for the XGM music parsing part as PCM channel mixing is always ON.<br>
+ *      Note that it returns CPU load only for the XGM music parsing part as PCM channel mixing is always ON.<br>
  *      Idle usage is 40% on NTSC and 30% on PAL, 100% usage usually mean overrun and may result in music slowdown
  *      and incorrect PCM operations.
  */

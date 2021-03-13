@@ -1,5 +1,3 @@
-
-
 #include "segalib.h"
 #include "ssf.h"
 

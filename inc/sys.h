@@ -16,6 +16,7 @@
 #define PROCESS_DMA_TASK            (1 << 2)
 #define PROCESS_XGM_TASK            (1 << 3)
 #define PROCESS_MAP_TASK            (1 << 4)
+#define PROCESS_VDP_SCROLL_TASK     (1 << 5)
 
 /**
  *  \brief
@@ -23,7 +24,7 @@
  */
 typedef enum
 {
-    IMMEDIATLY,         /** Start VBlank process immediatly whatever we are in blanking period or not */
+    IMMEDIATELY,        /** Start VBlank process immediately whatever we are in blanking period or not */
     ON_VBLANK ,         /** Start VBlank process on VBlank period, start immediatly in we are already in VBlank */
     ON_VBLANK_START     /** Start VBlank process on VBlank *start* period, means that we wait the next *start* of VBlank period if we missed it */
 } VBlankProcessTime;
@@ -105,36 +106,6 @@ extern VoidCallback *errorExceptionCB;
  * You can modify it to use your own callback.
  */
 extern VoidCallback *intCB;
-/**
- *  \brief
- *      Internal Vertical interrupt callback.
- *
- * You can modify it to use your own callback.<br>
- * Be careful: by doing that you disable SGDK default V-Int code and related features !<br>
- * You should use it only for very low level process and if you don't care about SGDK facilities.<br>
- * In all others cases you would use the SYS_setVIntCallback() method.
- */
-extern VoidCallback *internalVIntCB;
-/**
- *  \brief
- *      Internal Horizontal interrupt callback.
- *
- * You can modify it to use your own callback.<br>
- * Be careful: by doing that you disable SGDK default H-Int code and related features !<br>
- * You should use it only for very low level process and if you don't care about SGDK facilities.<br>
- * In all others cases you would use the SYS_setHIntCallback() method.
- */
-extern VoidCallback *internalHIntCB;
-/**
- *  \brief
- *      Internal External interrupt callback.
- *
- * You can modify it to use your own callback.<br>
- * Be careful: by doing that you disable SGDK default Ext-Int code and related features !<br>
- * You should use it only for very low level process and if you don't care about SGDK facilities.<br>
- * In all others cases you would use the SYS_setExtIntCallback() method.
- */
-extern VoidCallback *internalExtIntCB;
 
 
 /**
@@ -399,12 +370,11 @@ u32 SYS_getFPS();
 fix32 SYS_getFPSAsFloat();
 /**
  *  \brief
- *      Return an estimation of CPU load (in %)
+ *      Return an estimation of CPU frame load (in %)
  *
  * Return an estimation of CPU load (in %, mean value computed on 8 frames) based of idle time spent in #VDP_waitVSync() / #VDP_waitVInt() methods.<br>
- * This method don't return accurate result when you have missed frames (V-Int missed).
+ * The method can return value above 100% you CPU load is higher than 1 frame.
  *
- * \see SYS_getMissedFrames()
  * \see VDP_waitVSync()
  * \see VDP_waitVInt()
  */
@@ -413,13 +383,16 @@ u16 SYS_getCPULoad();
  *  \brief
  *      Show a cursor indicating current frame load level in scanline (top = 0% load, bottom = 100% load)
  *
+ *  \param mean
+ *      frame load level display is averaged on 8 frames (mean load)
+ *
  *  Show current frame load using a cursor indicating the scanline reached when #VDP_waitVSync() / #VDP_waitVInt() method was called.<br>
  *  Note that internally sprite 0 is used to display to cursor (palette 0 and color 15) as it is not directly used by the Sprite Engine but
  *  if you're using the low level VDP sprite methods then you should know that sprite 0 will be used here.
  *
  * \see SYS_hideFrameLoad()
  */
-void SYS_showFrameLoad();
+void SYS_showFrameLoad(bool mean);
 /**
  *  \brief
  *      Hide the frame load cursor previously enabled using #SYS_showFrameLoad() method.

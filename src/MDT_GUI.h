@@ -1,7 +1,7 @@
 #ifndef MDT_GUI_H_INCLUDED
 #define MDT_GUI_H_INCLUDED
 
-#define MD_TRACKER_VERSION 2
+#define MD_TRACKER_VERSION 5
 
 // -----------------------------------------------------------
 #define GUI_INST_PARAM_ALG      0

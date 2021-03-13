@@ -20,7 +20,7 @@
 #include "MDT_PCM.h"
 #include "MDT_Info.h"
 
-#define MD_TRACKER_VERSION  2
+#define MD_TRACKER_VERSION  5
 
 #define YM_TIMER_TEMPO      0
 
@@ -343,6 +343,34 @@ void hIntCallback()
     case SCREEN_INSTRUMENT: DisplayInstrumentEditor(); break;
     }
 }
+
+void vIntCallback()
+{
+    SYS_doVBlankProcessEx(IMMEDIATELY);
+    // fast navigation
+    if (doCount)
+    {
+        buttonCounter--;
+        if (buttonCounter <= 0)
+        {
+            buttonCounter = GUI_NAVIGATION_SPEED_COUNTER;
+            switch (currentScreen)
+            {
+            case SCREEN_MATRIX: NavigateMatrix(navigationDirection); break;
+            case SCREEN_PATTERN: NavigatePattern(navigationDirection); break;
+            case SCREEN_INSTRUMENT: NavigateInstrument(navigationDirection); break;
+            }
+        }
+    }
+    // slow GUI, less CPU (not that much really...)
+    /*switch (currentScreen)
+    {
+    case 0: DisplayPatternMatrix(); break;
+    case 1: DisplayPatternEditor(); break;
+    case 2: DisplayInstrumentEditor(); break;
+    }*/
+}
+
 // -------------------------------------------------------------------------------------------------------------
 void NavigateMatrix(u8 direction) {
     switch (direction) {
@@ -530,32 +558,7 @@ void NavigateInstrument(u8 direction) {
     }
 }
 // -------------------------------------------------------------------------------------------------------------
-void vIntCallback()
-{
-    SYS_doVBlankProcessEx(IMMEDIATLY);
-    // fast navigation
-    if (doCount)
-    {
-        buttonCounter--;
-        if (buttonCounter <= 0)
-        {
-            buttonCounter = GUI_NAVIGATION_SPEED_COUNTER;
-            switch (currentScreen)
-            {
-            case SCREEN_MATRIX: NavigateMatrix(navigationDirection); break;
-            case SCREEN_PATTERN: NavigatePattern(navigationDirection); break;
-            case SCREEN_INSTRUMENT: NavigateInstrument(navigationDirection); break;
-            }
-        }
-    }
-    // slow GUI, less CPU (not that much really...)
-    /*switch (currentScreen)
-    {
-    case 0: DisplayPatternMatrix(); break;
-    case 1: DisplayPatternEditor(); break;
-    case 2: DisplayInstrumentEditor(); break;
-    }*/
-}
+
 
 static void DoEngine()
 {
@@ -979,7 +982,7 @@ static void SetBPM(u16 counter)
         uintToStr(BPM, str, 3); // show timer value
         DrawNum(BG_A, PAL0, str, 3, 27);
     }
-    else { VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "BAD", 3, 7); }
+    else { VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "BAD", 3, 27); }
 }
 
 // cursors
@@ -4787,17 +4790,19 @@ static void InitTracker()
     //evd_init(0, 1);
     //evd_mmcInit(); // cause black screen in BlastEm
 
+    ssf_init();
     // X3 X5
     // Bank 28 can be used for saves. First 32Kbyte of this bank will be copied to SD card.
+    //ssf_set_rom_bank(4, 28);
 
     // X7
     // Bank 31 can be used for saves. Upper 256K of this bank mapped to battery SRAM.
-    ssf_init();
-    ssf_set_rom_bank(4, 31);
-    ssf_rom_wr_on();
+    //ssf_set_rom_bank(4, 31);
 
     // PRO
     // Backup ram mapped to the last 31th bank.
+    ssf_set_rom_bank(4, 31);
+    ssf_rom_wr_on();
 
     VDP_init();
     VDP_setDMAEnabled(TRUE);
@@ -5021,7 +5026,6 @@ static void InitTracker()
     Horizontal interrupt (H-INT): level 4
     External interrupt (EX-INT): level 2
     */
-
     VDP_setHInterrupt(TRUE);
     VDP_setHIntCounter(H_INT_SKIP);
     SYS_setInterruptMaskLevel(2);

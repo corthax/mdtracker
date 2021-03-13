@@ -1,7 +1,7 @@
 #ifndef MDT_MODULEDATA_H_INCLUDED
 #define MDT_MODULEDATA_H_INCLUDED
 
-#define MD_TRACKER_VERSION 2
+#define MD_TRACKER_VERSION 5
 
 //{ Instrument data SRAM offsets
 #define INST_ALG 0 // 1 byte ..

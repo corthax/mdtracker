@@ -44,11 +44,13 @@
  *  \param hp
  *      map height in block (128x128 pixels block) removing duplicated rows
  *  \param compression
- *      compression type for metaTiles, blocks and blockIndexes data. Accepted values:<br>
+ *      b0-b3=compression type for metaTiles<br>
+ *      b4-b7=compression for blocks data<br>
+ *      b8-b11=compression for blockIndexes data<br>
+ *      Accepted values:<br>
  *        <b>COMPRESSION_NONE</b><br>
  *        <b>COMPRESSION_APLIB</b><br>
  *        <b>COMPRESSION_LZ4W</b><br>
- *      smap height in block (128x128 pixels block) removing duplicated rows
  *  \param numMetaTile
  *      number of MetaTile
  *  \param numBlock
@@ -133,7 +135,7 @@ typedef struct
  *  \param getMetaTilemapRectCB
  *      internal
  */
-typedef struct _Map
+typedef struct Map
 {
     u16 w;
     u16 h;
@@ -149,10 +151,10 @@ typedef struct _Map
     u16 planeHeightMask;
     u16 lastXT;
     u16 lastYT;
-    void (*prepareMapDataColumnCB)(struct _Map *map, u16 *bufCol1, u16 *bufCol2, u16 xm, u16 ym, u16 height);
-    void (*prepareMapDataRowCB)(struct _Map *map, u16 *bufRow1, u16 *bufRow2, u16 xm, u16 ym, u16 width);
-    u16  (*getMetaTileCB)(struct _Map *map, u16 x, u16 y);
-    void (*getMetaTilemapRectCB)(struct _Map *map, u16 x, u16 y, u16 w, u16 h, u16* dest);
+    void (*prepareMapDataColumnCB)(struct Map *map, u16 *bufCol1, u16 *bufCol2, u16 xm, u16 ym, u16 height);
+    void (*prepareMapDataRowCB)(struct Map *map, u16 *bufRow1, u16 *bufRow2, u16 xm, u16 ym, u16 width);
+    u16  (*getMetaTileCB)(struct Map *map, u16 x, u16 y);
+    void (*getMetaTilemapRectCB)(struct Map *map, u16 x, u16 y, u16 w, u16 h, u16* dest);
 } Map;
 
 
@@ -170,7 +172,9 @@ typedef struct _Map
  *      - BG_A<br>
  *      - BG_B<br>
  *  \param baseTile
- *      Used to provide base tile index and base palette index (see TILE_ATTR_FULL() macro)
+ *      Used to provide base tile index and base palette index (see TILE_ATTR_FULL() macro).<br>
+ *      Note that you can also use it to force HIGH priority but in that case your map should only contains LOW priority tiles
+ *      otherwise the HIGH priority tiles will be set in LOW priority instead (mutually exclusive).
  *  \return initialized Map structure or <i>NULL</i> if there is not enough memory to allocate data for given MapDefinition.
  */
 Map* MAP_create(const MapDefinition* mapDef, VDPPlane plane, u16 baseTile);

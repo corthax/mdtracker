@@ -15,11 +15,9 @@
 extern const fix32 sintab32[1024];
 extern const fix16 sintab16[1024];
 
-#if (MATH_BIG_TABLES != 0)
 extern const fix16 log2tab16[0x10000];
 extern const fix16 log10tab16[0x10000];
 extern const fix16 sqrttab16[0x10000];
-#endif
 
 
 /**
@@ -33,6 +31,12 @@ extern const fix16 sqrttab16[0x10000];
  *      Returns the highest value between X an Y.
  */
 #define max(X, Y)   (((X) > (Y))?(X):(Y))
+
+/**
+ *  \brief
+ *      Returns L if X is less than L, H if X is greater than H or X if in between L and H.
+ */
+#define clamp(X, L, H)   (min(max((X), (L)), (H)))
 
 #if (ENABLE_NEWLIB == 0)
 /**
@@ -163,14 +167,14 @@ extern const fix16 sqrttab16[0x10000];
  *      Round the specified value to nearest integer (fix16).
  */
 #define fix16Round(value)           \
-    (fix16Frac(value) > FIX16(0.5))?fix16Int(value + FIX16(1)) + 1:fix16Int(value)
+    ((fix16Frac(value) > FIX16(0.5))?fix16Int(value + FIX16(1)) + 1:fix16Int(value))
 
 /**
  *  \brief
  *      Round and convert the specified fix16 value to integer.
  */
 #define fix16ToRoundedInt(value)    \
-    (fix16Frac(value) > FIX16(0.5))?fix16ToInt(value) + 1:fix16ToInt(value)
+    ((fix16Frac(value) > FIX16(0.5))?fix16ToInt(value) + 1:fix16ToInt(value))
 
 /**
  *  \brief
@@ -211,8 +215,6 @@ extern const fix16 sqrttab16[0x10000];
 #define fix16Div(val1, val2)        (((val1) << FIX16_FRAC_BITS) / (val2))
 
 
-#if (MATH_BIG_TABLES != 0)
-
 /**
  *  \brief
  *      Compute and return the result of the Log2 of specified value (fix16).
@@ -228,8 +230,6 @@ extern const fix16 sqrttab16[0x10000];
  *      Compute and return the result of the root square of specified value (fix16).
  */
 #define fix16Sqrt(v)                sqrttab16[v]
-
-#endif
 
 
 /**

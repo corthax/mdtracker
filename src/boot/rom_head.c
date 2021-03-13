@@ -1,7 +1,6 @@
 #include <types.h>
 
-#define MD_TRACKER_VERSION  2
-#define ENABLE_BANK_SWITCH  1
+#define MD_TRACKER_VERSION  5
 
 __attribute__((externally_visible))
 const struct
@@ -31,7 +30,7 @@ const struct
 //    "SEGA EVERDRIVE "	Mega Drive (Everdrive extensions)
 //    "SEGA SSF       "	Mega Drive (Mega Everdrive extensions)
 //    "SEGA MEGAWIFI  "	Mega Drive (Mega Wifi extensions)
-//    "SEGA PICO      "	Pico
+//    "SEGA PICO      "	SEGA Pico console for kids
 //    "SEGA TERA68K   "	Tera Drive (boot from 68000 side)
 //    "SEGA TERA286   "	Tera Drive (boot from x86 side)
 #if (ENABLE_BANK_SWITCH == 1)
@@ -57,7 +56,7 @@ const struct
 //    "AI"	Educational Aid
 //    "OS"	Boot ROM (TMSS)
 //    "BR"	Boot ROM (Sega CD)
-    "GM 00000000-00",
+    "AI 00000000-00",
     0x0000,
 //"J"	3-button controller
 //"6"	6-button controller
