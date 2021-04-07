@@ -3,7 +3,7 @@
 	
 ---
 
-SGDK 1.60
+SGDK 1.62
 
 Code::Blocks 20.03
 
