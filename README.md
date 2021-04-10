@@ -18,3 +18,7 @@ Change path in compiler settings to where SGDK is.
 /res - graphics, samples etc.
 
 /src - source code.
+
+---
+
+Discord: https://discord.gg/CE22HNNk5y
