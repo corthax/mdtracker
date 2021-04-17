@@ -1,6 +1,6 @@
 #include <genesis.h>
 //#include <maths.h>
-//#include <everdrive.h>    // ED V1
+#include <everdrive.h>    // ED V1
 #include <sram.h>
 //#include <segalib.h>
 #include <ssf.h>            // ED V2, MED X7
@@ -1126,8 +1126,13 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 playingPatternRow = 0; // start from the first line of current pattern
                 playingMatrixRow = selectedMatrixRow; // actual line in array
                 bPlayback = TRUE;
+                //ssf_led_on(); // breaks PicoDrive (no sound, then hang on)
             }
-            else stop_playback();
+            else
+            {
+                stop_playback();
+                //ssf_led_off();
+            }
             break;
 
         case BUTTON_MODE:
@@ -1138,8 +1143,13 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 else playingPatternRow = selectedPatternRow + PATTEN_ROWS_PER_SIDE;
                 playingMatrixRow = selectedMatrixRow; // actual line in array
                 bPlayback = TRUE;
+                //ssf_led_on();
             }
-            else stop_playback();
+            else
+            {
+                stop_playback();
+                //ssf_led_off();
+            }
             break;
         }
         if (selectedPatternColumn >= PATTERN_COLUMNS) patternColumnShift = PATTEN_ROWS_PER_SIDE; else patternColumnShift = 0;
@@ -4788,7 +4798,7 @@ static void InitTracker()
 
     // V1
     //evd_init(0, 1);
-    //evd_mmcInit(); // cause black screen in BlastEm
+    //evd_mmcInit(); // breaks PicoDrive (black screen)
 
     ssf_init();
     // X3 X5

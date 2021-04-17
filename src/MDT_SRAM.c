@@ -1,5 +1,6 @@
 #include <genesis.h>
 #include <sram.h>
+//#include <ssf.h>
 
 u8 SRAMW_readByte(u32 offset)
 {
@@ -9,8 +10,12 @@ u8 SRAMW_readByte(u32 offset)
 
 void SRAMW_writeByte(u32 offset, u8 val)
 {
+    //ssf_rom_wr_on();
+
     if (offset & 1) offset -= 2;
     *(vu8*)(SRAM_BASE + offset) = val;
+
+    //ssf_rom_wr_off();
 }
 
 u16 SRAMW_readWord(u32 offset)

@@ -24,20 +24,18 @@ const struct
     char notes[40];                 /* Memo (40) */
     char region[16];                /* Country Support (16) */
 } rom_header = {
-//    "SEGA MEGA DRIVE"	Mega Drive
-//    "SEGA GENESIS   "	Mega Drive
-//    "SEGA 32X       "	Mega Drive + 32X
-//    "SEGA EVERDRIVE "	Mega Drive (Everdrive extensions)
-//    "SEGA SSF       "	Mega Drive (Mega Everdrive extensions)
-//    "SEGA MEGAWIFI  "	Mega Drive (Mega Wifi extensions)
-//    "SEGA PICO      "	SEGA Pico console for kids
-//    "SEGA TERA68K   "	Tera Drive (boot from 68000 side)
-//    "SEGA TERA286   "	Tera Drive (boot from x86 side)
-#if (ENABLE_BANK_SWITCH == 1)
-    "SEGA SSF        ",
-#else
-    "SEGA MEGA DRIVE ",
-#endif
+//    "SEGA MEGA DRIVE "	Mega Drive
+//    "SEGA GENESIS    "	Mega Drive
+//    "SEGA 32X        "	Mega Drive + 32X
+//    "SEGA EVERDRIVE  "	Mega Drive (Everdrive extensions)
+//    "SEGA SSF        "	Mega Drive (Mega Everdrive extensions)
+//    "SEGA MEGAWIFI   "	Mega Drive (Mega Wifi extensions)
+//    "SEGA PICO       "	SEGA Pico console for kids
+//    "SEGA TERA68K    "	Tera Drive (boot from 68000 side)
+//    "SEGA TERA286    "	Tera Drive (boot from x86 side)
+    //"SEGA SSF        ", // breaks BlastEm
+    //"SEGA MEGA DRIVE ",
+    "SEGA SSF        ", // doing anything?
     "(C)CORTHAX 2021 ",
 #if (MD_TRACKER_VERSION == 5)
     "MD.Tracker X5                                   ",
