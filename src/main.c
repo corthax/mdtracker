@@ -1,9 +1,9 @@
 #include <genesis.h>
 //#include <maths.h>
-#include <everdrive.h>    // ED V1
+//#include <everdrive.h>    // ED V1
 #include <sram.h>
 //#include <segalib.h>
-#include <ssf.h>            // ED V2, MED X7
+#include <ssf.h>            // PRO
 
 #include "fontdata.h"
 //#include "sprites.h"
@@ -23,6 +23,8 @@
 #define MD_TRACKER_VERSION  5
 
 #define YM_TIMER_TEMPO      0
+
+#define STRING_EMPTY        ""
 
 u8 playingMatrixRow = 0; // current played line
 u8 selectedMatrixScreenRow = 0; // selected matrix line on SCREEN
@@ -49,11 +51,14 @@ u8 chan = 0; // draw only one cell per VBlank to avoid slowdown?
 
 u8 playingPatternRow = 0; // current played pattern row
 
-u8 previousInstrument[CHANNELS_TOTAL]; // 255 is used to write instrument when parameters changed
-u8 previousEffect[CHANNELS_TOTAL][EFFECTS_TOTAL];
-u8 previousNote[CHANNELS_TOTAL];
+u8 channelPreviousInstrument[CHANNELS_TOTAL]; // 255 is used to write instrument when parameters changed
+u8 channelPreviousEffect[CHANNELS_TOTAL][EFFECTS_TOTAL];
+u8 channelPreviousNote[CHANNELS_TOTAL];
 u8 channelArpSeqID[CHANNELS_TOTAL];
+u8 channelArpSeqMODE[CHANNELS_TOTAL];
 u8 channelVolSeqID[CHANNELS_TOTAL];
+u8 channelVolSeqMODE[CHANNELS_TOTAL];
+u8 channelCurrentNote[CHANNELS_TOTAL];
 
 u8 selectedInstrumentID = 1; // 0 instrument is empty
 u8 selectedInstrumentParameter = 0; // 0..53
@@ -82,21 +87,21 @@ s8 frameCounter = 0; // 8 PPL
 u16 subTicksToSkip = 0;
 
 // channel effects
-u8 pitchSlideSpeed[CHANNELS_TOTAL];
-s8 microtone[CHANNELS_TOTAL];
-u8 arpNote[CHANNELS_TOTAL];
+u8 channelPitchSlideSpeed[CHANNELS_TOTAL];
+s8 channelMicrotone[CHANNELS_TOTAL];
+u8 channelArpNote[CHANNELS_TOTAL];
 
 s8 channelPitchSkipStep[CHANNELS_TOTAL];
 s8 channelPitchSkipStepCounter[CHANNELS_TOTAL];
-u8 vibratoMode[CHANNELS_TOTAL];
-u16 vibratoDepth[CHANNELS_TOTAL];
-u8 vibratoDepthMult[CHANNELS_TOTAL];
-u16 vibratoSpeed[CHANNELS_TOTAL];
-u8 vibratoSpeedMult[CHANNELS_TOTAL];
-u16 vibratoPhase[CHANNELS_TOTAL];
-s8 finalPitch[CHANNELS_TOTAL];
-s8 modNote_vibrato[CHANNELS_TOTAL];
-s8 modNote_portamento[CHANNELS_TOTAL];
+u8 channelVibratoMode[CHANNELS_TOTAL];
+u16 channelVibratoDepth[CHANNELS_TOTAL];
+u8 channelVibratoDepthMult[CHANNELS_TOTAL];
+u16 channelVibratoSpeed[CHANNELS_TOTAL];
+u8 channelVibratoSpeedMult[CHANNELS_TOTAL];
+u16 channelVibratoPhase[CHANNELS_TOTAL];
+s8 channelFinalPitch[CHANNELS_TOTAL];
+s8 channelModNoteVibrato[CHANNELS_TOTAL];
+s8 channelModNotePitch[CHANNELS_TOTAL];
 
 u8 channelTremoloDepth[CHANNELS_TOTAL];
 u8 channelTremoloSpeed[CHANNELS_TOTAL];
@@ -573,25 +578,25 @@ static void DoEngine()
     // vibrato tool
     auto s8 vibrato(u8 channel)
     {
-        if (vibratoSpeed[channel] > 0 && vibratoDepth[channel] > 0)
+        if (channelVibratoSpeed[channel] > 0 && channelVibratoDepth[channel] > 0)
         {
             static s8 value = 0;
 
-            switch (vibratoMode[channel])
+            switch (channelVibratoMode[channel])
             {
             case 1:
-                value = abs((s8)fix16ToRoundedInt(fix16Mul(FIX16(vibratoDepth[channel]), sinFix16(vibratoPhase[channel]))));
+                value = abs((s8)fix16ToRoundedInt(fix16Mul(FIX16(channelVibratoDepth[channel]), sinFix16(channelVibratoPhase[channel]))));
                 break;
             case 2:
-                value = -abs((s8)fix16ToRoundedInt(fix16Mul(FIX16(vibratoDepth[channel]), sinFix16(vibratoPhase[channel]))));
+                value = -abs((s8)fix16ToRoundedInt(fix16Mul(FIX16(channelVibratoDepth[channel]), sinFix16(channelVibratoPhase[channel]))));
                 break;
             default:
-                value = (s8)fix16ToRoundedInt(fix16Mul(FIX16(vibratoDepth[channel]), sinFix16(vibratoPhase[channel])));
+                value = (s8)fix16ToRoundedInt(fix16Mul(FIX16(channelVibratoDepth[channel]), sinFix16(channelVibratoPhase[channel])));
                 break;
             }
 
-            vibratoPhase[channel] += vibratoSpeed[channel];
-            if (vibratoPhase[channel] > 1023) vibratoPhase[channel] -= 1024;
+            channelVibratoPhase[channel] += channelVibratoSpeed[channel];
+            if (channelVibratoPhase[channel] > 1023) channelVibratoPhase[channel] -= 1024;
 
             return value;
         }
@@ -604,33 +609,39 @@ static void DoEngine()
         for (u8 channel = CHANNEL_FM1; channel < CHANNELS_TOTAL; channel++)
         {
             //sequences
-            if (previousNote[channel] <= MAX_NOTE && frameCounter > 0) // notes only, not at 1st frame
+            if (channelPreviousNote[channel] <= MAX_NOTE && frameCounter > 0) // notes only, not at 1st frame
             {
                 // attenuation sequence
                 value = ReadInstrumentSRAM(channelVolSeqID[channel], INST_VOL_TICK_01 + frameCounter);
-                if (value < 128)
+                if (channelVolSeqMODE[channel] == 0 || (channelVolSeqMODE[channel] == 1 && channelCurrentNote[channel] != NOTE_EMPTY)) // loop or once
                 {
-                    channelSeqAttenuation[channel] = value;
-                    SetChannelVolume(channel);
+                    if (value < 128)
+                    {
+                        channelSeqAttenuation[channel] = value;
+                        SetChannelVolume(channel);
+                    }
                 }
 
                 // note
                 value = ReadInstrumentSRAM(channelArpSeqID[channel], INST_ARP_TICK_01 + frameCounter);
                 if (value != NOTE_EMPTY)
                 {
-                    if (value > ARP_BASE)
+                    if (channelArpSeqMODE[channel] == 0 || (channelArpSeqMODE[channel] == 1 && channelCurrentNote[channel] != NOTE_EMPTY)) // loop or once
                     {
-                        arpNote[channel] = previousNote[channel] + (value - ARP_BASE);
+                        if (value > ARP_BASE)
+                        {
+                            channelArpNote[channel] = channelPreviousNote[channel] + (value - ARP_BASE);
+                        }
+                        else if (value < ARP_BASE)
+                        {
+                            channelArpNote[channel] = channelPreviousNote[channel] - (ARP_BASE - value);
+                        }
+                        else
+                        {
+                            channelArpNote[channel] = channelPreviousNote[channel];
+                        }
+                        PlayNote(channelArpNote[channel], channel);
                     }
-                    else if (value < ARP_BASE)
-                    {
-                        arpNote[channel] = previousNote[channel] - (ARP_BASE - value);
-                    }
-                    else
-                    {
-                        arpNote[channel] = previousNote[channel];
-                    }
-                    PlayNote(arpNote[channel], channel);
                 }
             }
 
@@ -640,7 +651,7 @@ static void DoEngine()
                 channelNoteDelay[channel]--;
                 if (channelNoteDelay[channel] == 1)
                 {
-                    PlayNote(previousNote[channel], channel);
+                    PlayNote(channelPreviousNote[channel], channel);
                     channelNoteDelay[channel] = 0;
                 }
             }
@@ -651,7 +662,7 @@ static void DoEngine()
                 channelNoteRetriggerCounter[channel]++;
                 if (channelNoteRetriggerCounter[channel] % channelNoteRetrigger[channel] == 0)
                 {
-                    PlayNote(previousNote[channel], channel);
+                    PlayNote(channelPreviousNote[channel], channel);
                 }
             }
 
@@ -680,23 +691,23 @@ static void DoEngine()
             }
 
             // pitch
-            if (pitchSlideSpeed[channel] > 0 || vibratoDepth[channel] > 0 || vibratoSpeed[channel] > 0)
+            if (channelPitchSlideSpeed[channel] > 0 || channelVibratoDepth[channel] > 0 || channelVibratoSpeed[channel] > 0)
             {
                 // portamento
                 if (channelPitchSkipStepCounter[channel] <= 0)
                 {
-                    microtone[channel] += pitchSlideSpeed[channel];
+                    channelMicrotone[channel] += channelPitchSlideSpeed[channel];
 
-                    while(microtone[channel] >= MICROTONE_STEPS) // wrap
+                    while(channelMicrotone[channel] >= MICROTONE_STEPS) // wrap
                     {
-                        microtone[channel] -= MICROTONE_STEPS;
-                        modNote_portamento[channel]++;
+                        channelMicrotone[channel] -= MICROTONE_STEPS;
+                        channelModNotePitch[channel]++;
                     }
 
-                    while(microtone[channel] < 0) // wrap
+                    while(channelMicrotone[channel] < 0) // wrap
                     {
-                        microtone[channel] += MICROTONE_STEPS;
-                        modNote_portamento[channel]--;
+                        channelMicrotone[channel] += MICROTONE_STEPS;
+                        channelModNotePitch[channel]--;
                     }
 
                     channelPitchSkipStepCounter[channel] = channelPitchSkipStep[channel]; // skip pulses for slower pitch slide
@@ -705,26 +716,26 @@ static void DoEngine()
                 channelPitchSkipStepCounter[channel]--;
 
                 // vibrato
-                finalPitch[channel] = microtone[channel] + vibrato(channel);
+                channelFinalPitch[channel] = channelMicrotone[channel] + vibrato(channel);
 
-                if (finalPitch[channel] >= MICROTONE_STEPS)
+                if (channelFinalPitch[channel] >= MICROTONE_STEPS)
                 {
-                    finalPitch[channel] -= MICROTONE_STEPS;
-                    modNote_vibrato[channel] = 1;
+                    channelFinalPitch[channel] -= MICROTONE_STEPS;
+                    channelModNoteVibrato[channel] = 1;
                 }
-                else if (finalPitch[channel] < 0)
+                else if (channelFinalPitch[channel] < 0)
                 {
-                    finalPitch[channel] += MICROTONE_STEPS;
-                    modNote_vibrato[channel] = -1;
+                    channelFinalPitch[channel] += MICROTONE_STEPS;
+                    channelModNoteVibrato[channel] = -1;
                 }
-                else  modNote_vibrato[channel] = 0;
+                else  channelModNoteVibrato[channel] = 0;
 
-                if (channel < CHANNEL_PSG1) SetPitchFM(channel, arpNote[channel]);
-                else SetPitchPSG(channel, arpNote[channel]);
+                if (channel < CHANNEL_PSG1) SetPitchFM(channel, channelArpNote[channel]);
+                else SetPitchPSG(channel, channelArpNote[channel]);
             }
             else
             {
-                finalPitch[channel] = 0;
+                channelFinalPitch[channel] = 0;
             }
 
             // cut
@@ -796,11 +807,11 @@ static void DoEngine()
                         fxtype_value = ReadPatternSRAM(playingPatternID, playingPatternRow, type);
                         fxval_value = ReadPatternSRAM(playingPatternID, playingPatternRow, val);
                         if (fxtype_value != NULL) {
-                            ApplyCommand(channel, previousInstrument[channel], fxtype_value, fxval_value);
-                            previousEffect[channel][effect] = fxtype_value;
+                            ApplyCommand(channel, channelPreviousInstrument[channel], fxtype_value, fxval_value);
+                            channelPreviousEffect[channel][effect] = fxtype_value;
                         }
                         else if (fxval_value != NULL) {
-                            ApplyCommand(channel, previousInstrument[channel], previousEffect[channel][effect], fxval_value);
+                            ApplyCommand(channel, channelPreviousInstrument[channel], channelPreviousEffect[channel][effect], fxval_value);
                         }
                     }
 
@@ -826,21 +837,20 @@ static void DoEngine()
 
                     // write only when instrument is changed and not empty
                     static u8 inst = 0;
-                    static u8 note = 0;
                     inst = ReadPatternSRAM(playingPatternID, playingPatternRow, DATA_INSTRUMENT);
 
                     if (instrumentIsMuted[inst] == INST_MUTE) // check if instrument is muted. ignore writes, replace note with OFF if so
                     {
-                        inst = NULL; note = NOTE_OFF;
+                        inst = NULL; channelCurrentNote[channel] = NOTE_OFF;
                     }
                     else
                     {
-                        note = ReadPatternSRAM(playingPatternID, playingPatternRow, DATA_NOTE);
+                        channelCurrentNote[channel] = ReadPatternSRAM(playingPatternID, playingPatternRow, DATA_NOTE);;
                     }
 
                     if (inst != NULL)
                     {
-                        previousInstrument[channel] = inst;
+                        channelPreviousInstrument[channel] = inst;
                         apply_commands();
 
                         // write YM2612 registers values after applying commands
@@ -854,28 +864,28 @@ static void DoEngine()
 
                     // --------- trigger note playback; check empty note later; pass note id: 0..95, 254, 255
                     static s16 key = 0;
-                    key = note;
+                    key = channelCurrentNote[channel];
 
-                    if (note != NOTE_EMPTY)
+                    if (channelCurrentNote[channel] != NOTE_EMPTY)
                     {
-                        previousNote[channel] = note; // note or OFF
-                        arpNote[channel] = note;
+                        channelPreviousNote[channel] = channelCurrentNote[channel]; // note or OFF
+                        channelArpNote[channel] = channelCurrentNote[channel];
                         if (channelNoteRetrigger[channel] > 0) channelNoteRetriggerCounter[channel] = 0;
                     }
 
                     if (arptick_value != NOTE_EMPTY) // ARP is not empty
                     {
-                        if (note <= MAX_NOTE) // if there is note, modify it with ARP seq
+                        if (channelCurrentNote[channel] <= MAX_NOTE) // if there is note, modify it with ARP seq
                         {
-                            if (arptick_value > ARP_BASE) key = note + (arptick_value - ARP_BASE);
-                            else if (arptick_value < ARP_BASE) key = note - (ARP_BASE - arptick_value);
-                            if (key < 0 || key > MAX_NOTE) key = note; // return same note if ARP is out of range
+                            if (arptick_value > ARP_BASE) key = channelCurrentNote[channel] + (arptick_value - ARP_BASE);
+                            else if (arptick_value < ARP_BASE) key = channelCurrentNote[channel] - (ARP_BASE - arptick_value);
+                            if (key < 0 || key > MAX_NOTE) key = channelCurrentNote[channel]; // return same note if ARP is out of range
                         }
-                        else if (note == NOTE_EMPTY && previousNote[channel] != NOTE_OFF)
+                        else if (channelCurrentNote[channel] == NOTE_EMPTY && channelPreviousNote[channel] != NOTE_OFF)
                         {
-                            if (arptick_value > ARP_BASE) key = previousNote[channel] + (arptick_value - ARP_BASE);
-                            else if (arptick_value < ARP_BASE) key = previousNote[channel] - (ARP_BASE - arptick_value);
-                            if (key < 0 || key > MAX_NOTE || arptick_value == ARP_BASE) key = previousNote[channel];
+                            if (arptick_value > ARP_BASE) key = channelPreviousNote[channel] + (arptick_value - ARP_BASE);
+                            else if (arptick_value < ARP_BASE) key = channelPreviousNote[channel] - (ARP_BASE - arptick_value);
+                            if (key < 0 || key > MAX_NOTE || arptick_value == ARP_BASE) key = channelPreviousNote[channel];
                         }
                     }
 
@@ -1815,14 +1825,15 @@ void DrawStaticHeaders()
 
     for (u8 i=0; i<7; i++) VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_LOGO + i), i, 0); // MD.TRACKER logo
 
-    FillRowRight(BG_A, PAL3, FALSE, TRUE, GUI_LOWLINE, 28, 0, 0); // top line
-    FillRowRight(BG_A, PAL3, FALSE, TRUE, GUI_SLASH, 3, 28, 0);
+    FillRowRight(BG_A, PAL3, FALSE, TRUE, GUI_LOWLINE, 27, 0, 0); // top line
+    FillRowRight(BG_A, PAL3, FALSE, TRUE, GUI_SLASH, 2, 27, 0);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SLASH_FAT), 29, 0);
 
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_LETTER_P),        31, 0); // PAGE:
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_LETTER_A),        32, 0);
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_LETTER_G),        33, 0);
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_LETTER_E),        34, 0);
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON),    35, 0);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_LETTER_P),        31, 0); // PAGE:
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_LETTER_A),        32, 0);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_LETTER_G),        33, 0);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_LETTER_E),        34, 0);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON),    35, 0);
 
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_FM),      1, 1); // fm1 fm2 fm3
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_1), 2, 1);
@@ -1871,7 +1882,7 @@ void DrawStaticHeaders()
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SLASH_FAT), 70, 22);
     FillRowRight(BG_A, PAL3, FALSE, TRUE, GUI_LOWLINE, 9, 71, 22);
 
-    for (u8 y=4; y<20; y++)
+    for (u8 y=4; y<20; y++) // pattern effects separator dots
     {
 #if (MD_TRACKER_VERSION == 5)
         for (u8 x=49; x<59; x+=2)
@@ -1887,7 +1898,8 @@ void DrawStaticHeaders()
     FillRowRight(BG_B, PAL3, FALSE, TRUE, GUI_LOWLINE, 19, 41, 3); // pattern high lines
     FillRowRight(BG_B, PAL3, FALSE, FALSE, GUI_LOWLINE, 19, 61, 3);
 
-    DrawText(BG_A, PAL3, "PT", 41, 0); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 43, 0);
+    //DrawText(BG_A, PAL3, "PT", 41, 0); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 43, 0);
+    VDP_setTextPalette(PAL3); VDP_drawText("PATTERN:", 41, 0);
     DrawText(BG_A, PAL3, "KEY", 41, 2);
     DrawText(BG_A, PAL3, "IN", 45, 2);
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_FX_SYM), 48, 2);
@@ -1899,8 +1911,8 @@ void DrawStaticHeaders()
     //VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, TRUE, bgBaseTileIndex[2] + GUI_FX_SYM), 79, 2);
     DrawText(BG_A, PAL3, "COMMANDS", 70, 2);
 
-    //DrawText(BG_A, PAL3, "INFO", 41, 23); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 45, 23);
-    VDP_drawTextBG(BG_A, "INFO: --------", 41, 23);
+    DrawText(BG_A, PAL3, "INST", 41, 23); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 45, 23);
+    //VDP_drawTextBG(BG_A, "INST: --------", 41, 23);
 
     // ----------------------------------- instrument editor
     for (u8 i=0; i<7; i++) VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_LOGO + i), i + 112, 22); // MD.TRACKER logo
@@ -2347,7 +2359,7 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
         }
 
         // print info: instrument name
-        //VDP_clearTextArea(GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y + 1, 28, 3);
+        VDP_clearTextArea(GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y + 1, 28, 3);
         for (u8 i = 0; i < 8; i++)
         {
             VDP_setTileMapXY(BG_A,
@@ -2375,8 +2387,16 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
             lastEnteredEffect = value;
         }
 
-        // print info: current effect description
-        VDP_drawText(infoCommands[lastEnteredEffect], GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y);
+        // print info: last entered effect description
+        if (strcmp(infoCommands[lastEnteredEffect], STRING_EMPTY) == 0)
+        {
+            VDP_clearTextArea(GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y, 39, 2);
+        }
+        else
+        {
+            VDP_setTextPalette(PAL0); VDP_drawText(infoCommands[lastEnteredEffect], GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y);
+            VDP_setTextPalette(PAL1); VDP_drawText(infoDescriptions[lastEnteredEffect], GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y + 1);
+        }
     }
 
     auto void write_fx_value(u8 id, u8 column)
@@ -2460,14 +2480,14 @@ void DisplayPatternEditor()
         {
             line = patternRowToRefresh; // actual line selected in pattern array
         }
-        else
+        else // draw pattern number
         {
             u16 num1 = ((selectedPatternID & 0xF00) >> 8) + bgBaseTileIndex[1];
             u16 num2 = ((selectedPatternID & 0x0F0) >> 4) + bgBaseTileIndex[1];
             u16 num3 = (selectedPatternID & 0x00F) + bgBaseTileIndex[1];
-            VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, num1), 45, 0); // draw digit 3
-            VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, num2), 46, 0); // draw digit 2
-            VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, num3), 47, 0); // draw digit 1
+            VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, num1), 50, 0); // draw digit 3
+            VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, num2), 51, 0); // draw digit 2
+            VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, num3), 52, 0); // draw digit 1
         }
 
         // display pattern lines
@@ -3072,7 +3092,7 @@ static void SetChannelVolume(u8 matrixChannel)
 
         auto void set_normal_channel_vol()
         {
-            switch (tmpInst[previousInstrument[matrixChannel]].ALG)
+            switch (tmpInst[channelPreviousInstrument[matrixChannel]].ALG)
             {
             case 0: case 1: case 2: case 3:
                 volT4 =
@@ -3265,12 +3285,12 @@ static void ReleaseZ80()
 static void SetPitchPSG(u8 matrixChannel, u8 note)
 {
     static s8 key = 0;
-    key = note + modNote_portamento[matrixChannel] + modNote_vibrato[matrixChannel];
+    key = note + channelModNotePitch[matrixChannel] + channelModNoteVibrato[matrixChannel];
 
     if (key < PSG_LOWEST_NOTE) { key = PSG_LOWEST_NOTE;
-        pitchSlideSpeed[matrixChannel] = 0; }
+        channelPitchSlideSpeed[matrixChannel] = 0; }
     else if (key > MAX_NOTE) { key = MAX_NOTE;
-        pitchSlideSpeed[matrixChannel] = 0; }
+        channelPitchSlideSpeed[matrixChannel] = 0; }
 
     auto void setvol()
     {
@@ -3290,7 +3310,7 @@ static void SetPitchPSG(u8 matrixChannel, u8 note)
     {
     case CHANNEL_PSG1: case CHANNEL_PSG2:
         setvol();
-        PSG_setTone(matrixChannel - 9, psgNoteMicrotone[(u8)key][(u8)finalPitch[matrixChannel] / 2]);
+        PSG_setTone(matrixChannel - 9, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[matrixChannel] / 2]);
         break;
     case CHANNEL_PSG3:
         switch (psg_noise_mode)
@@ -3300,7 +3320,7 @@ static void SetPitchPSG(u8 matrixChannel, u8 note)
             break;
         case PSG_TONAL_CH3_NOT_MUTED: case PSG_FIXED:
             setvol();
-            PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)finalPitch[matrixChannel] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
+            PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[matrixChannel] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
             break;
         }
         break;
@@ -3310,11 +3330,11 @@ static void SetPitchPSG(u8 matrixChannel, u8 note)
         case PSG_TONAL_CH3_MUTED:
             setvol();
             PSG_setEnvelope(2, PSG_ENVELOPE_MIN); // mute PSG3 channel
-            PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)finalPitch[matrixChannel] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
+            PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[matrixChannel] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
             break;
         case PSG_TONAL_CH3_NOT_MUTED:
             setvol();
-            PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)finalPitch[matrixChannel] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
+            PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[matrixChannel] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
             break;
          case PSG_FIXED:
             setvol();
@@ -3345,12 +3365,12 @@ static void SetPitchFM(u8 matrixChannel, u8 note)
     // CSM
     if ((matrixChannel == CHANNEL_FM3_OP4) && (ch3Mode == CH3_SPECIAL_CSM || ch3Mode == CH3_SPECIAL_CSM_OFF))
     {
-       key = ch3OpFreq[0] + modNote_portamento[matrixChannel] + modNote_vibrato[matrixChannel];
+       key = ch3OpFreq[0] + channelModNotePitch[matrixChannel] + channelModNoteVibrato[matrixChannel];
     }
     // Normal or Special
     else
     {
-        key = note + modNote_portamento[matrixChannel] + modNote_vibrato[matrixChannel];
+        key = note + channelModNotePitch[matrixChannel] + channelModNoteVibrato[matrixChannel];
     }
 
     if (key >= 0 && key <= MAX_NOTE)
@@ -3358,8 +3378,8 @@ static void SetPitchFM(u8 matrixChannel, u8 note)
         noteFreqID = key;
         while (noteFreqID > 11) noteFreqID -= 12;
 
-        part1 = ((key / 12) << 3) | (noteMicrotone[noteFreqID][(u8)finalPitch[matrixChannel]] >> 8);
-        part2 = 0b0000000011111111 & noteMicrotone[noteFreqID][(u8)finalPitch[matrixChannel]];
+        part1 = ((key / 12) << 3) | (noteMicrotone[noteFreqID][(u8)channelFinalPitch[matrixChannel]] >> 8);
+        part2 = 0b0000000011111111 & noteMicrotone[noteFreqID][(u8)channelFinalPitch[matrixChannel]];
 
         switch (matrixChannel)
         {
@@ -3483,7 +3503,7 @@ static void SetPitchFM(u8 matrixChannel, u8 note)
     }
     else
     {
-        pitchSlideSpeed[matrixChannel]= 0;
+        channelPitchSlideSpeed[matrixChannel]= 0;
     }
 }
 
@@ -3491,7 +3511,7 @@ static void PlayNote(u8 note, u8 matrixChannel)
 {
     if (note <= MAX_NOTE)
     {
-        vibratoPhase[matrixChannel] = 0; // neutral state
+        channelVibratoPhase[matrixChannel] = 0; // neutral state
         channelTremoloPhase[matrixChannel] = 512; // neutral state
 
         if (matrixChannel < CHANNEL_PSG1) // FM
@@ -3525,23 +3545,23 @@ static void StopEffects(u8 matrixChannel)
     channelTremoloDepth[matrixChannel] = 0;
     channelTremoloPhase[matrixChannel] = 512;
 
-    vibratoMode[matrixChannel] = 0;
-    vibratoSpeed[matrixChannel] = 0;
-        vibratoSpeedMult[matrixChannel] = 0x08;
-    vibratoDepth[matrixChannel] = 0;
-        vibratoDepthMult[matrixChannel] = 0x02;
-    vibratoPhase[matrixChannel] = 0;
-    pitchSlideSpeed[matrixChannel] = 0;
-    finalPitch[matrixChannel] = 0;
+    channelVibratoMode[matrixChannel] = 0;
+    channelVibratoSpeed[matrixChannel] = 0;
+        channelVibratoSpeedMult[matrixChannel] = 0x08;
+    channelVibratoDepth[matrixChannel] = 0;
+        channelVibratoDepthMult[matrixChannel] = 0x02;
+    channelVibratoPhase[matrixChannel] = 0;
+    channelPitchSlideSpeed[matrixChannel] = 0;
+    channelFinalPitch[matrixChannel] = 0;
 
-    modNote_vibrato[matrixChannel] = 0;
-    modNote_portamento[matrixChannel] = 0;
-    microtone[matrixChannel] = 0;
+    channelModNoteVibrato[matrixChannel] = 0;
+    channelModNotePitch[matrixChannel] = 0;
+    channelMicrotone[matrixChannel] = 0;
 
     channelArpSeqID[matrixChannel] = 0;
     channelVolSeqID[matrixChannel] = 0;
 
-    previousNote[matrixChannel] = NOTE_OFF;
+    channelPreviousNote[matrixChannel] = NOTE_OFF;
 
     matrixRowJumpTo = EVALUATE_0xFF;
     patternRowJumpTo = EVALUATE_0xFF;
@@ -4528,7 +4548,14 @@ static void ApplyCommand(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // mat
     case 0x16:
         if (fxValue < 4) activeSampleBank = fxValue;
         break;
+
     // ------------------------------------------------------------------------
+
+    // ARP SEQUENCE MODE
+    case 0x2F:
+        if (fxValue == 0) channelArpSeqMODE[matrixChannel] = 0; else channelArpSeqMODE[matrixChannel] = 1;
+        break;
+
     // ARP SEQUENCE
     case 0x30:
         channelArpSeqID[matrixChannel] = fxValue;
@@ -4539,19 +4566,19 @@ static void ApplyCommand(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // mat
         switch (fxValue)
         {
             case 0x00: // stop and reset
-                pitchSlideSpeed[matrixChannel] = 0;
-                microtone[matrixChannel] = 0;
-                modNote_portamento[matrixChannel] = 0;
+                channelPitchSlideSpeed[matrixChannel] = 0;
+                channelMicrotone[matrixChannel] = 0;
+                channelModNotePitch[matrixChannel] = 0;
                 break;
             case 0xFE: // stop
-                pitchSlideSpeed[matrixChannel] = 0;
+                channelPitchSlideSpeed[matrixChannel] = 0;
                 break;
             case 0xFF: // reset
-                microtone[matrixChannel] = 0;
-                modNote_portamento[matrixChannel] = 0;
+                channelMicrotone[matrixChannel] = 0;
+                channelModNotePitch[matrixChannel] = 0;
                 break;
             default: // do portamento
-                if (fxValue < 0x80) pitchSlideSpeed[matrixChannel] = fxValue;
+                if (fxValue < 0x80) channelPitchSlideSpeed[matrixChannel] = fxValue;
                 break;
         }
         break;
@@ -4561,67 +4588,74 @@ static void ApplyCommand(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // mat
         switch (fxValue)
         {
             case 0x00: // stop and reset
-                pitchSlideSpeed[matrixChannel] = 0;
-                microtone[matrixChannel] = 0;
-                modNote_portamento[matrixChannel] = 0;
+                channelPitchSlideSpeed[matrixChannel] = 0;
+                channelMicrotone[matrixChannel] = 0;
+                channelModNotePitch[matrixChannel] = 0;
                 break;
             case 0xFE: // stop
-                pitchSlideSpeed[matrixChannel] = 0;
+                channelPitchSlideSpeed[matrixChannel] = 0;
                 break;
             case 0xFF: // reset
-                microtone[matrixChannel] = 0;
-                modNote_portamento[matrixChannel] = 0;
+                channelMicrotone[matrixChannel] = 0;
+                channelModNotePitch[matrixChannel] = 0;
                 break;
             default: // do portamento
-                if (fxValue < 0x80) pitchSlideSpeed[matrixChannel] = -fxValue;
+                if (fxValue < 0x80) channelPitchSlideSpeed[matrixChannel] = -fxValue;
                 break;
         }
         break;
 
     // VIBRATO
     case 0x33:
-        vibratoSpeed[matrixChannel] = ((fxValue & 0b11110000) >> 4) * vibratoSpeedMult[matrixChannel];
-        vibratoDepth[matrixChannel] = (fxValue & 0b00001111) * vibratoDepthMult[matrixChannel];
-        vibratoPhase[matrixChannel] = 0;
-        modNote_vibrato[matrixChannel] = 0;
+        channelVibratoSpeed[matrixChannel] = ((fxValue & 0b11110000) >> 4) * channelVibratoSpeedMult[matrixChannel];
+        channelVibratoDepth[matrixChannel] = (fxValue & 0b00001111) * channelVibratoDepthMult[matrixChannel];
+        channelVibratoPhase[matrixChannel] = 0;
+        channelModNoteVibrato[matrixChannel] = 0;
         break;
 
     // VIBRATO SPEED MULT
     case 0x34:
         if (fxValue > 0)
         {
-            vibratoSpeedMult[matrixChannel] = fxValue;
+            channelVibratoSpeedMult[matrixChannel] = fxValue;
         }
         else
         {
-            vibratoSpeedMult[matrixChannel] = 0x08;
+            channelVibratoSpeedMult[matrixChannel] = 0x08;
         }
-        vibratoSpeed[matrixChannel] = ((fxValue & 0b11110000) >> 4) * vibratoSpeedMult[matrixChannel];
+        channelVibratoSpeed[matrixChannel] = ((fxValue & 0b11110000) >> 4) * channelVibratoSpeedMult[matrixChannel];
         break;
 
     // VIBRATO DEPTH MULT
     case 0x35:
         if (fxValue > 0)
         {
-            vibratoDepthMult[matrixChannel] = fxValue;
+            channelVibratoDepthMult[matrixChannel] = fxValue;
         }
         else
         {
-            vibratoDepthMult[matrixChannel] = 0x02;
+            channelVibratoDepthMult[matrixChannel] = 0x02;
         }
-        vibratoDepth[matrixChannel] = (fxValue & 0b00001111) * vibratoDepthMult[matrixChannel];
+        channelVibratoDepth[matrixChannel] = (fxValue & 0b00001111) * channelVibratoDepthMult[matrixChannel];
         break;
 
     // VIBRATO MODE
     case 0x36:
-        if (fxValue < 3) vibratoMode[matrixChannel] = fxValue;
+        if (fxValue < 3) channelVibratoMode[matrixChannel] = fxValue;
         break;
 
     // PORTAMENTO SKIP TICKS
     case 0x37:
         channelPitchSkipStep[matrixChannel] = fxValue;
         break;
+
     // ------------------------------------------------------------------------
+
+    // VOLUME SEQUENCE MODE
+    case 0x3F:
+        if (fxValue == 0) channelVolSeqMODE[matrixChannel] = 0; else channelVolSeqMODE[matrixChannel] = 1;
+        break;
+
     // VOLUME SEQUENCE
     case 0x40:
         channelVolSeqID[matrixChannel] = fxValue;
@@ -4879,18 +4913,18 @@ static void InitTracker()
     // init
     for (u8 channel = CHANNEL_FM1; channel < CHANNELS_TOTAL; channel++)
     {
-        previousInstrument[channel] = NULL;
-        previousEffect[channel][0] = NULL;
-        previousEffect[channel][1] = NULL;
-        previousEffect[channel][2] = NULL;
-        previousNote[channel] = NOTE_OFF;
+        channelPreviousInstrument[channel] = NULL;
+        channelPreviousEffect[channel][0] = NULL;
+        channelPreviousEffect[channel][1] = NULL;
+        channelPreviousEffect[channel][2] = NULL;
+        channelPreviousNote[channel] = NOTE_OFF;
         channelArpSeqID[channel] = NULL;
         channelVolSeqID[channel] = NULL;
 
         channelTremoloSpeedMult[channel] = 0x20;
-        vibratoSpeedMult[channel] = 0x08;
-        vibratoDepthMult[channel] = 0x02;
-        vibratoMode[channel] = 0;
+        channelVibratoSpeedMult[channel] = 0x08;
+        channelVibratoDepthMult[channel] = 0x02;
+        channelVibratoMode[channel] = 0;
 
         channelNoteCut[channel]  = 0;
     }

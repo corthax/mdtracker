@@ -33,22 +33,20 @@ const struct
 //    "SEGA PICO       "	SEGA Pico console for kids
 //    "SEGA TERA68K    "	Tera Drive (boot from 68000 side)
 //    "SEGA TERA286    "	Tera Drive (boot from x86 side)
-    //"SEGA SSF        ", // breaks BlastEm
-    //"SEGA MEGA DRIVE ",
-    "SEGA SSF        ", // doing anything?
+    "SEGA SSF        ",
     "(C)CORTHAX 2021 ",
 #if (MD_TRACKER_VERSION == 5)
-    "MD.Tracker X5                                   ",
-    "MD.Tracker X5                                   ",
+    "MD.Tracker  [1.0f]                              ",
+    "MD.Tracker  [1.0f]                              ",
 #elif (MD_TRACKER_VERSION == 3)
-    "MD.Tracker X3                                   ",
-    "MD.Tracker X3                                   ",
+    "MD.Tracker X5                                   ",
+    "MD.Tracker X5                                   ",
 #elif (MD_TRACKER_VERSION == 2)
-    "MD.Tracker X2                                   ",
-    "MD.Tracker X2                                   ",
+    "MD.Tracker X7                                   ",
+    "MD.Tracker X7                                   ",
 #else
-    "MD.Tracker X1                                   ",
-    "MD.Tracker X1                                   ",
+    "MD.Tracker X5                                   ",
+    "MD.Tracker X5                                   ",
 #endif
 //    "GM"	Game
 //    "AI"	Educational Aid
