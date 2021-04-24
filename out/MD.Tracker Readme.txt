@@ -328,6 +328,12 @@ Pattern Jump (Ignored while Pattern or Instrument editor is active)
 xx: 01 .. 1F; Row in the next pattern jump to.
 --: jump to beginning.
 
+************************************************
+MSU CD Audio - Play
+	20xx	
+xx: 01 .. 63; Track number in .wav + .cue (99 tracks max)
+--: first track.
+
 Tip: SQ3 channel can be used for global commands only, since it's muted most of the time anyway when N4 is set to tonal noise mode :)
 
 ------------------------------------------------

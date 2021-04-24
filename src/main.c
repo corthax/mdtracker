@@ -287,9 +287,24 @@ static const s16 GUI_ALPHABET[38] =
     GUI_DIGIT_9
 };
 
+u16 msu_drv();
+vu16 *mcd_cmd = (vu16 *) 0xA12010;  // command
+vu32 *mcd_arg = (vu32 *) 0xA12012;  // argument
+vu8 *mcd_cmd_ck = (vu8 *) 0xA1201F; // increment for command execution
+vu8 *mcd_stat = (vu8 *) 0xA12020;   // Driver ready for commands processing when 0xA12020 sets to 0
+u16 msu_resp;
+
 int main()
 {
+    msu_resp = msu_drv();
+    /*if (msu_resp == 0) // Function will return 0 if driver loaded successfully or 1 if MCD hardware not detected.
+    {
+        while (*mcd_stat != 1); // Init driver ... 0-ready, 1-init, 2-cmd busy
+        while (*mcd_stat == 1); // Wait till sub CPU finish initialization
+    }*/
+
     InitTracker();
+
 	while(TRUE)
 	{
         DoEngine();
@@ -4547,6 +4562,16 @@ static void ApplyCommand(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // mat
     // PCM SAMPLE BANK SET
     case 0x16:
         if (fxValue < 4) activeSampleBank = fxValue;
+        break;
+
+    // MSU CD audio PLAY ONCE
+    case 0x20:
+        if (fxValue < 100)
+        {
+            *mcd_cmd = MSU_PLAY;
+            *mcd_arg = fxValue;
+            *mcd_cmd_ck = *mcd_cmd_ck + 1;
+        }
         break;
 
     // ------------------------------------------------------------------------

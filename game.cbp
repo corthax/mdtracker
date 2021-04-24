@@ -92,9 +92,11 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/MDT_SRAM.h" />
+		<Unit filename="src/boot/msu-drv.bin" />
 		<Unit filename="src/boot/rom_head.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="src/boot/sega.s" />
 		<Unit filename="src/main.c">
 			<Option compilerVar="CC" />
 		</Unit>
