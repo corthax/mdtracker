@@ -88,13 +88,14 @@
     #define EFFECTS_TOTAL          3
 #endif
 
-#define MSU_PLAY        0x11 // decimal no. of track (1-99); playback will be stopped in the end of track
-#define MSU_PLAY_LOOP 	0x12 // decimal no. of track (1-99); playback will restart the track when end is reached
-#define MSU_PAUSE 	    0x13 // vol fading time. 1/75 of sec (75 equal to 1 sec) instant stop if 0; pause playback
-#define MSU_RESUME 	    0x14 // none; resume playback
-#define MSU_VOL 	    0x15 // volume 0-255; set cdda volume
-#define MSU_NOSEEK 	    0x16 // 0-on(default state), 1-off(no seek delays);seek time emulation switch
-#define MSU_PLAYOF 	    0x1A // #1 = decimal no. of track (1-99) #2 = offset in sectors from the start of the track to apply when looping; play cdda track and loop from specified sector offset
+#define MSU_PLAY        0x1100 // decimal no. of track (1-99); playback will be stopped in the end of track
+#define MSU_PLAY_LOOP 	0x1200 // decimal no. of track (1-99); playback will restart the track when end is reached
+#define MSU_PAUSE 	    0x1300 // vol fading time. 1/75 of sec (75 equal to 1 sec) instant stop if 0; pause playback
+#define MSU_RESUME 	    0x1400 // none; resume playback
+#define MSU_VOL 	    0x1500 // volume 0-255; set cdda volume
+#define MSU_SEEK_ON	    0x1600 // 0-on(default state), 1-off(no seek delays);seek time emulation switch
+#define MSU_SEEK_OFF	0x1601
+#define MSU_PLAYOF 	    0x1A00 // #1 = decimal no. of track (1-99) #2 = offset in sectors from the start of the track to apply when looping; play cdda track and loop from specified sector offset
 
 //const char *channelNames[13] = { "y1", "y2", "y3", "..", "..", "..", "y4", "y5", "y6", "p1", "p2", "p3", "n4" };
 //const char *noteNames[12] = { "C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-" };

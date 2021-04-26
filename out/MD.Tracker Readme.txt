@@ -329,10 +329,22 @@ xx: 01 .. 1F; Row in the next pattern jump to.
 --: jump to beginning.
 
 ************************************************
-MSU CD Audio - Play
+MSU MD: CD Audio - Play Once
 	20xx	
 xx: 01 .. 63; Track number in .wav + .cue (99 tracks max)
---: first track.
+--: stop.
+
+************************************************
+MSU MD: CD Audio - Play Loop
+	21xx	
+xx: 01 .. 63; Track number in .wav + .cue (99 tracks max)
+--: stop.
+
+************************************************
+MSU MD: CD Audio - Seek Time
+	22xx	
+xx: 01 .. FF; Enable
+--: disable.
 
 Tip: SQ3 channel can be used for global commands only, since it's muted most of the time anyway when N4 is set to tonal noise mode :)
 

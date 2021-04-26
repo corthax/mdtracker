@@ -24,7 +24,7 @@ const struct
     char notes[40];                 /* Memo (40) */
     char region[16];                /* Country Support (16) */
 } rom_header = {
-//    "SEGA MEGA DRIVE "	Mega Drive
+//    "SEGA MEGADRIVE  "	Mega Drive
 //    "SEGA GENESIS    "	Mega Drive
 //    "SEGA 32X        "	Mega Drive + 32X
 //    "SEGA EVERDRIVE  "	Mega Drive (Everdrive extensions)
@@ -33,7 +33,7 @@ const struct
 //    "SEGA PICO       "	SEGA Pico console for kids
 //    "SEGA TERA68K    "	Tera Drive (boot from 68000 side)
 //    "SEGA TERA286    "	Tera Drive (boot from x86 side)
-    "SEGA SSF        ",
+    "SEGA MEGADRIVE  ",
     "(C)CORTHAX 2021 ",
 #if (MD_TRACKER_VERSION == 5)
     "MD.Tracker  [1.0f]                              ",

@@ -296,13 +296,6 @@ u16 msu_resp;
 
 int main()
 {
-    msu_resp = msu_drv();
-    /*if (msu_resp == 0) // Function will return 0 if driver loaded successfully or 1 if MCD hardware not detected.
-    {
-        while (*mcd_stat != 1); // Init driver ... 0-ready, 1-init, 2-cmd busy
-        while (*mcd_stat == 1); // Wait till sub CPU finish initialization
-    }*/
-
     InitTracker();
 
 	while(TRUE)
@@ -4564,12 +4557,46 @@ static void ApplyCommand(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // mat
         if (fxValue < 4) activeSampleBank = fxValue;
         break;
 
-    // MSU CD audio PLAY ONCE
+    // MSU MD CD audio PLAY ONCE
     case 0x20:
-        if (fxValue < 100)
+        if (fxValue == 0)
         {
-            *mcd_cmd = MSU_PLAY;
-            *mcd_arg = fxValue;
+            *mcd_cmd = MSU_PAUSE;
+            *mcd_arg = 0;
+            *mcd_cmd_ck = *mcd_cmd_ck + 1;
+        }
+        else
+        {
+            *mcd_cmd = MSU_PLAY | fxValue; // track number
+            *mcd_cmd_ck = *mcd_cmd_ck + 1;
+        }
+        break;
+
+        // MSU MD CD audio PLAY LOOP
+    case 0x21:
+        if (fxValue == 0)
+        {
+            *mcd_cmd = MSU_PAUSE;
+            *mcd_arg = 0;
+            *mcd_cmd_ck = *mcd_cmd_ck + 1;
+        }
+        else
+        {
+            *mcd_cmd = MSU_PLAY_LOOP | fxValue;
+            *mcd_cmd_ck = *mcd_cmd_ck + 1;
+        }
+        break;
+
+        // MSU MD SEEK
+    case 0x22:
+        if (fxValue == 0)
+        {
+            *mcd_cmd = MSU_SEEK_OFF;
+            *mcd_cmd_ck = *mcd_cmd_ck + 1;
+        }
+        else
+        {
+            *mcd_cmd = MSU_SEEK_ON;
             *mcd_cmd_ck = *mcd_cmd_ck + 1;
         }
         break;
@@ -4872,6 +4899,13 @@ static void InitTracker()
     // Backup ram mapped to the last 31th bank.
     ssf_set_rom_bank(4, 31);
     ssf_rom_wr_on();
+
+    msu_resp = msu_drv();
+    //if (msu_resp == 0) // Function will return 0 if driver loaded successfully or 1 if MCD hardware not detected.
+    //{
+        //while (*mcd_stat != 1); // Init driver ... 0-ready, 1-init, 2-cmd busy
+        //while (*mcd_stat == 1); // Wait till sub CPU finish initialization
+    //}
 
     VDP_init();
     VDP_setDMAEnabled(TRUE);
