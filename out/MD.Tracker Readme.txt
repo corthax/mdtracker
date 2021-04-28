@@ -262,12 +262,19 @@ WARNING
 	FM registers writes/reads (instrument changes, timers pooling, etc) needs to bus request the Z80, which running the PCM driver.
 	Speed of played sample may be affected if there are too many parameter changes at the same tick.
 //////////////////
-	Reserved space for DAC data in ROM (Signed 8 bit RAW, typically 32Khz). This range may change on next versions.
+	Reserved space for DAC data in ROM (This range may change on next versions).
 	
 	DAC ROM Samples region:
+		START:	027E00
+		END:	18A300
+	
+	Sample format: RAW (header-less), Signed 8 bit PCM
 		
 	With any hex editor overwrite that range with your samples.
 	Then assign ranges to keys inside instrument editor SAMPLE section.
+	
+	Audacity can be used to figure out the exact samples start and end (sample number == adress, just convert to HEX).
+	
 --: to disable DAC.
 
 ************************************************

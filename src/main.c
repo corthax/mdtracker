@@ -170,7 +170,9 @@ u8 navigationDirection = BUTTON_RIGHT;
 
 u8 psgPWM = FALSE;
 u8 psgPulseCounter = 0;
-// cant put in header. build bug
+u8 dacPan = SOUND_PAN_CENTER;
+
+// cant put in header. build error
 static const u8 GUI_FM_ALG_GRID[8][4][12] =
 {
     {
@@ -1758,15 +1760,15 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     break;
 
                 case BUTTON_LEFT:
-                ChangeInstrumentParameter(-1);
+                    ChangeInstrumentParameter(-1);
                     break;
 
                 case BUTTON_UP:
-                ChangeInstrumentParameter(4);
+                    ChangeInstrumentParameter(8);
                     break;
 
                 case BUTTON_DOWN:
-                ChangeInstrumentParameter(-4);
+                    ChangeInstrumentParameter(-8);
                     break;
                 }
                 break;
@@ -3495,7 +3497,7 @@ static void SetPitchFM(u8 matrixChannel, u8 note)
                 SND_startPlay_PCM(sample_bank_1 + sampleStart,
                                   (sampleBankSize - sampleStart) - (sampleBankSize - sampleEnd),
                                   ReadSampleRegionSRAM(activeSampleBank, note, 7),
-                                  SOUND_PAN_CENTER, // maybe need to change to respect pan fx command, if there is any
+                                  dacPan,
                                   ReadSampleRegionSRAM(activeSampleBank, note, 6));
             }
             else
@@ -4460,13 +4462,13 @@ static void ApplyCommand(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // mat
             case 0x0E:
                 switch (fxValue)
                 {
-                case 0x00: write_pan(ReadInstrumentSRAM(id, INST_PAN));
+                case 0x00: { write_pan(ReadInstrumentSRAM(id, INST_PAN)); }
                     break;
-                case 0x10: { tmpInst[id].PAN = 2; write_pan(2); }
+                case 0x10: { tmpInst[id].PAN = 2; write_pan(2); if (matrixChannel == CHANNEL_FM6_DAC) dacPan = SOUND_PAN_LEFT; }
                     break;
-                case 0x01: { tmpInst[id].PAN = 1; write_pan(1); }
+                case 0x01: { tmpInst[id].PAN = 1; write_pan(1); if (matrixChannel == CHANNEL_FM6_DAC) dacPan = SOUND_PAN_RIGHT; }
                     break;
-                case 0x11: { tmpInst[id].PAN = 3; write_pan(3); }
+                case 0x11: { tmpInst[id].PAN = 3; write_pan(3); if (matrixChannel == CHANNEL_FM6_DAC) dacPan = SOUND_PAN_CENTER; }
                     break;
                 case 0xFF: { tmpInst[id].PAN = 0; write_pan(0); }
                     break;
@@ -4931,7 +4933,7 @@ static void InitTracker()
 
     VDP_setScrollingMode(HSCROLL_PLANE, VSCROLL_COLUMN);
 
-    VDP_setPaletteColor(0, 0x0210); // background
+    VDP_setPaletteColor(0, 0x0100); // background
 
     VDP_setTextPlane(BG_A); // BGR
     VDP_setTextPalette(PAL0);
@@ -4994,7 +4996,7 @@ static void InitTracker()
 
     if (SRAMW_readWord(DEAD_INSTRUMENT) != 0xDEAD) // there is no SRAM file, needs fresh init.
     {
-        SetBPM(0x1D); // 120 BPM PAL; 144 BPM NTSC
+        SetBPM(H_INT_SKIP * 0x2D); // 140 BPM NTSC
         // init with default instrument; 49 non-global parameters (5 for whole channel, 11*4 per operator)
         DrawText(BG_A, PAL0, "GENERATING", 3, 3); DrawText(BG_A, PAL0, "MODULE", 14, 3); DrawText(BG_A, PAL0, "DATA", 21, 3);
         for (u16 i = 0; i <= MAX_INSTRUMENT; i++)
@@ -5138,4 +5140,8 @@ static void InitTracker()
     SYS_setVIntCallback(*vIntCallback);
 
     SYS_enableInts();
+
+    // force variables reset
+    currentPage = 0;
+    bPlayback = 0;
 }
