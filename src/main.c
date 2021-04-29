@@ -26,6 +26,8 @@
 
 #define STRING_EMPTY        ""
 
+u8 GUI_PATTERN_COLORS[GUI_PATTERN_COLORS_MAX+1] = { 27, 42, 43, 44, 45, 46, 47, 56, 57, 58, 59, 60, 61, 62 };
+
 u8 playingMatrixRow = 0; // current played line
 u8 selectedMatrixScreenRow = 0; // selected matrix line on SCREEN
 u8 selectedMatrixRow = 0; // selected pattern matrix index according to page
@@ -35,7 +37,7 @@ s8 currentPage = 0; // pattern matrix page
 
 u8 selectedPatternRow = 0;
 u8 selectedPatternColumn = 0;
-u16 selectedPatternID = 0x001;
+u16 selectedPatternID = 0;
 
 u8 patternRowToRefresh = EVALUATE_0xFF; // to refresh only edited pattern line; 255 = refresh everything
 u16 matrixRowToRefresh = EVALUATE_0xFFFF; //! change
@@ -160,7 +162,7 @@ u16 hIntToSkip = 0;
 static s16 hIntCounter = 0;
 //Sprite* patCur;
 
-u16 bgBaseTileIndex[3];
+u16 bgBaseTileIndex[4];
 u16 asciiBaseLetters, asciiBaseNumbers;
 u8 instCopyTo = 0x01; // instrument copy
 
@@ -1072,6 +1074,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
     static u8 patternColumnShift = 0;
     static s8 inc = 0; // paste increment
     static u8 row = 0; // paste row to
+    static u8 col = 0; // pattern color slot
 
     if (selectedMatrixScreenRow <= MAX_MATRIX_SCREEN_ROW)
         selectedMatrixRow = selectedMatrixScreenRow + (currentPage * 25);
@@ -1093,7 +1096,6 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
 
     auto void switch_to_pattern_editor()
     {
-        selectedPatternID = ReadMatrixSRAM(selectedChannel, selectedMatrixRow);
         if (selectedPatternID != 0x00) // -- pattern should not be editable
         {
             currentScreen = SCREEN_PATTERN;
@@ -1229,6 +1231,30 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     channelFlags = 0b0001111111111111; // un-mute all
                     for (u8 i=0; i<CHANNELS_TOTAL; i++)
                         VDP_fillTileMapRect(BG_B, NULL, (i * 3) + 1, 1, 2, 1); // clear all marks
+                    break;
+                }
+                break;
+
+            case BUTTON_Y:
+                switch(changed)
+                {
+                case BUTTON_LEFT:
+                    selectedPatternID = ReadMatrixSRAM(selectedChannel, selectedMatrixRow); // select current pattern
+                    if (selectedPatternID != 0)
+                    {
+                        col = ReadPatternColorSRAM(selectedPatternID); col--;
+                        if (col == 0) col = GUI_PATTERN_COLORS_MAX;
+                        WritePatternColorSRAM(selectedPatternID, col);
+                    }
+                    break;
+                case BUTTON_RIGHT:
+                    selectedPatternID = ReadMatrixSRAM(selectedChannel, selectedMatrixRow);
+                    if (selectedPatternID != 0)
+                    {
+                        col = ReadPatternColorSRAM(selectedPatternID); col++;
+                        if (col == GUI_PATTERN_COLORS_MAX) col = 0;
+                        WritePatternColorSRAM(selectedPatternID, col);
+                    }
                     break;
                 }
                 break;
@@ -2020,25 +2046,17 @@ void DrawStaticHeaders()
     DrawText(BG_A, PAL3, "ARP", 81, 26);
     for (u8 y=24; y<27; y++) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 84, y);
 }
-// draw brackets at selected parameter in grid
-void DrawSelectionCursor(u8 x, u8 y, u8 bClear)
+// draw selection cursor
+void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
 {
-    static s8 offsetX2 = 7;
-    static s8 offsetY = 3;
-    static s8 mult = 3; // width
+    static s8 offset_x = 1;
+    static s8 offset_y = 2;
+    static s8 width = 3;
 
     // matrix
     if (currentScreen == SCREEN_MATRIX)
     {
-        // matrix
-        if (selectedMatrixScreenRow <= MAX_MATRIX_SCREEN_ROW)
-        {
-            offsetX2 = 1; offsetY = 2; mult = 3;
-        }
-        else // tempo
-        {
-            offsetX2 = 3; offsetY = 2; mult = 0;
-        }
+        offset_x = 1; offset_y = 2; width = 3;
     }
     // pattern
     else if (currentScreen == SCREEN_PATTERN)
@@ -2047,10 +2065,10 @@ void DrawSelectionCursor(u8 x, u8 y, u8 bClear)
         switch (selectedPatternColumn)
         {
         case GUI_PATTERN_L_NOTE:
-            offsetX2 = 42; offsetY = 4; mult = 4;
+            offset_x = 40+2; offset_y = 4; width = 3;
             break;
         case GUI_PATTERN_L_INST:
-            offsetX2 = 42; offsetY = 4; mult = 3;
+            offset_x = 40+3; offset_y = 4; width = 2;
             break;
         case GUI_PATTERN_L_FX1_TYPE:
         case GUI_PATTERN_L_FX1_VALUE:
@@ -2066,13 +2084,13 @@ void DrawSelectionCursor(u8 x, u8 y, u8 bClear)
         case GUI_PATTERN_L_FX6_TYPE:
         case GUI_PATTERN_L_FX6_VALUE:
 #endif
-            offsetX2 = 46; offsetY = 4; mult = 1; //44 4 2
+            offset_x = 40+6; offset_y = 4; width = 1;
             break;
         case GUI_PATTERN_R_NOTE:
-            offsetX2 = GUI_PATTERN_R_NOTE_OFFSET; offsetY = 4; mult = 4;
+            offset_x = 40-20; offset_y = 4; width = 3;
             break;
         case GUI_PATTERN_R_INST:
-            offsetX2 = GUI_PATTERN_R_INST_OFFSET; offsetY = 4; mult = 3;
+            offset_x = 40-5; offset_y = 4; width = 2;
             break;
         case GUI_PATTERN_R_FX1_TYPE:
         case GUI_PATTERN_R_FX1_VALUE:
@@ -2088,7 +2106,7 @@ void DrawSelectionCursor(u8 x, u8 y, u8 bClear)
         case GUI_PATTERN_R_FX6_TYPE:
         case GUI_PATTERN_R_FX6_VALUE:
 #endif
-            offsetX2 = GUI_PATTERN_R_FX_OFFSET; offsetY = 4; mult = 1; //48 4 2
+            offset_x = 40+12; offset_y = 4; width = 1;
             break;
         }
     }
@@ -2102,51 +2120,51 @@ void DrawSelectionCursor(u8 x, u8 y, u8 bClear)
         case GUI_INST_PARAM_AMS:
         case GUI_INST_PARAM_PAN:
         case GUI_INST_PARAM_FB:
-            offsetX2 = 87; offsetY = 2; mult = 0; selectedInstrumentOperator = 0;
+            offset_x = 80+7; offset_y = 2; width = 0; selectedInstrumentOperator = 0;
             break;
         case GUI_INST_PARAM_TL:
         case GUI_INST_PARAM_RS:
         case GUI_INST_PARAM_MUL:
         case GUI_INST_PARAM_DT:
-            offsetX2 = 94; offsetY = 4; mult = 3;
+            offset_x = 80+14; offset_y = 4; width = 3;
             break;
         case GUI_INST_PARAM_AR:
         case GUI_INST_PARAM_D1R:
         case GUI_INST_PARAM_D1L:
         case GUI_INST_PARAM_D2R:
         case GUI_INST_PARAM_RR:
-            offsetX2 = 94; offsetY = 5; mult = 3;
+            offset_x = 80+14; offset_y = 5; width = 3;
             break;
         case GUI_INST_PARAM_AM:
         case GUI_INST_PARAM_SSGEG:
-            offsetX2 = 94; offsetY = 6; mult = 3;
+            offset_x = 80+14; offset_y = 6; width = 3;
             break;
         case GUI_INST_PARAM_LFO:
-            offsetX2 = 86; offsetY = 8; mult = 0; selectedInstrumentOperator = 0;
+            offset_x = 80+6; offset_y = 8; width = 0; selectedInstrumentOperator = 0;
             break;
         case GUI_INST_PARAM_VOLSEQ:
         case GUI_INST_PARAM_ARPSEQ:
-            if (x > 7) offsetX2 = 87; else offsetX2 = 86; offsetY = 8; mult = 2;
+            if (pos_x > 7) offset_x = 80+7; else offset_x = 80+6; offset_y = 8; width = 2;
             break;
         case GUI_INST_PARAM_NAME:
-            offsetX2 = 97; offsetY = -GUI_INST_PARAM_NAME; mult = 1;
+            offset_x = 80+17; offset_y = -GUI_INST_PARAM_NAME; width = 1;
             break;
         case GUI_INST_PARAM_COPY:
-            offsetX2 = 97; offsetY = 1-GUI_INST_PARAM_COPY; mult = 0; selectedInstrumentOperator = 0;
+            offset_x = 80+17; offset_y = 1-GUI_INST_PARAM_COPY; width = 0; selectedInstrumentOperator = 0;
             break;
         case GUI_INST_PARAM_PCM_BANK:
-            offsetX2 = 113; offsetY = -GUI_INST_PARAM_PCM_BANK; mult = 0; selectedInstrumentOperator = 0;
+            offset_x = 80+33; offset_y = -GUI_INST_PARAM_PCM_BANK; width = 0; selectedInstrumentOperator = 0;
             break;
         case GUI_INST_PARAM_PCM_NOTE:
-            offsetX2 = 116; offsetY = -GUI_INST_PARAM_PCM_NOTE; mult = 0; selectedInstrumentOperator = 0;
+            offset_x = 80+36; offset_y = -GUI_INST_PARAM_PCM_NOTE; width = 0; selectedInstrumentOperator = 0;
             break;
         case GUI_INST_PARAM_PCM_START:
         case GUI_INST_PARAM_PCM_END:
-            offsetX2 = 113; offsetY = 4-GUI_INST_PARAM_PCM_END; mult = 2;
+            offset_x = 80+33; offset_y = 4-GUI_INST_PARAM_PCM_END; width = 2;
             break;
         case GUI_INST_PARAM_PCM_LOOP:
         case GUI_INST_PARAM_PCM_RATE:
-            offsetX2 = 113; offsetY = 6-GUI_INST_PARAM_PCM_RATE; mult = 0; selectedInstrumentOperator = 0;
+            offset_x = 80+33; offset_y = 6-GUI_INST_PARAM_PCM_RATE; width = 0; selectedInstrumentOperator = 0;
             break;
         }
     }
@@ -2171,20 +2189,30 @@ void DrawSelectionCursor(u8 x, u8 y, u8 bClear)
 
     auto void clear_cursor_1(u8 x, u8 y)
     {
-        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, NULL), x, y);
+        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x, y);
     }
 
     auto void clear_cursor_2(u8 x, u8 y)
     {
-        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, NULL), x, y);
-        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, NULL), x + 1, y);
+        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x, y);
+        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x + 1, y);
+    }
+
+    auto void clear_cursor_2_color(u8 x, u8 y)
+    {
+        selectedPatternID = ReadMatrixSRAM(selectedChannel, selectedMatrixRow); // select previous pattern on clear
+        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x, y);
+        if (selectedPatternID != NULL)
+            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PATTERN_COLORS[ReadPatternColorSRAM(selectedPatternID)]), x + 1, y);
+        else
+            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x + 1, y);
     }
 
     auto void clear_cursor_3(u8 x, u8 y)
     {
-        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, NULL), x, y);
-        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, NULL), x + 1, y);
-        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, NULL), x + 2, y);
+        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x, y);
+        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x + 1, y);
+        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x + 2, y);
     }
 
     // it goes first
@@ -2192,13 +2220,13 @@ void DrawSelectionCursor(u8 x, u8 y, u8 bClear)
     case SCREEN_MATRIX:
         if (bClear)
         {
-            if (selectedMatrixScreenRow <= MAX_MATRIX_SCREEN_ROW) clear_cursor_2(x * mult + offsetX2, y + offsetY);
-            else clear_cursor_3(offsetX2, 27);
+            if (selectedMatrixScreenRow <= MAX_MATRIX_SCREEN_ROW) clear_cursor_2_color(pos_x * width + offset_x, pos_y + offset_y);
+            else clear_cursor_3(3, 27); // BPM
         }
         else
         {
-            if (selectedMatrixScreenRow <= MAX_MATRIX_SCREEN_ROW) draw_cursor_2(x * mult + offsetX2, y + offsetY);
-            else draw_cursor_3(offsetX2, 27);
+            if (selectedMatrixScreenRow <= MAX_MATRIX_SCREEN_ROW) draw_cursor_2(pos_x * width + offset_x, pos_y + offset_y);
+            else draw_cursor_3(3, 27); // BPM
         }
     break;
     case SCREEN_PATTERN:
@@ -2206,10 +2234,10 @@ void DrawSelectionCursor(u8 x, u8 y, u8 bClear)
         {
             switch (selectedPatternColumn) {
             case GUI_PATTERN_L_NOTE: case GUI_PATTERN_R_NOTE:
-                clear_cursor_3(x * mult + offsetX2 - 1, y + offsetY);
+                clear_cursor_3(pos_x * width + offset_x - 1, pos_y + offset_y);
                 break; // note
             case GUI_PATTERN_L_INST: case GUI_PATTERN_R_INST:
-                clear_cursor_2(x * mult + offsetX2, y + offsetY);
+                clear_cursor_2(pos_x * width + offset_x, pos_y + offset_y);
                 break; // instrument
             case GUI_PATTERN_L_FX1_VALUE: case GUI_PATTERN_R_FX1_VALUE:
             case GUI_PATTERN_L_FX2_VALUE: case GUI_PATTERN_R_FX2_VALUE:
@@ -2218,16 +2246,16 @@ void DrawSelectionCursor(u8 x, u8 y, u8 bClear)
             case GUI_PATTERN_L_FX4_VALUE: case GUI_PATTERN_R_FX4_VALUE:
             case GUI_PATTERN_L_FX5_VALUE: case GUI_PATTERN_R_FX5_VALUE:
 #endif
-                VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SEPARATOR),  x * mult + offsetX2, y + offsetY); break; // draw separator
-            default: clear_cursor_1(x * mult + offsetX2, y + offsetY); break; // effects
+                VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SEPARATOR), pos_x * width + offset_x, pos_y + offset_y); break; // draw separator
+            default: clear_cursor_1(pos_x * width + offset_x, pos_y + offset_y); break; // effects
             }
         }
         else
         {
             switch (selectedPatternColumn) {
-            case GUI_PATTERN_L_NOTE: case GUI_PATTERN_R_NOTE: draw_cursor_3(x * mult + offsetX2 - 1, y + offsetY); break; // note
-            case GUI_PATTERN_L_INST: case GUI_PATTERN_R_INST: draw_cursor_2(x * mult + offsetX2, y + offsetY); break; // instrument
-            default: draw_cursor_1(x * mult + offsetX2, y + offsetY); break; // effects
+            case GUI_PATTERN_L_NOTE: case GUI_PATTERN_R_NOTE: draw_cursor_3(pos_x * width + offset_x - 1, pos_y + offset_y); break; // note
+            case GUI_PATTERN_L_INST: case GUI_PATTERN_R_INST: draw_cursor_2(pos_x * width + offset_x, pos_y + offset_y); break; // instrument
+            default: draw_cursor_1(pos_x * width + offset_x, pos_y + offset_y); break; // effects
             }
         }
     break;
@@ -2237,9 +2265,9 @@ void DrawSelectionCursor(u8 x, u8 y, u8 bClear)
             switch (selectedInstrumentParameter)
             {
             case GUI_INST_PARAM_NAME:
-            case GUI_INST_PARAM_PCM_RATE: clear_cursor_1(x * mult + offsetX2, y + offsetY); break;
-            case GUI_INST_PARAM_PCM_NOTE: clear_cursor_3(x * mult + offsetX2, y + offsetY); break;
-            default: clear_cursor_2(x * mult + offsetX2, y + offsetY); break;
+            case GUI_INST_PARAM_PCM_RATE: clear_cursor_1(pos_x * width + offset_x, pos_y + offset_y); break;
+            case GUI_INST_PARAM_PCM_NOTE: clear_cursor_3(pos_x * width + offset_x, pos_y + offset_y); break;
+            default: clear_cursor_2(pos_x * width + offset_x, pos_y + offset_y); break;
             }
         }
         else
@@ -2247,9 +2275,9 @@ void DrawSelectionCursor(u8 x, u8 y, u8 bClear)
             switch (selectedInstrumentParameter)
             {
             case GUI_INST_PARAM_NAME:
-            case GUI_INST_PARAM_PCM_RATE: draw_cursor_1(x * mult + offsetX2, y + offsetY); break;
-            case GUI_INST_PARAM_PCM_NOTE: draw_cursor_3(x * mult + offsetX2, y + offsetY); break;
-            default: draw_cursor_2(x * mult + offsetX2, y + offsetY); break;
+            case GUI_INST_PARAM_PCM_RATE: draw_cursor_1(pos_x * width + offset_x, pos_y + offset_y); break;
+            case GUI_INST_PARAM_PCM_NOTE: draw_cursor_3(pos_x * width + offset_x, pos_y + offset_y); break;
+            default: draw_cursor_2(pos_x * width + offset_x, pos_y + offset_y); break;
             }
         }
     break;
@@ -3012,15 +3040,15 @@ void DisplayInstrumentEditor()
                 {
                     if (i%4==0) DrawHex2(PAL3, value - 100, stepDrawPos, 26);
                     else DrawHex2(PAL0, value - 100, stepDrawPos, 26);
-                    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_UP1), stepDrawPos, 27);
-                    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_UP2), stepDrawPos+1, 27);
+                    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_UP1), stepDrawPos, 27);
+                    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_UP2), stepDrawPos+1, 27);
                 }
                 else
                 {
                     if (i%4==0) DrawHex2(PAL3, 100 - value, stepDrawPos, 26);
                     else DrawHex2(PAL0, 100 - value, stepDrawPos, 26);
-                    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_DOWN1), stepDrawPos, 27);
-                    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_DOWN2), stepDrawPos+1, 27);
+                    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_DOWN1), stepDrawPos, 27);
+                    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_DOWN2), stepDrawPos+1, 27);
                 }
             }
             break;
@@ -4462,15 +4490,15 @@ static void ApplyCommand(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // mat
             case 0x0E:
                 switch (fxValue)
                 {
-                case 0x00: { write_pan(ReadInstrumentSRAM(id, INST_PAN)); }
+                case 0x00: write_pan(ReadInstrumentSRAM(id, INST_PAN));
                     break;
-                case 0x10: { tmpInst[id].PAN = 2; write_pan(2); if (matrixChannel == CHANNEL_FM6_DAC) dacPan = SOUND_PAN_LEFT; }
+                case 0x10: tmpInst[id].PAN = 2; write_pan(2); if (matrixChannel == CHANNEL_FM6_DAC) dacPan = SOUND_PAN_LEFT;
                     break;
-                case 0x01: { tmpInst[id].PAN = 1; write_pan(1); if (matrixChannel == CHANNEL_FM6_DAC) dacPan = SOUND_PAN_RIGHT; }
+                case 0x01: tmpInst[id].PAN = 1; write_pan(1); if (matrixChannel == CHANNEL_FM6_DAC) dacPan = SOUND_PAN_RIGHT;
                     break;
-                case 0x11: { tmpInst[id].PAN = 3; write_pan(3); if (matrixChannel == CHANNEL_FM6_DAC) dacPan = SOUND_PAN_CENTER; }
+                case 0x11: tmpInst[id].PAN = 3; write_pan(3); if (matrixChannel == CHANNEL_FM6_DAC) dacPan = SOUND_PAN_CENTER;
                     break;
-                case 0xFF: { tmpInst[id].PAN = 0; write_pan(0); }
+                case 0xFF: tmpInst[id].PAN = 0; write_pan(0);
                     break;
                 }
                 break;
@@ -4478,7 +4506,7 @@ static void ApplyCommand(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // mat
         ReleaseZ80();
         }
     }
-    else if (matrixChannel > 8) // PSG only FX
+    else if (matrixChannel > CHANNEL_FM6_DAC) // PSG only FX
     {
         switch (fxParam)
         {
@@ -4843,9 +4871,20 @@ static u8 ReadPatternSRAM(u16 id, u8 line, u8 param)
 {
     return SRAMW_readByte((u32)PATTERN_DATA + (id * PATTERN_SIZE) + (line * PATTERN_COLUMNS) + param);
 }
+
 static void WritePatternSRAM(u16 id, u8 line, u8 param, u8 data)
 {
     SRAMW_writeByte((u32)PATTERN_DATA + (id * PATTERN_SIZE) + (line * PATTERN_COLUMNS) + param, data);
+}
+
+static u8 ReadPatternColorSRAM(u16 id)
+{
+    return SRAMW_readByte((u32)PATTERN_COLOR + id);
+}
+
+static void WritePatternColorSRAM(u16 id, u8 color)
+{
+    SRAMW_writeByte((u32)PATTERN_COLOR + id, color);
 }
 
 // matrix
@@ -4916,34 +4955,58 @@ static void InitTracker()
     VDP_setHilightShadow(FALSE);
     VDP_setScanMode(INTERLACED_NONE);
 
-    //each plane can be a maximum of 4096 tiles in memory (at dimensions 32x32, 32x64, 64x64, or 32x128, with up to 40x28 visible on screen)
-    //Foreground (Plane A) 	0, $2000, $4000, $6000, $8000, $A000, $C000, $E000
-    //Background (Plane B) 	0, $2000, $4000, $6000, $8000, $A000, $C000, $E000
-    //Window (320 pixel wide mode) 	0, $1000, $2000, $3000, $4000, $5000, $6000,
-    //                              $7000, $8000, $9000, $A000, $B000, $C000, $D000, $E000, $F000
-    //Window (256 pixel wide mode) 	0, $800, $1000, $1800, $2000, $2800, $3000, $3800, $4000, $4800,
-    //                              $5000, $5800, $6000, $6800, $7000, $7800, $8000, $8800, $9000,
-    //                              $9800, $A000, $A800, $B000, $B800, $C000, $C800, $D000, $D800, $E000, $E800, $F000, $F800
+    // each plane can be a maximum of 4096 tiles in memory
+    // at dimensions 32x32, 32x64, 64x64, or 32x128, with up to 40x28 (1120) visible on screen
     VDP_setPlaneSize(128, 32, TRUE);
-    VDP_setBGBAddress(0xC000); // * $2000; 0xC000 default
-    VDP_setWindowAddress(0xD000); // * $1000; 0xD000 default
-    VDP_setBGAAddress(0xE000); // * $2000; 0xE000 default
-    VDP_setHScrollTableAddress(0xDC00); // * $400; 0xF000 default
-    VDP_setSpriteListAddress(0xCC00); // * $400; 0xF400 default
+    VDP_setBGBAddress(0xC000);          // * $2000; 0xC000 default
+    VDP_setWindowAddress(0xA000);       // * $1000; 0xD000 default; WINDOW replaces BG_A when drawn, but ignores scrolling;
+    VDP_setBGAAddress(0xE000);          // * $2000; 0xE000 default
+    VDP_setHScrollTableAddress(0xB800); // * $400; 0xF000 default
+    VDP_setSpriteListAddress(0xBC00);   // * $400; 0xF400 default
 
     VDP_setScrollingMode(HSCROLL_PLANE, VSCROLL_COLUMN);
 
-    VDP_setPaletteColor(0, 0x0100); // background
+    // PAL0, BGR
+    PAL_setColor(0, 0x0100);        // background
 
-    VDP_setTextPlane(BG_A); // BGR
+    PAL_setColor(1, 0x0F00);
+    PAL_setColor(2, 0x00F0);
+    PAL_setColor(3, 0x000F);
+    PAL_setColor(4, 0x0F22);
+    PAL_setColor(5, 0x02F2);
+    PAL_setColor(6, 0x022F);
+    PAL_setColor(7, 0x0F44);
+    PAL_setColor(8, 0x04F4);
+    PAL_setColor(9, 0x044F);
+    PAL_setColor(10, 0x0F66);
+    PAL_setColor(11, 0x06F6);
+    PAL_setColor(12, 0x066F);
+
+    PAL_setColor(13, 0x011E);       // ARP seq arrow down; MUTE/SOLO channel
+    PAL_setColor(14, 0x0E11);       // ARP seq arrow up; FM algorithm connectors
+    PAL_setColor(15, 0x0FFF);       // normal text
+    // PAL1
+    PAL_setColor(15+16, 0x0BBB);    // shade 1 text
+    // PAL2
+    PAL_setColor(15+32, 0x0555);    // shade 2 text
+    // PAL3
+    PAL_setColor(15+48, 0x0ADE);    // static text
+
+    VDP_setTextPlane(BG_A);
     VDP_setTextPalette(PAL0);
-    VDP_setPaletteColor(15, 0x0FFF); // normal text PAL0
-    VDP_setPaletteColor(15+16, 0x0BBB); // 2nd line text PAL1
-    VDP_setPaletteColor(15+32, 0x0555); // dark text PAL2
-    VDP_setPaletteColor(15+48, 0x0ADE); // static text PAL3
-
     VDP_loadFont(&custom_font, DMA);
-    VDP_setTextPalette(PAL0);
+
+    VDP_setWindowHPos(FALSE, 0); // disable window, TRUE to enable
+    VDP_setWindowVPos(FALSE, 0);
+
+    // test
+    /*for (u8 x=0; x<40; x++)
+    {
+        for (u8 y=0; y<32; y++)
+        {
+            VDP_setTileMapXY(WINDOW, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, 0), x, y);
+        }
+    }*/
 
     // double digit font 00(--)..FF
     u16 ind;
@@ -4959,6 +5022,10 @@ static void InitTracker()
     bgBaseTileIndex[2] = ind;
     VDP_loadTileSet(&gui, ind, DMA);
     ind += numletters.numTile;
+    // Matrix pattern colors
+    /*bgBaseTileIndex[3] = ind;
+    VDP_loadTileSet(&pattern_colors, ind, DMA);
+    ind += numletters.numTile;*/
 
     PSG_init();
     SRAM_enable();
@@ -5098,6 +5165,7 @@ static void InitTracker()
         // initialize patterns
         for (u16 i = 0; i <= MAX_PATTERN; i++)
         {
+            WritePatternColorSRAM(i, 0);
             for (u8 j = 0; j <= PATTERN_ROW_LAST; j++)
             {
                 WritePatternSRAM(i, j, DATA_NOTE, NOTE_EMPTY);
@@ -5144,4 +5212,5 @@ static void InitTracker()
     // force variables reset
     currentPage = 0;
     bPlayback = 0;
+    selectedPatternID = 0;
 }

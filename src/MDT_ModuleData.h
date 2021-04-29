@@ -109,6 +109,14 @@
 #define INST_NAME_8 88
 //}
 
+#if (MD_TRACKER_VERSION == 5)   // ~80Kb sram free
+    #define PATTERN_COLUMNS     14
+    #define PATTERN_SIZE        448 // 32 (pattern rows) * PATTERN_COLUMNS bytes
+#elif (MD_TRACKER_VERSION == 2) // 216 bytes sram free
+    #define PATTERN_COLUMNS     8
+    #define PATTERN_SIZE        256
+#endif
+
 //{ SRAM data blocks (BYTESWAPPED!!!)
 #define INSTRUMENT_DATA     0x0002 // 89 * 256 bytes
 #define GLOBAL_LFO          0x5902 // INSTRUMENT_DATA +  5900h; 1 byte
@@ -117,9 +125,10 @@
 #define TEMPO               0x7269 // PATTERN_MATRIX + 1964h; 2 bytes
 #define SAMPLE_DATA         0x726B // 4 * 96 * 7 bytes (3byte start + 3byte end + 1byte loop)
 #define PATTERN_DATA        0x7CEB // SAMPLE_DATA + A80h;
+#define PATTERN_COLOR       PATTERN_DATA + PATTERN_SIZE * MAX_PATTERN
 //}
 
-//{ Pattern data
+//{ Pattern data 14 * 32 bytes
 #define DATA_NOTE           0
 #define DATA_INSTRUMENT     1
 #define DATA_FX1_TYPE       2
@@ -138,13 +147,5 @@
     #define DATA_FX6_VALUE      13
 #endif
 //}
-
-#if (MD_TRACKER_VERSION == 5)   // ~80Kb sram free
-    #define PATTERN_COLUMNS     14
-    #define PATTERN_SIZE        448 // 32 (pattern rows) * PATTERN_COLUMNS bytes
-#elif (MD_TRACKER_VERSION == 2) // 216 bytes sram free
-    #define PATTERN_COLUMNS     8
-    #define PATTERN_SIZE        256
-#endif
 
 #endif // MDT_MODULEDATA_H_INCLUDED

@@ -117,6 +117,7 @@
 #define GUI_SLASH                   24
 #define GUI_LOWLINE                 25
 #define GUI_MUTE                    26
+#define GUI_EMPTY                   27
 #define GUI_PLAYCURSOR              28
 #define GUI_ARROW                   29
 #define GUI_CURSOR                  30
@@ -130,8 +131,8 @@
 #define GUI_HASH                    38
 #define GUI_BIGDOT                  39
 #define GUI_PLUS                    40
-#define GUI_FM_CH3                  48
 #define GUI_SEPARATOR               41
+#define GUI_FM_CH3                  48
 // -----------------------------------------------------------
 #define GUI_DIGIT_0                 0
 #define GUI_DIGIT_1                 1
@@ -173,6 +174,7 @@
 // -----------------------------------------------------------
 #define GUI_NAVIGATION_SPEED_COUNTER    3
 #define GUI_NAVIGATION_DELAY            15
+#define GUI_PATTERN_COLORS_MAX          13
 
 void DisplayPatternMatrix();
 void DisplayPatternEditor();

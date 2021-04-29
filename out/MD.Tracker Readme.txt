@@ -90,6 +90,11 @@ Playback cursor indicate the current playing row on screen, even if it is on dif
 	X+D		Un-Mute channel. Solo channel if all channels Un-Muted.
 	X+Y		Un-Mute all channels.
 	
+	Set pattern color preset:
+	
+	Y+L		Next
+	Y+R 	Previous
+	
 	Edit:
 	
 	A+R		Change value (+1).
@@ -255,7 +260,7 @@ xx: 01 .. 08; Frequency Hz: 3.82, 5.33, 5.77, 6.11, 6.60, 9.23, 46.11, 69.22
 ************************************************
 DAC
 	11xx	
-xx: 01 = Enable DAC;
+xx: 01 = Enable DAC.
 //////////////////
 WARNING
 //////////////////

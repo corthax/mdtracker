@@ -17,7 +17,7 @@ const char *infoCommands[0xFF] =
     /* 0B */ "FM [OP1] FEEDBACK               ",
     /* 0C */ "FM AMPLITUDE MODULATION SCALE   ",
     /* 0D */ "FM FREQUENCY MODULATION SCALE   ",
-    /* 0E */ "FM PAN                          ",
+    /* 0E */ "FM/DAC PAN                      ",
     /* 0F */ "",
     /* 10 */ "GLOBAL LFO                      ",
     /* 11 */ "FM CH.6                         ",
