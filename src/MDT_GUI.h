@@ -191,4 +191,6 @@ void DrawPatternPlaybackCursor();
 void NavigateMatrix(u8 direction);
 void NavigatePattern(u8 direction);
 void NavigateInstrument(u8 direction);
+
+void RefreshPatternColors();
 #endif // MDT_GUI_H_INCLUDED

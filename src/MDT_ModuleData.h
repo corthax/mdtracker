@@ -118,14 +118,14 @@
 #endif
 
 //{ SRAM data blocks (BYTESWAPPED!!!)
-#define INSTRUMENT_DATA     0x0002 // 89 * 256 bytes
-#define GLOBAL_LFO          0x5902 // INSTRUMENT_DATA +  5900h; 1 byte
-#define DEAD_INSTRUMENT     0x5903 // DEAD. To check if SRAM file exists; 2 bytes
-#define PATTERN_MATRIX      0x5905 // MAX_MATRIX_ROWS * 13 * 2 bytes
-#define TEMPO               0x7269 // PATTERN_MATRIX + 1964h; 2 bytes
-#define SAMPLE_DATA         0x726B // 4 * 96 * 7 bytes (3byte start + 3byte end + 1byte loop)
-#define PATTERN_DATA        0x7CEB // SAMPLE_DATA + A80h;
-#define PATTERN_COLOR       PATTERN_DATA + PATTERN_SIZE * MAX_PATTERN
+#define INSTRUMENT_DATA     0x00002 // 89 * 256 bytes
+#define GLOBAL_LFO          0x05902 // INSTRUMENT_DATA +  5900h; 1 byte
+#define DEAD_INSTRUMENT     0x05903 // DEAD. To check if SRAM file exists; 2 bytes
+#define PATTERN_MATRIX      0x05905 // MAX_MATRIX_ROWS * 13 * 2 bytes
+#define TEMPO               0x07269 // PATTERN_MATRIX + 1964h; 2 bytes
+#define SAMPLE_DATA         0x0726B // 4 * 96 * 7 bytes (3byte start + 3byte end + 1byte loop)
+#define PATTERN_DATA        0x07CEB // SAMPLE_DATA + A80h;
+#define PATTERN_COLOR       0x6A06B // PATTERN_DATA + PATTERN_SIZE * (MAX_PATTERN + 1)
 //}
 
 //{ Pattern data 14 * 32 bytes

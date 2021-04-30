@@ -47,6 +47,7 @@ u8 lastEnteredNote = 45; // A-3 by default
 u8 lastEnteredEffect = 1; // TL1
 u8 lastEnteredEffectValue = 1;
 u8 lastEnteredInstrumentID = 1;
+u16 lastEnteredPattern = 1;
 
 u8 line = 0; // redraw screen data line counter
 u8 chan = 0; // draw only one cell per VBlank to avoid slowdown?
@@ -1046,10 +1047,16 @@ static void ChangeMatrixValue(s8 mod)
     {
         if (mod != 0)
         {
-            value = ReadMatrixSRAM(selectedChannel, selectedMatrixRow) + mod;
-            if (value < 0) value = MAX_PATTERN; // last pattern
-            else if (value > MAX_PATTERN) value = 1; // first pattern
+            value = ReadMatrixSRAM(selectedChannel, selectedMatrixRow);
+            if (value == NULL && lastEnteredPattern != NULL) value = lastEnteredPattern;
+            else
+            {
+                value += mod;
+                if (value < 1) value = MAX_PATTERN; // last pattern
+                else if (value > MAX_PATTERN) value = 1; // first pattern
+            }
             WriteMatrixSRAM(selectedChannel, selectedMatrixRow, value); bRefreshScreen = TRUE; matrixRowToRefresh = selectedMatrixRow;
+            lastEnteredPattern = value;
         }
         else
         {
@@ -1096,6 +1103,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
 
     auto void switch_to_pattern_editor()
     {
+        selectedPatternID = ReadMatrixSRAM(selectedChannel, selectedMatrixRow);
         if (selectedPatternID != 0x00) // -- pattern should not be editable
         {
             currentScreen = SCREEN_PATTERN;
@@ -1235,25 +1243,39 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 }
                 break;
 
-            case BUTTON_Y:
+            case BUTTON_Y: // pattern colors
                 switch(changed)
                 {
                 case BUTTON_LEFT:
                     selectedPatternID = ReadMatrixSRAM(selectedChannel, selectedMatrixRow); // select current pattern
-                    if (selectedPatternID != 0)
+                    if (selectedPatternID != NULL)
                     {
-                        col = ReadPatternColorSRAM(selectedPatternID); col--;
-                        if (col == 0) col = GUI_PATTERN_COLORS_MAX;
+                        col = ReadPatternColorSRAM(selectedPatternID)-1;
+                        if (col < 1) col = GUI_PATTERN_COLORS_MAX;
                         WritePatternColorSRAM(selectedPatternID, col);
+                        RefreshPatternColors();
                     }
                     break;
                 case BUTTON_RIGHT:
                     selectedPatternID = ReadMatrixSRAM(selectedChannel, selectedMatrixRow);
-                    if (selectedPatternID != 0)
+                    if (selectedPatternID != NULL)
                     {
-                        col = ReadPatternColorSRAM(selectedPatternID); col++;
-                        if (col == GUI_PATTERN_COLORS_MAX) col = 0;
+                        col = ReadPatternColorSRAM(selectedPatternID)+1;
+                        if (col > GUI_PATTERN_COLORS_MAX) col = 1;
                         WritePatternColorSRAM(selectedPatternID, col);
+                        RefreshPatternColors();
+                    }
+                    break;
+                case BUTTON_C: // clear
+                    selectedPatternID = ReadMatrixSRAM(selectedChannel, selectedMatrixRow);
+                    if (selectedPatternID != NULL)
+                    {
+                        col = ReadPatternColorSRAM(selectedPatternID);
+                        if (col != 0)
+                        {
+                            WritePatternColorSRAM(selectedPatternID, 0);
+                            RefreshPatternColors();
+                        }
                     }
                     break;
                 }
@@ -1270,6 +1292,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         bRefreshScreen = bInitScreen = TRUE;
                         matrixRowToRefresh = EVALUATE_0xFFFF;
                         if (bPlayback == TRUE) DrawMatrixPlaybackCursor();
+                        RefreshPatternColors();
                     }
                     break;
 
@@ -1280,6 +1303,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         bRefreshScreen = bInitScreen = TRUE;
                         matrixRowToRefresh = EVALUATE_0xFFFF;
                         if (bPlayback == TRUE) DrawMatrixPlaybackCursor();
+                        RefreshPatternColors();
                     }
                     break;
 
@@ -1289,6 +1313,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     bRefreshScreen = bInitScreen = TRUE;
                     matrixRowToRefresh = EVALUATE_0xFFFF;
                     if (bPlayback == TRUE) DrawMatrixPlaybackCursor();
+                    RefreshPatternColors();
                     break;
 
                 case BUTTON_DOWN:
@@ -1297,6 +1322,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     bRefreshScreen = bInitScreen = TRUE;
                     matrixRowToRefresh = EVALUATE_0xFFFF;
                     if (bPlayback == TRUE) DrawMatrixPlaybackCursor();
+                    RefreshPatternColors();
                     break;
                 }
                 break;
@@ -1853,7 +1879,7 @@ void DrawStaticHeaders()
     // draw default initial brackets
     currentScreen = 2; DrawSelectionCursor(0, 0, 0); // instrument
     currentScreen = 1; DrawSelectionCursor(0, 0, 0); // pattern
-    currentScreen = 0; DrawSelectionCursor(0, 0, 0); // matrix
+    currentScreen = 0; RefreshPatternColors(); DrawSelectionCursor(0, 0, 0); // matrix
 
     // ----------------------------------- matrix editor
     VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_VERSION),     38, 27); // version
@@ -4848,11 +4874,29 @@ void DrawHex2(u8 pal, u16 number, u8 x, u8 y) // u8 hex
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(pal, 1, FALSE, FALSE, dL), x+1, y);
 }
 
-
 void FillRowRight(u8 plane, u8 pal, u8 flipV, u8 flipH, u8 guiSymbol, u8 fillCount, u8 startX, u8 y) // fill with row symbol
 {
     for (u8 x = startX; x < (startX + fillCount); x++)
         VDP_setTileMapXY(plane, TILE_ATTR_FULL(pal, 1, flipV, flipH, bgBaseTileIndex[2] + guiSymbol), x, y);
+}
+
+void RefreshPatternColors() // on color change
+{
+    for (u8 ch = CHANNEL_FM1; ch <= CHANNEL_PSG4_NOISE; ch++)
+    {
+        for (u8 row = 0; row < MAX_MATRIX_SCREEN_ROW; row++)
+        {
+            u16 pt = ReadMatrixSRAM(ch, row + currentPage * MAX_MATRIX_SCREEN_ROW);
+            if (pt != NULL)
+            {
+                VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PATTERN_COLORS[ReadPatternColorSRAM(pt)]), ch*3+2, row+2);
+            }
+            else
+            {
+                VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), ch*3+2, row+2);
+            }
+        }
+    }
 }
 
 // instrument

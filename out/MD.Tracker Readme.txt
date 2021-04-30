@@ -92,8 +92,9 @@ Playback cursor indicate the current playing row on screen, even if it is on dif
 	
 	Set pattern color preset:
 	
-	Y+L		Next
-	Y+R 	Previous
+	Y+L		Previous slot
+	Y+R 	Next slot
+	Y+C		Clear
 	
 	Edit:
 	
