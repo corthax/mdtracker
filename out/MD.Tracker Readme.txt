@@ -155,7 +155,7 @@ Setting instrument explicitly rewrites the channel's FM registers, if there are 
 	A+C 	Copy and Paste data from previously selected range into selected column of current pattern, starting from selected row.
 	A+B 	Same as above, but paste all data columns.
 	
-	Multi-edit:
+	Multi-edit: [NOT IMPLEMENTED]
 	
 	Y+R		Link cell for multi-edit.
 	Y+L		Un-link cell.
@@ -193,7 +193,7 @@ Instrument Editor
 	A+U		Change value (+4).
 	A+D		Change value (-4).
 	
-	Multi-edit:
+	Multi-edit: [NOT IMPLEMENTED]
 	
 	Y+L		Mark/Un-mark FM OP1 for multi-edit.
 	Y+R		Mark/Un-mark FM OP2 for multi-edit.
@@ -324,7 +324,7 @@ xx: 01 .. 04; Each bank contains 96 sample region definitions, 1 per note.
 --: nothing.
 
 ************************************************
-PSG "PWM" mode
+PSG "PWM" mode [NOT IMPLEMENTED]
 	17xx
 xx:
 --: disable.
