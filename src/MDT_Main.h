@@ -33,7 +33,8 @@
 #define PATTERN_JUMP_SIDE       0xFF
 
 #define MAX_MATRIX_ROWS         250
-#define MAX_MATRIX_SCREEN_ROW   24      // index of max line on SCREEN; starts from 0; 25 lines per page; 10 pages
+#define LAST_MATRIX_SCREEN_ROW   24      // index of max line on SCREEN; starts from 0; 25 lines per page; 10 pages
+#define MATRIX_SCREEN_ROWS   25
 #define MAX_MATRIX_PAGE         9       // MAX_MATRIX_ROWS / (MAX_MATRIX_SCREEN_ROW + 1)) - 1
 
 #define INST_SIZE               89

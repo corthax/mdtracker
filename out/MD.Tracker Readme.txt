@@ -124,15 +124,10 @@ Setting instrument explicitly rewrites the channel's FM registers, if there are 
 '
 	Navigate:
 	
-	D-Pad	Navigate through rows / columns.
+	D-Pad	Navigate rows / columns.
 	
 	X+L		Go to MATRIX editor.
 	X+R		Go to INSTRUMENT editor.
-	
-	Z+R		Select pattern (+1).
-	Z+L		Select pattern (-1).
-	Z+U		Select pattern (+16).
-	Z+D		Select pattern (-16).
 	
 	Y		Jump to opposite side.
 	
@@ -157,10 +152,10 @@ Setting instrument explicitly rewrites the channel's FM registers, if there are 
 	
 	Multi-edit: [NOT IMPLEMENTED]
 	
-	Y+R		Link cell for multi-edit.
-	Y+L		Un-link cell.
-	Y+U		Link all cells of same type.
-	Y+D		Un-link all cells.
+	Z+R		Link cell for multi-edit.
+	Z+L		Un-link cell.
+	Z+U		Link all cells of the same type.
+	Z+D		Un-link all cells.
 '
 
 ----------------
