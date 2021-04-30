@@ -445,6 +445,12 @@ void NavigatePattern(u8 direction) {
         else selectedPatternRow = 0; // jump up
         DrawSelectionCursor(selectedPatternColumn, selectedPatternRow, FALSE);
         break;
+    case PATTERN_JUMP_SIDE: // jump to other side
+        DrawSelectionCursor(selectedPatternColumn, selectedPatternRow, TRUE);
+        if (selectedPatternColumn < 14) selectedPatternColumn += 14;
+        else selectedPatternColumn -= 14;
+        DrawSelectionCursor(selectedPatternColumn, selectedPatternRow, FALSE);
+        break;
     }
 }
 // -------------------------------------------------------------------------------------------------------------
@@ -1405,6 +1411,16 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 }
                 break;
 
+            case BUTTON_Y:
+                NavigatePattern(PATTERN_JUMP_SIDE);
+                /*switch (changed)
+                {
+                case BUTTON_Y:
+
+                    break;
+                }*/
+                break;
+
             case BUTTON_Z:
                 // Z + D-Pad: select pattern for editing
                 switch (changed)
@@ -1473,7 +1489,6 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                                 WritePatternSRAM(selectedPatternID, row, DATA_FX6_TYPE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX6_TYPE));
                                 WritePatternSRAM(selectedPatternID, row, DATA_FX6_VALUE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX6_VALUE));
 #endif
-
                                 inc++;
                             }
                         }

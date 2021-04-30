@@ -30,6 +30,7 @@
 
 #define MAX_PATTERN             0x380   // 896
 #define PATTERN_ROW_LAST        31      // index of max line; starts from 0
+#define PATTERN_JUMP_SIDE       0xFF
 
 #define MAX_MATRIX_ROWS         250
 #define MAX_MATRIX_SCREEN_ROW   24      // index of max line on SCREEN; starts from 0; 25 lines per page; 10 pages
