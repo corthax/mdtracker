@@ -143,7 +143,7 @@ u8 selectedSampleNote = 0;
 u32 sampleBankSize = 0;
 u8 activeSampleBank = 0;
 
-u8 bDAC_enable = FALSE; // global, 0xF0 to enable. 0 to disable
+u8 bDAC_enable = TRUE; // global, 0xF0 to enable. 0 to disable
 //u8 DAC_softsynth = 0; // 0 is disabled, 0< to set mode
 //static void WriteDAC(u8 sample);
 //static void PCMPlay();
@@ -161,7 +161,6 @@ s8 patternCopyRangeEnd = NOTHING;
 
 u16 hIntToSkip = 0;
 static s16 hIntCounter = 0;
-//Sprite* patCur;
 
 u16 bgBaseTileIndex[4];
 u16 asciiBaseLetters, asciiBaseNumbers;
@@ -629,7 +628,7 @@ static void DoEngine()
     {
         for (u8 channel = CHANNEL_FM1; channel < CHANNELS_TOTAL; channel++)
         {
-            //sequences
+            //sequencers
             if (channelPreviousNote[channel] <= MAX_NOTE && frameCounter > 0) // notes only, not at 1st frame
             {
                 // attenuation sequence
@@ -761,7 +760,7 @@ static void DoEngine()
 
             // cut
             if (channelNoteCut[channel] > 1) channelNoteCut[channel]--;
-            else if (channelNoteCut[channel] != 0)
+            else if (channelNoteCut[channel] == 1)
             {
                 // kill note
                 StopChannelSound(channel);
@@ -778,9 +777,7 @@ static void DoEngine()
             beginPlay = FALSE;
 
             // start timer B
-            RequestZ80();
-                YM2612_writeReg(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00001111);
-            ReleaseZ80();
+            YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00001111);
 
             // set frame length
             if (playingPatternRow & 1) maxFrame = ticksPerOddRow; // ticks per line
@@ -789,11 +786,9 @@ static void DoEngine()
             DrawMatrixPlaybackCursor();
         }
 #if (YM_TIMER_TEMPO == 1)
-        RequestZ80(); //! CAUSE DAC PLAYBACK SLOWDOWN
         if (BIT_CHECK(YM2612_read(PORT_1), 1) == TRUE) // D7 Busy, D6-D2 unused, D1 Overflow B, D0 Overflow A
         {
-            YM2612_writeReg(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00101111); // timer B only restarted
-            ReleaseZ80();
+            YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00101111); // timer B only restarted
 #else
         if (hIntCounter <= 0) // ticks counter
         {
@@ -811,9 +806,6 @@ static void DoEngine()
             }
             effects();
         }
-#if (YM_TIMER_TEMPO == 1)
-        else { ReleaseZ80(); }
-#endif
 
         // playback engine
         if (frameCounter == 0)
@@ -975,9 +967,7 @@ static void DoEngine()
         beginPlay = TRUE;
         // stop timer A (load: 1 to start, 0 to stop; enable: 1 to set register flag when overflowed, 0 to keep cycling without setting flag)
         // reset read register flag, timer overflowing is enabled
-        RequestZ80();
-            YM2612_writeReg(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00111100);
-        ReleaseZ80();
+        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00111100);
 
         StopAllSound();
         ClearPatternPlaybackCursor();
@@ -991,9 +981,7 @@ static void SetBPM(u16 counter)
     static u32 microseconds = 0;
 
 #if (YM_TIMER_TEMPO == 1)
-    RequestZ80();
-        YM2612_writeReg(PORT_1, YM2612REG_TIMER_B, counter);
-    ReleaseZ80();
+    YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_B, counter);
     microseconds = 3003 * (256 - counter); // timer B = 300.34 microseconds
 #else
     if (!IS_PALSYSTEM) microseconds = (744 * (H_INT_SKIP + 1)) * counter; // h-blank = 1/13440 sec; 74.4047 microseconds;
@@ -1797,8 +1785,8 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 }
                 break;
 
-            case BUTTON_Z:
-                // Z + D-Pad: select instrument for editing
+            case BUTTON_Y:
+                // Y + D-Pad: select instrument for editing
                 switch (changed)
                 {
                 case BUTTON_RIGHT:
@@ -1820,6 +1808,14 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     break;
                 }
                 break;
+
+            /*case BUTTON_Z:
+                switch (changed)
+                {
+                    case ???:
+                    break;
+                }
+                break;*/
 
             case BUTTON_A:
                 // A + D-Pad: change parameter value
@@ -1952,7 +1948,7 @@ void DrawStaticHeaders()
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_BPM), 1, 27); // bpm
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_BPM + 1), 2, 27);
 
-    for (u8 y=2; y<27; y++) VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 27, y); // fm/psg
+    //! for (u8 y=2; y<27; y++) VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 27, y); // fm/psg
 
     // ----------------------------------- pattern editor
     for (u8 i=0; i<7; i++) VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_LOGO + i), i + 72, 22); // MD.TRACKER logo
@@ -3183,10 +3179,7 @@ static void SetChannelVolume(u8 matrixChannel)
                     channelSeqAttenuation[matrixChannel] +
                     channelTremolo[matrixChannel];
                 if (volT4 > 0x7F) volT4 = 0x7F;
-
-                RequestZ80();
-                    YM2612_writeReg(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
-                ReleaseZ80();
+                YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
                 break;
             case 4:
                 volT3 =
@@ -3202,11 +3195,8 @@ static void SetChannelVolume(u8 matrixChannel)
                     channelSeqAttenuation[matrixChannel] +
                     channelTremolo[matrixChannel];
                 if (volT4 > 0x7F) volT4 = 0x7F;
-
-                RequestZ80();
-                    YM2612_writeReg(port, YM2612REG_OP3_TL_CH0 + fmChannel, (u8)volT3);
-                    YM2612_writeReg(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
-                ReleaseZ80();
+                YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + fmChannel, (u8)volT3);
+                YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
                 break;
             case 5: case 6:
                 volT2 =
@@ -3230,11 +3220,9 @@ static void SetChannelVolume(u8 matrixChannel)
                     channelTremolo[matrixChannel];
                 if (volT4 > 0x7F) volT4 = 0x7F;
 
-                RequestZ80();
-                    YM2612_writeReg(port, YM2612REG_OP2_TL_CH0 + fmChannel, (u8)volT2);
-                    YM2612_writeReg(port, YM2612REG_OP3_TL_CH0 + fmChannel, (u8)volT3);
-                    YM2612_writeReg(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
-                ReleaseZ80();
+                YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + fmChannel, (u8)volT2);
+                YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + fmChannel, (u8)volT3);
+                YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
                 break;
             case 7:
                 volT1 =
@@ -3265,12 +3253,10 @@ static void SetChannelVolume(u8 matrixChannel)
                     channelTremolo[matrixChannel];
                 if (volT4 > 0x7F) volT4 = 0x7F;
 
-                RequestZ80();
-                    YM2612_writeReg(port, YM2612REG_OP1_TL_CH0 + fmChannel, (u8)volT1);
-                    YM2612_writeReg(port, YM2612REG_OP2_TL_CH0 + fmChannel, (u8)volT2);
-                    YM2612_writeReg(port, YM2612REG_OP3_TL_CH0 + fmChannel, (u8)volT3);
-                    YM2612_writeReg(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
-                ReleaseZ80();
+                YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + fmChannel, (u8)volT1);
+                YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + fmChannel, (u8)volT2);
+                YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + fmChannel, (u8)volT3);
+                YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
                 break;
             }
         }
@@ -3286,10 +3272,7 @@ static void SetChannelVolume(u8 matrixChannel)
                     channelSeqAttenuation[matrixChannel] +
                     channelTremolo[matrixChannel];
                 if (volT4 > 0x7F) volT4 = 0x7F;
-
-                RequestZ80();
-                    YM2612_writeReg(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
-                ReleaseZ80();
+                YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
                 break;
             case CHANNEL_FM3_OP3:
                 volT3 =
@@ -3298,10 +3281,7 @@ static void SetChannelVolume(u8 matrixChannel)
                     channelSeqAttenuation[matrixChannel] +
                     channelTremolo[matrixChannel];
                 if (volT3 > 0x7F) volT3 = 0x7F;
-
-                RequestZ80();
-                    YM2612_writeReg(port, YM2612REG_OP3_TL_CH0 + fmChannel, (u8)volT3);
-                ReleaseZ80();
+                YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + fmChannel, (u8)volT3);
                 break;
             case CHANNEL_FM3_OP2:
                 volT2 =
@@ -3310,10 +3290,7 @@ static void SetChannelVolume(u8 matrixChannel)
                     channelSeqAttenuation[matrixChannel] +
                     channelTremolo[matrixChannel];
                 if (volT2 > 0x7F) volT2 = 0x7F;
-
-                RequestZ80();
-                    YM2612_writeReg(port, YM2612REG_OP2_TL_CH0 + fmChannel, (u8)volT2);
-                ReleaseZ80();
+                YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + fmChannel, (u8)volT2);
                 break;
             case CHANNEL_FM3_OP1:
                 volT1 =
@@ -3322,10 +3299,7 @@ static void SetChannelVolume(u8 matrixChannel)
                     channelSeqAttenuation[matrixChannel] +
                     channelTremolo[matrixChannel];
                 if (volT1 > 0x7F) volT1 = 0x7F;
-
-                RequestZ80();
-                    YM2612_writeReg(port, YM2612REG_OP1_TL_CH0 + fmChannel, (u8)volT1);
-                ReleaseZ80();
+                YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + fmChannel, (u8)volT1);
                 break;
             }
         }
@@ -3360,7 +3334,7 @@ static void RequestZ80()
 
 static void ReleaseZ80()
 {
-    YM2612_write(PORT_1, YM2612REG_DAC); // for DAC
+    YM2612_write(PORT_1, YM2612REG_DAC); // needed for DAC
     if (bBusTaken) Z80_releaseBus();
 }
 
@@ -3435,12 +3409,12 @@ static void SetPitchFM(u8 matrixChannel, u8 note)
     auto void csm_pitch() // bus requested later
     {
         // Timer A to note pitch
-        YM2612_writeReg(PORT_1, YM2612REG_TIMER_A_MSB, csmMicrotone[note] >> 2);
-        YM2612_writeReg(PORT_1, YM2612REG_TIMER_A_LSB, csmMicrotone[note] & 0b0000000000000011);
+        YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_A_MSB, csmMicrotone[note] >> 2);
+        YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_A_LSB, csmMicrotone[note] & 0b0000000000000011);
 
         // play CSM note
-        YM2612_writeReg(PORT_1, YM2612REG_CH3_FREQ_MSB, 0b10001111);
-        //YM2612_writeReg(PORT_1, YM2612REG_CH3_FREQ_MSB, CH3_SPECIAL_CSM | 0b00001111); // bb Ch3 mode, Reset B, Reset A, Enable B, Enable A, Load B, Load A
+        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_FREQ_MSB, 0b10001111);
+        //YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_FREQ_MSB, CH3_SPECIAL_CSM | 0b00001111); // bb Ch3 mode, Reset B, Reset A, Enable B, Enable A, Load B, Load A
         ch3Mode = CH3_SPECIAL_CSM;
     }
 
@@ -3466,41 +3440,32 @@ static void SetPitchFM(u8 matrixChannel, u8 note)
         switch (matrixChannel)
         {
         case CHANNEL_FM1:
-        RequestZ80();
-            YM2612_writeReg(PORT_1, YM2612REG_CH1_FREQ_MSB, part1);
-            YM2612_writeReg(PORT_1, YM2612REG_CH1_FREQ_LSB, part2);
-            YM2612_writeReg(PORT_1, YM2612REG_KEY, 0b11110000); // 0
-        ReleaseZ80();
+            YM2612_writeRegZ80(PORT_1, YM2612REG_CH1_FREQ_MSB, part1);
+            YM2612_writeRegZ80(PORT_1, YM2612REG_CH1_FREQ_LSB, part2);
+            YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 0b11110000); // 0
             break;
         case CHANNEL_FM2:
-        RequestZ80();
-            YM2612_writeReg(PORT_1, YM2612REG_CH2_FREQ_MSB, part1);
-            YM2612_writeReg(PORT_1, YM2612REG_CH2_FREQ_LSB, part2);
-            YM2612_writeReg(PORT_1, YM2612REG_KEY, 0b11110001); // 1
-        ReleaseZ80();
+            YM2612_writeRegZ80(PORT_1, YM2612REG_CH2_FREQ_MSB, part1);
+            YM2612_writeRegZ80(PORT_1, YM2612REG_CH2_FREQ_LSB, part2);
+            YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 0b11110001); // 1
             break;
         case CHANNEL_FM3_OP4:
-        RequestZ80();
-            YM2612_writeReg(PORT_1, YM2612REG_CH3_FREQ_MSB, part1);
-            YM2612_writeReg(PORT_1, YM2612REG_CH3_FREQ_LSB, part2);
+            YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_FREQ_MSB, part1);
+            YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_FREQ_LSB, part2);
 
             switch (ch3Mode)
             {
             case CH3_NORMAL:
-                YM2612_writeReg(PORT_1, YM2612REG_KEY, 0b11110010); // 2
-        ReleaseZ80();
+                YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 0b11110010); // 2
                 break;
             case CH3_SPECIAL:
                 BIT_SET(ch3OpNoteStatus, 7); // 0b1???0010
-                YM2612_writeReg(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // 2
-        ReleaseZ80();
+                YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, ch3OpNoteStatus);// 2
                 break;
             case CH3_SPECIAL_CSM: case CH3_SPECIAL_CSM_OFF:
                 csm_pitch();
-        ReleaseZ80();
                 break;
             default:
-        ReleaseZ80();
                 break;
             }
             break;
@@ -3508,48 +3473,38 @@ static void SetPitchFM(u8 matrixChannel, u8 note)
             if (ch3Mode == CH3_SPECIAL)
             {
                 BIT_SET(ch3OpNoteStatus, 5); // 0b??1?0010
-            RequestZ80();
-                YM2612_writeReg(PORT_1, YM2612REG_CH3SP_FREQ_OP3_MSB, part1);
-                YM2612_writeReg(PORT_1, YM2612REG_CH3SP_FREQ_OP3_LSB, part2);
-                YM2612_writeReg(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // 2
-            ReleaseZ80();
+                YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP3_MSB, part1);
+                YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP3_LSB, part2);
+                YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // 2
             }
             break;
         case CHANNEL_FM3_OP2:
             if (ch3Mode == CH3_SPECIAL)
             {
                 BIT_SET(ch3OpNoteStatus, 6); // 0b?1??0010
-            RequestZ80();
-                YM2612_writeReg(PORT_1, YM2612REG_CH3SP_FREQ_OP2_MSB, part1);
-                YM2612_writeReg(PORT_1, YM2612REG_CH3SP_FREQ_OP2_LSB, part2);
-                YM2612_writeReg(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // 2
-            ReleaseZ80();
+                YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP2_MSB, part1);
+                YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP2_LSB, part2);
+                YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // 2
             }
             break;
         case CHANNEL_FM3_OP1:
             if (ch3Mode == CH3_SPECIAL)
             {
                 BIT_SET(ch3OpNoteStatus, 4); // 0b???10010
-            RequestZ80();
-                YM2612_writeReg(PORT_1, YM2612REG_CH3SP_FREQ_OP1_MSB, part1);
-                YM2612_writeReg(PORT_1, YM2612REG_CH3SP_FREQ_OP1_LSB, part2);
-                YM2612_writeReg(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // 2
-            ReleaseZ80();
+                YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP1_MSB, part1);
+                YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP1_LSB, part2);
+                YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // 2
             }
             break;
         case CHANNEL_FM4:
-        RequestZ80();
-            YM2612_writeReg(PORT_2, YM2612REG_CH1_FREQ_MSB, part1);
-            YM2612_writeReg(PORT_2, YM2612REG_CH1_FREQ_LSB, part2);
-            YM2612_writeReg(PORT_1, YM2612REG_KEY, 0b11110100); // 4
-        ReleaseZ80();
+            YM2612_writeRegZ80(PORT_2, YM2612REG_CH1_FREQ_MSB, part1);
+            YM2612_writeRegZ80(PORT_2, YM2612REG_CH1_FREQ_LSB, part2);
+            YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 0b11110100); // 4
             break;
         case CHANNEL_FM5:
-        RequestZ80();
-            YM2612_writeReg(PORT_2, YM2612REG_CH2_FREQ_MSB, part1);
-            YM2612_writeReg(PORT_2, YM2612REG_CH2_FREQ_LSB, part2);
-            YM2612_writeReg(PORT_1, YM2612REG_KEY, 0b11110101); // 5
-        ReleaseZ80();
+            YM2612_writeRegZ80(PORT_2, YM2612REG_CH2_FREQ_MSB, part1); ReleaseZ80();
+            YM2612_writeRegZ80(PORT_2, YM2612REG_CH2_FREQ_LSB, part2); ReleaseZ80();
+            YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 0b11110101); ReleaseZ80(); // 5
             break;
         case CHANNEL_FM6_DAC: // in DAC mode FM is still working normally, but sound output is muted
             if (bDAC_enable)
@@ -3574,11 +3529,9 @@ static void SetPitchFM(u8 matrixChannel, u8 note)
             }
             else
             {
-            RequestZ80();
-                YM2612_writeReg(PORT_2, YM2612REG_CH3_FREQ_MSB, part1);
-                YM2612_writeReg(PORT_2, YM2612REG_CH3_FREQ_LSB, part2);
-                YM2612_writeReg(PORT_1, YM2612REG_KEY, 0b11110110); // 6
-            ReleaseZ80();
+                YM2612_writeRegZ80(PORT_2, YM2612REG_CH3_FREQ_MSB, part1);
+                YM2612_writeRegZ80(PORT_2, YM2612REG_CH3_FREQ_LSB, part2);
+                YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 0b11110110); // 6
             }
             break;
         }
@@ -3654,38 +3607,28 @@ static void StopChannelSound(u8 matrixChannel)
 {
     auto void csm_off()
     {
-    RequestZ80();
-        YM2612_writeReg(PORT_1, YM2612REG_KEY, 2); // set operators key off for CSM to work
-        YM2612_writeReg(PORT_1, YM2612REG_CH3_TIMERS, CH3_SPECIAL_CSM_OFF | 0b00001111);
-    ReleaseZ80();
+        YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 2); // set operators key off for CSM to work
+        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_SPECIAL_CSM_OFF | 0b00001111);
         ch3Mode = CH3_SPECIAL_CSM_OFF;
     }
 
     switch (matrixChannel)
     {
     case CHANNEL_FM1:
-        RequestZ80();
-            YM2612_writeReg(PORT_1, YM2612REG_KEY, 0);
-        ReleaseZ80();
+        YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 0);
         break;
     case CHANNEL_FM2:
-        RequestZ80();
-            YM2612_writeReg(PORT_1, YM2612REG_KEY, 1);
-        ReleaseZ80();
+        YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 1);
         break;
     case CHANNEL_FM3_OP4:
         if (ch3Mode == CH3_NORMAL)
         {
-            RequestZ80();
-                YM2612_writeReg(PORT_1, YM2612REG_KEY, 2); // all OP Off
-            ReleaseZ80();
+            YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 2); // all OP Off
         }
         else if (ch3Mode == CH3_SPECIAL)
         {
             BIT_CLEAR(ch3OpNoteStatus, 7);
-            RequestZ80();
-                YM2612_writeReg(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // OP4
-            ReleaseZ80();
+            YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // OP4
         }
         else if (ch3Mode == CH3_SPECIAL_CSM || ch3Mode == CH3_SPECIAL_CSM_OFF) { csm_off(); }
         break;
@@ -3693,43 +3636,31 @@ static void StopChannelSound(u8 matrixChannel)
         if (ch3Mode == CH3_SPECIAL)
         {
             BIT_CLEAR(ch3OpNoteStatus, 5);
-            RequestZ80();
-                YM2612_writeReg(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // OP3
-            ReleaseZ80();
+            YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // OP3
         }
         break;
     case CHANNEL_FM3_OP2:
         if (ch3Mode == CH3_SPECIAL)
         {
             BIT_CLEAR(ch3OpNoteStatus, 6);
-            RequestZ80();
-                YM2612_writeReg(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // OP2
-            ReleaseZ80();
+            YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // OP2
         }
         break;
     case CHANNEL_FM3_OP1:
         if (ch3Mode == CH3_SPECIAL)
         {
             BIT_CLEAR(ch3OpNoteStatus, 4);
-            RequestZ80();
-                YM2612_writeReg(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // OP1
-            ReleaseZ80();
+            YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // OP1
         }
         break;
     case CHANNEL_FM4:
-        RequestZ80();
-            YM2612_writeReg(PORT_1, YM2612REG_KEY, 4);
-        ReleaseZ80();
+        YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 4);
         break;
     case CHANNEL_FM5:
-        RequestZ80();
-            YM2612_writeReg(PORT_1, YM2612REG_KEY, 5);
-        ReleaseZ80();
+        YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 5);
         break;
     case CHANNEL_FM6_DAC:
-        RequestZ80();
-            YM2612_writeReg(PORT_1, YM2612REG_KEY, 6);
-        ReleaseZ80();
+        YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 6);
         if (SND_isPlaying_PCM()) SND_stopPlay_PCM();
         break;
     case CHANNEL_PSG1:
@@ -3768,9 +3699,7 @@ static void StopAllSound()
 
 static void SetGlobalLFO(u8 freq)
 {
-    RequestZ80();
-        YM2612_writeReg(PORT_1, YM2612REG_GLOBAL_LFO, freq);
-    ReleaseZ80();
+    YM2612_writeRegZ80(PORT_1, YM2612REG_GLOBAL_LFO, freq);
 }
 
 // write defaults, cache instruments to RAM
@@ -3800,6 +3729,7 @@ static void InitGlobals()
         YM2612_writeReg(PORT_1, YM2612REG_TIMER_A_LSB, 0); // 2 bit LSB
         // timer B; 1111 1111 = 0.288 ms (minimum step), 0000 0000 = 73.44 ms; 288 * (256 - Timer B ) microseconds
         YM2612_writeReg(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00111100);
+        YM2612_enableDAC();
     ReleaseZ80();
 
     psg_noise_mode = PSG_TONAL_CH3_MUTED;
@@ -3998,7 +3928,6 @@ static void WriteYM2612(u8 matrixChannel, u8 id)
 {
     static u16 port = 0;
     static u8 fmChannel = 0;
-
     if (matrixChannel < CHANNEL_PSG1) // FM channel
     {
         switch (matrixChannel)
@@ -4013,136 +3942,131 @@ static void WriteYM2612(u8 matrixChannel, u8 id)
             port = PORT_2; fmChannel = matrixChannel - 6; // 0, 1, 2
             break;
         }
-
         SetChannelBaseVolume(matrixChannel, id); //! SLOW!
 
         switch (fmChannel)
         {
         case 0:
-            RequestZ80();
-            YM2612_writeReg(port, YM2612REG_FB_ALG_CH0, tmpInst[id].FB_ALG);
+            YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH0, tmpInst[id].FB_ALG);
 
-            YM2612_writeReg(port, YM2612REG_OP1_TL_CH0, tmpInst[id].TL1);
-            YM2612_writeReg(port, YM2612REG_OP2_TL_CH0, tmpInst[id].TL2);
-            YM2612_writeReg(port, YM2612REG_OP3_TL_CH0, tmpInst[id].TL3);
-            YM2612_writeReg(port, YM2612REG_OP4_TL_CH0, tmpInst[id].TL4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0, tmpInst[id].TL1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0, tmpInst[id].TL2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0, tmpInst[id].TL3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0, tmpInst[id].TL4);
 
-            YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS_CH0, tmpInst[id].PAN_AMS_FMS);
+            YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH0, tmpInst[id].PAN_AMS_FMS);
 
-            YM2612_writeReg(port, YM2612REG_OP1_DT_MUL_CH0, tmpInst[id].DT1_MUL1);
-            YM2612_writeReg(port, YM2612REG_OP2_DT_MUL_CH0, tmpInst[id].DT2_MUL2);
-            YM2612_writeReg(port, YM2612REG_OP3_DT_MUL_CH0, tmpInst[id].DT3_MUL3);
-            YM2612_writeReg(port, YM2612REG_OP4_DT_MUL_CH0, tmpInst[id].DT4_MUL4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH0, tmpInst[id].DT1_MUL1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH0, tmpInst[id].DT2_MUL2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH0, tmpInst[id].DT3_MUL3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH0, tmpInst[id].DT4_MUL4);
 
-            YM2612_writeReg(port, YM2612REG_OP1_RS_AR_CH0, tmpInst[id].RS1_AR1);
-            YM2612_writeReg(port, YM2612REG_OP2_RS_AR_CH0, tmpInst[id].RS2_AR2);
-            YM2612_writeReg(port, YM2612REG_OP3_RS_AR_CH0, tmpInst[id].RS3_AR3);
-            YM2612_writeReg(port, YM2612REG_OP4_RS_AR_CH0, tmpInst[id].RS4_AR4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH0, tmpInst[id].RS1_AR1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH0, tmpInst[id].RS2_AR2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH0, tmpInst[id].RS3_AR3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH0, tmpInst[id].RS4_AR4);
 
-            YM2612_writeReg(port, YM2612REG_OP1_AM_D1R_CH0, tmpInst[id].AM1_D1R1);
-            YM2612_writeReg(port, YM2612REG_OP2_AM_D1R_CH0, tmpInst[id].AM2_D1R2);
-            YM2612_writeReg(port, YM2612REG_OP3_AM_D1R_CH0, tmpInst[id].AM3_D1R3);
-            YM2612_writeReg(port, YM2612REG_OP4_AM_D1R_CH0, tmpInst[id].AM4_D1R4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH0, tmpInst[id].AM1_D1R1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH0, tmpInst[id].AM2_D1R2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH0, tmpInst[id].AM3_D1R3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH0, tmpInst[id].AM4_D1R4);
 
-            YM2612_writeReg(port, YM2612REG_OP1_D2R_CH0, tmpInst[id].D2R1);
-            YM2612_writeReg(port, YM2612REG_OP2_D2R_CH0, tmpInst[id].D2R2);
-            YM2612_writeReg(port, YM2612REG_OP3_D2R_CH0, tmpInst[id].D2R3);
-            YM2612_writeReg(port, YM2612REG_OP4_D2R_CH0, tmpInst[id].D2R4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH0, tmpInst[id].D2R1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH0, tmpInst[id].D2R2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH0, tmpInst[id].D2R3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH0, tmpInst[id].D2R4);
 
-            YM2612_writeReg(port, YM2612REG_OP1_D1L_RR_CH0, tmpInst[id].D1L1_RR1);
-            YM2612_writeReg(port, YM2612REG_OP2_D1L_RR_CH0, tmpInst[id].D1L2_RR2);
-            YM2612_writeReg(port, YM2612REG_OP3_D1L_RR_CH0, tmpInst[id].D1L3_RR3);
-            YM2612_writeReg(port, YM2612REG_OP4_D1L_RR_CH0, tmpInst[id].D1L4_RR4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH0, tmpInst[id].D1L1_RR1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH0, tmpInst[id].D1L2_RR2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH0, tmpInst[id].D1L3_RR3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH0, tmpInst[id].D1L4_RR4);
 
-            YM2612_writeReg(port, YM2612REG_OP1_SSGEG_CH0, tmpInst[id].SSGEG1);
-            YM2612_writeReg(port, YM2612REG_OP2_SSGEG_CH0, tmpInst[id].SSGEG2);
-            YM2612_writeReg(port, YM2612REG_OP3_SSGEG_CH0, tmpInst[id].SSGEG3);
-            YM2612_writeReg(port, YM2612REG_OP4_SSGEG_CH0, tmpInst[id].SSGEG4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH0, tmpInst[id].SSGEG1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH0, tmpInst[id].SSGEG2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH0, tmpInst[id].SSGEG3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH0, tmpInst[id].SSGEG4);
             break;
         case 1:
-            RequestZ80();
-            YM2612_writeReg(port, YM2612REG_FB_ALG_CH1, tmpInst[id].FB_ALG);
+            YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH1, tmpInst[id].FB_ALG);
 
-            YM2612_writeReg(port, YM2612REG_OP1_TL_CH1, tmpInst[id].TL1);
-            YM2612_writeReg(port, YM2612REG_OP2_TL_CH1, tmpInst[id].TL2);
-            YM2612_writeReg(port, YM2612REG_OP3_TL_CH1, tmpInst[id].TL3);
-            YM2612_writeReg(port, YM2612REG_OP4_TL_CH1, tmpInst[id].TL4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH1, tmpInst[id].TL1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH1, tmpInst[id].TL2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH1, tmpInst[id].TL3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH1, tmpInst[id].TL4);
 
-            YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS_CH1, tmpInst[id].PAN_AMS_FMS);
+            YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH1, tmpInst[id].PAN_AMS_FMS);
 
-            YM2612_writeReg(port, YM2612REG_OP1_DT_MUL_CH1, tmpInst[id].DT1_MUL1);
-            YM2612_writeReg(port, YM2612REG_OP2_DT_MUL_CH1, tmpInst[id].DT2_MUL2);
-            YM2612_writeReg(port, YM2612REG_OP3_DT_MUL_CH1, tmpInst[id].DT3_MUL3);
-            YM2612_writeReg(port, YM2612REG_OP4_DT_MUL_CH1, tmpInst[id].DT4_MUL4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH1, tmpInst[id].DT1_MUL1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH1, tmpInst[id].DT2_MUL2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH1, tmpInst[id].DT3_MUL3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH1, tmpInst[id].DT4_MUL4);
 
-            YM2612_writeReg(port, YM2612REG_OP1_RS_AR_CH1, tmpInst[id].RS1_AR1);
-            YM2612_writeReg(port, YM2612REG_OP2_RS_AR_CH1, tmpInst[id].RS2_AR2);
-            YM2612_writeReg(port, YM2612REG_OP3_RS_AR_CH1, tmpInst[id].RS3_AR3);
-            YM2612_writeReg(port, YM2612REG_OP4_RS_AR_CH1, tmpInst[id].RS4_AR4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH1, tmpInst[id].RS1_AR1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH1, tmpInst[id].RS2_AR2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH1, tmpInst[id].RS3_AR3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH1, tmpInst[id].RS4_AR4);
 
-            YM2612_writeReg(port, YM2612REG_OP1_AM_D1R_CH1, tmpInst[id].AM1_D1R1);
-            YM2612_writeReg(port, YM2612REG_OP2_AM_D1R_CH1, tmpInst[id].AM2_D1R2);
-            YM2612_writeReg(port, YM2612REG_OP3_AM_D1R_CH1, tmpInst[id].AM3_D1R3);
-            YM2612_writeReg(port, YM2612REG_OP4_AM_D1R_CH1, tmpInst[id].AM4_D1R4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH1, tmpInst[id].AM1_D1R1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH1, tmpInst[id].AM2_D1R2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH1, tmpInst[id].AM3_D1R3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH1, tmpInst[id].AM4_D1R4);
 
-            YM2612_writeReg(port, YM2612REG_OP1_D2R_CH1, tmpInst[id].D2R1);
-            YM2612_writeReg(port, YM2612REG_OP2_D2R_CH1, tmpInst[id].D2R2);
-            YM2612_writeReg(port, YM2612REG_OP3_D2R_CH1, tmpInst[id].D2R3);
-            YM2612_writeReg(port, YM2612REG_OP4_D2R_CH1, tmpInst[id].D2R4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH1, tmpInst[id].D2R1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH1, tmpInst[id].D2R2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH1, tmpInst[id].D2R3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH1, tmpInst[id].D2R4);
 
-            YM2612_writeReg(port, YM2612REG_OP1_D1L_RR_CH1, tmpInst[id].D1L1_RR1);
-            YM2612_writeReg(port, YM2612REG_OP2_D1L_RR_CH1, tmpInst[id].D1L2_RR2);
-            YM2612_writeReg(port, YM2612REG_OP3_D1L_RR_CH1, tmpInst[id].D1L3_RR3);
-            YM2612_writeReg(port, YM2612REG_OP4_D1L_RR_CH1, tmpInst[id].D1L4_RR4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH1, tmpInst[id].D1L1_RR1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH1, tmpInst[id].D1L2_RR2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH1, tmpInst[id].D1L3_RR3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH1, tmpInst[id].D1L4_RR4);
 
-            YM2612_writeReg(port, YM2612REG_OP1_SSGEG_CH1, tmpInst[id].SSGEG1);
-            YM2612_writeReg(port, YM2612REG_OP2_SSGEG_CH1, tmpInst[id].SSGEG2);
-            YM2612_writeReg(port, YM2612REG_OP3_SSGEG_CH1, tmpInst[id].SSGEG3);
-            YM2612_writeReg(port, YM2612REG_OP4_SSGEG_CH1, tmpInst[id].SSGEG4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH1, tmpInst[id].SSGEG1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH1, tmpInst[id].SSGEG2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH1, tmpInst[id].SSGEG3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH1, tmpInst[id].SSGEG4);
             break;
         case 2:
-            RequestZ80();
-            YM2612_writeReg(port, YM2612REG_FB_ALG_CH2, tmpInst[id].FB_ALG);
+            YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH2, tmpInst[id].FB_ALG);
 
-            YM2612_writeReg(port, YM2612REG_OP1_TL_CH2, tmpInst[id].TL1);
-            YM2612_writeReg(port, YM2612REG_OP2_TL_CH2, tmpInst[id].TL2);
-            YM2612_writeReg(port, YM2612REG_OP3_TL_CH2, tmpInst[id].TL3);
-            YM2612_writeReg(port, YM2612REG_OP4_TL_CH2, tmpInst[id].TL4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH2, tmpInst[id].TL1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH2, tmpInst[id].TL2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH2, tmpInst[id].TL3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH2, tmpInst[id].TL4);
 
-            YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS_CH2, tmpInst[id].PAN_AMS_FMS);
+            YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH2, tmpInst[id].PAN_AMS_FMS);
 
-            YM2612_writeReg(port, YM2612REG_OP1_DT_MUL_CH2, tmpInst[id].DT1_MUL1);
-            YM2612_writeReg(port, YM2612REG_OP2_DT_MUL_CH2, tmpInst[id].DT2_MUL2);
-            YM2612_writeReg(port, YM2612REG_OP3_DT_MUL_CH2, tmpInst[id].DT3_MUL3);
-            YM2612_writeReg(port, YM2612REG_OP4_DT_MUL_CH2, tmpInst[id].DT4_MUL4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH2, tmpInst[id].DT1_MUL1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH2, tmpInst[id].DT2_MUL2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH2, tmpInst[id].DT3_MUL3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH2, tmpInst[id].DT4_MUL4);
 
-            YM2612_writeReg(port, YM2612REG_OP1_RS_AR_CH2, tmpInst[id].RS1_AR1);
-            YM2612_writeReg(port, YM2612REG_OP2_RS_AR_CH2, tmpInst[id].RS2_AR2);
-            YM2612_writeReg(port, YM2612REG_OP3_RS_AR_CH2, tmpInst[id].RS3_AR3);
-            YM2612_writeReg(port, YM2612REG_OP4_RS_AR_CH2, tmpInst[id].RS4_AR4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH2, tmpInst[id].RS1_AR1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH2, tmpInst[id].RS2_AR2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH2, tmpInst[id].RS3_AR3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH2, tmpInst[id].RS4_AR4);
 
-            YM2612_writeReg(port, YM2612REG_OP1_AM_D1R_CH2, tmpInst[id].AM1_D1R1);
-            YM2612_writeReg(port, YM2612REG_OP2_AM_D1R_CH2, tmpInst[id].AM2_D1R2);
-            YM2612_writeReg(port, YM2612REG_OP3_AM_D1R_CH2, tmpInst[id].AM3_D1R3);
-            YM2612_writeReg(port, YM2612REG_OP4_AM_D1R_CH2, tmpInst[id].AM4_D1R4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH2, tmpInst[id].AM1_D1R1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH2, tmpInst[id].AM2_D1R2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH2, tmpInst[id].AM3_D1R3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH2, tmpInst[id].AM4_D1R4);
 
-            YM2612_writeReg(port, YM2612REG_OP1_D2R_CH2, tmpInst[id].D2R1);
-            YM2612_writeReg(port, YM2612REG_OP2_D2R_CH2, tmpInst[id].D2R2);
-            YM2612_writeReg(port, YM2612REG_OP3_D2R_CH2, tmpInst[id].D2R3);
-            YM2612_writeReg(port, YM2612REG_OP4_D2R_CH2, tmpInst[id].D2R4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH2, tmpInst[id].D2R1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH2, tmpInst[id].D2R2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH2, tmpInst[id].D2R3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH2, tmpInst[id].D2R4);
 
-            YM2612_writeReg(port, YM2612REG_OP1_D1L_RR_CH2, tmpInst[id].D1L1_RR1);
-            YM2612_writeReg(port, YM2612REG_OP2_D1L_RR_CH2, tmpInst[id].D1L2_RR2);
-            YM2612_writeReg(port, YM2612REG_OP3_D1L_RR_CH2, tmpInst[id].D1L3_RR3);
-            YM2612_writeReg(port, YM2612REG_OP4_D1L_RR_CH2, tmpInst[id].D1L4_RR4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH2, tmpInst[id].D1L1_RR1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH2, tmpInst[id].D1L2_RR2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH2, tmpInst[id].D1L3_RR3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH2, tmpInst[id].D1L4_RR4);
 
-            YM2612_writeReg(port, YM2612REG_OP1_SSGEG_CH2, tmpInst[id].SSGEG1);
-            YM2612_writeReg(port, YM2612REG_OP2_SSGEG_CH2, tmpInst[id].SSGEG2);
-            YM2612_writeReg(port, YM2612REG_OP3_SSGEG_CH2, tmpInst[id].SSGEG3);
-            YM2612_writeReg(port, YM2612REG_OP4_SSGEG_CH2, tmpInst[id].SSGEG4);
+            YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH2, tmpInst[id].SSGEG1);
+            YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH2, tmpInst[id].SSGEG2);
+            YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH2, tmpInst[id].SSGEG3);
+            YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH2, tmpInst[id].SSGEG4);
             break;
         }
-        ReleaseZ80();
     }
 }
 
@@ -4156,57 +4080,57 @@ static void ApplyCommand(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // mat
     // auto functions used only for effects, not for instrument change
 
     // TL; 0 - unused, 000 0000 - TL (0..127) high to low ~0.75db step
-    auto void write_tl1(u8 value) { YM2612_writeReg(port, YM2612REG_OP1_TL_CH0 + fmChannel, value); }
-    auto void write_tl2(u8 value) { YM2612_writeReg(port, YM2612REG_OP2_TL_CH0 + fmChannel, value); }
-    auto void write_tl3(u8 value) { YM2612_writeReg(port, YM2612REG_OP3_TL_CH0 + fmChannel, value); }
-    auto void write_tl4(u8 value) { YM2612_writeReg(port, YM2612REG_OP4_TL_CH0 + fmChannel, value); }
+    auto void write_tl1(u8 value) { YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + fmChannel, value); }
+    auto void write_tl2(u8 value) { YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + fmChannel, value); }
+    auto void write_tl3(u8 value) { YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + fmChannel, value); }
+    auto void write_tl4(u8 value) { YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + fmChannel, value); }
 
     // RS, AR
     // 2b - RS (0..3), 1b - unused, 5b - AR (0..31)
-    auto void write_rs1(u8 value) { data = (value << 6) | ReadInstrumentSRAM(id, INST_AR1); YM2612_writeReg(port, YM2612REG_OP1_RS_AR_CH0 + fmChannel, data); }
-    auto void write_rs2(u8 value) { data = (value << 6) | ReadInstrumentSRAM(id, INST_AR2); YM2612_writeReg(port, YM2612REG_OP2_RS_AR_CH0 + fmChannel, data); }
-    auto void write_rs3(u8 value) { data = (value << 6) | ReadInstrumentSRAM(id, INST_AR3); YM2612_writeReg(port, YM2612REG_OP3_RS_AR_CH0 + fmChannel, data); }
-    auto void write_rs4(u8 value) { data = (value << 6) | ReadInstrumentSRAM(id, INST_AR4); YM2612_writeReg(port, YM2612REG_OP4_RS_AR_CH0 + fmChannel, data); }
-    auto void write_ar1(u8 value) { data = (ReadInstrumentSRAM(id, INST_RS1) << 6) | value; YM2612_writeReg(port, YM2612REG_OP1_RS_AR_CH0 + fmChannel, data); }
-    auto void write_ar2(u8 value) { data = (ReadInstrumentSRAM(id, INST_RS2) << 6) | value; YM2612_writeReg(port, YM2612REG_OP2_RS_AR_CH0 + fmChannel, data); }
-    auto void write_ar3(u8 value) { data = (ReadInstrumentSRAM(id, INST_RS3) << 6) | value; YM2612_writeReg(port, YM2612REG_OP3_RS_AR_CH0 + fmChannel, data); }
-    auto void write_ar4(u8 value) { data = (ReadInstrumentSRAM(id, INST_RS4) << 6) | value; YM2612_writeReg(port, YM2612REG_OP4_RS_AR_CH0 + fmChannel, data); }
+    auto void write_rs1(u8 value) { data = (value << 6) | ReadInstrumentSRAM(id, INST_AR1); YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH0 + fmChannel, data); }
+    auto void write_rs2(u8 value) { data = (value << 6) | ReadInstrumentSRAM(id, INST_AR2); YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH0 + fmChannel, data); }
+    auto void write_rs3(u8 value) { data = (value << 6) | ReadInstrumentSRAM(id, INST_AR3); YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH0 + fmChannel, data); }
+    auto void write_rs4(u8 value) { data = (value << 6) | ReadInstrumentSRAM(id, INST_AR4); YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH0 + fmChannel, data); }
+    auto void write_ar1(u8 value) { data = (ReadInstrumentSRAM(id, INST_RS1) << 6) | value; YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH0 + fmChannel, data); }
+    auto void write_ar2(u8 value) { data = (ReadInstrumentSRAM(id, INST_RS2) << 6) | value; YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH0 + fmChannel, data); }
+    auto void write_ar3(u8 value) { data = (ReadInstrumentSRAM(id, INST_RS3) << 6) | value; YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH0 + fmChannel, data); }
+    auto void write_ar4(u8 value) { data = (ReadInstrumentSRAM(id, INST_RS4) << 6) | value; YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH0 + fmChannel, data); }
 
     // DT, MUL (FM channels 0, 1, 2)
     // 1b - unused, 3b - DT1, 4b - MUL; DT1 = 1..-4+..8, MUL = 0..15
-    auto void write_mul1(u8 value) { data = (ReadInstrumentSRAM(id, INST_DT1) << 4) | value; YM2612_writeReg(port, YM2612REG_OP1_DT_MUL_CH0 + fmChannel, data); }
-    auto void write_mul2(u8 value) { data = (ReadInstrumentSRAM(id, INST_DT2) << 4) | value; YM2612_writeReg(port, YM2612REG_OP2_DT_MUL_CH0 + fmChannel, data); }
-    auto void write_mul3(u8 value) { data = (ReadInstrumentSRAM(id, INST_DT3) << 4) | value; YM2612_writeReg(port, YM2612REG_OP3_DT_MUL_CH0 + fmChannel, data); }
-    auto void write_mul4(u8 value) { data = (ReadInstrumentSRAM(id, INST_DT4) << 4) | value; YM2612_writeReg(port, YM2612REG_OP4_DT_MUL_CH0 + fmChannel, data); }
-    auto void write_dt1(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_MUL1); YM2612_writeReg(port, YM2612REG_OP1_DT_MUL_CH0 + fmChannel, data); }
-    auto void write_dt2(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_MUL2); YM2612_writeReg(port, YM2612REG_OP2_DT_MUL_CH0 + fmChannel, data); }
-    auto void write_dt3(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_MUL3); YM2612_writeReg(port, YM2612REG_OP3_DT_MUL_CH0 + fmChannel, data); }
-    auto void write_dt4(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_MUL4); YM2612_writeReg(port, YM2612REG_OP4_DT_MUL_CH0 + fmChannel, data); }
+    auto void write_mul1(u8 value) { data = (ReadInstrumentSRAM(id, INST_DT1) << 4) | value; YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH0 + fmChannel, data); }
+    auto void write_mul2(u8 value) { data = (ReadInstrumentSRAM(id, INST_DT2) << 4) | value; YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH0 + fmChannel, data); }
+    auto void write_mul3(u8 value) { data = (ReadInstrumentSRAM(id, INST_DT3) << 4) | value; YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH0 + fmChannel, data); }
+    auto void write_mul4(u8 value) { data = (ReadInstrumentSRAM(id, INST_DT4) << 4) | value; YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH0 + fmChannel, data); }
+    auto void write_dt1(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_MUL1); YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH0 + fmChannel, data); }
+    auto void write_dt2(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_MUL2); YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH0 + fmChannel, data); }
+    auto void write_dt3(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_MUL3); YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH0 + fmChannel, data); }
+    auto void write_dt4(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_MUL4); YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH0 + fmChannel, data); }
 
     // FB, ALG
     // 2b - unused, 3b (0..7) - FB, 3b - ALG (0..7)
-    auto void write_alg(u8 value) { data = (ReadInstrumentSRAM(id, INST_FB) << 3) | value; YM2612_writeReg(port, YM2612REG_FB_ALG_CH0 + fmChannel, data); }
-    auto void write_fb(u8 value) { data = (value << 3) | ReadInstrumentSRAM(id, INST_ALG); YM2612_writeReg(port, YM2612REG_FB_ALG_CH0 + fmChannel, data); }
+    auto void write_alg(u8 value) { data = (ReadInstrumentSRAM(id, INST_FB) << 3) | value; YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH0 + fmChannel, data); }
+    auto void write_fb(u8 value) { data = (value << 3) | ReadInstrumentSRAM(id, INST_ALG); YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH0 + fmChannel, data); }
 
     // PAN, AMS, FMS
     // 2b - PAN (1..3), 3b - AMS (0..7), 1b - unused, 2b - FMS (0..3)
     auto void write_pan(u8 value) { data = ((value << 6) | (ReadInstrumentSRAM(id, INST_FMS) << 3)) | ReadInstrumentSRAM(id, INST_AMS);
-        YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS_CH0 + fmChannel, data); }
+        YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH0 + fmChannel, data); }
     auto void write_ams(u8 value) { data = ((ReadInstrumentSRAM(id, INST_PAN) << 6) | value << 3) | ReadInstrumentSRAM(id, INST_AMS);
-        YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS_CH0 + fmChannel, data); }
+        YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH0 + fmChannel, data); }
     auto void write_fms(u8 value) { data = ((ReadInstrumentSRAM(id, INST_PAN) << 6) | (ReadInstrumentSRAM(id, INST_FMS) << 3)) | value;
-        YM2612_writeReg(port, YM2612REG_PAN_AMS_FMS_CH0 + fmChannel, data); }
+        YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH0 + fmChannel, data); }
 
     // AM, D1R
     // 1b - AM (0 or 1), 2b - unused, 5b - D1R (0..31)
-    auto void write_am1(u8 value) { data = (value << 7) | ReadInstrumentSRAM(id, INST_D1R1); YM2612_writeReg(port, YM2612REG_OP1_AM_D1R_CH0 + fmChannel, data); }
-    auto void write_am2(u8 value) { data = (value << 7) | ReadInstrumentSRAM(id, INST_D1R2); YM2612_writeReg(port, YM2612REG_OP2_AM_D1R_CH0 + fmChannel, data); }
-    auto void write_am3(u8 value) { data = (value << 7) | ReadInstrumentSRAM(id, INST_D1R3); YM2612_writeReg(port, YM2612REG_OP3_AM_D1R_CH0 + fmChannel, data); }
-    auto void write_am4(u8 value) { data = (value << 7) | ReadInstrumentSRAM(id, INST_D1R4); YM2612_writeReg(port, YM2612REG_OP4_AM_D1R_CH0 + fmChannel, data); }
-    auto void write_d1r1(u8 value) { data = (ReadInstrumentSRAM(id, INST_AM1) << 7) | value; YM2612_writeReg(port, YM2612REG_OP1_AM_D1R_CH0 + fmChannel, data); }
-    auto void write_d1r2(u8 value) { data = (ReadInstrumentSRAM(id, INST_AM2) << 7) | value; YM2612_writeReg(port, YM2612REG_OP2_AM_D1R_CH0 + fmChannel, data); }
-    auto void write_d1r3(u8 value) { data = (ReadInstrumentSRAM(id, INST_AM3) << 7) | value; YM2612_writeReg(port, YM2612REG_OP3_AM_D1R_CH0 + fmChannel, data); }
-    auto void write_d1r4(u8 value) { data = (ReadInstrumentSRAM(id, INST_AM4) << 7) | value; YM2612_writeReg(port, YM2612REG_OP4_AM_D1R_CH0 + fmChannel, data); }
+    auto void write_am1(u8 value) { data = (value << 7) | ReadInstrumentSRAM(id, INST_D1R1); YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH0 + fmChannel, data); }
+    auto void write_am2(u8 value) { data = (value << 7) | ReadInstrumentSRAM(id, INST_D1R2); YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH0 + fmChannel, data); }
+    auto void write_am3(u8 value) { data = (value << 7) | ReadInstrumentSRAM(id, INST_D1R3); YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH0 + fmChannel, data); }
+    auto void write_am4(u8 value) { data = (value << 7) | ReadInstrumentSRAM(id, INST_D1R4); YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH0 + fmChannel, data); }
+    auto void write_d1r1(u8 value) { data = (ReadInstrumentSRAM(id, INST_AM1) << 7) | value; YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH0 + fmChannel, data); }
+    auto void write_d1r2(u8 value) { data = (ReadInstrumentSRAM(id, INST_AM2) << 7) | value; YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH0 + fmChannel, data); }
+    auto void write_d1r3(u8 value) { data = (ReadInstrumentSRAM(id, INST_AM3) << 7) | value; YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH0 + fmChannel, data); }
+    auto void write_d1r4(u8 value) { data = (ReadInstrumentSRAM(id, INST_AM4) << 7) | value; YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH0 + fmChannel, data); }
 
     // SSG-EG
     // 4b - unused, 1b - enable, 3b - SSG-EG (0..7), <8 disable, 8>= enable and set
@@ -4214,28 +4138,28 @@ static void ApplyCommand(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // mat
     // | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
     // |---------------|---|---|---|---|
     // | /   /   /   / | E |ATT|ALT|HLD|
-    auto void write_ssgeg1(u8 value) { YM2612_writeReg(port, YM2612REG_OP1_SSGEG_CH0 + fmChannel, value); }
-    auto void write_ssgeg2(u8 value) { YM2612_writeReg(port, YM2612REG_OP2_SSGEG_CH0 + fmChannel, value); }
-    auto void write_ssgeg3(u8 value) { YM2612_writeReg(port, YM2612REG_OP3_SSGEG_CH0 + fmChannel, value); }
-    auto void write_ssgeg4(u8 value) { YM2612_writeReg(port, YM2612REG_OP4_SSGEG_CH0 + fmChannel, value); }
+    auto void write_ssgeg1(u8 value) { YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH0 + fmChannel, value); }
+    auto void write_ssgeg2(u8 value) { YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH0 + fmChannel, value); }
+    auto void write_ssgeg3(u8 value) { YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH0 + fmChannel, value); }
+    auto void write_ssgeg4(u8 value) { YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH0 + fmChannel, value); }
 
     // D1L, RR
     // 4b - D1L (0..15), 4b - RR (0..15)
-    auto void write_d1l1(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_RR1); YM2612_writeReg(port, YM2612REG_OP1_D1L_RR_CH0 + fmChannel, data); }
-    auto void write_d1l2(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_RR2); YM2612_writeReg(port, YM2612REG_OP2_D1L_RR_CH0 + fmChannel, data); }
-    auto void write_d1l3(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_RR3); YM2612_writeReg(port, YM2612REG_OP3_D1L_RR_CH0 + fmChannel, data); }
-    auto void write_d1l4(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_RR4); YM2612_writeReg(port, YM2612REG_OP4_D1L_RR_CH0 + fmChannel, data); }
-    auto void write_rr1(u8 value) { data = (ReadInstrumentSRAM(id, INST_D1L1) << 4) | value; YM2612_writeReg(port, YM2612REG_OP1_D1L_RR_CH0 + fmChannel, data); }
-    auto void write_rr2(u8 value) { data = (ReadInstrumentSRAM(id, INST_D1L2) << 4) | value; YM2612_writeReg(port, YM2612REG_OP2_D1L_RR_CH0 + fmChannel, data); }
-    auto void write_rr3(u8 value) { data = (ReadInstrumentSRAM(id, INST_D1L3) << 4) | value; YM2612_writeReg(port, YM2612REG_OP3_D1L_RR_CH0 + fmChannel, data); }
-    auto void write_rr4(u8 value) { data = (ReadInstrumentSRAM(id, INST_D1L4) << 4) | value; YM2612_writeReg(port, YM2612REG_OP4_D1L_RR_CH0 + fmChannel, data); }
+    auto void write_d1l1(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_RR1); YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH0 + fmChannel, data); }
+    auto void write_d1l2(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_RR2); YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH0 + fmChannel, data); }
+    auto void write_d1l3(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_RR3); YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH0 + fmChannel, data); }
+    auto void write_d1l4(u8 value) { data = (value << 4) | ReadInstrumentSRAM(id, INST_RR4); YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH0 + fmChannel, data); }
+    auto void write_rr1(u8 value) { data = (ReadInstrumentSRAM(id, INST_D1L1) << 4) | value; YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH0 + fmChannel, data); }
+    auto void write_rr2(u8 value) { data = (ReadInstrumentSRAM(id, INST_D1L2) << 4) | value; YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH0 + fmChannel, data); }
+    auto void write_rr3(u8 value) { data = (ReadInstrumentSRAM(id, INST_D1L3) << 4) | value; YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH0 + fmChannel, data); }
+    auto void write_rr4(u8 value) { data = (ReadInstrumentSRAM(id, INST_D1L4) << 4) | value; YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH0 + fmChannel, data); }
 
     // D2R
     // 3b - unused, 5b - D2R (0..31)
-    auto void write_d2r1(u8 value) { YM2612_writeReg(port, YM2612REG_OP1_D2R_CH0 + fmChannel, value); }
-    auto void write_d2r2(u8 value) { YM2612_writeReg(port, YM2612REG_OP2_D2R_CH0 + fmChannel, value); }
-    auto void write_d2r3(u8 value) { YM2612_writeReg(port, YM2612REG_OP3_D2R_CH0 + fmChannel, value); }
-    auto void write_d2r4(u8 value) { YM2612_writeReg(port, YM2612REG_OP4_D2R_CH0 + fmChannel, value); }
+    auto void write_d2r1(u8 value) { YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH0 + fmChannel, value); }
+    auto void write_d2r2(u8 value) { YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH0 + fmChannel, value); }
+    auto void write_d2r3(u8 value) { YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH0 + fmChannel, value); }
+    auto void write_d2r4(u8 value) { YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH0 + fmChannel, value); }
 
     if (matrixChannel < CHANNEL_PSG1) // FM channel
     {
@@ -4252,302 +4176,293 @@ static void ApplyCommand(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // mat
             break;
         }
 
-        if ((fxParam == 255) && (fxValue == 255)) //! WTF!!! this code will never run... but build is bugged without it
+        switch (fxParam)
         {
-            waitTick(1);
-        }
-        //else // FM only FX. write only one param
-        {
-        RequestZ80();
-            switch (fxParam)
-            {
 // ------------FM OP
-            // TOTAL LEVEL
-            case 0x01:
-                if (fxValue == 0) write_tl1(ReadInstrumentSRAM(id, INST_TL1));
-                else if (fxValue <= 128) { tmpInst[id].TL1 = fxValue - 1; write_tl1(tmpInst[id].TL1); }
-                break;
-            case 0x02:
-                if (fxValue == 0) write_tl2(ReadInstrumentSRAM(id, INST_TL2));
-                else if (fxValue <= 128) { tmpInst[id].TL2 = fxValue - 1; write_tl2(tmpInst[id].TL2); }
-                break;
-            case 0x03:
-                if (fxValue == 0) write_tl3(ReadInstrumentSRAM(id, INST_TL3));
-                else if (fxValue <= 128) { tmpInst[id].TL3 = fxValue - 1; write_tl3(tmpInst[id].TL3); }
-                break;
-            case 0x04:
-                if (fxValue == 0) write_tl4(ReadInstrumentSRAM(id, INST_TL4));
-                else if (fxValue <= 128) { tmpInst[id].TL4 = fxValue - 1; write_tl4(tmpInst[id].TL4); }
-                break;
+        // TOTAL LEVEL
+        case 0x01:
+            if (fxValue == 0) write_tl1(ReadInstrumentSRAM(id, INST_TL1));
+            else if (fxValue <= 128) { tmpInst[id].TL1 = fxValue - 1; write_tl1(tmpInst[id].TL1); }
+            break;
+        case 0x02:
+            if (fxValue == 0) write_tl2(ReadInstrumentSRAM(id, INST_TL2));
+            else if (fxValue <= 128) { tmpInst[id].TL2 = fxValue - 1; write_tl2(tmpInst[id].TL2); }
+            break;
+        case 0x03:
+            if (fxValue == 0) write_tl3(ReadInstrumentSRAM(id, INST_TL3));
+            else if (fxValue <= 128) { tmpInst[id].TL3 = fxValue - 1; write_tl3(tmpInst[id].TL3); }
+            break;
+        case 0x04:
+            if (fxValue == 0) write_tl4(ReadInstrumentSRAM(id, INST_TL4));
+            else if (fxValue <= 128) { tmpInst[id].TL4 = fxValue - 1; write_tl4(tmpInst[id].TL4); }
+            break;
 
-            // RATE SCALE
-            case 0x05:
-                if (fxValue == 0x10) write_rs1(ReadInstrumentSRAM(id, INST_RS1)); // reset
-                else if ((fxValue >= 0x11) && (fxValue <= 0x14)) { tmpInst[id].RS1 = fxValue - 0x11; write_rs1(tmpInst[id].RS1); }
+        // RATE SCALE
+        case 0x05:
+            if (fxValue == 0x10) write_rs1(ReadInstrumentSRAM(id, INST_RS1)); // reset
+            else if ((fxValue >= 0x11) && (fxValue <= 0x14)) { tmpInst[id].RS1 = fxValue - 0x11; write_rs1(tmpInst[id].RS1); }
 
-                else if (fxValue == 0x20) write_rs2(ReadInstrumentSRAM(id, INST_RS2));
-                else if ((fxValue >= 0x21) && (fxValue <= 0x24)) { tmpInst[id].RS2 = fxValue - 0x21; write_rs2(tmpInst[id].RS2); }
+            else if (fxValue == 0x20) write_rs2(ReadInstrumentSRAM(id, INST_RS2));
+            else if ((fxValue >= 0x21) && (fxValue <= 0x24)) { tmpInst[id].RS2 = fxValue - 0x21; write_rs2(tmpInst[id].RS2); }
 
-                else if (fxValue == 0x30) write_rs3(ReadInstrumentSRAM(id, INST_RS3));
-                else if ((fxValue >= 0x31) && (fxValue <= 0x34)) { tmpInst[id].RS3 = fxValue - 0x31; write_rs3(tmpInst[id].RS3); }
+            else if (fxValue == 0x30) write_rs3(ReadInstrumentSRAM(id, INST_RS3));
+            else if ((fxValue >= 0x31) && (fxValue <= 0x34)) { tmpInst[id].RS3 = fxValue - 0x31; write_rs3(tmpInst[id].RS3); }
 
-                else if (fxValue == 0x40) write_rs4(ReadInstrumentSRAM(id, INST_RS4));
-                else if ((fxValue >= 0x41) && (fxValue <= 0x44)) { tmpInst[id].RS4 = fxValue - 0x41; write_rs4(tmpInst[id].RS4); }
+            else if (fxValue == 0x40) write_rs4(ReadInstrumentSRAM(id, INST_RS4));
+            else if ((fxValue >= 0x41) && (fxValue <= 0x44)) { tmpInst[id].RS4 = fxValue - 0x41; write_rs4(tmpInst[id].RS4); }
 
-                else if (fxValue == 0x00 || fxValue == 0x50) // reset all
-                {
-                    write_rs1(ReadInstrumentSRAM(id, INST_RS1));
-                    write_rs2(ReadInstrumentSRAM(id, INST_RS2));
-                    write_rs3(ReadInstrumentSRAM(id, INST_RS3));
-                    write_rs4(ReadInstrumentSRAM(id, INST_RS4));
-                }
-                else if ((fxValue >= 0x51) && (fxValue <= 0x54))
-                {
-                    tmpInst[id].RS1 = tmpInst[id].RS2 = tmpInst[id].RS3 = tmpInst[id].RS4 = fxValue - 0x51;
-                    write_rs1(tmpInst[id].RS1);
-                    write_rs2(tmpInst[id].RS2);
-                    write_rs3(tmpInst[id].RS3);
-                    write_rs4(tmpInst[id].RS4);
-                }
-                break;
+            else if (fxValue == 0x00 || fxValue == 0x50) // reset all
+            {
+                write_rs1(ReadInstrumentSRAM(id, INST_RS1));
+                write_rs2(ReadInstrumentSRAM(id, INST_RS2));
+                write_rs3(ReadInstrumentSRAM(id, INST_RS3));
+                write_rs4(ReadInstrumentSRAM(id, INST_RS4));
+            }
+            else if ((fxValue >= 0x51) && (fxValue <= 0x54))
+            {
+                tmpInst[id].RS1 = tmpInst[id].RS2 = tmpInst[id].RS3 = tmpInst[id].RS4 = fxValue - 0x51;
+                write_rs1(tmpInst[id].RS1);
+                write_rs2(tmpInst[id].RS2);
+                write_rs3(tmpInst[id].RS3);
+                write_rs4(tmpInst[id].RS4);
+            }
+            break;
 
-            // MULTIPLIER
-            case 0x06:
-                if (fxValue == 0x01) write_mul1(ReadInstrumentSRAM(id, INST_MUL1)); // reset
-                else if ((fxValue >= 0x10) && (fxValue < 0x20)) { tmpInst[id].MUL1 = fxValue - 0x10; write_mul1(tmpInst[id].MUL1); }
+        // MULTIPLIER
+        case 0x06:
+            if (fxValue == 0x01) write_mul1(ReadInstrumentSRAM(id, INST_MUL1)); // reset
+            else if ((fxValue >= 0x10) && (fxValue < 0x20)) { tmpInst[id].MUL1 = fxValue - 0x10; write_mul1(tmpInst[id].MUL1); }
 
-                else if (fxValue == 0x02) write_mul1(ReadInstrumentSRAM(id, INST_MUL2));
-                else if ((fxValue >= 0x20) && (fxValue < 0x30)) { tmpInst[id].MUL2 = fxValue - 0x20; write_mul2(tmpInst[id].MUL2); }
+            else if (fxValue == 0x02) write_mul1(ReadInstrumentSRAM(id, INST_MUL2));
+            else if ((fxValue >= 0x20) && (fxValue < 0x30)) { tmpInst[id].MUL2 = fxValue - 0x20; write_mul2(tmpInst[id].MUL2); }
 
-                else if (fxValue == 0x03) write_mul1(ReadInstrumentSRAM(id, INST_MUL3));
-                else if ((fxValue >= 0x30) && (fxValue < 0x40)) { tmpInst[id].MUL3 = fxValue - 0x30; write_mul3(tmpInst[id].MUL3); }
+            else if (fxValue == 0x03) write_mul1(ReadInstrumentSRAM(id, INST_MUL3));
+            else if ((fxValue >= 0x30) && (fxValue < 0x40)) { tmpInst[id].MUL3 = fxValue - 0x30; write_mul3(tmpInst[id].MUL3); }
 
-                else if (fxValue == 0x04) write_mul1(ReadInstrumentSRAM(id, INST_MUL4));
-                else if ((fxValue >= 0x40) && (fxValue < 0x50)) { tmpInst[id].MUL4 = fxValue - 0x40; write_mul4(tmpInst[id].MUL4); }
+            else if (fxValue == 0x04) write_mul1(ReadInstrumentSRAM(id, INST_MUL4));
+            else if ((fxValue >= 0x40) && (fxValue < 0x50)) { tmpInst[id].MUL4 = fxValue - 0x40; write_mul4(tmpInst[id].MUL4); }
 
 
-                else if (fxValue == 0x00) // reset all
-                {
-                    write_mul1(ReadInstrumentSRAM(id, INST_MUL1));
-                    write_mul2(ReadInstrumentSRAM(id, INST_MUL2));
-                    write_mul3(ReadInstrumentSRAM(id, INST_MUL3));
-                    write_mul4(ReadInstrumentSRAM(id, INST_MUL4));
-                }
-                break;
+            else if (fxValue == 0x00) // reset all
+            {
+                write_mul1(ReadInstrumentSRAM(id, INST_MUL1));
+                write_mul2(ReadInstrumentSRAM(id, INST_MUL2));
+                write_mul3(ReadInstrumentSRAM(id, INST_MUL3));
+                write_mul4(ReadInstrumentSRAM(id, INST_MUL4));
+            }
+            break;
 
-            // DETUNE
-            case 0x07:
-                if (fxValue == 0x10) write_dt1(ReadInstrumentSRAM(id, INST_DT1));
-                else if ((fxValue >= 0x11) && (fxValue <= 0x18)) { tmpInst[id].DT1 = fxValue - 0x11; write_dt1(tmpInst[id].DT1); }
+        // DETUNE
+        case 0x07:
+            if (fxValue == 0x10) write_dt1(ReadInstrumentSRAM(id, INST_DT1));
+            else if ((fxValue >= 0x11) && (fxValue <= 0x18)) { tmpInst[id].DT1 = fxValue - 0x11; write_dt1(tmpInst[id].DT1); }
 
-                else if (fxValue == 0x20) write_dt2(ReadInstrumentSRAM(id, INST_DT2));
-                else if ((fxValue >= 0x21) && (fxValue <= 0x28)) { tmpInst[id].DT2 = fxValue - 0x21; write_dt2(tmpInst[id].DT2); }
+            else if (fxValue == 0x20) write_dt2(ReadInstrumentSRAM(id, INST_DT2));
+            else if ((fxValue >= 0x21) && (fxValue <= 0x28)) { tmpInst[id].DT2 = fxValue - 0x21; write_dt2(tmpInst[id].DT2); }
 
-                else if (fxValue == 0x30) write_dt3(ReadInstrumentSRAM(id, INST_DT3));
-                else if ((fxValue >= 0x31) && (fxValue <= 0x38)) { tmpInst[id].DT3 = fxValue - 0x31; write_dt3(tmpInst[id].DT3); }
+            else if (fxValue == 0x30) write_dt3(ReadInstrumentSRAM(id, INST_DT3));
+            else if ((fxValue >= 0x31) && (fxValue <= 0x38)) { tmpInst[id].DT3 = fxValue - 0x31; write_dt3(tmpInst[id].DT3); }
 
-                else if (fxValue == 0x40) write_dt4(ReadInstrumentSRAM(id, INST_DT4));
-                else if ((fxValue >= 0x41) && (fxValue <= 0x48)) { tmpInst[id].DT4 = fxValue - 0x41; write_dt4(tmpInst[id].DT4); }
+            else if (fxValue == 0x40) write_dt4(ReadInstrumentSRAM(id, INST_DT4));
+            else if ((fxValue >= 0x41) && (fxValue <= 0x48)) { tmpInst[id].DT4 = fxValue - 0x41; write_dt4(tmpInst[id].DT4); }
 
-                else if (fxValue == 0x00) // reset all
-                {
-                    write_dt1(ReadInstrumentSRAM(id, INST_DT1));
-                    write_dt2(ReadInstrumentSRAM(id, INST_DT2));
-                    write_dt3(ReadInstrumentSRAM(id, INST_DT3));
-                    write_dt4(ReadInstrumentSRAM(id, INST_DT4));
-                }
-                break;
+            else if (fxValue == 0x00) // reset all
+            {
+                write_dt1(ReadInstrumentSRAM(id, INST_DT1));
+                write_dt2(ReadInstrumentSRAM(id, INST_DT2));
+                write_dt3(ReadInstrumentSRAM(id, INST_DT3));
+                write_dt4(ReadInstrumentSRAM(id, INST_DT4));
+            }
+            break;
 
-            // ATTACK
-            case 0xA1: if (fxValue == 0) write_ar1(ReadInstrumentSRAM(id, INST_AR1));
-                else if (fxValue <= 0x20) { tmpInst[id].AR1 = fxValue; write_ar1(tmpInst[id].AR1); }
-                break;
-            case 0xA2: if (fxValue == 0) write_ar2(ReadInstrumentSRAM(id, INST_AR2));
-                else if (fxValue <= 0x20) { tmpInst[id].AR2 = fxValue; write_ar2(tmpInst[id].AR2); }
-                break;
-            case 0xA3: if (fxValue == 0) write_ar3(ReadInstrumentSRAM(id, INST_AR3));
-                else if (fxValue <= 0x20) { tmpInst[id].AR3 = fxValue; write_ar3(tmpInst[id].AR3); }
-                break;
-            case 0xA4: if (fxValue == 0) write_ar4(ReadInstrumentSRAM(id, INST_AR4));
-                else if (fxValue <= 0x20) { tmpInst[id].AR4 = fxValue; write_ar4(tmpInst[id].AR4); }
-                break;
+        // ATTACK
+        case 0xA1: if (fxValue == 0) write_ar1(ReadInstrumentSRAM(id, INST_AR1));
+            else if (fxValue <= 0x20) { tmpInst[id].AR1 = fxValue; write_ar1(tmpInst[id].AR1); }
+            break;
+        case 0xA2: if (fxValue == 0) write_ar2(ReadInstrumentSRAM(id, INST_AR2));
+            else if (fxValue <= 0x20) { tmpInst[id].AR2 = fxValue; write_ar2(tmpInst[id].AR2); }
+            break;
+        case 0xA3: if (fxValue == 0) write_ar3(ReadInstrumentSRAM(id, INST_AR3));
+            else if (fxValue <= 0x20) { tmpInst[id].AR3 = fxValue; write_ar3(tmpInst[id].AR3); }
+            break;
+        case 0xA4: if (fxValue == 0) write_ar4(ReadInstrumentSRAM(id, INST_AR4));
+            else if (fxValue <= 0x20) { tmpInst[id].AR4 = fxValue; write_ar4(tmpInst[id].AR4); }
+            break;
 
-            // DECAY 1
-            case 0xB1: if (fxValue == 0) write_d1r1(ReadInstrumentSRAM(id, INST_D1R1));
-                else if (fxValue <= 0x20) { tmpInst[id].D1R1 = fxValue; write_d1r1(tmpInst[id].D1R1); }
-                break;
-            case 0xB2: if (fxValue == 0) write_d1r2(ReadInstrumentSRAM(id, INST_D1R2));
-                else if (fxValue <= 0x20) { tmpInst[id].D1R2 = fxValue; write_d1r2(tmpInst[id].D1R2); }
-                break;
-            case 0xB3: if (fxValue == 0) write_d1r3(ReadInstrumentSRAM(id, INST_D1R3));
-                else if (fxValue <= 0x20) { tmpInst[id].D1R3 = fxValue; write_d1r3(tmpInst[id].D1R3); }
-                break;
-            case 0xB4: if (fxValue == 0) write_d1r4(ReadInstrumentSRAM(id, INST_D1R4));
-                else if (fxValue <= 0x20) { tmpInst[id].D1R4 = fxValue; write_d1r4(tmpInst[id].D1R4); }
-                break;
+        // DECAY 1
+        case 0xB1: if (fxValue == 0) write_d1r1(ReadInstrumentSRAM(id, INST_D1R1));
+            else if (fxValue <= 0x20) { tmpInst[id].D1R1 = fxValue; write_d1r1(tmpInst[id].D1R1); }
+            break;
+        case 0xB2: if (fxValue == 0) write_d1r2(ReadInstrumentSRAM(id, INST_D1R2));
+            else if (fxValue <= 0x20) { tmpInst[id].D1R2 = fxValue; write_d1r2(tmpInst[id].D1R2); }
+            break;
+        case 0xB3: if (fxValue == 0) write_d1r3(ReadInstrumentSRAM(id, INST_D1R3));
+            else if (fxValue <= 0x20) { tmpInst[id].D1R3 = fxValue; write_d1r3(tmpInst[id].D1R3); }
+            break;
+        case 0xB4: if (fxValue == 0) write_d1r4(ReadInstrumentSRAM(id, INST_D1R4));
+            else if (fxValue <= 0x20) { tmpInst[id].D1R4 = fxValue; write_d1r4(tmpInst[id].D1R4); }
+            break;
 
-            // SUSTAIN
-            case 0xC1: if (fxValue == 0) write_d1l1(ReadInstrumentSRAM(id, INST_D1L1));
-                else if (fxValue <= 0x10) { tmpInst[id].D1L1 = fxValue; write_d1l1(tmpInst[id].D1L1); }
-                break;
-            case 0xC2: if (fxValue == 0) write_d1l2(ReadInstrumentSRAM(id, INST_D1L2));
-                else if (fxValue <= 0x10) { tmpInst[id].D1L2 = fxValue; write_d1l2(tmpInst[id].D1L2); }
-                break;
-            case 0xC3: if (fxValue == 0) write_d1l3(ReadInstrumentSRAM(id, INST_D1L3));
-                else if (fxValue <= 0x10) { tmpInst[id].D1L3 = fxValue; write_d1l3(tmpInst[id].D1L3); }
-                break;
-            case 0xC4: if (fxValue == 0) write_d1l4(ReadInstrumentSRAM(id, INST_D1L4));
-                else if (fxValue <= 0x10) { tmpInst[id].D1L4 = fxValue; write_d1l4(tmpInst[id].D1L4); }
-                break;
+        // SUSTAIN
+        case 0xC1: if (fxValue == 0) write_d1l1(ReadInstrumentSRAM(id, INST_D1L1));
+            else if (fxValue <= 0x10) { tmpInst[id].D1L1 = fxValue; write_d1l1(tmpInst[id].D1L1); }
+            break;
+        case 0xC2: if (fxValue == 0) write_d1l2(ReadInstrumentSRAM(id, INST_D1L2));
+            else if (fxValue <= 0x10) { tmpInst[id].D1L2 = fxValue; write_d1l2(tmpInst[id].D1L2); }
+            break;
+        case 0xC3: if (fxValue == 0) write_d1l3(ReadInstrumentSRAM(id, INST_D1L3));
+            else if (fxValue <= 0x10) { tmpInst[id].D1L3 = fxValue; write_d1l3(tmpInst[id].D1L3); }
+            break;
+        case 0xC4: if (fxValue == 0) write_d1l4(ReadInstrumentSRAM(id, INST_D1L4));
+            else if (fxValue <= 0x10) { tmpInst[id].D1L4 = fxValue; write_d1l4(tmpInst[id].D1L4); }
+            break;
 
-            // DECAY 2
-            case 0xD1: if (fxValue == 0) write_d2r1(ReadInstrumentSRAM(id, INST_D2R1));
-                else if (fxValue <= 0x20) { tmpInst[id].D2R1 = fxValue; write_d2r1(tmpInst[id].D2R1); }
-                break;
-            case 0xD2: if (fxValue == 0) write_d2r2(ReadInstrumentSRAM(id, INST_D2R2));
-                else if (fxValue <= 0x20) { tmpInst[id].D2R2 = fxValue; write_d2r2(tmpInst[id].D2R2); }
-                break;
-            case 0xD3: if (fxValue == 0) write_d2r3(ReadInstrumentSRAM(id, INST_D2R3));
-                else if (fxValue <= 0x20) { tmpInst[id].D2R3 = fxValue; write_d2r3(tmpInst[id].D2R3); }
-                break;
-            case 0xD4: if (fxValue == 0) write_d2r4(ReadInstrumentSRAM(id, INST_D2R4));
-                else if (fxValue <= 0x20) { tmpInst[id].D2R4 = fxValue; write_d2r4(tmpInst[id].D2R4); }
-                break;
+        // DECAY 2
+        case 0xD1: if (fxValue == 0) write_d2r1(ReadInstrumentSRAM(id, INST_D2R1));
+            else if (fxValue <= 0x20) { tmpInst[id].D2R1 = fxValue; write_d2r1(tmpInst[id].D2R1); }
+            break;
+        case 0xD2: if (fxValue == 0) write_d2r2(ReadInstrumentSRAM(id, INST_D2R2));
+            else if (fxValue <= 0x20) { tmpInst[id].D2R2 = fxValue; write_d2r2(tmpInst[id].D2R2); }
+            break;
+        case 0xD3: if (fxValue == 0) write_d2r3(ReadInstrumentSRAM(id, INST_D2R3));
+            else if (fxValue <= 0x20) { tmpInst[id].D2R3 = fxValue; write_d2r3(tmpInst[id].D2R3); }
+            break;
+        case 0xD4: if (fxValue == 0) write_d2r4(ReadInstrumentSRAM(id, INST_D2R4));
+            else if (fxValue <= 0x20) { tmpInst[id].D2R4 = fxValue; write_d2r4(tmpInst[id].D2R4); }
+            break;
 
-            // RELEASE
-            case 0xE1: if (fxValue == 0) write_rr1(ReadInstrumentSRAM(id, INST_RR1));
-                else if (fxValue <= 0x10) { tmpInst[id].RR1 = fxValue; write_rr1(tmpInst[id].RR1); }
-                break;
-            case 0xE2: if (fxValue == 0) write_rr2(ReadInstrumentSRAM(id, INST_RR2));
-                else if (fxValue <= 0x10) { tmpInst[id].RR2 = fxValue; write_rr2(tmpInst[id].RR2); }
-                break;
-            case 0xE3: if (fxValue == 0) write_rr3(ReadInstrumentSRAM(id, INST_RR3));
-                else if (fxValue <= 0x10) { tmpInst[id].RR3 = fxValue; write_rr3(tmpInst[id].RR3); }
-                break;
-            case 0xE4: if (fxValue == 0) write_rr4(ReadInstrumentSRAM(id, INST_RR4));
-                else if (fxValue <= 0x10) { tmpInst[id].RR4 = fxValue; write_rr4(tmpInst[id].RR4); }
-                break;
+        // RELEASE
+        case 0xE1: if (fxValue == 0) write_rr1(ReadInstrumentSRAM(id, INST_RR1));
+            else if (fxValue <= 0x10) { tmpInst[id].RR1 = fxValue; write_rr1(tmpInst[id].RR1); }
+            break;
+        case 0xE2: if (fxValue == 0) write_rr2(ReadInstrumentSRAM(id, INST_RR2));
+            else if (fxValue <= 0x10) { tmpInst[id].RR2 = fxValue; write_rr2(tmpInst[id].RR2); }
+            break;
+        case 0xE3: if (fxValue == 0) write_rr3(ReadInstrumentSRAM(id, INST_RR3));
+            else if (fxValue <= 0x10) { tmpInst[id].RR3 = fxValue; write_rr3(tmpInst[id].RR3); }
+            break;
+        case 0xE4: if (fxValue == 0) write_rr4(ReadInstrumentSRAM(id, INST_RR4));
+            else if (fxValue <= 0x10) { tmpInst[id].RR4 = fxValue; write_rr4(tmpInst[id].RR4); }
+            break;
 
-            // AMPLITUDE MODULATION
-            case 0x08:
-                switch(fxValue)
-                {
-                    case 0x10: write_am1(ReadInstrumentSRAM(id, INST_AM1));
-                        break;
-                    case 0x11: { tmpInst[id].AM1 = 1; write_am1(1); }
-                        break;
-                    case 0x12: { tmpInst[id].AM1 = 0; write_am1(0); }
-                        break;
-                    case 0x20: write_am2(ReadInstrumentSRAM(id, INST_AM2));
-                        break;
-                    case 0x21: { tmpInst[id].AM2 = 1; write_am2(1); }
-                        break;
-                    case 0x22: { tmpInst[id].AM2 = 0; write_am2(0); }
-                        break;
-                    case 0x30: write_am3(ReadInstrumentSRAM(id, INST_AM3));
-                        break;
-                    case 0x31: { tmpInst[id].AM3 = 1; write_am3(1); }
-                        break;
-                    case 0x32: { tmpInst[id].AM3 = 0; write_am3(0); }
-                        break;
-                    case 0x40: write_am4(ReadInstrumentSRAM(id, INST_AM4));
-                        break;
-                    case 0x41: { tmpInst[id].AM4 = 1; write_am4(1); }
-                        break;
-                    case 0x42: { tmpInst[id].AM4 = 0; write_am4(0); }
-                        break;
-                    case 0x00: case 0x50:
-                        write_am1(ReadInstrumentSRAM(id, INST_AM1));
-                        write_am2(ReadInstrumentSRAM(id, INST_AM2));
-                        write_am3(ReadInstrumentSRAM(id, INST_AM3));
-                        write_am4(ReadInstrumentSRAM(id, INST_AM4));
-                        break;
-                    case 0x51:
-                        tmpInst[id].AM1 = tmpInst[id].AM2 = tmpInst[id].AM3 = tmpInst[id].AM4 = 1;
-                        write_am1(1); write_am2(1); write_am3(1); write_am4(1);
-                        break;
-                    case 0x52:
-                        tmpInst[id].AM1 = tmpInst[id].AM2 = tmpInst[id].AM3 = tmpInst[id].AM4 = 0;
-                        write_am1(0); write_am2(0); write_am3(0); write_am4(0);
-                        break;
-                }
-                break;
+        // AMPLITUDE MODULATION
+        case 0x08:
+            switch(fxValue)
+            {
+                case 0x10: write_am1(ReadInstrumentSRAM(id, INST_AM1));
+                    break;
+                case 0x11: { tmpInst[id].AM1 = 1; write_am1(1); }
+                    break;
+                case 0x12: { tmpInst[id].AM1 = 0; write_am1(0); }
+                    break;
+                case 0x20: write_am2(ReadInstrumentSRAM(id, INST_AM2));
+                    break;
+                case 0x21: { tmpInst[id].AM2 = 1; write_am2(1); }
+                    break;
+                case 0x22: { tmpInst[id].AM2 = 0; write_am2(0); }
+                    break;
+                case 0x30: write_am3(ReadInstrumentSRAM(id, INST_AM3));
+                    break;
+                case 0x31: { tmpInst[id].AM3 = 1; write_am3(1); }
+                    break;
+                case 0x32: { tmpInst[id].AM3 = 0; write_am3(0); }
+                    break;
+                case 0x40: write_am4(ReadInstrumentSRAM(id, INST_AM4));
+                    break;
+                case 0x41: { tmpInst[id].AM4 = 1; write_am4(1); }
+                    break;
+                case 0x42: { tmpInst[id].AM4 = 0; write_am4(0); }
+                    break;
+                case 0x00: case 0x50:
+                    write_am1(ReadInstrumentSRAM(id, INST_AM1));
+                    write_am2(ReadInstrumentSRAM(id, INST_AM2));
+                    write_am3(ReadInstrumentSRAM(id, INST_AM3));
+                    write_am4(ReadInstrumentSRAM(id, INST_AM4));
+                    break;
+                case 0x51:
+                    tmpInst[id].AM1 = tmpInst[id].AM2 = tmpInst[id].AM3 = tmpInst[id].AM4 = 1;
+                    write_am1(1); write_am2(1); write_am3(1); write_am4(1);
+                    break;
+                case 0x52:
+                    tmpInst[id].AM1 = tmpInst[id].AM2 = tmpInst[id].AM3 = tmpInst[id].AM4 = 0;
+                    write_am1(0); write_am2(0); write_am3(0); write_am4(0);
+                    break;
+            }
+            break;
 
-            // SSG-EG
-            case 0x09:
-                if (fxValue == 0x10) write_ssgeg1(ReadInstrumentSRAM(id, INST_SSGEG1));
-                else if ((fxValue >= 0x11) && (fxValue <= 0x19)) { tmpInst[id].SSGEG1 = fxValue - 0x0A; write_ssgeg1(tmpInst[id].SSGEG1); }
+        // SSG-EG
+        case 0x09:
+            if (fxValue == 0x10) write_ssgeg1(ReadInstrumentSRAM(id, INST_SSGEG1));
+            else if ((fxValue >= 0x11) && (fxValue <= 0x19)) { tmpInst[id].SSGEG1 = fxValue - 0x0A; write_ssgeg1(tmpInst[id].SSGEG1); }
 
-                else if (fxValue == 0x20) write_ssgeg2(ReadInstrumentSRAM(id, INST_SSGEG2));
-                else if ((fxValue >= 0x21) && (fxValue <= 0x29)) { tmpInst[id].SSGEG2 = fxValue - 0x1A; write_ssgeg2(tmpInst[id].SSGEG2); }
+            else if (fxValue == 0x20) write_ssgeg2(ReadInstrumentSRAM(id, INST_SSGEG2));
+            else if ((fxValue >= 0x21) && (fxValue <= 0x29)) { tmpInst[id].SSGEG2 = fxValue - 0x1A; write_ssgeg2(tmpInst[id].SSGEG2); }
 
-                else if (fxValue == 0x30) write_ssgeg3(ReadInstrumentSRAM(id, INST_SSGEG3));
-                else if ((fxValue >= 0x31) && (fxValue <= 0x39)) { tmpInst[id].SSGEG3 = fxValue - 0x2A; write_ssgeg3(tmpInst[id].SSGEG3); }
+            else if (fxValue == 0x30) write_ssgeg3(ReadInstrumentSRAM(id, INST_SSGEG3));
+            else if ((fxValue >= 0x31) && (fxValue <= 0x39)) { tmpInst[id].SSGEG3 = fxValue - 0x2A; write_ssgeg3(tmpInst[id].SSGEG3); }
 
-                else if (fxValue == 0x40) write_ssgeg4(ReadInstrumentSRAM(id, INST_SSGEG4));
-                else if ((fxValue >= 0x41) && (fxValue <= 0x49)) { tmpInst[id].SSGEG4 = fxValue - 0x3A; write_ssgeg4(tmpInst[id].SSGEG4); }
+            else if (fxValue == 0x40) write_ssgeg4(ReadInstrumentSRAM(id, INST_SSGEG4));
+            else if ((fxValue >= 0x41) && (fxValue <= 0x49)) { tmpInst[id].SSGEG4 = fxValue - 0x3A; write_ssgeg4(tmpInst[id].SSGEG4); }
 
-                else if (fxValue == 0x00 || fxValue == 0x50) // reset all
-                {
-                    write_ssgeg1(ReadInstrumentSRAM(id, INST_SSGEG1));
-                    write_ssgeg2(ReadInstrumentSRAM(id, INST_SSGEG2));
-                    write_ssgeg3(ReadInstrumentSRAM(id, INST_SSGEG3));
-                    write_ssgeg4(ReadInstrumentSRAM(id, INST_SSGEG4));
-                }
-                else if ((fxValue >= 0x51) && (fxValue <= 0x59))
-                {
-                    tmpInst[id].SSGEG1 = tmpInst[id].SSGEG2 = tmpInst[id].SSGEG3 = tmpInst[id].SSGEG4 = fxValue - 0x4A;
-                    write_ssgeg1(tmpInst[id].SSGEG1);
-                    write_ssgeg2(tmpInst[id].SSGEG2);
-                    write_ssgeg3(tmpInst[id].SSGEG3);
-                    write_ssgeg4(tmpInst[id].SSGEG4);
-                }
-                break;
+            else if (fxValue == 0x00 || fxValue == 0x50) // reset all
+            {
+                write_ssgeg1(ReadInstrumentSRAM(id, INST_SSGEG1));
+                write_ssgeg2(ReadInstrumentSRAM(id, INST_SSGEG2));
+                write_ssgeg3(ReadInstrumentSRAM(id, INST_SSGEG3));
+                write_ssgeg4(ReadInstrumentSRAM(id, INST_SSGEG4));
+            }
+            else if ((fxValue >= 0x51) && (fxValue <= 0x59))
+            {
+                tmpInst[id].SSGEG1 = tmpInst[id].SSGEG2 = tmpInst[id].SSGEG3 = tmpInst[id].SSGEG4 = fxValue - 0x4A;
+                write_ssgeg1(tmpInst[id].SSGEG1);
+                write_ssgeg2(tmpInst[id].SSGEG2);
+                write_ssgeg3(tmpInst[id].SSGEG3);
+                write_ssgeg4(tmpInst[id].SSGEG4);
+            }
+            break;
 // ------------FM GENERAL
-            // ALGORITHM
-            case 0x0A:
-                if (fxValue == 0) write_alg(ReadInstrumentSRAM(id, INST_ALG));
-                else if (fxValue < 9) { tmpInst[id].ALG = fxValue - 1; write_alg(tmpInst[id].ALG); }
-                break;
+        // ALGORITHM
+        case 0x0A:
+            if (fxValue == 0) write_alg(ReadInstrumentSRAM(id, INST_ALG));
+            else if (fxValue < 9) { tmpInst[id].ALG = fxValue - 1; write_alg(tmpInst[id].ALG); }
+            break;
 
-            // OP1 FEEDBACK
-            case 0x0B:
-                if (fxValue == 0) write_fb(ReadInstrumentSRAM(id, INST_FB));
-                else if (fxValue < 9) { tmpInst[id].FB = fxValue - 1; write_fb(tmpInst[id].FB); }
-                break;
+        // OP1 FEEDBACK
+        case 0x0B:
+            if (fxValue == 0) write_fb(ReadInstrumentSRAM(id, INST_FB));
+            else if (fxValue < 9) { tmpInst[id].FB = fxValue - 1; write_fb(tmpInst[id].FB); }
+            break;
 
-            // AMS
-            case 0x0C:
-                if (fxValue == 0) write_ams(ReadInstrumentSRAM(id, INST_FMS));
-                else if (fxValue < 8) { tmpInst[id].AMS = fxValue; write_ams(tmpInst[id].AMS); }
-                else if (fxValue == 0x0F) { tmpInst[id].AMS = 0; write_ams(0); }
-                break;
+        // AMS
+        case 0x0C:
+            if (fxValue == 0) write_ams(ReadInstrumentSRAM(id, INST_FMS));
+            else if (fxValue < 8) { tmpInst[id].AMS = fxValue; write_ams(tmpInst[id].AMS); }
+            else if (fxValue == 0x0F) { tmpInst[id].AMS = 0; write_ams(0); }
+            break;
 
-            // FMS
-            case 0x0D:
-                if (fxValue == 0) write_fms(ReadInstrumentSRAM(id, INST_AMS));
-                else if (fxValue < 4) { tmpInst[id].FMS = fxValue; write_fms(tmpInst[id].FMS); }
-                else if (fxValue == 0x0F) { tmpInst[id].FMS = 0; write_fms(0); }
-                break;
+        // FMS
+        case 0x0D:
+            if (fxValue == 0) write_fms(ReadInstrumentSRAM(id, INST_AMS));
+            else if (fxValue < 4) { tmpInst[id].FMS = fxValue; write_fms(tmpInst[id].FMS); }
+            else if (fxValue == 0x0F) { tmpInst[id].FMS = 0; write_fms(0); }
+            break;
 
-            // PAN
-            case 0x0E:
-                switch (fxValue)
-                {
-                case 0x00: write_pan(ReadInstrumentSRAM(id, INST_PAN));
-                    break;
-                case 0x10: tmpInst[id].PAN = 2; write_pan(2); if (matrixChannel == CHANNEL_FM6_DAC) dacPan = SOUND_PAN_LEFT;
-                    break;
-                case 0x01: tmpInst[id].PAN = 1; write_pan(1); if (matrixChannel == CHANNEL_FM6_DAC) dacPan = SOUND_PAN_RIGHT;
-                    break;
-                case 0x11: tmpInst[id].PAN = 3; write_pan(3); if (matrixChannel == CHANNEL_FM6_DAC) dacPan = SOUND_PAN_CENTER;
-                    break;
-                case 0xFF: tmpInst[id].PAN = 0; write_pan(0);
-                    break;
-                }
+        // PAN
+        case 0x0E:
+            switch (fxValue)
+            {
+            case 0x00: write_pan(ReadInstrumentSRAM(id, INST_PAN));
+                break;
+            case 0x10: tmpInst[id].PAN = 2; write_pan(2); if (matrixChannel == CHANNEL_FM6_DAC) dacPan = SOUND_PAN_LEFT;
+                break;
+            case 0x01: tmpInst[id].PAN = 1; write_pan(1); if (matrixChannel == CHANNEL_FM6_DAC) dacPan = SOUND_PAN_RIGHT;
+                break;
+            case 0x11: tmpInst[id].PAN = 3; write_pan(3); if (matrixChannel == CHANNEL_FM6_DAC) dacPan = SOUND_PAN_CENTER;
+                break;
+            case 0xFF: tmpInst[id].PAN = 0; write_pan(0);
                 break;
             }
-        ReleaseZ80();
+            break;
         }
     }
     else if (matrixChannel > CHANNEL_FM6_DAC) // PSG only FX
@@ -4590,16 +4505,12 @@ static void ApplyCommand(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // mat
     case 0x11:
         if (fxValue == 0x00)
         {
-            RequestZ80();
-                YM2612_disableDAC();
-            ReleaseZ80();
+            RequestZ80(); YM2612_disableDAC(); ReleaseZ80();
             bDAC_enable = FALSE;
         }
         else if (fxValue == 0x01)
         {
-            RequestZ80();
-                YM2612_enableDAC();
-            ReleaseZ80();
+            RequestZ80(); YM2612_enableDAC(); ReleaseZ80();
             bDAC_enable = TRUE;
         }
         break;
@@ -4609,9 +4520,7 @@ static void ApplyCommand(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // mat
         if (fxValue == 0) ch3Mode = CH3_NORMAL; // special
         else if (fxValue == 1) ch3Mode = CH3_SPECIAL; // normal
         else if (fxValue == 2) ch3Mode = CH3_SPECIAL_CSM; // special+CSM
-        RequestZ80();
-            YM2612_writeReg(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00001111);
-        ReleaseZ80();
+        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00001111);
         break;
 
     // TEMPO
@@ -4971,6 +4880,11 @@ static void WriteSampleRegionSRAM(u8 bank, u8 note, u8 byteNum, u8 data)
     SRAMW_writeByte((u32)SAMPLE_DATA + (bank * MAX_NOTES * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum, data);
 }
 
+void YM2612_writeRegZ80(const u16 part, const u8 reg, const u8 data)
+{
+    RequestZ80(); YM2612_writeReg(part, reg, data); ReleaseZ80();
+}
+
 static void InitTracker()
 {
     SYS_disableInts();
@@ -5097,7 +5011,6 @@ static void InitTracker()
     Z80_loadDriver(Z80_DRIVER_PCM, TRUE);
 
 	// Game-pad
-	JOY_reset();
     JOY_setSupport(PORT_1, JOY_SUPPORT_6BTN);
     JOY_setSupport(PORT_2, JOY_SUPPORT_6BTN);
     // init

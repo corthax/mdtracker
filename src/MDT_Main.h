@@ -140,6 +140,8 @@ static void JoyEvent(u16 joy, u16 changed, u16 state);
 void hIntCallback();
 void vIntCallback();
 
+void YM2612_writeRegZ80(const u16 part, const u8 reg, const u8 data);
+
 // temporal instrument storage
 struct Instrument
 {

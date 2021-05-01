@@ -50,9 +50,9 @@ PSG:	A4 = 440.39677657480314 Hz (NTSC)
 		Frequency number of all microtones of A#7 is 1, B-7 is 0.
 
 1 .. 16 pulses per pattern row.
-BPM is rounded, but close to exact. Has less resolution at higher values.
+BPM is rounded, has less resolution at higher values.
 Song data is automatically saved to SRAM at any parameter change.
-SRAM used as additional RAM, but only holds the module data.
+SRAM used as additional RAM, but only contains the module data.
 
 ----------------
 Global Controls
@@ -152,10 +152,9 @@ Setting instrument explicitly rewrites the channel's FM registers, if there are 
 	
 	Multi-edit: [NOT IMPLEMENTED]
 	
-	Z+R		Link cell for multi-edit.
-	Z+L		Un-link cell.
-	Z+U		Link all cells of the same type.
-	Z+D		Un-link all cells.
+	Z		Link/Un-link cell for multi-edit.
+	Z+A		Link all cells of the same type.
+	Z+B		Un-link all cells.
 '
 
 ----------------
@@ -187,19 +186,17 @@ Instrument Editor
 	A+L		Change value (-1).
 	A+U		Change value (+4).
 	A+D		Change value (-4).
-	
-	Multi-edit: [NOT IMPLEMENTED]
-	
-	Y+L		Mark/Un-mark FM OP1 for multi-edit.
-	Y+R		Mark/Un-mark FM OP2 for multi-edit.
-	Y+U		Mark/Un-mark FM OP3 for multi-edit.
-	Y+D		Mark/Un-mark FM OP4 for multi-edit.
 
-	Z+L/R	Select instrument for editing (+-1).
-	Z+U/D	Select instrument for editing (+-16).
+	Y+L/R	Select instrument for editing (+-1).
+	Y+U/D	Select instrument for editing (+-16).
 
 	A+L/R	Change value (+-1).
 	A+U/D	Change value (+-4).
+	
+	Multi-edit: [NOT IMPLEMENTED]
+	
+	Z		Link/Un-link parameter for multi-edit.
+	Z+B		Un-link all parameters.
 
 	There are two 16 step instrument sequencers there, ARP and VOL.
 
@@ -254,29 +251,30 @@ xx: 01 .. 08; Frequency Hz: 3.82, 5.33, 5.77, 6.11, 6.60, 9.23, 46.11, 69.22
 --: to disable Global LFO.
 
 ************************************************
-DAC
+DAC (enabled by default)
 	11xx	
 xx: 01 = Enable DAC.
+--: to disable DAC.
+
 //////////////////
 WARNING
 //////////////////
 	FM registers writes/reads (instrument changes, timers pooling, etc) needs to bus request the Z80, which running the PCM driver.
 	Speed of played sample may be affected if there are too many parameter changes at the same tick.
 //////////////////
+
 	Reserved space for DAC data in ROM (This range may change on next versions).
 	
-	DAC ROM Samples region:
-		START:	027E00
-		END:	18A300
+	DAC ROM Samples region: (do not overlap the end or rom will be corrupted)
+		START:	028600
+		END:	18AB00
 	
-	Sample format: RAW (header-less), Signed 8 bit PCM
+	Sample format: RAW (header-less), Signed 8 bit PCM, 32000 hz
 		
 	With any hex editor overwrite that range with your samples.
 	Then assign ranges to keys inside instrument editor SAMPLE section.
 	
 	Audacity can be used to figure out the exact samples start and end (sample number == adress, just convert to HEX).
-	
---: to disable DAC.
 
 ************************************************
 FM3 Channel Mode
