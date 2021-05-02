@@ -103,44 +103,36 @@
 //const char *noteNames[12] = { "C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-" };
 //const char *alphabet[38] = {"-", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W",
 //"X", "Y", "Z", " ", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
-
-static void InitTracker();
-static void DoEngine();
-
-static void SetPitchFM(u8 matrixChannel, u8 note);
-static void SetPitchPSG(u8 matrixChannel, u8 note);
-
-static void PlayNote(u8 note, u8 matrixChannel);
-static void StopChannelSound(u8 matrixChannel);
-static void StopAllSound();
-static void StopEffects(u8 matrixChannel);
-static void InitGlobals(); // lfo, dac, ch3
-static void SetGlobalLFO(u8 freq);
-static void SetChannelVolume(u8 channel);
-static void SetBPM(u16 counter);
-
-static void WriteYM2612(u8 matrixChannel, u8 id);
-static void ApplyCommand(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue);
-static void CacheIstrumentToRAM(u8 id);
-
-static void ChangeInstrumentParameter(s8 modifier);
-static void ChangePatternParameter(s8 note, s8 par);
-static void ChangeMatrixValue(s8 mod);
-
-static void RequestZ80();
-static void ReleaseZ80();
-
+void InitTracker();
 void DrawText(u8 plane, u8 pal, const char *str, u8 x, u8 y);
 void DrawNum(u8 plane, u8 pal, const char *str, u8 x, u8 y);
 void DrawHex2(u8 pal, u16 number, u8 x, u8 y);
 void FillRowRight(u8 plane, u8 pal, u8 flipV, u8 flipH, u8 guiSymbol, u8 fillCount, u8 startX, u8 y);
 
+static void DoEngine();
+static void SetPitchFM(u8 matrixChannel, u8 note);
+static void SetPitchPSG(u8 matrixChannel, u8 note);
+static void PlayNote(u8 note, u8 matrixChannel);
+static void StopChannelSound(u8 matrixChannel);
+static void StopAllSound();
+static void StopEffects(u8 matrixChannel);
+static void SetGlobalLFO(u8 freq);
+static void SetChannelVolume(u8 channel);
+static void SetBPM(u16 counter);
+static void WriteYM2612(u8 matrixChannel, u8 id);
+static void CacheIstrumentToRAM(u8 id);
+static void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue);
+static void ApplyCommand_Common(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue);
+static void ApplyCommand_PSG(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue);
+static void ChangeInstrumentParameter(s8 modifier);
+static void ChangePatternParameter(s8 note, s8 par);
+static void ChangeMatrixValue(s8 mod);
+static void RequestZ80();
+static void ReleaseZ80();
 static void JoyEvent(u16 joy, u16 changed, u16 state);
-
-void hIntCallback();
-void vIntCallback();
-
-void YM2612_writeRegZ80(const u16 part, const u8 reg, const u8 data);
+static void hIntCallback();
+static void vIntCallback();
+static void YM2612_writeRegZ80(u16 part, u8 reg, u8 data);
 
 // temporal instrument storage
 struct Instrument

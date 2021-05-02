@@ -117,7 +117,7 @@
 #define GUI_SLASH                   24
 #define GUI_LOWLINE                 25
 #define GUI_MUTE                    26
-#define GUI_EMPTY                   27
+#define GUI_DOUBLEZERO              27
 #define GUI_PLAYCURSOR              28
 #define GUI_ARROW                   29
 #define GUI_CURSOR                  30
@@ -176,21 +176,17 @@
 #define GUI_NAVIGATION_DELAY            15
 #define GUI_PATTERN_COLORS_MAX          13
 
-void DisplayPatternMatrix();
-void DisplayPatternEditor();
-void DisplayInstrumentEditor();
-
 void DrawStaticHeaders();
-void DrawSelectionCursor(u8 x, u8 y, u8 bClear);
 
-void DrawMatrixPlaybackCursor();
-void ClearMatrixPlaybackCursor();
-void ClearPatternPlaybackCursor();
-void DrawPatternPlaybackCursor();
-
-void NavigateMatrix(u8 direction);
-void NavigatePattern(u8 direction);
-void NavigateInstrument(u8 direction);
-
-void RefreshPatternColors();
+static void DisplayPatternMatrix();
+static void DisplayPatternEditor();
+static void DisplayInstrumentEditor();
+static void DrawSelectionCursor(u8 x, u8 y, u8 bClear);
+static void DrawMatrixPlaybackCursor(u8 bClear);
+static void ClearPatternPlaybackCursor();
+static void DrawPatternPlaybackCursor();
+static void NavigateMatrix(u8 direction);
+static void NavigatePattern(u8 direction);
+static void NavigateInstrument(u8 direction);
+static void RefreshPatternColors();
 #endif // MDT_GUI_H_INCLUDED

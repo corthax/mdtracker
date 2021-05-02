@@ -69,7 +69,8 @@ When selecting Instrument Editor, current selected instrument will be opened. La
 Patterm Matrix
 ----------------
 
-Playback cursor indicate the current playing row on screen, even if it is on different page.
+Playback cursor indicates currently playing matrix row.
+I recommend to always use the first (--) matrix row for first instruments initializations, setting dac, cd audio ahead playback start, setting pattern row subticks, noise mode etc.
 
 '
 	Navigate:
@@ -94,7 +95,7 @@ Playback cursor indicate the current playing row on screen, even if it is on dif
 	
 	Y+L		Previous slot
 	Y+R 	Next slot
-	Y+C		Clear
+	Y+C		Clear color
 	
 	Edit:
 	
@@ -102,6 +103,8 @@ Playback cursor indicate the current playing row on screen, even if it is on dif
 	A+L		Change value (-1).
 	A+U		Change value (+16).
 	A+D		Change value (-16).
+	
+	A+B 	Find first empty pattern.
 
 	C		Clear matrix cell.
 
@@ -109,6 +112,10 @@ Playback cursor indicate the current playing row on screen, even if it is on dif
 
 	B+U		Delete selected matrix row, move rows below selected 1 up.
 	B+D		Copy and insert selected matrix row, move rows below selected 1 down, last matrix row will be lost.
+	
+	Matrix cell transposition:
+	
+	Y+U/D 	+/- 1 semitone.
 '
 
 ----------------
