@@ -384,7 +384,7 @@ static void vIntCallback()
 }
 
 // -------------------------------------------------------------------------------------------------------------
-static void NavigateMatrix(u8 direction)
+void NavigateMatrix(u8 direction)
 {
     switch (direction)
     {
@@ -417,7 +417,7 @@ static void NavigateMatrix(u8 direction)
     }
 }
 // -------------------------------------------------------------------------------------------------------------
-static void NavigatePattern(u8 direction)
+void NavigatePattern(u8 direction)
 {
     switch (direction)
     {
@@ -454,7 +454,7 @@ static void NavigatePattern(u8 direction)
     }
 }
 // -------------------------------------------------------------------------------------------------------------
-static void NavigateInstrument(u8 direction)
+void NavigateInstrument(u8 direction)
 {
     switch (direction)
     {
@@ -992,7 +992,7 @@ static void SetBPM(u16 counter)
 }
 
 // cursors
-static void DrawMatrixPlaybackCursor(u8 bClear)
+void DrawMatrixPlaybackCursor(u8 bClear)
 {
     static u8 playingPage = 0;
 
@@ -1004,7 +1004,7 @@ static void DrawMatrixPlaybackCursor(u8 bClear)
     }
 }
 
-static void ClearPatternPlaybackCursor()
+void ClearPatternPlaybackCursor()
 {
     static s8 line = 0;
 
@@ -1014,7 +1014,7 @@ static void ClearPatternPlaybackCursor()
     else VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, NULL), 60, line-12);
 }
 
-static void DrawPatternPlaybackCursor()
+void DrawPatternPlaybackCursor()
 {
     static s8 line = 0;
 
@@ -1874,7 +1874,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
 }
 
 // draw selection cursor
-static void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
+void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
 {
     static s8 offset_x = 1;
     static s8 offset_y = 2;
@@ -2111,7 +2111,7 @@ static void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
     }
 }
 // ------------------------------ PATTERN MATRIX
-static void DisplayPatternMatrix()
+void DisplayPatternMatrix()
 {
     static u16 patternID = 0;
     static u8 shiftX = 0;
@@ -2334,7 +2334,7 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
     }
 }
 
-static void DisplayPatternEditor()
+void DisplayPatternEditor()
 {
     if (bInitScreen)
     {
@@ -2677,7 +2677,7 @@ static void ChangeInstrumentParameter(s8 modifier)
     CacheIstrumentToRAM(selectedInstrumentID); // update RAM struct
 }
 
-static void DisplayInstrumentEditor()
+void DisplayInstrumentEditor()
 {
     static u8 value = 0; // buffer
     static u8 alg = 0;
@@ -4590,7 +4590,7 @@ void FillRowRight(u8 plane, u8 pal, u8 flipV, u8 flipH, u8 guiSymbol, u8 fillCou
         VDP_setTileMapXY(plane, TILE_ATTR_FULL(pal, 1, flipV, flipH, bgBaseTileIndex[2] + guiSymbol), x, y);
 }
 
-static void RefreshPatternColors() // on color change
+void RefreshPatternColors() // on color change
 {
     static u16 pt = 0;
 
@@ -4601,70 +4601,66 @@ static void RefreshPatternColors() // on color change
             pt = ReadMatrixSRAM(ch, row + currentPage * MATRIX_SCREEN_ROWS);
             if (pt != NULL)
             {
-                SYS_disableInts();
                 VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PATTERNCOLORS[ReadPatternColorSRAM(pt)]), ch*3+2, row+2);
-                SYS_enableInts();
             }
             else
             {
-                SYS_disableInts();
                 VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), ch*3+2, row+2);
-                SYS_enableInts();
             }
         }
     }
 }
 
 // instrument
-static u8 ReadInstrumentSRAM(u8 id, u16 param)
+u8 ReadInstrumentSRAM(u8 id, u16 param)
 {
     return SRAMW_readByte((u32)INSTRUMENT_DATA + (id * INST_SIZE) + param);
 }
 
-static void WriteInstrumentSRAM(u8 id, u16 param, u8 data)
+void WriteInstrumentSRAM(u8 id, u16 param, u8 data)
 {
     SRAMW_writeByte((u32)INSTRUMENT_DATA + (id * INST_SIZE) + param, data);
 }
 
 // pattern
-static u8 ReadPatternSRAM(u16 id, u8 line, u8 param)
+u8 ReadPatternSRAM(u16 id, u8 line, u8 param)
 {
     return SRAMW_readByte((u32)PATTERN_DATA + (id * PATTERN_SIZE) + (line * PATTERN_COLUMNS) + param);
 }
 
-static void WritePatternSRAM(u16 id, u8 line, u8 param, u8 data)
+void WritePatternSRAM(u16 id, u8 line, u8 param, u8 data)
 {
     SRAMW_writeByte((u32)PATTERN_DATA + (id * PATTERN_SIZE) + (line * PATTERN_COLUMNS) + param, data);
 }
 
-static u8 ReadPatternColorSRAM(u16 id)
+u8 ReadPatternColorSRAM(u16 id)
 {
     return SRAMW_readByte((u32)PATTERN_COLOR + id);
 }
 
-static void WritePatternColorSRAM(u16 id, u8 color)
+void WritePatternColorSRAM(u16 id, u8 color)
 {
     SRAMW_writeByte((u32)PATTERN_COLOR + id, color);
 }
 
 // matrix
-static u16 ReadMatrixSRAM(u8 channel, u8 line)
+u16 ReadMatrixSRAM(u8 channel, u8 line)
 {
     return SRAMW_readWord((u32)PATTERN_MATRIX + ((channel * MAX_MATRIX_ROWS) + line) * 2);
 }
 
-static void WriteMatrixSRAM(u8 channel, u8 line, u16 data)
+void WriteMatrixSRAM(u8 channel, u8 line, u16 data)
 {
     SRAMW_writeWord((u32)PATTERN_MATRIX + ((channel * MAX_MATRIX_ROWS) + line) * 2, data);
 }
 
 // pcm
-static u32 ReadSampleRegionSRAM(u8 bank, u8 note, u8 byteNum)
+u32 ReadSampleRegionSRAM(u8 bank, u8 note, u8 byteNum)
 {
     return (u32)SRAMW_readByte((u32)SAMPLE_DATA + (bank * MAX_NOTES * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum);
 }
 
-static void WriteSampleRegionSRAM(u8 bank, u8 note, u8 byteNum, u8 data)
+void WriteSampleRegionSRAM(u8 bank, u8 note, u8 byteNum, u8 data)
 {
     SRAMW_writeByte((u32)SAMPLE_DATA + (bank * MAX_NOTES * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum, data);
 }
@@ -4679,6 +4675,7 @@ static void YM2612_writeRegZ80(u16 part, u8 reg, u8 data)
 
 void InitTracker()
 {
+    SYS_disableInts();
     /*
     0 $A130F1 	SRAM access register
     1 $A130F3 	Bank register for address $80000-$FFFFF
@@ -4708,108 +4705,90 @@ void InitTracker()
     ssf_set_rom_bank(4, 31);
     ssf_rom_wr_on();
 
-    msu_resp = msu_drv();
+    //msu_resp = msu_drv();
     //if (msu_resp == 0) // Function will return 0 if driver loaded successfully or 1 if MCD hardware not detected.
     //{
         //while (*mcd_stat != 1); // Init driver ... 0-ready, 1-init, 2-cmd busy
         //while (*mcd_stat == 1); // Wait till sub CPU finish initialization
     //}
+    VDP_init();
+    VDP_setDMAEnabled(TRUE);
+    VDP_setHInterrupt(TRUE);
+    VDP_setHIntCounter(H_INT_SKIP);
+    VDP_setScreenWidth320();
+    VDP_setScreenHeight224();
+    VDP_setHilightShadow(FALSE);
+    VDP_setScanMode(INTERLACED_NONE);
+
+    // each plane can be a maximum of 4096 tiles in memory
+    // at dimensions 32x32, 32x64, 64x64, or 32x128, with up to 40x28 (1120) visible on screen
+    VDP_setPlaneSize(128, 32, TRUE);
+    VDP_setBGBAddress(0xC000);          // * $2000; 0xC000 default
+    VDP_setWindowAddress(0xA000);       // * $1000; 0xD000 default; WINDOW replaces BG_A when drawn, but ignores scrolling;
+    VDP_setBGAAddress(0xE000);          // * $2000; 0xE000 default
+    VDP_setHScrollTableAddress(0xB800); // * $400; 0xF000 default
+    VDP_setSpriteListAddress(0xBC00);   // * $400; 0xF400 default
+    VDP_setScrollingMode(HSCROLL_PLANE, VSCROLL_COLUMN);
+    VDP_setTextPlane(BG_A);
+    VDP_setTextPalette(PAL0);
+    VDP_loadFont(&custom_font, DMA);
+    VDP_setWindowHPos(FALSE, 0); // disable window, TRUE to enable
+    VDP_setWindowVPos(FALSE, 0);
+
+    // test
+    /*for (u8 x=0; x<40; x++)
+    {
+        for (u8 y=0; y<32; y++)
+        {
+            VDP_setTileMapXY(WINDOW, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, 0), x, y);
+        }
+    }*/
+
+    // Double digit font 00(--)..FF
+    u16 ind;
+    ind = TILE_USERINDEX;
+    bgBaseTileIndex[0] = ind;
+    VDP_loadTileSet(&numfont, ind, DMA);
+    ind += numfont.numTile;
+    // Normal font 0..Z
+    bgBaseTileIndex[1] = ind; asciiBaseLetters = ind - 55; asciiBaseNumbers = ind - 48;
+    VDP_loadTileSet(&numletters, ind, DMA);
+    ind += numletters.numTile;
+    // GUI symbols
+    bgBaseTileIndex[2] = ind;
+    VDP_loadTileSet(&tileset_gui, ind, DMA);
+    ind += numletters.numTile;
+    // Matrix pattern colors
+    /*bgBaseTileIndex[3] = ind;
+    VDP_loadTileSet(&tileset_patterns, ind, DMA);
+    ind += numletters.numTile;*/
+
+    // BGR
+    PAL_setPaletteColorsDMA(0, &palette_gui); // PAL0
+    // 0        background
+    // 1 - 15   pattern colors
+    // 16       normal text
+    // PAL1
+    PAL_setColor(15+16, 0x0BBB);    // shade 1 text
+    // PAL2
+    PAL_setColor(15+32, 0x0555);    // shade 2 text
+    // PAL3
+    PAL_setColor(15+48, 0x0ADE);    // static text
+
+    DrawStaticHeaders();
+
+    SRAM_enable();
 
     PSG_init();
-    SRAM_enable();
     YM2612_reset();
     Z80_init();
     Z80_loadDriver(Z80_DRIVER_PCM, TRUE);
+
     JOY_setSupport(PORT_1, JOY_SUPPORT_6BTN);
     JOY_setSupport(PORT_2, JOY_SUPPORT_6BTN);
     JOY_setEventHandler(JoyEvent);
 
-    SYS_disableInts();
-        VDP_init();
-        VDP_setDMAEnabled(TRUE);
-        VDP_setScreenWidth320();
-        VDP_setScreenHeight224();
-        VDP_setHilightShadow(FALSE);
-        VDP_setScanMode(INTERLACED_NONE);
-
-        // each plane can be a maximum of 4096 tiles in memory
-        // at dimensions 32x32, 32x64, 64x64, or 32x128, with up to 40x28 (1120) visible on screen
-        VDP_setPlaneSize(128, 32, TRUE);
-        VDP_setBGBAddress(0xC000);          // * $2000; 0xC000 default
-        VDP_setWindowAddress(0xA000);       // * $1000; 0xD000 default; WINDOW replaces BG_A when drawn, but ignores scrolling;
-        VDP_setBGAAddress(0xE000);          // * $2000; 0xE000 default
-        VDP_setHScrollTableAddress(0xB800); // * $400; 0xF000 default
-        VDP_setSpriteListAddress(0xBC00);   // * $400; 0xF400 default
-
-        VDP_setScrollingMode(HSCROLL_PLANE, VSCROLL_COLUMN);
-
-        // PAL0, BGR
-        PAL_setColor(0, 0x0100);        // background
-
-        PAL_setColor(1, 0x0F00);
-        PAL_setColor(2, 0x00F0);
-        PAL_setColor(3, 0x000F);
-        PAL_setColor(4, 0x0F22);
-        PAL_setColor(5, 0x02F2);
-        PAL_setColor(6, 0x022F);
-        PAL_setColor(7, 0x0F44);
-        PAL_setColor(8, 0x04F4);
-        PAL_setColor(9, 0x044F);
-        PAL_setColor(10, 0x0F66);
-        PAL_setColor(11, 0x06F6);
-        PAL_setColor(12, 0x066F);
-
-        PAL_setColor(13, 0x011E);       // ARP seq arrow down; MUTE/SOLO channel
-        PAL_setColor(14, 0x0E11);       // ARP seq arrow up; FM algorithm connectors
-        PAL_setColor(15, 0x0FFF);       // normal text
-        // PAL1
-        PAL_setColor(15+16, 0x0BBB);    // shade 1 text
-        // PAL2
-        PAL_setColor(15+32, 0x0555);    // shade 2 text
-        // PAL3
-        PAL_setColor(15+48, 0x0ADE);    // static text
-
-        VDP_setTextPlane(BG_A);
-        VDP_setTextPalette(PAL0);
-        VDP_loadFont(&custom_font, DMA);
-
-        VDP_setWindowHPos(FALSE, 0); // disable window, TRUE to enable
-        VDP_setWindowVPos(FALSE, 0);
-
-        // test
-        /*for (u8 x=0; x<40; x++)
-        {
-            for (u8 y=0; y<32; y++)
-            {
-                VDP_setTileMapXY(WINDOW, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, 0), x, y);
-            }
-        }*/
-
-        // double digit font 00(--)..FF
-        u16 ind;
-        ind = TILE_USERINDEX;
-        bgBaseTileIndex[0] = ind;
-        VDP_loadTileSet(&numfont, ind, DMA);
-        ind += numfont.numTile;
-        // normal font 0..Z
-        bgBaseTileIndex[1] = ind; asciiBaseLetters = ind - 55; asciiBaseNumbers = ind - 48;
-        VDP_loadTileSet(&numletters, ind, DMA);
-        ind += numletters.numTile;
-        // GUI symbols
-        bgBaseTileIndex[2] = ind;
-        VDP_loadTileSet(&gui, ind, DMA);
-        ind += numletters.numTile;
-        // Matrix pattern colors
-        /*bgBaseTileIndex[3] = ind;
-        VDP_loadTileSet(&pattern_colors, ind, DMA);
-        ind += numletters.numTile;*/
-
-        VDP_setHInterrupt(TRUE);
-        VDP_setHIntCounter(H_INT_SKIP);
-
-        DrawStaticHeaders();
-        RefreshPatternColors(); // need SRAM
-    SYS_enableInts();
+    RefreshPatternColors(); // need SRAM
 
     // init
     for (u8 channel = CHANNEL_FM1; channel < CHANNELS_TOTAL; channel++)
@@ -5063,6 +5042,7 @@ void InitTracker()
         channelNoteRetriggerCounter[channel] = 0;
         channelNoteDelay[channel] = 0;
     }*/
+    SYS_enableInts();
 }
 
 void DrawStaticHeaders()

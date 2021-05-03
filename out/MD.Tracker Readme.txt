@@ -14,12 +14,15 @@ Powered by SGDK
 ░░░░░     ░░░░░ ░░░░░░░░░░   ░░    ░░░░░    ░░░░░      ░░░░░░░░  ░░░░░░  ░░░░ ░░░░░  ░░░░░░  ░░░░░     
 
 //////////////////
-Supported emulators: (You may want to turn on overclocking for better pefromance.)
-	PicoDrive, BlastEm (broken)
-
+Supported emulators: 
+	PicoDrive 			(needs "SEGA GENESIS    " in rom header)
+		rom_pico.bin
+		
+You may want to turn on overclocking for the best pefromance.
 //////////////////
-Supported flashcarts:
-	Mega Everdrive Pro
+Supported flashcarts: 
+	Mega Everdrive Pro 	(needs "SEGA SSF        " in rom header)
+		rom_ssf.bin
 
 //////////////////
 

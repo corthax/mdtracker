@@ -33,11 +33,12 @@ const struct
 //    "SEGA PICO       "	SEGA Pico console for kids
 //    "SEGA TERA68K    "	Tera Drive (boot from 68000 side)
 //    "SEGA TERA286    "	Tera Drive (boot from x86 side)
-    "SEGA MEGADRIVE  ",
+    //"SEGA SSF        ", // for mega everdrive
+    "SEGA GENESIS    ", // for picodrive emulator
     "(C)CORTHAX 2021 ",
 #if (MD_TRACKER_VERSION == 5)
-    "MD.Tracker  [1.0f]                              ",
-    "MD.Tracker  [1.0f]                              ",
+    "MD.Tracker  [wip]                               ",
+    "MD.Tracker  [wip]                               ",
 #elif (MD_TRACKER_VERSION == 3)
     "MD.Tracker X5                                   ",
     "MD.Tracker X5                                   ",

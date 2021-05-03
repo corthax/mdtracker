@@ -178,15 +178,15 @@
 
 void DrawStaticHeaders();
 
-static void DisplayPatternMatrix();
-static void DisplayPatternEditor();
-static void DisplayInstrumentEditor();
-static void DrawSelectionCursor(u8 x, u8 y, u8 bClear);
-static void DrawMatrixPlaybackCursor(u8 bClear);
-static void ClearPatternPlaybackCursor();
-static void DrawPatternPlaybackCursor();
-static void NavigateMatrix(u8 direction);
-static void NavigatePattern(u8 direction);
-static void NavigateInstrument(u8 direction);
-static void RefreshPatternColors();
+void DisplayPatternMatrix();
+void DisplayPatternEditor();
+void DisplayInstrumentEditor();
+void DrawSelectionCursor(u8 x, u8 y, u8 bClear);
+void DrawMatrixPlaybackCursor(u8 bClear);
+void ClearPatternPlaybackCursor();
+void DrawPatternPlaybackCursor();
+void NavigateMatrix(u8 direction);
+void NavigatePattern(u8 direction);
+void NavigateInstrument(u8 direction);
+void RefreshPatternColors();
 #endif // MDT_GUI_H_INCLUDED

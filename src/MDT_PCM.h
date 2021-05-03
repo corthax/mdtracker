@@ -20,7 +20,7 @@
  *      - 3, 4, 5: region end bytes.<br>
  *      - 6: loop.<br>
  */
-static u32 ReadSampleRegionSRAM(u8 bank, u8 note, u8 byteNum);
+u32 ReadSampleRegionSRAM(u8 bank, u8 note, u8 byteNum);
 
 /**
  *  \brief
@@ -38,6 +38,6 @@ static u32 ReadSampleRegionSRAM(u8 bank, u8 note, u8 byteNum);
  *  \param data
  *      Value to write.
  */
-static void WriteSampleRegionSRAM(u8 bank, u8 note, u8 byteNum, u8 data);
+void WriteSampleRegionSRAM(u8 bank, u8 note, u8 byteNum, u8 data);
 
 #endif // MDT_PCM_H_INCLUDED
