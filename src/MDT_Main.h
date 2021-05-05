@@ -126,13 +126,14 @@ static void ApplyCommand_Common(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue)
 static void ApplyCommand_PSG(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue);
 static void ChangeInstrumentParameter(s8 modifier);
 static void ChangePatternParameter(s8 note, s8 par);
-static void ChangeMatrixValue(s8 mod);
+static void ChangeMatrixValue(s16 mod);
 static void RequestZ80();
 static void ReleaseZ80();
 static void JoyEvent(u16 joy, u16 changed, u16 state);
 static void hIntCallback();
 static void vIntCallback();
 static void YM2612_writeRegZ80(u16 part, u8 reg, u8 data);
+static s16 FindUnusedPattern();
 
 // temporal instrument storage
 struct Instrument
@@ -214,6 +215,5 @@ struct Instrument
     u8 SSGEG4;
 };
 typedef struct Instrument Instrument;
-Instrument tmpInst[MAX_INSTRUMENT]; // cache instruments to RAM for faster access
 
 #endif // MDT_MAIN_H_INCLUDED

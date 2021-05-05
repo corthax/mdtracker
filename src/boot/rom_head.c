@@ -28,27 +28,19 @@ const struct
 //    "SEGA GENESIS    "	Mega Drive
 //    "SEGA 32X        "	Mega Drive + 32X
 //    "SEGA EVERDRIVE  "	Mega Drive (Everdrive extensions)
-//    "SEGA SSF        "	Mega Drive (Mega Everdrive extensions)
+//    "SEGA EVERDRIVEXX"
+//          where XX reflects mapper number (MED PRO)
+//          01:SMD, 02:32X, 03:10M, 05:SSF, 06:SMS, 07:SVP(Virtua Racing), 08:CD, 09:PIE(Pier Solar), 11:SMD+CD, 12:EDAPP(NES)
+//    "SEGA SSF        "	Mega Drive (Mega Everdrive extensions) [for mega everdrive only]
 //    "SEGA MEGAWIFI   "	Mega Drive (Mega Wifi extensions)
 //    "SEGA PICO       "	SEGA Pico console for kids
 //    "SEGA TERA68K    "	Tera Drive (boot from 68000 side)
 //    "SEGA TERA286    "	Tera Drive (boot from x86 side)
-    //"SEGA SSF        ", // for mega everdrive
-    "SEGA GENESIS    ", // for picodrive emulator
+    //"SEGA SSF        ", //
+    "SEGA EVERDRIVE  ",
     "(C)CORTHAX 2021 ",
-#if (MD_TRACKER_VERSION == 5)
     "MD.Tracker  [wip]                               ",
     "MD.Tracker  [wip]                               ",
-#elif (MD_TRACKER_VERSION == 3)
-    "MD.Tracker X5                                   ",
-    "MD.Tracker X5                                   ",
-#elif (MD_TRACKER_VERSION == 2)
-    "MD.Tracker X7                                   ",
-    "MD.Tracker X7                                   ",
-#else
-    "MD.Tracker X5                                   ",
-    "MD.Tracker X5                                   ",
-#endif
 //    "GM"	Game
 //    "AI"	Educational Aid
 //    "OS"	Boot ROM (TMSS)
@@ -72,7 +64,7 @@ const struct
 //"C"	CD-ROM (Sega CD)
 //"F"	Floppy drive
 //"D"	Download?
-    "6               ",
+    "6C              ",
     0x00000000, // ROM start
     0x001FFFFF, // ROM end (2MB)
     0x00FF0000, // BRAM start
@@ -87,19 +79,10 @@ const struct
 //F8	Yes	    8-bit (odd addresses)
 //"RA", 0xE840; EEPROM type
     0xE020,     // 16 bit SRAM mode
-#if (MD_TRACKER_VERSION == 5)
     0x00200000,
     0x0027FFFF,
-#elif (MD_TRACKER_VERSION == 3)
-    0x00200000,
-    0x0025FFFF,
-#elif (MD_TRACKER_VERSION == 2) // X7
-    0x00240000,
-    0x0027FFFF,
-#else
-    0x00200000,
-    0x0021FFFF,
-#endif
+    //0x00280000, // not work on picodrive
+    //0x002FFFFF,
     "            ",                             // modem
     "MUSIC TRACKER                           ", // memo
     "JUE             "                          // country

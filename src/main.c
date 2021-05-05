@@ -170,6 +170,8 @@ u8 psgPWM = FALSE;
 u8 psgPulseCounter = 0;
 u8 dacPan = SOUND_PAN_CENTER;
 
+Instrument tmpInst[MAX_INSTRUMENT]; // cache instruments to RAM for faster access
+
 u16 msu_drv();
 vu16 *mcd_cmd = (vu16 *) 0xA12010;  // command
 vu32 *mcd_arg = (vu32 *) 0xA12012;  // argument
@@ -185,7 +187,7 @@ const u8 GUI_FM_ALG_GRID[8][4][12] =
 {
     {
         { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-        { GUI_FM_OP, GUI_DIGIT_1, GUI_ALG_LINE_H, GUI_FM_OP, GUI_DIGIT_2, GUI_ALG_LINE_H, GUI_FM_OP, GUI_DIGIT_3, GUI_ALG_LINE_H, GUI_FM_OP, GUI_DIGIT_4, GUI_ARROW },
+        { GUI_FM_OP, GUI_DIGIT_1, GUI_ALG_LINE_H, GUI_FM_OP, GUI_DIGIT_3, GUI_ALG_LINE_H, GUI_FM_OP, GUI_DIGIT_2, GUI_ALG_LINE_H, GUI_FM_OP, GUI_DIGIT_4, GUI_ARROW },
         { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
         { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
     },
@@ -964,6 +966,20 @@ static void DoEngine()
     }
 }
 
+static s16 FindUnusedPattern()
+{
+    static bool used = FALSE;
+    for (s16 pattern = 1; pattern <= MAX_PATTERN; pattern++) {
+        used = FALSE;
+        for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++) {
+            for (u8 line = 0; line < MAX_MATRIX_ROWS; line++) { if (ReadMatrixSRAM(channel, line) == pattern) { used = TRUE; break; } }
+            if (used) break;
+        }
+        if (!used) return pattern;
+    }
+    return NULL;
+}
+
 static void SetBPM(u16 counter)
 {
     static u16 BPM = 0;
@@ -1024,7 +1040,7 @@ void DrawPatternPlaybackCursor()
     else VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL3, 1, FALSE, TRUE, bgBaseTileIndex[2] + GUI_PLAYCURSOR), 60, line-12);
 }
 
-static void ChangeMatrixValue(s8 mod)
+static void ChangeMatrixValue(s16 mod)
 {
     static s16 value = 0;
 
@@ -1310,10 +1326,34 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
 
             case BUTTON_A:
                 // A+L/R/U/D - change pattern in matrix
-                if (changed & BUTTON_RIGHT) { ChangeMatrixValue(1); }
+                switch (changed)
+                {
+                case BUTTON_B:
+                    if (!ReadMatrixSRAM(selectedMatrixChannel, selectedMatrixRow))
+                    {
+                        u16 value = FindUnusedPattern();
+                        if (value)
+                        {
+                            WriteMatrixSRAM(selectedMatrixChannel, selectedMatrixRow, value );
+                            bRefreshScreen = TRUE;
+                            matrixRowToRefresh = selectedMatrixRow;
+                            lastEnteredPattern = value;
+                        }
+                    }
+                    break;
+                case BUTTON_RIGHT: ChangeMatrixValue(1);
+                    break;
+                case BUTTON_LEFT: ChangeMatrixValue(-1);
+                    break;
+                case BUTTON_UP: ChangeMatrixValue(16);
+                    break;
+                case BUTTON_DOWN: ChangeMatrixValue(-16);
+                    break;
+                }
+                /*if (changed & BUTTON_RIGHT) { ChangeMatrixValue(1); }
                 else if (changed & BUTTON_LEFT) { ChangeMatrixValue(-1); }
                 else if (changed & BUTTON_UP) { ChangeMatrixValue(16); }
-                else if (changed & BUTTON_DOWN) { ChangeMatrixValue(-16); }
+                else if (changed & BUTTON_DOWN) { ChangeMatrixValue(-16); }*/
                 break;
 
             case BUTTON_B:
@@ -4252,19 +4292,19 @@ static void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // 
         // TOTAL LEVEL
         case 0x01:
             if (fxValue == 0) write_tl1(ReadInstrumentSRAM(id, INST_TL1));
-            else if (fxValue <= 128) { tmpInst[id].TL1 = fxValue - 1; write_tl1(tmpInst[id].TL1); }
+            else if (fxValue <= 0x80) { tmpInst[id].TL1 = 0x80 - fxValue; write_tl1(tmpInst[id].TL1); }
             break;
         case 0x02:
             if (fxValue == 0) write_tl2(ReadInstrumentSRAM(id, INST_TL2));
-            else if (fxValue <= 128) { tmpInst[id].TL2 = fxValue - 1; write_tl2(tmpInst[id].TL2); }
+            else if (fxValue <= 0x80) { tmpInst[id].TL2 = 0x80 - fxValue; write_tl2(tmpInst[id].TL2); }
             break;
         case 0x03:
             if (fxValue == 0) write_tl3(ReadInstrumentSRAM(id, INST_TL3));
-            else if (fxValue <= 128) { tmpInst[id].TL3 = fxValue - 1; write_tl3(tmpInst[id].TL3); }
+            else if (fxValue <= 0x80) { tmpInst[id].TL3 = 0x80 - fxValue; write_tl3(tmpInst[id].TL3); }
             break;
         case 0x04:
             if (fxValue == 0) write_tl4(ReadInstrumentSRAM(id, INST_TL4));
-            else if (fxValue <= 128) { tmpInst[id].TL4 = fxValue - 1; write_tl4(tmpInst[id].TL4); }
+            else if (fxValue <= 0x80) { tmpInst[id].TL4 = 0x80 - fxValue; write_tl4(tmpInst[id].TL4); }
             break;
 
         // RATE SCALE
@@ -4374,72 +4414,72 @@ static void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // 
 
         // ATTACK
         case 0xA1: if (fxValue == 0) write_ar1(ReadInstrumentSRAM(id, INST_AR1));
-            else if (fxValue <= 0x20) { tmpInst[id].AR1 = fxValue; write_ar1(tmpInst[id].AR1); }
+            else if (fxValue <= 0x20) { tmpInst[id].AR1 = fxValue - 1; write_ar1(tmpInst[id].AR1); }
             break;
         case 0xA2: if (fxValue == 0) write_ar2(ReadInstrumentSRAM(id, INST_AR2));
-            else if (fxValue <= 0x20) { tmpInst[id].AR2 = fxValue; write_ar2(tmpInst[id].AR2); }
+            else if (fxValue <= 0x20) { tmpInst[id].AR2 = fxValue - 1; write_ar2(tmpInst[id].AR2); }
             break;
         case 0xA3: if (fxValue == 0) write_ar3(ReadInstrumentSRAM(id, INST_AR3));
-            else if (fxValue <= 0x20) { tmpInst[id].AR3 = fxValue; write_ar3(tmpInst[id].AR3); }
+            else if (fxValue <= 0x20) { tmpInst[id].AR3 = fxValue - 1; write_ar3(tmpInst[id].AR3); }
             break;
         case 0xA4: if (fxValue == 0) write_ar4(ReadInstrumentSRAM(id, INST_AR4));
-            else if (fxValue <= 0x20) { tmpInst[id].AR4 = fxValue; write_ar4(tmpInst[id].AR4); }
+            else if (fxValue <= 0x20) { tmpInst[id].AR4 = fxValue - 1; write_ar4(tmpInst[id].AR4); }
             break;
 
         // DECAY 1
         case 0xB1: if (fxValue == 0) write_d1r1(ReadInstrumentSRAM(id, INST_D1R1));
-            else if (fxValue <= 0x20) { tmpInst[id].D1R1 = fxValue; write_d1r1(tmpInst[id].D1R1); }
+            else if (fxValue <= 0x20) { tmpInst[id].D1R1 = fxValue - 1; write_d1r1(tmpInst[id].D1R1); }
             break;
         case 0xB2: if (fxValue == 0) write_d1r2(ReadInstrumentSRAM(id, INST_D1R2));
-            else if (fxValue <= 0x20) { tmpInst[id].D1R2 = fxValue; write_d1r2(tmpInst[id].D1R2); }
+            else if (fxValue <= 0x20) { tmpInst[id].D1R2 = fxValue - 1; write_d1r2(tmpInst[id].D1R2); }
             break;
         case 0xB3: if (fxValue == 0) write_d1r3(ReadInstrumentSRAM(id, INST_D1R3));
-            else if (fxValue <= 0x20) { tmpInst[id].D1R3 = fxValue; write_d1r3(tmpInst[id].D1R3); }
+            else if (fxValue <= 0x20) { tmpInst[id].D1R3 = fxValue - 1; write_d1r3(tmpInst[id].D1R3); }
             break;
         case 0xB4: if (fxValue == 0) write_d1r4(ReadInstrumentSRAM(id, INST_D1R4));
-            else if (fxValue <= 0x20) { tmpInst[id].D1R4 = fxValue; write_d1r4(tmpInst[id].D1R4); }
+            else if (fxValue <= 0x20) { tmpInst[id].D1R4 = fxValue - 1; write_d1r4(tmpInst[id].D1R4); }
             break;
 
         // SUSTAIN
         case 0xC1: if (fxValue == 0) write_d1l1(ReadInstrumentSRAM(id, INST_D1L1));
-            else if (fxValue <= 0x10) { tmpInst[id].D1L1 = fxValue; write_d1l1(tmpInst[id].D1L1); }
+            else if (fxValue <= 0x10) { tmpInst[id].D1L1 = fxValue - 1; write_d1l1(tmpInst[id].D1L1); }
             break;
         case 0xC2: if (fxValue == 0) write_d1l2(ReadInstrumentSRAM(id, INST_D1L2));
-            else if (fxValue <= 0x10) { tmpInst[id].D1L2 = fxValue; write_d1l2(tmpInst[id].D1L2); }
+            else if (fxValue <= 0x10) { tmpInst[id].D1L2 = fxValue - 1; write_d1l2(tmpInst[id].D1L2); }
             break;
         case 0xC3: if (fxValue == 0) write_d1l3(ReadInstrumentSRAM(id, INST_D1L3));
-            else if (fxValue <= 0x10) { tmpInst[id].D1L3 = fxValue; write_d1l3(tmpInst[id].D1L3); }
+            else if (fxValue <= 0x10) { tmpInst[id].D1L3 = fxValue - 1; write_d1l3(tmpInst[id].D1L3); }
             break;
         case 0xC4: if (fxValue == 0) write_d1l4(ReadInstrumentSRAM(id, INST_D1L4));
-            else if (fxValue <= 0x10) { tmpInst[id].D1L4 = fxValue; write_d1l4(tmpInst[id].D1L4); }
+            else if (fxValue <= 0x10) { tmpInst[id].D1L4 = fxValue - 1; write_d1l4(tmpInst[id].D1L4); }
             break;
 
         // DECAY 2
         case 0xD1: if (fxValue == 0) write_d2r1(ReadInstrumentSRAM(id, INST_D2R1));
-            else if (fxValue <= 0x20) { tmpInst[id].D2R1 = fxValue; write_d2r1(tmpInst[id].D2R1); }
+            else if (fxValue <= 0x20) { tmpInst[id].D2R1 = fxValue - 1; write_d2r1(tmpInst[id].D2R1); }
             break;
         case 0xD2: if (fxValue == 0) write_d2r2(ReadInstrumentSRAM(id, INST_D2R2));
-            else if (fxValue <= 0x20) { tmpInst[id].D2R2 = fxValue; write_d2r2(tmpInst[id].D2R2); }
+            else if (fxValue <= 0x20) { tmpInst[id].D2R2 = fxValue - 1; write_d2r2(tmpInst[id].D2R2); }
             break;
         case 0xD3: if (fxValue == 0) write_d2r3(ReadInstrumentSRAM(id, INST_D2R3));
-            else if (fxValue <= 0x20) { tmpInst[id].D2R3 = fxValue; write_d2r3(tmpInst[id].D2R3); }
+            else if (fxValue <= 0x20) { tmpInst[id].D2R3 = fxValue - 1; write_d2r3(tmpInst[id].D2R3); }
             break;
         case 0xD4: if (fxValue == 0) write_d2r4(ReadInstrumentSRAM(id, INST_D2R4));
-            else if (fxValue <= 0x20) { tmpInst[id].D2R4 = fxValue; write_d2r4(tmpInst[id].D2R4); }
+            else if (fxValue <= 0x20) { tmpInst[id].D2R4 = fxValue - 1; write_d2r4(tmpInst[id].D2R4); }
             break;
 
         // RELEASE
         case 0xE1: if (fxValue == 0) write_rr1(ReadInstrumentSRAM(id, INST_RR1));
-            else if (fxValue <= 0x10) { tmpInst[id].RR1 = fxValue; write_rr1(tmpInst[id].RR1); }
+            else if (fxValue <= 0x10) { tmpInst[id].RR1 = fxValue - 1; write_rr1(tmpInst[id].RR1); }
             break;
         case 0xE2: if (fxValue == 0) write_rr2(ReadInstrumentSRAM(id, INST_RR2));
-            else if (fxValue <= 0x10) { tmpInst[id].RR2 = fxValue; write_rr2(tmpInst[id].RR2); }
+            else if (fxValue <= 0x10) { tmpInst[id].RR2 = fxValue - 1; write_rr2(tmpInst[id].RR2); }
             break;
         case 0xE3: if (fxValue == 0) write_rr3(ReadInstrumentSRAM(id, INST_RR3));
-            else if (fxValue <= 0x10) { tmpInst[id].RR3 = fxValue; write_rr3(tmpInst[id].RR3); }
+            else if (fxValue <= 0x10) { tmpInst[id].RR3 = fxValue - 1; write_rr3(tmpInst[id].RR3); }
             break;
         case 0xE4: if (fxValue == 0) write_rr4(ReadInstrumentSRAM(id, INST_RR4));
-            else if (fxValue <= 0x10) { tmpInst[id].RR4 = fxValue; write_rr4(tmpInst[id].RR4); }
+            else if (fxValue <= 0x10) { tmpInst[id].RR4 = fxValue - 1; write_rr4(tmpInst[id].RR4); }
             break;
 
         // AMPLITUDE MODULATION
@@ -4682,35 +4722,28 @@ void InitTracker()
     2 $A130F5 	Bank register for address $100000-$17FFFF
     3 $A130F7 	Bank register for address $180000-$1FFFFF
     4 $A130F9 	Bank register for address $200000-$27FFFF
-    5 $A130FB 	Bank register for address $280000-$2FFFFF
+    5 $A130FB 	Bank register for address $280000-$2FFFFF sram
     6 $A130FD 	Bank register for address $300000-$37FFFF
     7 $A130FF 	Bank register for address $380000-$3FFFFF
     */
-
-    // V1
-    //evd_init(0, 1);
-    //evd_mmcInit(); // breaks PicoDrive (black screen)
-
-    ssf_init();
-    // X3 X5
-    // Bank 28 can be used for saves. First 32Kbyte of this bank will be copied to SD card.
-    //ssf_set_rom_bank(4, 28);
-
-    // X7
-    // Bank 31 can be used for saves. Upper 256K of this bank mapped to battery SRAM.
-    //ssf_set_rom_bank(4, 31);
-
-    // PRO
-    // Backup ram mapped to the last 31th bank.
-    ssf_set_rom_bank(4, 31);
-    ssf_rom_wr_on();
-
-    //msu_resp = msu_drv();
     //if (msu_resp == 0) // Function will return 0 if driver loaded successfully or 1 if MCD hardware not detected.
     //{
         //while (*mcd_stat != 1); // Init driver ... 0-ready, 1-init, 2-cmd busy
         //while (*mcd_stat == 1); // Wait till sub CPU finish initialization
     //}
+
+    ssf_init();
+    // X3 X5
+    // Bank 28 can be used for saves. First 32Kbyte of this bank will be copied to SD card.
+    // X7
+    // Bank 31 can be used for saves. Upper 256K of this bank mapped to battery SRAM.
+    // PRO
+    // Backup ram mapped to the last 31th bank.
+    ssf_set_rom_bank(4, 31);
+    ssf_rom_wr_on();
+
+    msu_resp = msu_drv();
+
     VDP_init();
     VDP_setDMAEnabled(TRUE);
     VDP_setHInterrupt(TRUE);
@@ -5136,12 +5169,12 @@ void DrawStaticHeaders()
     DrawText(BG_A, PAL3, "KEY", 41, 2);
     DrawText(BG_A, PAL3, "IN", 45, 2);
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_FX_SYM), 48, 2);
-    //VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, TRUE, bgBaseTileIndex[2] + GUI_FX_SYM), 59, 2);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, TRUE, bgBaseTileIndex[2] + GUI_FX_SYM), 59, 2);
     DrawText(BG_A, PAL3, "COMMANDS", 50, 2);
     DrawText(BG_A, PAL3, "KEY", 61, 2);
     DrawText(BG_A, PAL3, "IN", 65, 2);
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_FX_SYM), 68, 2);
-    //VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, TRUE, bgBaseTileIndex[2] + GUI_FX_SYM), 79, 2);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, TRUE, bgBaseTileIndex[2] + GUI_FX_SYM), 79, 2);
     DrawText(BG_A, PAL3, "COMMANDS", 70, 2);
 
     DrawText(BG_A, PAL3, "INST", 41, 23); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 45, 23);
