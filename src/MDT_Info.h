@@ -1,7 +1,7 @@
 #ifndef MDT_INFO_H_INCLUDED
 #define MDT_INFO_H_INCLUDED
 
-const char *infoCommands[255] =
+const char *infoCommands[256] =
 {
     /* 00 */ "",
     /* 01 */ "FM TOTAL LEVEL [OP1]            ",
@@ -261,7 +261,7 @@ const char *infoCommands[255] =
     /* FF */ ""
 };
 
-const char *infoDescriptions[255] =
+const char *infoDescriptions[256] =
 {
     /* 00 */ "",
     /* 01 */ "01..80, --=RESET                     ",

@@ -90,6 +90,25 @@
     #define EFFECTS_TOTAL          3
 #endif
 
+#define COMB_FB_ALG 0
+#define COMB_PAN_AMS_FMS 1
+#define COMB_DT_MUL_1 2
+#define COMB_DT_MUL_2 3
+#define COMB_DT_MUL_3 4
+#define COMB_DT_MUL_4 5
+#define COMB_RS_AR_1 6
+#define COMB_RS_AR_2 7
+#define COMB_RS_AR_3 8
+#define COMB_RS_AR_4 9
+#define COMB_AM_D1R_1 10
+#define COMB_AM_D1R_2 11
+#define COMB_AM_D1R_3 12
+#define COMB_AM_D1R_4 13
+#define COMB_D1L_RR_1 14
+#define COMB_D1L_RR_2 15
+#define COMB_D1L_RR_3 16
+#define COMB_D1L_RR_4 17
+
 #define MSU_PLAY        0x1100 // decimal no. of track (1-99); playback will be stopped in the end of track
 #define MSU_PLAY_LOOP 	0x1200 // decimal no. of track (1-99); playback will restart the track when end is reached
 #define MSU_PAUSE 	    0x1300 // vol fading time. 1/75 of sec (75 equal to 1 sec) instant stop if 0; pause playback
@@ -122,8 +141,8 @@ static void SetBPM(u16 counter);
 static void WriteYM2612(u8 matrixChannel, u8 id);
 static void CacheIstrumentToRAM(u8 id);
 static void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue);
-static void ApplyCommand_Common(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue);
-static void ApplyCommand_PSG(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue);
+static void ApplyCommand_Common(u8 matrixChannel, u8 fxParam, u8 fxValue);
+static void ApplyCommand_PSG(u8 fxParam, u8 fxValue);
 static void ChangeInstrumentParameter(s8 modifier);
 static void ChangePatternParameter(s8 note, s8 par);
 static void ChangeMatrixValue(s16 mod);
@@ -134,6 +153,7 @@ static void hIntCallback();
 static void vIntCallback();
 static void YM2612_writeRegZ80(u16 part, u8 reg, u8 data);
 static s16 FindUnusedPattern();
+void CalculateCombined(u8 id, u8 reg);
 
 // temporal instrument storage
 struct Instrument
