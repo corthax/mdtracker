@@ -27,6 +27,9 @@
 
 #define ARP_BASE                100
 #define MICROTONE_STEPS         32
+#define SEQ_VOL_SKIP            0xFF
+#define SEQ_VOL_MIN_ATT         0x00
+#define SEQ_VOL_MAX_ATT         0x7F
 
 #define MAX_PATTERN             0x380   // 896
 #define PATTERN_ROW_LAST        31      // index of max line; starts from 0
@@ -44,11 +47,11 @@
 
 #define MAX_INSTRUMENT          0xFF
 
-#define NOTE_EMPTY              254
+#define NOTE_EMPTY              0xFE
 #define NOTE_OFF                0xFF
-#define MAX_NOTE                95
-#define MAX_NOTES               96
-#define MAX_OCTAVE              7
+#define NOTE_MAX                95
+#define NOTE_TOTAL              96
+#define OCTAVE_MAX              7
 
 #define CH3_SPECIAL             0b01000000
 #define CH3_SPECIAL_CSM         0b10000000
@@ -77,10 +80,6 @@
 #define SCREEN_MATRIX           0
 #define SCREEN_PATTERN          1
 #define SCREEN_INSTRUMENT       2
-
-#define H_INT_SKIP              1   // (0, 1, 3, 6, 7, 9, 15) 224 / H_INT_SKIP+1 ticks per frame (1/60 sec)
-#define TICK_SKIP_MIN           6   // fast tempo limit
-#define TICK_SKIP_MAX           128 // slow tempo limit
 
 #if (MD_TRACKER_VERSION == 5)
     #define EFFECTS_TOTAL          6

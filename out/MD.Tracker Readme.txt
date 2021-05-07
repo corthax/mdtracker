@@ -208,7 +208,8 @@ Instrument Editor
 	Z		Link/Un-link parameter for multi-edit.
 	Z+B		Un-link all parameters.
 
-	There are two 16 step instrument sequencers there, ARP and VOL.
+	There are two 16 step sequencers there, ARP (arpeggiator) and VOL (attenuation).
+	Applied channel sequencers always reset on song stop.
 
 	Sample:
 	Bank			Select bank for editing.
@@ -227,7 +228,7 @@ Divided by 8 for PSG.
 ------
 	B		Set --: to skip step. 
 
-	C 		Set step to max volume.
+	C 		Set step to no attenuation.
 
 ------
 ARP:
@@ -241,7 +242,7 @@ Arp range is +- 24 semitones, if resulting note is not in C-0 .. B-7 range, then
 
 NAME: 	8 symbols.
 COPY: 	B to copy current FM instrument into selected instrument.
-STATE:	
+STATE:	If instrument is playing, muted or solo.
 
 ---------------------------------------------------------------------------------------------------
 + /// /// /// /// /// /// /// /// /// /// /// Effects /// /// /// /// /// /// /// /// /// /// /// +

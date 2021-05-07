@@ -113,11 +113,11 @@
 #define GUI_ALG_CORNER_DR           20
 #define GUI_ALG_CORNER_PLUS         21
 #define GUI_ALG_LINE_H              22
-#define GUI_ALG_LINE_V              23
+#define GUI_SEQ_VOL_MAX_ATT         23
 #define GUI_SLASH                   24
 #define GUI_LOWLINE                 25
 #define GUI_MUTE                    26
-#define GUI_DOUBLEZERO              27
+#define GUI_SEQ_VOL_MIN_ATT         27
 #define GUI_PLAYCURSOR              28
 #define GUI_ARROW                   29
 #define GUI_CURSOR                  30

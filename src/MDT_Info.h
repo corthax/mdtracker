@@ -311,7 +311,7 @@ const char *infoDescriptions[256] =
     /* 2D */ "",
     /* 2E */ "",
     /* 2F */ "--=LOOP, 01=ONCE                     ",
-    /* 30 */ "--=DISABLE                           ",
+    /* 30 */ "[XX] INSTRUMENT; --=DISABLE          ",
     /* 31 */ "01..7F, --=OFF, FF=RESET, FE=HOLD    ",
     /* 32 */ "01..7F, --=OFF, FF=RESET, FE=HOLD    ",
     /* 33 */ "X=SPEED, Y=DEPTH, --=OFF             ",
