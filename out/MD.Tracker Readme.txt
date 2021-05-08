@@ -116,9 +116,9 @@ I recommend to always use the first (--) matrix row for first instruments initia
 	B+U		Delete selected matrix row, move rows below selected 1 up.
 	B+D		Copy and insert selected matrix row, move rows below selected 1 down, 250th matrix row will be lost.
 	
-	Matrix cell transposition: [NOT IMPLEMENTED]
+	Matrix cell transposition:
 	
-	Y+U/D 	+/- 1 semitone.
+	Y+U/D 	+/- 1 semitone (12 semitones max).
 '
 
 ----------------

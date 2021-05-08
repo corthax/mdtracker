@@ -125,7 +125,8 @@
 #define TEMPO               0x07269 // PATTERN_MATRIX + 1964h; 2 bytes
 #define SAMPLE_DATA         0x0726B // 4 * 96 * 7 bytes (3byte start + 3byte end + 1byte loop)
 #define PATTERN_DATA        0x07CEB // SAMPLE_DATA + A80h;
-#define PATTERN_COLOR       0x6A06B // PATTERN_DATA + PATTERN_SIZE * (MAX_PATTERN + 1)
+#define PATTERN_COLOR       0x6A06B // PATTERN_DATA + PATTERN_SIZE * (MAX_PATTERN + 1); last is 0x6A3E9
+#define MATRIX_TRANSPOSE    0x6A3EA //
 //}
 
 //{ Pattern data 14 * 32 bytes

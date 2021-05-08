@@ -24,9 +24,11 @@
 
 #define STRING_EMPTY    ""
 
-#define H_INT_SKIP              1   // counter; 1
-#define TICK_SKIP_MIN           6   // fast tempo limit; 1 tick = H_INT_SKIP h-Blanks; 6
-#define TICK_SKIP_MAX           128 // slow tempo limit; 128
+#define H_INT_DURATION_NTSC     744     // ;744 (+ code time 211 ?)
+#define H_INT_DURATION_PAL      892    // ;892
+#define H_INT_SKIP              1       // counter; 1
+#define TICK_SKIP_MIN           6       // fast tempo limit; 1 tick = H_INT_SKIP h-Blanks; 6
+#define TICK_SKIP_MAX           128     // slow tempo limit; 128
 
 u16 playingPatternID = 0;
 u8 playingMatrixRow = 0; // current played line
@@ -163,7 +165,7 @@ s8 patternCopyRangeEnd = NOTHING;
 u16 hIntToSkip = 0;
 s16 hIntCounter = 0;
 
-u16 bgBaseTileIndex[3];
+u16 bgBaseTileIndex[4];
 u16 asciiBaseLetters, asciiBaseNumbers;
 u8 instCopyTo = 0x01; // instrument copy
 
@@ -594,16 +596,16 @@ void NavigateInstrument(u8 direction)
 }
 
 // -------------------------------------------------------------------------------------------------------------
-static void DoEngine()
+inline static void DoEngine()
 {
     static u8 arptick_value = 0;
     static u8 voltick_value = 0;
     static u8 fxtype_value = 0;
     static u8 fxval_value = 0;
     static u8 beginPlay = TRUE;
-
     static u8 inst = 0;
     static s16 key = 0;
+    static s8 matrixTranspose = 0;
 
     // vibrato tool
     auto inline s8 vibrato(u8 channel)
@@ -796,13 +798,13 @@ static void DoEngine()
             else maxFrame = ticksPerEvenRow;
 
             DrawMatrixPlaybackCursor(FALSE);
+            hIntCounter = hIntToSkip; // reset counter
             SYS_enableInts();
-            hIntCounter = hIntToSkip;
         }
 
-        if (hIntCounter < 1) // ticks counter
+        if (hIntCounter < 1) // counter overflow; do song tick
         {
-            hIntCounter = hIntToSkip;
+            hIntCounter = hIntToSkip; // reset counter
             if (frameCounter == -1) frameCounter = 1; else frameCounter++;
             if (frameCounter == maxFrame)
             {
@@ -817,112 +819,112 @@ static void DoEngine()
         {
             for (u8 channel = CHANNEL_FM1; channel < CHANNELS_TOTAL; channel++) // 13 channels; 0 .. 12
             {
+                auto inline void command(u8 type, u8 val, u8 effect)
+                {
+                    fxtype_value = ReadPatternSRAM(playingPatternID, playingPatternRow, type);
+                    fxval_value = ReadPatternSRAM(playingPatternID, playingPatternRow, val);
+                    //! VERY SLOW even if conditions are not executed
+                    if (fxtype_value != NULL) {
+                        ApplyCommand_Common(channel, fxtype_value, fxval_value);
+                        ApplyCommand_FM(channel, channelPreviousInstrument[channel], fxtype_value, fxval_value);
+                        ApplyCommand_PSG(fxtype_value, fxval_value);
+                        channelPreviousEffect[channel][effect] = fxtype_value;
+                    }
+                    else if (fxval_value != NULL) {
+                        ApplyCommand_Common(channel, channelPreviousEffect[channel][effect], fxval_value);
+                        ApplyCommand_FM(channel, channelPreviousInstrument[channel], channelPreviousEffect[channel][effect], fxval_value);
+                        ApplyCommand_PSG(channelPreviousEffect[channel][effect], fxval_value);
+                    }
+                }
+
+                // apply commands to temp RAM instrument
+                auto inline void apply_commands()
+                {
+                    command(DATA_FX1_TYPE, DATA_FX1_VALUE, 0);
+                    command(DATA_FX2_TYPE, DATA_FX2_VALUE, 1);
+                    command(DATA_FX3_TYPE, DATA_FX3_VALUE, 2);
+                    command(DATA_FX4_TYPE, DATA_FX4_VALUE, 3);
+                    command(DATA_FX5_TYPE, DATA_FX5_VALUE, 4);
+                    command(DATA_FX6_TYPE, DATA_FX6_VALUE, 5);
+                }
+
+                // write only when instrument is changed and not empty
                 playingPatternID = ReadMatrixSRAM(channel, playingMatrixRow);
-                if (BIT_CHECK(channelFlags, channel)) // if channel is not muted
+                inst = ReadPatternSRAM(playingPatternID, playingPatternRow, DATA_INSTRUMENT);
+                matrixTranspose = ReadMatrixTransposeSRAM(channel, playingMatrixRow);
+                if (instrumentIsMuted[inst] == INST_MUTE) // check if instrument is muted. ignore writes, replace note with OFF if so
                 {
-                    auto inline void command(u8 type, u8 val, u8 effect)
-                    {
-                        fxtype_value = ReadPatternSRAM(playingPatternID, playingPatternRow, type);
-                        fxval_value = ReadPatternSRAM(playingPatternID, playingPatternRow, val);
-                        if (fxtype_value != NULL) {
-                            ApplyCommand_Common(channel, fxtype_value, fxval_value);
-                            ApplyCommand_FM(channel, channelPreviousInstrument[channel], fxtype_value, fxval_value);
-                            ApplyCommand_PSG(fxtype_value, fxval_value);
-                            channelPreviousEffect[channel][effect] = fxtype_value;
-                        }
-                        else if (fxval_value != NULL) {
-                            ApplyCommand_Common(channel, channelPreviousEffect[channel][effect], fxval_value);
-                            ApplyCommand_FM(channel, channelPreviousInstrument[channel], channelPreviousEffect[channel][effect], fxval_value);
-                            ApplyCommand_PSG(channelPreviousEffect[channel][effect], fxval_value);
-                        }
-                    }
-
-                    // apply commands to temp RAM instrument
-                    auto inline void apply_commands()
-                    {
-                        command(DATA_FX1_TYPE, DATA_FX1_VALUE, 0);
-                        command(DATA_FX2_TYPE, DATA_FX2_VALUE, 1);
-                        command(DATA_FX3_TYPE, DATA_FX3_VALUE, 2);
-                        command(DATA_FX4_TYPE, DATA_FX4_VALUE, 3);
-                        command(DATA_FX5_TYPE, DATA_FX5_VALUE, 4);
-                        command(DATA_FX6_TYPE, DATA_FX6_VALUE, 5);
-                    }
-
-                    // write only when instrument is changed and not empty
-                    inst = ReadPatternSRAM(playingPatternID, playingPatternRow, DATA_INSTRUMENT);
-                    if (instrumentIsMuted[inst] == INST_MUTE) // check if instrument is muted. ignore writes, replace note with OFF if so
-                    {
-                        inst = NULL; channelCurrentNote[channel] = NOTE_OFF;
-                    }
-                    else
-                    {
-                        channelCurrentNote[channel] = ReadPatternSRAM(playingPatternID, playingPatternRow, DATA_NOTE);
-                    }
-
-                    // seq
-                    if (channelVolSeqMODE[channel] == 0 || (channelVolSeqMODE[channel] == 1 && channelCurrentNote[channel] < NOTE_TOTAL)) // loop or once
-                    {
-                        voltick_value = ReadInstrumentSRAM(channelVolSeqID[channel], INST_VOL_TICK_01); // volume tick sequencer
-                        if (voltick_value != SEQ_VOL_SKIP) // check skip step here
-                        {
-                            channelSeqAttenuation[channel] = voltick_value;
-                            SetChannelVolume(channel);
-                        }
-                    }
-
-                    if (channelArpSeqMODE[channel] == 0 || (channelArpSeqMODE[channel] == 1 && channelCurrentNote[channel] < NOTE_TOTAL)) // loop or once
-                    {
-                        arptick_value = ReadInstrumentSRAM(channelArpSeqID[channel], INST_ARP_TICK_01); // note tick sequencer
-                    }
-
-                    // commands
-                    if (inst != NULL)
-                    {
-                        channelPreviousInstrument[channel] = inst; // change current channel instrument for later use
-                        apply_commands(); // update [tmpInst] if any commands, write command *registers*, recalculate *combined registers*
-                        WriteYM2612(channel, inst); // write all FM registers from [tmpInst]; all [tmpInst] are re-cached at play from SRAM to RAM
-                    }
-                    else
-                    {
-                        apply_commands();
-                    }
-
-                    // --------- trigger note playback; check empty note later; pass note id: 0..95, 254, 255
-                    key = channelCurrentNote[channel];
-
-                    if (channelCurrentNote[channel] != NOTE_EMPTY)
-                    {
-                        channelPreviousNote[channel] = channelCurrentNote[channel]; // note or OFF
-                        channelArpNote[channel] = channelCurrentNote[channel];
-                        if (channelNoteRetrigger[channel] > 0) channelNoteRetriggerCounter[channel] = 0;
-                    }
-
-                    if (arptick_value != NOTE_EMPTY) // ARP is not empty
-                    {
-                        if (channelCurrentNote[channel] <= NOTE_MAX) // if there is note, modify it with ARP seq
-                        {
-                            if (arptick_value > ARP_BASE) key = channelCurrentNote[channel] + (arptick_value - ARP_BASE);
-                            else if (arptick_value < ARP_BASE) key = channelCurrentNote[channel] - (ARP_BASE - arptick_value);
-                            if (key < 0 || key > NOTE_MAX) key = channelCurrentNote[channel]; // return same note if ARP is out of range
-                        }
-                        else if (channelCurrentNote[channel] == NOTE_EMPTY && channelPreviousNote[channel] != NOTE_OFF)
-                        {
-                            if (arptick_value > ARP_BASE) key = channelPreviousNote[channel] + (arptick_value - ARP_BASE);
-                            else if (arptick_value < ARP_BASE) key = channelPreviousNote[channel] - (ARP_BASE - arptick_value);
-                            if (key < 0 || key > NOTE_MAX || arptick_value == ARP_BASE) key = channelPreviousNote[channel];
-                        }
-                    }
-
-                    if (channelNoteDelay[channel] == 0) PlayNote(key, channel);
+                    inst = NULL; channelCurrentNote[channel] = NOTE_OFF;
                 }
-                else // muted channel
+                else
                 {
-                    if (channel == CHANNEL_FM3_OP4)
+                    channelCurrentNote[channel] = ReadPatternSRAM(playingPatternID, playingPatternRow, DATA_NOTE);
+                }
+
+                // seq
+                if (channelVolSeqMODE[channel] == 0 || (channelVolSeqMODE[channel] == 1 && channelCurrentNote[channel] < NOTE_TOTAL)) // loop or once
+                {
+                    voltick_value = ReadInstrumentSRAM(channelVolSeqID[channel], INST_VOL_TICK_01); // volume tick sequencer
+                    if (voltick_value != SEQ_VOL_SKIP) // check skip step here
                     {
-                       if (ch3Mode == CH3_SPECIAL_CSM || ch3Mode == CH3_SPECIAL_CSM_OFF) ch3Mode = CH3_NORMAL;
+                        channelSeqAttenuation[channel] = voltick_value;
+                        SetChannelVolume(channel);
                     }
                 }
-                //!
+
+                if (channelArpSeqMODE[channel] == 0 || (channelArpSeqMODE[channel] == 1 && channelCurrentNote[channel] < NOTE_TOTAL)) // loop or once
+                {
+                    arptick_value = ReadInstrumentSRAM(channelArpSeqID[channel], INST_ARP_TICK_01); // note tick sequencer
+                }
+
+                // commands
+                if (inst != NULL)
+                {
+                    channelPreviousInstrument[channel] = inst; // change current channel instrument for later use
+                    apply_commands(); // update [tmpInst] if any commands, write command *registers*, recalculate *combined registers*
+                    WriteYM2612(channel, inst); // write all FM registers from [tmpInst]; all [tmpInst] are re-cached at play from SRAM to RAM
+                }
+                else
+                {
+                    apply_commands();
+                }
+
+                // --------- trigger note playback; check empty note later; pass note id: 0..95, 254, 255
+                key = channelCurrentNote[channel];
+
+                if (channelCurrentNote[channel] != NOTE_EMPTY)
+                {
+                    channelPreviousNote[channel] = channelCurrentNote[channel]; // note or OFF
+                    channelArpNote[channel] = channelCurrentNote[channel];
+                    if (channelNoteRetrigger[channel] > 0) channelNoteRetriggerCounter[channel] = 0;
+                }
+
+                if (arptick_value != NOTE_EMPTY) // ARP is not empty
+                {
+                    if (channelCurrentNote[channel] < NOTE_TOTAL) // if there is note, modify it with ARP seq
+                    {
+                        if (arptick_value > ARP_BASE) key = channelCurrentNote[channel] + (arptick_value - ARP_BASE);
+                        else if (arptick_value < ARP_BASE) key = channelCurrentNote[channel] - (ARP_BASE - arptick_value);
+                        if (key < 0 || key > NOTE_MAX) key = channelCurrentNote[channel]; // return same note if ARP is out of range
+                    }
+                    else if (channelCurrentNote[channel] == NOTE_EMPTY && channelPreviousNote[channel] != NOTE_OFF)
+                    {
+                        if (arptick_value > ARP_BASE) key = channelPreviousNote[channel] + (arptick_value - ARP_BASE);
+                        else if (arptick_value < ARP_BASE) key = channelPreviousNote[channel] - (ARP_BASE - arptick_value);
+                        if (key < 0 || key > NOTE_MAX || arptick_value == ARP_BASE) key = channelPreviousNote[channel];
+                    }
+                }
+
+                if (key < NOTE_MAX) // only notes
+                {
+                    s8 test = key + matrixTranspose;
+                    if (test < NOTE_TOTAL || test > -1) key = test;
+                }
+
+                if (!channelNoteDelay[channel] && BIT_CHECK(channelFlags, channel))
+                    PlayNote((u8)key, channel);
+                else if (channel == CHANNEL_FM3_OP4 && (ch3Mode == CH3_SPECIAL_CSM || ch3Mode == CH3_SPECIAL_CSM_OFF))
+                    ch3Mode = CH3_NORMAL;
             }
 
             ClearPatternPlaybackCursor();
@@ -989,8 +991,10 @@ static void DoEngine()
     }
 }
 
-static s16 FindUnusedPattern()
+inline static s16 FindUnusedPattern()
 {
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_BIGDOT), selectedMatrixChannel * 3 + 1, selectedMatrixRow + 2);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_BIGDOT), selectedMatrixChannel * 3 + 2, selectedMatrixRow + 2);
     static bool used = FALSE;
     for (s16 pattern = 1; pattern <= MAX_PATTERN; pattern++) {
         used = FALSE;
@@ -1011,15 +1015,15 @@ static void SetBPM(u16 counter)
     /*YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_B, counter);
     microseconds = 3003 * (256 - counter); // timer B = 300.34 microseconds*/
 
-    if (!IS_PALSYSTEM) microseconds = 744 * (H_INT_SKIP+1) * counter; // h-blank = 1/13440 sec; 74.4047 microseconds;
-    else microseconds = 892 * (H_INT_SKIP+1) * counter; // h-blank = 1/11200 sec; 89.2857 microseconds;
+    if (!IS_PALSYSTEM) microseconds = H_INT_DURATION_NTSC * (H_INT_SKIP+1) * counter; // h-blank = 1/13440 sec; 74.4047 microseconds; 224 * 60
+    else microseconds = H_INT_DURATION_PAL * (H_INT_SKIP+1) * counter; // h-blank = 1/11200 sec; 89.2857 microseconds;
     hIntToSkip = counter;
 
     //! software cpu subtick. very unstable
     //microseconds = 130 * timer; // sub-tick = 1/76800 sec; 13.0208333 microseconds
     //subTicksToSkip = timer;
 
-    BPM = (600000000 / microseconds) / ((ticksPerEvenRow + ticksPerOddRow) << 1);
+    BPM = (600000000 / microseconds) / ((ticksPerEvenRow + ticksPerOddRow) << 1); // beat = 4 lines
     SRAMW_writeWord(TEMPO, counter); // store
 
     if (BPM < 1000)
@@ -1099,13 +1103,14 @@ static void ChangeMatrixValue(s16 mod)
     }
 }
 
-// input
+// gamepad interrupts handler
 static void JoyEvent(u16 joy, u16 changed, u16 state)
 {
     static u8 patternColumnShift = 0;
     static s8 inc = 0; // paste increment
     static u8 row = 0; // paste row to
     static u8 col = 0; // pattern color slot
+    static s8 transpose = 0; // matrix slot transpose
 
     if (selectedMatrixScreenRow < MATRIX_SCREEN_ROWS)
         selectedMatrixRow = selectedMatrixScreenRow + (currentPage * 25);
@@ -1267,19 +1272,20 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 }
                 break;
 
-            case BUTTON_Y: // pattern colors
+            case BUTTON_Y:
                 switch(changed)
                 {
-                case BUTTON_LEFT:
+                case BUTTON_LEFT: // pattern colors
                     selectedPatternID = ReadMatrixSRAM(selectedMatrixChannel, selectedMatrixRow); // select current pattern
                     if (selectedPatternID != NULL)
                     {
                         col = ReadPatternColorSRAM(selectedPatternID)-1;
                         if (col < 1) col = GUI_PATTERN_COLORS_MAX;
                         WritePatternColorSRAM(selectedPatternID, col);
-                        RefreshPatternColors();
+                        ReColorsAndTranspose();
                     }
                     break;
+
                 case BUTTON_RIGHT:
                     selectedPatternID = ReadMatrixSRAM(selectedMatrixChannel, selectedMatrixRow);
                     if (selectedPatternID != NULL)
@@ -1287,9 +1293,28 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         col = ReadPatternColorSRAM(selectedPatternID)+1;
                         if (col > GUI_PATTERN_COLORS_MAX) col = 1;
                         WritePatternColorSRAM(selectedPatternID, col);
-                        RefreshPatternColors();
+                        ReColorsAndTranspose();
                     }
                     break;
+
+                case BUTTON_UP: // matrix transpose
+                    transpose = ReadMatrixTransposeSRAM(selectedMatrixChannel, selectedMatrixRow);
+                    if (transpose < 12)
+                    {
+                        transpose++; WriteMatrixTransposeSRAM(selectedMatrixChannel, selectedMatrixRow, transpose);
+                        ReColorsAndTranspose();
+                    }
+                    break;
+
+                case BUTTON_DOWN:
+                    transpose = ReadMatrixTransposeSRAM(selectedMatrixChannel, selectedMatrixRow);
+                    if (transpose > -12)
+                    {
+                        transpose--; WriteMatrixTransposeSRAM(selectedMatrixChannel, selectedMatrixRow, transpose);
+                        ReColorsAndTranspose();
+                    }
+                    break;
+
                 case BUTTON_C: // clear
                     selectedPatternID = ReadMatrixSRAM(selectedMatrixChannel, selectedMatrixRow);
                     if (selectedPatternID != NULL)
@@ -1298,7 +1323,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         if (col != 0)
                         {
                             WritePatternColorSRAM(selectedPatternID, 0);
-                            RefreshPatternColors();
+                            ReColorsAndTranspose();
                         }
                     }
                     break;
@@ -1315,7 +1340,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         currentPage++;
                         bRefreshScreen = bInitScreen = TRUE;
                         matrixRowToRefresh = EVALUATE_0xFFFF;
-                        RefreshPatternColors();
+                        ReColorsAndTranspose();
                     }
                     break;
 
@@ -1325,7 +1350,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         currentPage--;
                         bRefreshScreen = bInitScreen = TRUE;
                         matrixRowToRefresh = EVALUATE_0xFFFF;
-                        RefreshPatternColors();
+                        ReColorsAndTranspose();
                     }
                     break;
 
@@ -1334,7 +1359,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     if (currentPage > MAX_MATRIX_PAGE) currentPage = MAX_MATRIX_PAGE;
                     bRefreshScreen = bInitScreen = TRUE;
                     matrixRowToRefresh = EVALUATE_0xFFFF;
-                    RefreshPatternColors();
+                    ReColorsAndTranspose();
                     break;
 
                 case BUTTON_DOWN:
@@ -1342,7 +1367,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     if (currentPage < 0) currentPage = 0;
                     bRefreshScreen = bInitScreen = TRUE;
                     matrixRowToRefresh = EVALUATE_0xFFFF;
-                    RefreshPatternColors();
+                    ReColorsAndTranspose();
                     break;
                 }
                 break;
@@ -2174,7 +2199,7 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
     }
 }
 // ------------------------------ PATTERN MATRIX
-void DisplayPatternMatrix()
+inline void DisplayPatternMatrix()
 {
     static u16 patternID = 0;
     static u8 shiftX = 0;
@@ -2223,7 +2248,7 @@ void DisplayPatternMatrix()
             num2 = ((patternID & 0x0F0) >> 4) + bgBaseTileIndex[1];
             num3 = (patternID & 0x00F) + bgBaseTileIndex[1];
 
-            if (num1 > 0) num1 += bgBaseTileIndex[1]; // else draw empty tile
+            if (num1 > 0) num1 += bgBaseTileIndex[3]; // else draw empty tile
             !(line & 1) ? (palx = PAL0) : (palx = PAL1);
             VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, num1), shiftX, shiftY); // clear or draw digit 3
             VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(palx, 1, FALSE, FALSE, num2), shiftX + 1, shiftY); // draw digit 2
@@ -2397,7 +2422,7 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
     }
 }
 
-void DisplayPatternEditor()
+inline void DisplayPatternEditor()
 {
     if (bInitScreen)
     {
@@ -2740,7 +2765,7 @@ static void ChangeInstrumentParameter(s8 modifier)
     CacheIstrumentToRAM(selectedInstrumentID); // update RAM struct
 }
 
-void DisplayInstrumentEditor()
+inline void DisplayInstrumentEditor()
 {
     static u8 value = 0; // buffer
     static u8 alg = 0;
@@ -3560,7 +3585,7 @@ static void StopChannelSound(u8 matrixChannel)
     }
 }
 
-static void StopAllSound()
+static inline void StopAllSound()
 {
     for (u8 matrixChannel = CHANNEL_FM1; matrixChannel < CHANNELS_TOTAL; matrixChannel++)
     {
@@ -3700,7 +3725,7 @@ void CalculateCombined(u8 id, u8 reg)
     }
 }
 
-static void SetChannelBaseVolume(u8 matrixChannel, u8 id)
+static inline void SetChannelBaseVolume(u8 matrixChannel, u8 id)
 {
     auto void set_normal_slots()
     {
@@ -3793,7 +3818,7 @@ static void SetChannelBaseVolume(u8 matrixChannel, u8 id)
 }
 
 // write all YM2612 registers
-static void WriteYM2612(u8 matrixChannel, u8 id)
+static inline void WriteYM2612(u8 matrixChannel, u8 id)
 {
     static u16 port = 0;
     static u8 fmChannel = 0;
@@ -3940,7 +3965,7 @@ static void WriteYM2612(u8 matrixChannel, u8 id)
     }
 }
 
-static void ApplyCommand_Common(u8 matrixChannel, u8 fxParam, u8 fxValue)
+static inline void ApplyCommand_Common(u8 matrixChannel, u8 fxParam, u8 fxValue)
 {
     switch (fxParam)
     {
@@ -4205,7 +4230,7 @@ static void ApplyCommand_Common(u8 matrixChannel, u8 fxParam, u8 fxValue)
     }
 }
 
-static void ApplyCommand_PSG(u8 fxParam, u8 fxValue)
+static inline void ApplyCommand_PSG(u8 fxParam, u8 fxValue)
 {
     switch (fxParam)
     {
@@ -4234,7 +4259,7 @@ static void ApplyCommand_PSG(u8 fxParam, u8 fxValue)
     }
 }
 
-static void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // matrix channel; instrument id
+static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // matrix channel; instrument id
 {
     static u16 port = 0;
     static u8 fmChannel = 0;
@@ -4812,15 +4837,17 @@ void FillRowRight(u8 plane, u8 pal, u8 flipV, u8 flipH, u8 guiSymbol, u8 fillCou
         VDP_setTileMapXY(plane, TILE_ATTR_FULL(pal, 1, flipV, flipH, bgBaseTileIndex[2] + guiSymbol), x, y);
 }
 
-void RefreshPatternColors() // on color change
+void ReColorsAndTranspose() // on color change
 {
     static u16 pt = 0;
+    static s8 tr = 0;
 
     for (u8 ch = CHANNEL_FM1; ch <= CHANNEL_PSG4_NOISE; ch++)
     {
         for (u8 row = 0; row < MATRIX_SCREEN_ROWS; row++)
         {
             pt = ReadMatrixSRAM(ch, row + currentPage * MATRIX_SCREEN_ROWS);
+            tr = ReadMatrixTransposeSRAM(ch, row + currentPage * MATRIX_SCREEN_ROWS);
             if (pt != NULL)
             {
                 VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PATTERNCOLORS[ReadPatternColorSRAM(pt)]), ch*3+2, row+2);
@@ -4829,6 +4856,7 @@ void RefreshPatternColors() // on color change
             {
                 VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), ch*3+2, row+2);
             }
+            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[3] + GUI_TRANSPOSE + tr), ch*3, row+2);
         }
     }
 }
@@ -4874,6 +4902,16 @@ static u16 ReadMatrixSRAM(u8 channel, u8 line)
 void WriteMatrixSRAM(u8 channel, u8 line, u16 data)
 {
     SRAMW_writeWord((u32)PATTERN_MATRIX + ((channel * MAX_MATRIX_ROWS) + line) * 2, data);
+}
+
+static s8 ReadMatrixTransposeSRAM(u8 channel, u8 line)
+{
+    return SRAMW_readByte((u32)MATRIX_TRANSPOSE + ((channel * MAX_MATRIX_ROWS) + line));
+}
+
+void WriteMatrixTransposeSRAM(u8 channel, u8 line, s8 transpose)
+{
+    SRAMW_writeByte((u32)MATRIX_TRANSPOSE + ((channel * MAX_MATRIX_ROWS) + line), transpose);
 }
 
 // pcm
@@ -4974,14 +5012,14 @@ void InitTracker()
     bgBaseTileIndex[1] = ind; asciiBaseLetters = ind - 55; asciiBaseNumbers = ind - 48;
     VDP_loadTileSet(&numletters, ind, DMA);
     ind += numletters.numTile;
-    // GUI symbols
+    // GUI 1
     bgBaseTileIndex[2] = ind;
     VDP_loadTileSet(&tileset_gui, ind, DMA);
-    ind += numletters.numTile;
-    // Matrix pattern colors
-    /*bgBaseTileIndex[3] = ind;
-    VDP_loadTileSet(&tileset_patterns, ind, DMA);
-    ind += numletters.numTile;*/
+    ind += tileset_gui.numTile;
+    // GUI 2
+    bgBaseTileIndex[3] = ind;
+    VDP_loadTileSet(&tileset_gui2, ind, DMA);
+    ind += tileset_gui2.numTile;
 
     VDP_waitDMACompletion();
 
@@ -4999,7 +5037,7 @@ void InitTracker()
     JOY_setSupport(PORT_2, JOY_SUPPORT_6BTN);
     JOY_setEventHandler(JoyEvent);
 
-    RefreshPatternColors(); // need SRAM
+    ReColorsAndTranspose(); // need SRAM
 
     // init
     for (u8 channel = CHANNEL_FM1; channel < CHANNELS_TOTAL; channel++)

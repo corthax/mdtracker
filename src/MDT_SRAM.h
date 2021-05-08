@@ -19,4 +19,7 @@ void WriteMatrixSRAM(u8 channel, u8 line, u16 data);
 u8 ReadPatternColorSRAM(u16 id);
 void WritePatternColorSRAM(u16 id, u8 color);
 
+static s8 ReadMatrixTransposeSRAM(u8 channel, u8 line);
+void WriteMatrixTransposeSRAM(u8 channel, u8 line, s8 transpose);
+
 #endif // MDT_SRAM_H_INCLUDED

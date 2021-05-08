@@ -172,6 +172,11 @@
 #define GUI_LETTER_Y                34
 #define GUI_LETTER_Z                35
 // -----------------------------------------------------------
+#define GUI_MATRIX_1XX              0
+#define GUI_MATRIX_2XX              1
+#define GUI_MATRIX_3XX              2
+#define GUI_TRANSPOSE               28
+// -----------------------------------------------------------
 #define GUI_NAVIGATION_SPEED_COUNTER    3
 #define GUI_NAVIGATION_DELAY            15
 #define GUI_PATTERN_COLORS_MAX          13
@@ -188,5 +193,5 @@ void DrawPatternPlaybackCursor();
 void NavigateMatrix(u8 direction);
 void NavigatePattern(u8 direction);
 void NavigateInstrument(u8 direction);
-void RefreshPatternColors();
+void ReColorsAndTranspose();
 #endif // MDT_GUI_H_INCLUDED

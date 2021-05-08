@@ -7,5 +7,6 @@ extern const Palette palette_1;
 extern const Palette palette_2;
 extern const Palette palette_3;
 extern const TileSet tileset_gui;
+extern const TileSet tileset_gui2;
 
 #endif // _RES_GRAPHICS_H_
