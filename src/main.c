@@ -24,11 +24,12 @@
 
 #define STRING_EMPTY    ""
 
-#define H_INT_DURATION_NTSC     744     // ;744 (+ code time 211 ?)
-#define H_INT_DURATION_PAL      892    // ;892
+#define H_INT_DURATION_NTSC     744     // ; 744
+#define H_INT_DURATION_PAL      892     // ; 892
 #define H_INT_SKIP              1       // counter; 1
-#define TICK_SKIP_MIN           6       // fast tempo limit; 1 tick = H_INT_SKIP h-Blanks; 6
+#define TICK_SKIP_MIN           6       // fast tempo limit, 1 tick = H_INT_SKIP h-Blanks; 6
 #define TICK_SKIP_MAX           128     // slow tempo limit; 128
+#define COUNTER_COMPENSATION    6       // code timer h-int shift compensation (slower code limit the max bpm); 9
 
 u16 playingPatternID = 0;
 u8 playingMatrixRow = 0; // current played line
@@ -80,9 +81,7 @@ char str[6]; //! symbol buffer !!!may cause crash if overflowed!!!
 // engine
 u8 ch3Mode = CH3_NORMAL; // global
 u8 ch3OpNoteStatus = 0b00000010; // ch3 each of operators status, note on or off
-u16 channelFlags = 0b0001111111111111; // mute/unmute channels
-
-u8 psg_noise_mode = 0;
+u8 psg_noise_mode = PSG_NOISE_TYPE_PERIODIC;
 
 bool bPlayback = FALSE;
 u8 ticksPerOddRow = 16;
@@ -93,6 +92,8 @@ s8 frameCounter = 0; // 8 PPL
 u16 subTicksToSkip = 0;
 
 // channel effects
+//u16 channelFlags = 0b0001111111111111; // mute/unmute channels
+u8 channelFlags[CHANNELS_TOTAL] = {1,1,1,1,1,1,1,1,1,1,1,1,1};
 u8 channelPitchSlideSpeed[CHANNELS_TOTAL];
 s8 channelMicrotone[CHANNELS_TOTAL];
 u8 channelArpNote[CHANNELS_TOTAL];
@@ -314,7 +315,7 @@ int main()
 }
 
 // must not be very cpu hungry
-static void hIntCallback()
+static inline void hIntCallback()
 {
     //static u8 flipEnvelope = 0;
     //static u8 hIntSkipCounter = 0;
@@ -366,7 +367,7 @@ static void hIntCallback()
     }
 }
 
-static void vIntCallback()
+static inline void vIntCallback()
 {
     SYS_doVBlankProcessEx(IMMEDIATELY);
     // fast navigation
@@ -596,7 +597,7 @@ void NavigateInstrument(u8 direction)
 }
 
 // -------------------------------------------------------------------------------------------------------------
-inline static void DoEngine()
+static inline void DoEngine()
 {
     static u8 arptick_value = 0;
     static u8 voltick_value = 0;
@@ -671,7 +672,7 @@ inline static void DoEngine()
                         {
                             channelArpNote[channel] = channelPreviousNote[channel];
                         }
-                        PlayNote(channelArpNote[channel], channel);
+                        if (channelFlags[channel]) PlayNote(channelArpNote[channel], channel);
                     }
                 }
             }
@@ -721,7 +722,7 @@ inline static void DoEngine()
                 SetChannelVolume(channel);
             }
 
-            // pitch
+            //!slow pitch
             if (channelPitchSlideSpeed[channel] > 0 || channelVibratoDepth[channel] > 0 || channelVibratoSpeed[channel] > 0)
             {
                 // portamento
@@ -761,7 +762,7 @@ inline static void DoEngine()
                 }
                 else  channelModNoteVibrato[channel] = 0;
 
-                if (channel < CHANNEL_PSG1) SetPitchFM(channel, channelArpNote[channel]);
+                if (channel < CHANNEL_PSG1) SetPitchFM(channel, channelArpNote[channel]); //!slow
                 else SetPitchPSG(channel, channelArpNote[channel]);
             }
             else
@@ -786,6 +787,7 @@ inline static void DoEngine()
         if (beginPlay)
         {
             SYS_disableInts();
+            SetBPM(SRAMW_readWord(TEMPO));
             beginPlay = FALSE;
 
             for (u16 id = 0; id <= MAX_INSTRUMENT; id++) { CacheIstrumentToRAM(id); } // reset [tempInst]
@@ -811,11 +813,12 @@ inline static void DoEngine()
                 if (playingPatternRow & 1) maxFrame = ticksPerOddRow; else maxFrame = ticksPerEvenRow;
                 frameCounter = 0;
             }
+
             do_effects();
         }
 
         // playback engine
-        if (frameCounter == 0)
+        if (!frameCounter)
         {
             for (u8 channel = CHANNEL_FM1; channel < CHANNELS_TOTAL; channel++) // 13 channels; 0 .. 12
             {
@@ -823,7 +826,6 @@ inline static void DoEngine()
                 {
                     fxtype_value = ReadPatternSRAM(playingPatternID, playingPatternRow, type);
                     fxval_value = ReadPatternSRAM(playingPatternID, playingPatternRow, val);
-                    //! VERY SLOW even if conditions are not executed
                     if (fxtype_value != NULL) {
                         ApplyCommand_Common(channel, fxtype_value, fxval_value);
                         ApplyCommand_FM(channel, channelPreviousInstrument[channel], fxtype_value, fxval_value);
@@ -862,7 +864,7 @@ inline static void DoEngine()
                 }
 
                 // seq
-                if (channelVolSeqMODE[channel] == 0 || (channelVolSeqMODE[channel] == 1 && channelCurrentNote[channel] < NOTE_TOTAL)) // loop or once
+                if (!channelVolSeqMODE[channel] || (channelVolSeqMODE[channel] == 1 && channelCurrentNote[channel] < NOTE_TOTAL)) // loop or once
                 {
                     voltick_value = ReadInstrumentSRAM(channelVolSeqID[channel], INST_VOL_TICK_01); // volume tick sequencer
                     if (voltick_value != SEQ_VOL_SKIP) // check skip step here
@@ -872,7 +874,7 @@ inline static void DoEngine()
                     }
                 }
 
-                if (channelArpSeqMODE[channel] == 0 || (channelArpSeqMODE[channel] == 1 && channelCurrentNote[channel] < NOTE_TOTAL)) // loop or once
+                if (!channelArpSeqMODE[channel] || (channelArpSeqMODE[channel] == 1 && channelCurrentNote[channel] < NOTE_TOTAL)) // loop or once
                 {
                     arptick_value = ReadInstrumentSRAM(channelArpSeqID[channel], INST_ARP_TICK_01); // note tick sequencer
                 }
@@ -921,7 +923,7 @@ inline static void DoEngine()
                     if (test < NOTE_TOTAL || test > -1) key = test;
                 }
 
-                if (!channelNoteDelay[channel] && BIT_CHECK(channelFlags, channel))
+                if (!channelNoteDelay[channel])
                     PlayNote((u8)key, channel);
                 else if (channel == CHANNEL_FM3_OP4 && (ch3Mode == CH3_SPECIAL_CSM || ch3Mode == CH3_SPECIAL_CSM_OFF))
                     ch3Mode = CH3_NORMAL;
@@ -1015,8 +1017,8 @@ static void SetBPM(u16 counter)
     /*YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_B, counter);
     microseconds = 3003 * (256 - counter); // timer B = 300.34 microseconds*/
 
-    if (!IS_PALSYSTEM) microseconds = H_INT_DURATION_NTSC * (H_INT_SKIP+1) * counter; // h-blank = 1/13440 sec; 74.4047 microseconds; 224 * 60
-    else microseconds = H_INT_DURATION_PAL * (H_INT_SKIP+1) * counter; // h-blank = 1/11200 sec; 89.2857 microseconds;
+    if (!IS_PALSYSTEM) microseconds = H_INT_DURATION_NTSC * (H_INT_SKIP+1) * (counter + COUNTER_COMPENSATION); // h-blank = 1/13440 sec; 74.4047 microseconds; 224 * 60
+    else microseconds = H_INT_DURATION_PAL * (H_INT_SKIP+1) * (counter + COUNTER_COMPENSATION); // h-blank = 1/11200 sec; 89.2857 microseconds;
     hIntToSkip = counter;
 
     //! software cpu subtick. very unstable
@@ -1104,13 +1106,15 @@ static void ChangeMatrixValue(s16 mod)
 }
 
 // gamepad interrupts handler
-static void JoyEvent(u16 joy, u16 changed, u16 state)
+static inline void JoyEvent(u16 joy, u16 changed, u16 state)
 {
     static u8 patternColumnShift = 0;
     static s8 inc = 0; // paste increment
     static u8 row = 0; // paste row to
     static u8 col = 0; // pattern color slot
     static s8 transpose = 0; // matrix slot transpose
+
+    u8 muted;
 
     if (selectedMatrixScreenRow < MATRIX_SCREEN_ROWS)
         selectedMatrixRow = selectedMatrixScreenRow + (currentPage * 25);
@@ -1240,12 +1244,17 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     break;
                 // X+U/D - mute/un-mute/solo channel
                 case BUTTON_UP:
-                    BIT_CLEAR(channelFlags, selectedMatrixChannel); // mute selected
-                    if (channelFlags == 0) // all channels muted
+                    channelFlags[selectedMatrixChannel] = FALSE; // mute selected
+                    for (u8 ch = 0; ch < CHANNELS_TOTAL; ch++) muted += channelFlags[ch];
+
+                    if (!muted) // all channels muted
                     {
-                        channelFlags = 0b0001111111111111; // un-mute all
                         for (u8 i=0; i<CHANNELS_TOTAL; i++)
+                        {
+                            channelFlags[i] = TRUE; // un-mute all
                             VDP_fillTileMapRect(BG_B, NULL, (i * 3) + 1, 1, 2, 1); // clear all marks
+                        }
+
                     }
                     else
                     {
@@ -1254,20 +1263,25 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     break;
 
                 case BUTTON_DOWN: // un-mute/solo
-                    if (channelFlags == 0b0001111111111111) // all channels unmuted
+                    for (u8 ch = 0; ch < CHANNELS_TOTAL; ch++) { muted += channelFlags[ch]; }
+                    if (muted == CHANNELS_TOTAL) // all channels unmuted
                     {
-                        channelFlags = 0; // mute all
                         for (u8 i=0; i<CHANNELS_TOTAL; i++)
+                        {
                             if (i != selectedMatrixChannel) FillRowRight(BG_B, PAL1, FALSE, FALSE, GUI_MUTE, 2,(i * 3) + 1, 1 ); // set all marks (except selected)
+                            channelFlags[i] = FALSE; // mute all
+                        }
                     }
-                    BIT_SET(channelFlags, selectedMatrixChannel); // un-mute selected
+                    channelFlags[selectedMatrixChannel] = TRUE; // un-mute selected
                     VDP_fillTileMapRect(BG_B, NULL, (selectedMatrixChannel * 3) + 1, 1, 2, 1); // clear mark
                     break;
 
                 case BUTTON_Y: // un-mute all
-                    channelFlags = 0b0001111111111111; // un-mute all
                     for (u8 i=0; i<CHANNELS_TOTAL; i++)
+                    {
+                        channelFlags[i] = TRUE; // un-mute all
                         VDP_fillTileMapRect(BG_B, NULL, (i * 3) + 1, 1, 2, 1); // clear all marks
+                    }
                     break;
                 }
                 break;
@@ -3043,7 +3057,7 @@ inline void DisplayInstrumentEditor()
     }
 }
 //! slow
-static void SetChannelVolume(u8 matrixChannel)
+static inline void SetChannelVolume(u8 matrixChannel)
 {
     static s16 volT = 0, volT1 = 0, volT2 = 0, volT3 =0 , volT4 = 0; // volume, tremolo
 
@@ -3225,21 +3239,21 @@ static void SetChannelVolume(u8 matrixChannel)
     }
 }
 
-static void RequestZ80()
+static inline void RequestZ80()
 {
     //bBusTaken = Z80_getAndRequestBus(FALSE);
-    bBusTaken = Z80_isBusTaken();
-    if (!bBusTaken) Z80_requestBus(TRUE);
+    //bBusTaken = Z80_isBusTaken();
+    if (!Z80_isBusTaken()) Z80_requestBus(FALSE);
 }
 
-static void ReleaseZ80()
+static inline void ReleaseZ80()
 {
-    bBusTaken = Z80_isBusTaken();
+    //bBusTaken = Z80_isBusTaken();
     if (bDAC_enable) YM2612_write(PORT_1, YM2612REG_DAC); // needed for DAC
-    if (bBusTaken) Z80_releaseBus();
+    if (Z80_isBusTaken()) Z80_releaseBus();
 }
 
-static void SetPitchPSG(u8 matrixChannel, u8 note)
+static inline void SetPitchPSG(u8 matrixChannel, u8 note)
 {
     static s8 key = 0;
 
@@ -3256,51 +3270,54 @@ static void SetPitchPSG(u8 matrixChannel, u8 note)
         SetChannelVolume(matrixChannel);
     }
 
-    switch (matrixChannel)
+    if (channelFlags[matrixChannel])
     {
-    case CHANNEL_PSG1: case CHANNEL_PSG2:
-        setvol();
-        PSG_setTone(matrixChannel - 9, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[matrixChannel] / 2]);
-        break;
-    case CHANNEL_PSG3:
-        switch (psg_noise_mode)
+        switch (matrixChannel)
         {
-        case PSG_TONAL_CH3_MUTED:
-            PSG_setEnvelope(2, PSG_ENVELOPE_MIN); // mute PSG3 channel
-            break;
-        case PSG_TONAL_CH3_NOT_MUTED: case PSG_FIXED:
+        case CHANNEL_PSG1: case CHANNEL_PSG2:
             setvol();
-            PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[matrixChannel] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
+            PSG_setTone(matrixChannel - 9, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[matrixChannel] / 2]);
+            break;
+        case CHANNEL_PSG3:
+            switch (psg_noise_mode)
+            {
+            case PSG_TONAL_CH3_MUTED:
+                PSG_setEnvelope(2, PSG_ENVELOPE_MIN); // mute PSG3 channel
+                break;
+            case PSG_TONAL_CH3_NOT_MUTED: case PSG_FIXED:
+                setvol();
+                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[matrixChannel] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
+                break;
+            }
+            break;
+        case CHANNEL_PSG4_NOISE:
+            switch (psg_noise_mode)
+            {
+            case PSG_TONAL_CH3_MUTED:
+                setvol();
+                PSG_setEnvelope(2, PSG_ENVELOPE_MIN); // mute PSG3 channel
+                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[matrixChannel] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
+                break;
+            case PSG_TONAL_CH3_NOT_MUTED:
+                setvol();
+                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[matrixChannel] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
+                break;
+             case PSG_FIXED:
+                setvol();
+                break;
+            }
             break;
         }
-        break;
-    case CHANNEL_PSG4_NOISE:
-        switch (psg_noise_mode)
-        {
-        case PSG_TONAL_CH3_MUTED:
-            setvol();
-            PSG_setEnvelope(2, PSG_ENVELOPE_MIN); // mute PSG3 channel
-            PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[matrixChannel] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
-            break;
-        case PSG_TONAL_CH3_NOT_MUTED:
-            setvol();
-            PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[matrixChannel] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
-            break;
-         case PSG_FIXED:
-            setvol();
-            break;
-        }
-        break;
     }
 }
 
 // DAC is also here
-static void SetPitchFM(u8 matrixChannel, u8 note)
+static inline void SetPitchFM(u8 matrixChannel, u8 note)
 {
     static u8 part1 = 0, part2 = 0, noteFreqID = 0;
     static s8 key = 0;
 
-    auto void csm_pitch() // bus requested later
+    auto inline void csm_pitch() // bus requested later
     {
         // Timer A to note pitch
         YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_A_MSB, csmMicrotone[note] >> 2);
@@ -3323,7 +3340,7 @@ static void SetPitchFM(u8 matrixChannel, u8 note)
         key = note + channelModNotePitch[matrixChannel] + channelModNoteVibrato[matrixChannel];
     }
 
-    if (key > -1 && key < NOTE_TOTAL)
+    if ((key > -1) && (key < NOTE_TOTAL) && channelFlags[matrixChannel])
     {
         noteFreqID = key;
         while (noteFreqID > 11) noteFreqID -= 12;
@@ -3428,6 +3445,7 @@ static void SetPitchFM(u8 matrixChannel, u8 note)
                 YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 0b11110110); // 6
             }
             break;
+            default: break;
         }
     }
     else
@@ -3436,9 +3454,9 @@ static void SetPitchFM(u8 matrixChannel, u8 note)
     }
 }
 
-static void PlayNote(u8 note, u8 matrixChannel)
+static inline void PlayNote(u8 note, u8 matrixChannel)
 {
-    if (note < NOTE_TOTAL)
+    if ((note < NOTE_TOTAL) && channelFlags[matrixChannel])
     {
         channelVibratoPhase[matrixChannel] = 0; // neutral state
         channelTremoloPhase[matrixChannel] = 512; // neutral state
@@ -3494,7 +3512,7 @@ static void StopEffects(u8 matrixChannel)
 }
 
 // stopping sound on matrix channel
-static void StopChannelSound(u8 matrixChannel)
+static inline void StopChannelSound(u8 matrixChannel)
 {
     switch (matrixChannel)
     {
@@ -3608,7 +3626,7 @@ static void SetGlobalLFO(u8 freq)
 }
 
 // cache instrument
-static void CacheIstrumentToRAM(u8 id)
+static inline void CacheIstrumentToRAM(u8 id)
 {
     tmpInst[id].ALG = ReadInstrumentSRAM(id, INST_ALG);
     tmpInst[id].AMS = ReadInstrumentSRAM(id, INST_FMS);
@@ -3696,7 +3714,7 @@ static void CacheIstrumentToRAM(u8 id)
     CalculateCombined(id, COMB_D1L_RR_4);
 }
 
-void CalculateCombined(u8 id, u8 reg)
+inline void CalculateCombined(u8 id, u8 reg)
 {
     switch (reg)
     {
@@ -4862,70 +4880,70 @@ void ReColorsAndTranspose() // on color change
 }
 
 // instrument
-static u8 ReadInstrumentSRAM(u8 id, u16 param)
+static inline u8 ReadInstrumentSRAM(u8 id, u16 param)
 {
     return SRAMW_readByte((u32)INSTRUMENT_DATA + (id * INST_SIZE) + param);
 }
 
-void WriteInstrumentSRAM(u8 id, u16 param, u8 data)
+inline void WriteInstrumentSRAM(u8 id, u16 param, u8 data)
 {
     SRAMW_writeByte((u32)INSTRUMENT_DATA + (id * INST_SIZE) + param, data);
 }
 
 // pattern
-static u8 ReadPatternSRAM(u16 id, u8 line, u8 param)
+static inline u8 ReadPatternSRAM(u16 id, u8 line, u8 param)
 {
     return SRAMW_readByte((u32)PATTERN_DATA + (id * PATTERN_SIZE) + (line * PATTERN_COLUMNS) + param);
 }
 
-void WritePatternSRAM(u16 id, u8 line, u8 param, u8 data)
+inline void WritePatternSRAM(u16 id, u8 line, u8 param, u8 data)
 {
     SRAMW_writeByte((u32)PATTERN_DATA + (id * PATTERN_SIZE) + (line * PATTERN_COLUMNS) + param, data);
 }
 
-u8 ReadPatternColorSRAM(u16 id)
+inline u8 ReadPatternColorSRAM(u16 id)
 {
     return SRAMW_readByte((u32)PATTERN_COLOR + id);
 }
 
-void WritePatternColorSRAM(u16 id, u8 color)
+inline void WritePatternColorSRAM(u16 id, u8 color)
 {
     SRAMW_writeByte((u32)PATTERN_COLOR + id, color);
 }
 
 // matrix
-static u16 ReadMatrixSRAM(u8 channel, u8 line)
+static inline u16 ReadMatrixSRAM(u8 channel, u8 line)
 {
     return SRAMW_readWord((u32)PATTERN_MATRIX + ((channel * MAX_MATRIX_ROWS) + line) * 2);
 }
 
-void WriteMatrixSRAM(u8 channel, u8 line, u16 data)
+inline void WriteMatrixSRAM(u8 channel, u8 line, u16 data)
 {
     SRAMW_writeWord((u32)PATTERN_MATRIX + ((channel * MAX_MATRIX_ROWS) + line) * 2, data);
 }
 
-static s8 ReadMatrixTransposeSRAM(u8 channel, u8 line)
+static inline s8 ReadMatrixTransposeSRAM(u8 channel, u8 line)
 {
     return SRAMW_readByte((u32)MATRIX_TRANSPOSE + ((channel * MAX_MATRIX_ROWS) + line));
 }
 
-void WriteMatrixTransposeSRAM(u8 channel, u8 line, s8 transpose)
+inline void WriteMatrixTransposeSRAM(u8 channel, u8 line, s8 transpose)
 {
     SRAMW_writeByte((u32)MATRIX_TRANSPOSE + ((channel * MAX_MATRIX_ROWS) + line), transpose);
 }
 
 // pcm
-u32 ReadSampleRegionSRAM(u8 bank, u8 note, u8 byteNum)
+inline u32 ReadSampleRegionSRAM(u8 bank, u8 note, u8 byteNum)
 {
     return (u32)SRAMW_readByte((u32)SAMPLE_DATA + (bank * NOTE_TOTAL * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum);
 }
 
-void WriteSampleRegionSRAM(u8 bank, u8 note, u8 byteNum, u8 data)
+inline void WriteSampleRegionSRAM(u8 bank, u8 note, u8 byteNum, u8 data)
 {
     SRAMW_writeByte((u32)SAMPLE_DATA + (bank * NOTE_TOTAL * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum, data);
 }
 
-static void YM2612_writeRegZ80(u16 part, u8 reg, u8 data)
+static inline void YM2612_writeRegZ80(u16 part, u8 reg, u8 data)
 {
     RequestZ80();
     YM2612_writeReg(part, reg, data);

@@ -6,13 +6,13 @@
 //! HEADERS ARE NOT REPARSED IN CODEBLOCKS WHEN BUILD. DO REBUILD
 
 // bit help
-/* a=target variable, b=bit number to act upon 0-n */
+// a=target variable, b=bit number to act upon 0-n
 #define BIT_SET(a,b) ((a) |= (1U<<(b)))
 #define BIT_CLEAR(a,b) ((a) &= ~(1U<<(b)))
 #define BIT_FLIP(a,b) ((a) ^= (1U<<(b)))
 #define BIT_CHECK(a,b) (!!((a) & (1U<<(b))))            // "!!" to make sure this returns 0 or 1
 
-/* x=target variable, y=mask */
+// x=target variable, y=mask
 #define BITMASK_SET(x,y) ((x) |= (y))
 #define BITMASK_CLEAR(x,y) ((x) &= (~(y)))
 #define BITMASK_FLIP(x,y) ((x) ^= (y))
