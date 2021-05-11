@@ -127,6 +127,8 @@
 #define PATTERN_DATA        0x07CEB // SAMPLE_DATA + A80h;
 #define PATTERN_COLOR       0x6A06B // PATTERN_DATA + PATTERN_SIZE * (MAX_PATTERN + 1); last is 0x6A3E9
 #define MATRIX_TRANSPOSE    0x6A3EA //
+#define MUTE_CHANNEL        0x6B09C // store disabled matrix channels
+//#define MUTE_COMMAND        0x6B0A9 // store disabled pattern commands
 //}
 
 //{ Pattern data 14 * 32 bytes

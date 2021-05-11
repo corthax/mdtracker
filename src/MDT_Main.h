@@ -30,7 +30,7 @@
 #define SEQ_VOL_SKIP            0xFF
 #define SEQ_VOL_MIN_ATT         0x00
 #define SEQ_VOL_MAX_ATT         0x7F
-#define TICKS_DEFAULT           16
+#define PPL_DEFAULT           4
 
 #define MAX_PATTERN             0x380   // 896
 #define PATTERN_ROW_LAST        31      // index of max line; starts from 0
@@ -130,7 +130,6 @@ void DrawHex2(u8 pal, u16 number, u8 x, u8 y);
 void FillRowRight(u8 plane, u8 pal, u8 flipV, u8 flipH, u8 guiSymbol, u8 fillCount, u8 startX, u8 y);
 
 static void DoEngine();
-//static void DoEngine_v2();
 static void SetPitchFM(u8 matrixChannel, u8 note);
 static void SetPitchPSG(u8 matrixChannel, u8 note);
 static void PlayNote(u8 note, u8 matrixChannel);

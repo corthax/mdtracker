@@ -151,7 +151,7 @@ Setting instrument explicitly rewrites the channel's FM registers, if there are 
 	
 	C		Clear value.
 	C+B		Set note OFF on note column.
-	
+	.
 	Copy/Paste:
 
 	B+D		Select range, in current pattern, starting from selected row and below. Pressing B always clears selection range.
@@ -165,6 +165,7 @@ Setting instrument explicitly rewrites the channel's FM registers, if there are 
 	Z		Link/Un-link cell for multi-edit.
 	Z+A		Link all cells of the same type.
 	Z+B		Un-link all cells.
+	
 '
 
 ----------------
@@ -310,10 +311,11 @@ xx: 01 .. FF
 --: reset to default project tempo.
 
 ************************************************
-ROW subticks
+ROW PPL Resolution (Pulse Per Line) [!!! May impact framerate !!!]
 	14xy 
-x: 0 .. F; Odd lines 1 + x.
-y: 0 .. F; Even lines 1 + y.
+x: 0 .. F; Odd lines.
+y: 0 .. F; Even lines.
+--: default 4;
 
 ************************************************
 N4 Channel Mode
@@ -513,7 +515,7 @@ xx: 01 .. FF, instrument id sequence is taken from.
 --: disable sequence.
 
 ************************************************
-Pitch UP
+Pitch UP [!!! Very heavy on CPU !!!]
 	31xx
 xx: 01 .. 7F; Speed * 1/32 semitone per tick, linear.
 Does not restart sliding when new note is triggered, only if new effect value is set.
@@ -523,7 +525,7 @@ FE: stop.
 FF: reset.
 
 ************************************************
-Pitch DOWN
+Pitch DOWN [!!! Very heavy on CPU !!!]
 	32xx
 xx: 01 .. 7F; Speed * 1/32 semitone per tick, linear.
 Does not restart sliding when new note is triggered, only if new effect value is set.
@@ -533,7 +535,7 @@ FE: stop.
 FF: reset.
 
 ************************************************
-Vibrato
+Vibrato [!!! Very heavy on CPU, use FMS on FM instead when possible !!!]
 	33xy	
 x: 1 .. F; Total Speed = (Speed * Speed Multiplier) per tick. Phase += Total Speed. Phase is 0 .. 1024 of sin cycle.
 y: 1 .. F; Depth * Depth Multiplier * 1/32 semitone.
@@ -601,7 +603,7 @@ xx: 01 .. 7F; Divided by 8 for PSG.
 --: no attenuation.
 
 ************************************************
-Tremolo
+Tremolo [!!! Very heavy on CPU !!!]
 	42xy	
 x: 1 .. F; Speed, full cycle ticks.
 y: 1 .. F; Depth.
@@ -614,14 +616,14 @@ xx: 01 .. FF; Speed multiplier * 1/1024 of sin frequency per row pulse. Default 
 --: reset.
 
 ************************************************
-Channel volume decrease
+Channel volume decrease [!!! Very heavy on CPU !!!]
 	44xy	
 x: 1 .. F; Pulse to skip.
 y: 1 .. F; Volume decrease amount per pulse;
 --: stop effect.
 
 ************************************************
-Channel volume increase
+Channel volume increase [!!! Very heavy on CPU !!!]
 	45xy	
 x: 1 .. F; Pulse to skip.
 y: 1 .. F; Volume increase amount per pulse;

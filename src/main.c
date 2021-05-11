@@ -65,7 +65,10 @@ u8 channelArpSeqID[CHANNELS_TOTAL];
 u8 channelArpSeqMODE[CHANNELS_TOTAL];
 u8 channelVolSeqID[CHANNELS_TOTAL];
 u8 channelVolSeqMODE[CHANNELS_TOTAL];
-u8 channelCurrentNote[CHANNELS_TOTAL];
+u8 channelCurrentRowNote[CHANNELS_TOTAL];
+
+u8 channelSEQCounter_VOL[CHANNELS_TOTAL];
+u8 channelSEQCounter_ARP[CHANNELS_TOTAL];
 
 u8 selectedInstrumentID = 1; // 0 instrument is empty
 u8 selectedInstrumentParameter = 0; // 0..53
@@ -84,16 +87,17 @@ u8 ch3OpNoteStatus = 0b00000010; // ch3 each of operators status, note on or off
 u8 psg_noise_mode = PSG_NOISE_TYPE_PERIODIC;
 
 bool bPlayback = FALSE;
-u8 ticksPerOddRow = TICKS_DEFAULT;
-u8 ticksPerEvenRow = TICKS_DEFAULT;
-u8 maxFrame = TICKS_DEFAULT;
-s8 frameCounter = 0; // 8 PPL
+u8 ppl_1 = PPL_DEFAULT; // pulse per line
+u8 ppl_2 = PPL_DEFAULT;
+u8 maxFrame = PPL_DEFAULT;
+s8 pulseCounter = 0;
 
 u16 subTicksToSkip = 0;
 
 // channel effects
 //u16 channelFlags = 0b0001111111111111; // mute/unmute channels
 u8 channelFlags[CHANNELS_TOTAL] = {1,1,1,1,1,1,1,1,1,1,1,1,1};
+//u8 commandFlags[EFFECTS_TOTAL] = {1,1,1,1,1,1};
 u8 channelPitchSlideSpeed[CHANNELS_TOTAL];
 s8 channelMicrotone[CHANNELS_TOTAL];
 u8 channelArpNote[CHANNELS_TOTAL];
@@ -179,6 +183,8 @@ u8 psgPulseCounter = 0;
 u8 dacPan = SOUND_PAN_CENTER;
 
 u32 FPS = 0;
+u32 BPM = 0;
+u32 PPS = 0;
 
 Instrument tmpInst[MAX_INSTRUMENT+1]; // cache instruments to RAM for faster access
 
@@ -312,7 +318,7 @@ const s16 GUI_ALPHABET[38] =
 int main()
 {
     InitTracker();
-	while(1) { DoEngine(); }
+	while(1) { DoEngine(); FPS = SYS_getFPS(); }
 	return(0);
 }
 
@@ -371,8 +377,8 @@ static inline void hIntCallback()
 
 static inline void vIntCallback()
 {
-    uintToStr(FPS, str, 3);
-    VDP_setTextPalette(PAL1); VDP_drawText(str, 7, 27);
+    static u32 _fps = 0;
+    if (_fps != FPS) { uintToStr(FPS, str, 3); DrawNum(BG_A, PAL1, str, 9, 27); }
 
     SYS_doVBlankProcessEx(IMMEDIATELY);
     // fast navigation
@@ -601,11 +607,6 @@ void NavigateInstrument(u8 direction)
     }
 }
 // -------------------------------------------------------------------------------------------------------------
-/*static inline void DoEngine_v2()
-{
-
-}*/
-// -------------------------------------------------------------------------------------------------------------
 static inline void DoEngine()
 {
     static u8 arptick_value = 0;
@@ -620,8 +621,8 @@ static inline void DoEngine()
     // vibrato tool
     auto inline s8 vibrato(u8 channel)
     {
-        //if (channelVibratoSpeed[channel] > 0 && channelVibratoDepth[channel] > 0)
-        //{
+        if (channelVibratoSpeed[channel] && channelVibratoDepth[channel])
+        {
             static s8 vib = 0;
 
             switch (channelVibratoMode[channel])
@@ -641,28 +642,91 @@ static inline void DoEngine()
             if (channelVibratoPhase[channel] > 1023) channelVibratoPhase[channel] -= 1024;
 
             return vib;
-        //}
-        //else return 0;
+        }
+        else return 0;
     }
 
-    //! no optimizations, always do full load to stabilize framerate
-    auto inline void do_effects()
+    auto inline void seq_vol(u8 channel)
     {
-        for (u8 channel = CHANNEL_FM1; channel < CHANNELS_TOTAL; channel++)
+        // first pulse
+        if (!pulseCounter)
         {
-            if (channelPreviousNote[channel] < NOTE_TOTAL && frameCounter > 0) // some note is played, we are not at 1st frame.
+            if (channelCurrentRowNote[channel] < NOTE_TOTAL)
             {
-                // attenuation sequence
-                voltick_value = ReadInstrumentSRAM(channelVolSeqID[channel], INST_VOL_TICK_01 + frameCounter);
-                if ((!channelVolSeqMODE[channel] || (channelVolSeqMODE[channel] && (channelCurrentNote[channel] < NOTE_TOTAL))) && voltick_value != SEQ_VOL_SKIP) // loop or once
+                // new note
+                channelSEQCounter_VOL[channel] = INST_VOL_TICK_01; // reset VOL SEQ to start
+                voltick_value = ReadInstrumentSRAM(channelVolSeqID[channel], INST_VOL_TICK_01);
+                if (voltick_value != SEQ_VOL_SKIP)
+                {
+                    channelSeqAttenuation[channel] = voltick_value;
+                    SetChannelVolume(channel);
+                }
+            }
+            else if (channelCurrentRowNote[channel] == NOTE_EMPTY)
+            {
+                // no new note
+                voltick_value = ReadInstrumentSRAM(channelVolSeqID[channel], ++channelSEQCounter_VOL[channel]);
+                if (voltick_value != SEQ_VOL_SKIP)
                 {
                     channelSeqAttenuation[channel] = voltick_value;
                     SetChannelVolume(channel);
                 }
 
-                // note sequence
-                arptick_value = ReadInstrumentSRAM(channelArpSeqID[channel], INST_ARP_TICK_01 + frameCounter);
-                if ((!channelArpSeqMODE[channel] || (channelArpSeqMODE[channel] && (channelCurrentNote[channel] < NOTE_TOTAL))) && arptick_value != NOTE_EMPTY) // loop or once
+                if (channelSEQCounter_VOL[channel] == INST_VOL_TICK_16)
+                {
+                    if (!channelVolSeqMODE[channel]) { channelSEQCounter_VOL[channel] = INST_VOL_TICK_01-1; } // loop
+                    else { channelSEQCounter_VOL[channel] = INST_VOL_TICK_16-1; } // once
+                }
+            }
+        }
+        else // second pulses
+        {
+            voltick_value = ReadInstrumentSRAM(channelVolSeqID[channel], ++channelSEQCounter_VOL[channel]);
+            if (voltick_value != SEQ_VOL_SKIP)
+            {
+                channelSeqAttenuation[channel] = voltick_value;
+                SetChannelVolume(channel);
+            }
+
+            if (channelSEQCounter_VOL[channel] == INST_VOL_TICK_16)
+            {
+                if (!channelVolSeqMODE[channel]) { channelSEQCounter_VOL[channel] = INST_VOL_TICK_01-1; } // loop
+                else { channelSEQCounter_VOL[channel] = INST_VOL_TICK_16-1; } // once
+            }
+        }
+    }
+
+    auto inline void seq_arp(u8 channel)
+    {
+        // first pulse
+        if (!pulseCounter)
+        {
+            if (channelCurrentRowNote[channel] < NOTE_TOTAL)
+            {
+                // new note
+                channelSEQCounter_ARP[channel] = INST_ARP_TICK_01; // reset ARP SEQ to start
+                arptick_value = ReadInstrumentSRAM(channelArpSeqID[channel], INST_ARP_TICK_01);
+                if (arptick_value != NOTE_EMPTY)
+                {
+                    if (channelCurrentRowNote[channel] < NOTE_TOTAL) // if there is note, modify it with ARP seq
+                    {
+                        if (arptick_value > ARP_BASE) key = channelCurrentRowNote[channel] + (arptick_value - ARP_BASE);
+                        else if (arptick_value < ARP_BASE) key = channelCurrentRowNote[channel] - (ARP_BASE - arptick_value);
+                        if (key < 0 || key > NOTE_MAX) key = channelCurrentRowNote[channel]; // return same note if ARP is out of range
+                    }
+                    else if (channelCurrentRowNote[channel] == NOTE_EMPTY && channelPreviousNote[channel] != NOTE_OFF)
+                    {
+                        if (arptick_value > ARP_BASE) key = channelPreviousNote[channel] + (arptick_value - ARP_BASE);
+                        else if (arptick_value < ARP_BASE) key = channelPreviousNote[channel] - (ARP_BASE - arptick_value);
+                        if (key < 0 || key > NOTE_MAX || arptick_value == ARP_BASE) key = channelPreviousNote[channel];
+                    }
+                }
+            }
+            else if (channelCurrentRowNote[channel] == NOTE_EMPTY)
+            {
+                // no new note
+                arptick_value = ReadInstrumentSRAM(channelArpSeqID[channel], ++channelSEQCounter_ARP[channel]);
+                if (arptick_value != NOTE_EMPTY)
                 {
                     if (arptick_value > ARP_BASE)
                     {
@@ -676,8 +740,139 @@ static inline void DoEngine()
                     {
                         channelArpNote[channel] = channelPreviousNote[channel];
                     }
-                    if (channelFlags[channel]) PlayNote(channelArpNote[channel], channel);
+                    PlayNote(channelArpNote[channel], channel);
                 }
+
+                if (channelSEQCounter_ARP[channel] == INST_ARP_TICK_16)
+                {
+                    if (!channelArpSeqMODE[channel]) { channelSEQCounter_ARP[channel] = INST_ARP_TICK_01-1; } // loop
+                    else { channelSEQCounter_ARP[channel] = INST_ARP_TICK_16-1; } // once
+                }
+            }
+        }
+        else // second pulses
+        {
+            arptick_value = ReadInstrumentSRAM(channelArpSeqID[channel], ++channelSEQCounter_ARP[channel]);
+            if (arptick_value != NOTE_EMPTY)
+            {
+                if (arptick_value > ARP_BASE)
+                {
+                    channelArpNote[channel] = channelPreviousNote[channel] + (arptick_value - ARP_BASE);
+                }
+                else if (arptick_value < ARP_BASE)
+                {
+                    channelArpNote[channel] = channelPreviousNote[channel] - (ARP_BASE - arptick_value);
+                }
+                else
+                {
+                    channelArpNote[channel] = channelPreviousNote[channel];
+                }
+                PlayNote(channelArpNote[channel], channel);
+            }
+
+            if (channelSEQCounter_ARP[channel] == INST_ARP_TICK_16)
+            {
+                if (!channelArpSeqMODE[channel]) { channelSEQCounter_ARP[channel] = INST_ARP_TICK_01-1; } // loop
+                else { channelSEQCounter_ARP[channel] = INST_ARP_TICK_16-1; } // once
+            }
+        }
+    }
+
+    auto inline void do_row(u8 channel)
+    {
+        if (channelFlags[channel])
+        {
+            auto inline void command(u8 type, u8 val, u8 effect)
+            {
+                fxtype_value = ReadPatternSRAM(playingPatternID, playingPatternRow, type);
+                fxval_value = ReadPatternSRAM(playingPatternID, playingPatternRow, val);
+                if (fxtype_value) {
+                    ApplyCommand_Common(channel, fxtype_value, fxval_value);
+                    ApplyCommand_FM(channel, channelPreviousInstrument[channel], fxtype_value, fxval_value);
+                    ApplyCommand_PSG(fxtype_value, fxval_value);
+                    channelPreviousEffect[channel][effect] = fxtype_value;
+                }
+                else if (fxval_value) {
+                    ApplyCommand_Common(channel, channelPreviousEffect[channel][effect], fxval_value);
+                    ApplyCommand_FM(channel, channelPreviousInstrument[channel], channelPreviousEffect[channel][effect], fxval_value);
+                    ApplyCommand_PSG(channelPreviousEffect[channel][effect], fxval_value);
+                }
+            }
+
+            // apply commands to temp RAM instrument
+            auto inline void apply_commands()
+            {
+                command(DATA_FX1_TYPE, DATA_FX1_VALUE, 0);
+                command(DATA_FX2_TYPE, DATA_FX2_VALUE, 1);
+                command(DATA_FX3_TYPE, DATA_FX3_VALUE, 2);
+                command(DATA_FX4_TYPE, DATA_FX4_VALUE, 3);
+                command(DATA_FX5_TYPE, DATA_FX5_VALUE, 4);
+                command(DATA_FX6_TYPE, DATA_FX6_VALUE, 5);
+            }
+
+            // write only when instrument is changed and not empty
+            playingPatternID = ReadMatrixSRAM(channel, playingMatrixRow);
+
+            inst = ReadPatternSRAM(playingPatternID, playingPatternRow, DATA_INSTRUMENT);
+            matrixTranspose = ReadMatrixTransposeSRAM(channel, playingMatrixRow);
+
+            if (instrumentIsMuted[inst] == INST_MUTE) // check if instrument is muted. ignore writes, replace note with OFF if so
+            {
+                inst = NULL; channelCurrentRowNote[channel] = NOTE_OFF;
+            }
+            else
+            {
+                channelCurrentRowNote[channel] = ReadPatternSRAM(playingPatternID, playingPatternRow, DATA_NOTE);
+            }
+
+            seq_vol(channel);
+
+            // commands
+            if (inst)
+            {
+                channelPreviousInstrument[channel] = inst; // change current channel instrument for later use
+                apply_commands(); // update [tmpInst] if any commands, write command *registers*, recalculate *combined registers*
+                WriteYM2612(channel, inst); //!slow! write all FM registers from [tmpInst]; all [tmpInst] are re-cached at play from SRAM to RAM
+            }
+            else
+            {
+                apply_commands();
+            }
+
+            // --------- trigger note playback; check empty note later; pass note id: 0..95, 254, 255
+            key = channelCurrentRowNote[channel];
+
+            if (channelCurrentRowNote[channel] != NOTE_EMPTY)
+            {
+                channelPreviousNote[channel] = channelCurrentRowNote[channel]; // note or OFF
+                channelArpNote[channel] = channelCurrentRowNote[channel];
+                if (channelNoteRetrigger[channel] > 0) channelNoteRetriggerCounter[channel] = 0;
+            }
+
+            seq_arp(channel);
+
+            if (key < NOTE_MAX) // only notes
+            {
+                s8 test = key + matrixTranspose;
+                if (test < NOTE_TOTAL || test > -1) key = test;
+            }
+
+            if (!channelNoteDelay[channel])
+                PlayNote((u8)key, channel);
+            else if (channel == CHANNEL_FM3_OP4 && (ch3Mode == CH3_SPECIAL_CSM || ch3Mode == CH3_SPECIAL_CSM_OFF))
+                ch3Mode = CH3_NORMAL;
+        }
+    }
+
+    auto inline void do_effects(u8 channel)
+    {
+        if (channelFlags[channel])
+        {
+            // exclude OFF
+            if (channelPreviousNote[channel] < NOTE_TOTAL)
+            {
+                seq_vol(channel);
+                seq_arp(channel);
             }
 
             //! delay (not work with seq)
@@ -705,7 +900,7 @@ static inline void DoEngine()
             //if (!(frameCounter & 3))
             //{
             //!slow! volume slide
-            /*if (channelVolumeChangeSpeed[channel] != 0) //! worst case
+            if (channelVolumeChangeSpeed[channel]) //! worst case
             {
                 if (!channelVolumePulseCounter[channel])
                 {
@@ -716,26 +911,26 @@ static inline void DoEngine()
                     channelVolumePulseCounter[channel] = channelVolumePulseSkip[channel];
                 }
                 channelVolumePulseCounter[channel]--;
-            }*/
+            }
 
             //!slow! tremolo
-            //if (channelTremoloDepth[channel] && channelTremoloSpeed[channel]) //!worst case
-            //{
-                /*channelTremolo[channel] = (u8)fix16ToRoundedInt
+            if (channelTremoloDepth[channel] && channelTremoloSpeed[channel]) //!worst case
+            {
+                channelTremolo[channel] = (u8)fix16ToRoundedInt
                 (
                     fix16Mul(FIX16(channelTremoloDepth[channel]), fix16Div(fix16Add(cosFix16(channelTremoloPhase[channel]), FIX16(1)), FIX16(2)))
                 );
 
                 channelTremoloPhase[channel] += channelTremoloSpeed[channel];
                 if (channelTremoloPhase[channel] > 1023) channelTremoloPhase[channel] -= 1024;
-                SetChannelVolume(channel); //!slow!*/
-            //}
+                SetChannelVolume(channel); //!slow!
+            }
 
             //!slow!
-            //if (channelPitchSlideSpeed[channel] || channelVibratoDepth[channel] || channelVibratoSpeed[channel]) //! worst case
-            //{
+            if (channelPitchSlideSpeed[channel] || channelVibratoDepth[channel] || channelVibratoSpeed[channel]) //! worst case
+            {
                 // portamento
-                /*if (channelPitchSkipStepCounter[channel] < 1)
+                if (channelPitchSkipStepCounter[channel] < 1)
                 {
                     channelMicrotone[channel] += channelPitchSlideSpeed[channel];
 
@@ -771,17 +966,17 @@ static inline void DoEngine()
                 }
                 else  channelModNoteVibrato[channel] = 0;
 
-            if (channelPitchSlideSpeed[channel] || channelVibratoDepth[channel] || channelVibratoSpeed[channel])
-            {
-                //!also triggers note! need different function for set pitch
-                if (channel < CHANNEL_PSG1) SetPitchFM(channel, channelArpNote[channel]); //!slow!
-                else SetPitchPSG(channel, channelArpNote[channel]);
-            } //
-            else
-            {
-                channelFinalPitch[channel] = 0;
+                if (channelPitchSlideSpeed[channel] || channelVibratoDepth[channel] || channelVibratoSpeed[channel])
+                {
+                    //!also triggers note! need different function for set pitch
+                    if (channel < CHANNEL_PSG1) SetPitchFM(channel, channelArpNote[channel]); //!slow!
+                    else SetPitchPSG(channel, channelArpNote[channel]);
+                } //
+                else
+                {
+                    channelFinalPitch[channel] = 0;
+                }
             }
-            //}*/
 
             // cut
             if (channelNoteCut[channel] > 1) channelNoteCut[channel]--;
@@ -803,14 +998,14 @@ static inline void DoEngine()
             //SetBPM(SRAMW_readWord(TEMPO)); // reset tempo
             beginPlay = FALSE;
 
-            for (u16 id = 0; id <= MAX_INSTRUMENT; id++) { CacheIstrumentToRAM(id); } // reset [tempInst]
+            for (u16 channel = 0; channel <= MAX_INSTRUMENT; channel++) { CacheIstrumentToRAM(channel); } // reset [tempInst]
 
             // start timer B
             YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00001111);
 
             // set frame length
-            if (playingPatternRow & 1) maxFrame = ticksPerOddRow; // ticks per line
-            else maxFrame = ticksPerEvenRow;
+            if (playingPatternRow & 1) maxFrame = ppl_1; // ticks per line
+            else maxFrame = ppl_2;
 
             DrawMatrixPlaybackCursor(FALSE);
             hIntCounter = hIntToSkip; // reset counter
@@ -820,135 +1015,47 @@ static inline void DoEngine()
         if (hIntCounter < 1) // counter overflow; do song tick
         {
             hIntCounter = hIntToSkip; // reset counter
-            if (frameCounter == -1) frameCounter = 1; else frameCounter++;
-            if (frameCounter == maxFrame)
+            if (pulseCounter == -1) pulseCounter = 1; else pulseCounter++;
+            if (pulseCounter == maxFrame)
             {
-                if (playingPatternRow & 1) maxFrame = ticksPerOddRow; else maxFrame = ticksPerEvenRow;
-                frameCounter = 0;
+                if (playingPatternRow & 1) maxFrame = ppl_1; else maxFrame = ppl_2;
+                pulseCounter = 0;
             }
             //! every 4th step only?
             //if (!(frameCounter & 3))
             //! every even step only?
             //if (!(frameCounter & 1))
-            do_effects();
+            do_effects(CHANNEL_FM1);
+            do_effects(CHANNEL_FM2);
+            do_effects(CHANNEL_FM3_OP4);
+            do_effects(CHANNEL_FM3_OP3);
+            do_effects(CHANNEL_FM3_OP2);
+            do_effects(CHANNEL_FM3_OP1);
+            do_effects(CHANNEL_FM4);
+            do_effects(CHANNEL_FM5);
+            do_effects(CHANNEL_FM6_DAC);
+            do_effects(CHANNEL_PSG1);
+            do_effects(CHANNEL_PSG2);
+            do_effects(CHANNEL_PSG3);
+            do_effects(CHANNEL_PSG4_NOISE);
         }
 
         // playback engine
-        if (!frameCounter)
+        if (!pulseCounter)
         {
-            for (u8 id = CHANNEL_FM1; id < CHANNELS_TOTAL; id++) // 13 channels; 0 .. 12
-            {
-                auto inline void command(u8 type, u8 val, u8 effect)
-                {
-                    fxtype_value = ReadPatternSRAM(playingPatternID, playingPatternRow, type);
-                    fxval_value = ReadPatternSRAM(playingPatternID, playingPatternRow, val);
-                    if (fxtype_value) {
-                        ApplyCommand_Common(id, fxtype_value, fxval_value);
-                        ApplyCommand_FM(id, channelPreviousInstrument[id], fxtype_value, fxval_value);
-                        ApplyCommand_PSG(fxtype_value, fxval_value);
-                        channelPreviousEffect[id][effect] = fxtype_value;
-                    }
-                    else if (fxval_value) {
-                        ApplyCommand_Common(id, channelPreviousEffect[id][effect], fxval_value);
-                        ApplyCommand_FM(id, channelPreviousInstrument[id], channelPreviousEffect[id][effect], fxval_value);
-                        ApplyCommand_PSG(channelPreviousEffect[id][effect], fxval_value);
-                    }
-                }
-
-                // apply commands to temp RAM instrument
-                auto inline void apply_commands()
-                {
-                    command(DATA_FX1_TYPE, DATA_FX1_VALUE, 0);
-                    command(DATA_FX2_TYPE, DATA_FX2_VALUE, 1);
-                    command(DATA_FX3_TYPE, DATA_FX3_VALUE, 2);
-                    command(DATA_FX4_TYPE, DATA_FX4_VALUE, 3);
-                    command(DATA_FX5_TYPE, DATA_FX5_VALUE, 4);
-                    command(DATA_FX6_TYPE, DATA_FX6_VALUE, 5);
-                }
-
-                // write only when instrument is changed and not empty
-                playingPatternID = ReadMatrixSRAM(id, playingMatrixRow);
-                inst = ReadPatternSRAM(playingPatternID, playingPatternRow, DATA_INSTRUMENT);
-                matrixTranspose = ReadMatrixTransposeSRAM(id, playingMatrixRow);
-                if (instrumentIsMuted[inst] == INST_MUTE) // check if instrument is muted. ignore writes, replace note with OFF if so
-                {
-                    inst = NULL; channelCurrentNote[id] = NOTE_OFF;
-                }
-                else
-                {
-                    channelCurrentNote[id] = ReadPatternSRAM(playingPatternID, playingPatternRow, DATA_NOTE);
-                }
-
-                // vol seq
-                //if (!channelVolSeqMODE[id] || (channelVolSeqMODE[id] && (channelCurrentNote[id] < NOTE_TOTAL))) // loop or once
-                //{
-                    voltick_value = ReadInstrumentSRAM(channelVolSeqID[id], INST_VOL_TICK_01); // volume tick sequencer
-                    //if (voltick_value != SEQ_VOL_SKIP) // check skip step here
-                    //{
-                        if ((!channelVolSeqMODE[id] || (channelVolSeqMODE[id] && (channelCurrentNote[id] < NOTE_TOTAL))) && voltick_value != SEQ_VOL_SKIP)
-                        channelSeqAttenuation[id] = voltick_value;
-                        SetChannelVolume(id); //!slow!
-                    //}
-                //}
-                //SetChannelVolume(id); //!slow!
-
-                // commands
-                if (inst)
-                {
-                    channelPreviousInstrument[id] = inst; // change current channel instrument for later use
-                    apply_commands(); // update [tmpInst] if any commands, write command *registers*, recalculate *combined registers*
-                    WriteYM2612(id, inst); //!slow! write all FM registers from [tmpInst]; all [tmpInst] are re-cached at play from SRAM to RAM
-                }
-                else
-                {
-                    apply_commands();
-                }
-
-                //WriteYM2612(id, inst); //!always full load?
-                //apply_commands();
-
-                // --------- trigger note playback; check empty note later; pass note id: 0..95, 254, 255
-                key = channelCurrentNote[id];
-
-                if (channelCurrentNote[id] != NOTE_EMPTY)
-                {
-                    channelPreviousNote[id] = channelCurrentNote[id]; // note or OFF
-                    channelArpNote[id] = channelCurrentNote[id];
-                    if (channelNoteRetrigger[id] > 0) channelNoteRetriggerCounter[id] = 0;
-                }
-
-                // arp seq
-                //if (!channelArpSeqMODE[id] || (channelArpSeqMODE[id] && (channelCurrentNote[id] < NOTE_TOTAL))) // loop or once
-                //{
-                    arptick_value = ReadInstrumentSRAM(channelArpSeqID[id], INST_ARP_TICK_01); // note tick sequencer
-                //}
-                if ((!channelArpSeqMODE[id] || (channelArpSeqMODE[id] && (channelCurrentNote[id] < NOTE_TOTAL))) && arptick_value != NOTE_EMPTY) // ARP is not empty
-                {
-                    if (channelCurrentNote[id] < NOTE_TOTAL) // if there is note, modify it with ARP seq
-                    {
-                        if (arptick_value > ARP_BASE) key = channelCurrentNote[id] + (arptick_value - ARP_BASE);
-                        else if (arptick_value < ARP_BASE) key = channelCurrentNote[id] - (ARP_BASE - arptick_value);
-                        if (key < 0 || key > NOTE_MAX) key = channelCurrentNote[id]; // return same note if ARP is out of range
-                    }
-                    else if (channelCurrentNote[id] == NOTE_EMPTY && channelPreviousNote[id] != NOTE_OFF)
-                    {
-                        if (arptick_value > ARP_BASE) key = channelPreviousNote[id] + (arptick_value - ARP_BASE);
-                        else if (arptick_value < ARP_BASE) key = channelPreviousNote[id] - (ARP_BASE - arptick_value);
-                        if (key < 0 || key > NOTE_MAX || arptick_value == ARP_BASE) key = channelPreviousNote[id];
-                    }
-                }
-
-                if (key < NOTE_MAX) // only notes
-                {
-                    s8 test = key + matrixTranspose;
-                    if (test < NOTE_TOTAL || test > -1) key = test;
-                }
-
-                if (!channelNoteDelay[id])
-                    PlayNote((u8)key, id);
-                else if (id == CHANNEL_FM3_OP4 && (ch3Mode == CH3_SPECIAL_CSM || ch3Mode == CH3_SPECIAL_CSM_OFF))
-                    ch3Mode = CH3_NORMAL;
-            }
+            do_row(CHANNEL_FM1);
+            do_row(CHANNEL_FM2);
+            do_row(CHANNEL_FM3_OP4);
+            do_row(CHANNEL_FM3_OP3);
+            do_row(CHANNEL_FM3_OP2);
+            do_row(CHANNEL_FM3_OP1);
+            do_row(CHANNEL_FM4);
+            do_row(CHANNEL_FM5);
+            do_row(CHANNEL_FM6_DAC);
+            do_row(CHANNEL_PSG1);
+            do_row(CHANNEL_PSG2);
+            do_row(CHANNEL_PSG3);
+            do_row(CHANNEL_PSG4_NOISE);
 
             ClearPatternPlaybackCursor();
 
@@ -996,7 +1103,7 @@ static inline void DoEngine()
             }
 
             DrawPatternPlaybackCursor();
-            frameCounter = -1; // changes are applied only when timer expires, not at every while loop ticks
+            pulseCounter = -1; // changes are applied only when timer expires, not at every while loop ticks
         }
     }
     else if (!beginPlay) // need to run only once at playback stopped
@@ -1012,8 +1119,6 @@ static inline void DoEngine()
         DrawMatrixPlaybackCursor(TRUE);
         SYS_enableInts();
     }
-
-    FPS = SYS_getFPS();
 }
 
 inline static s16 FindUnusedPattern()
@@ -1034,8 +1139,9 @@ inline static s16 FindUnusedPattern()
 
 static void SetBPM(u16 counter)
 {
-    static u16 BPM = 0;
     static u32 microseconds = 0;
+
+    if (!counter) { counter = SRAMW_readWord(TEMPO); }
 
     /*YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_B, counter);
     microseconds = 3003 * (256 - counter); // timer B = 300.34 microseconds*/
@@ -1048,15 +1154,14 @@ static void SetBPM(u16 counter)
     //microseconds = 130 * timer; // sub-tick = 1/76800 sec; 13.0208333 microseconds
     //subTicksToSkip = timer;
 
-    BPM = (600000000 / microseconds) / ((ticksPerEvenRow + ticksPerOddRow) << 1); // beat = 4 lines
-    SRAMW_writeWord(TEMPO, counter); // store
+    u16 ppb = (ppl_2 + ppl_1) << 1; // pulses per beat
+    BPM = (600000000 / microseconds) / ppb; // beat per minute
+    //BPM = fix32ToRoundedInt(fix32Div(fix32Div(FIX32(60000000.0), fix32Mul(fix32Mul(FIX32(74.4047), FIX32(2.0)), FIX32(counter))), FIX32(ppb)));
+    PPS = (((BPM * 1000) / 6) * ppb) / 10000; // pulse per second
+    //PPS = fix32Mul(fix32Div(BPM, FIX32(60.0)), ppb);
 
-    if (BPM < 1000)
-    {
-        uintToStr(BPM, str, 3); // show timer value
-        DrawNum(BG_A, PAL0, str, 3, 27);
-    }
-    else { VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "BAD", 3, 27); }
+    SRAMW_writeWord(TEMPO, counter); // store
+    DrawPP();
 }
 
 // cursors
@@ -1144,7 +1249,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
 
     auto void stop_playback()
     {
-        frameCounter = 0;
+        pulseCounter = 0;
         bPlayback = FALSE;
     }
 
@@ -1208,7 +1313,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
         case BUTTON_START:
             if (bPlayback == FALSE)
             {
-                frameCounter = 0;
+                pulseCounter = 0;
                 playingPatternRow = 0; // start from the first line of current pattern
                 playingMatrixRow = selectedMatrixRow; // actual line in array
                 bPlayback = TRUE;
@@ -1224,7 +1329,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
         case BUTTON_MODE:
             if (bPlayback == FALSE)
             {
-                frameCounter = 0;
+                pulseCounter = 0;
                 if (selectedPatternColumn < PATTERN_COLUMNS) playingPatternRow = selectedPatternRow; // start from the current selected pattern line
                 else playingPatternRow = selectedPatternRow + PATTEN_ROWS_PER_SIDE;
                 playingMatrixRow = selectedMatrixRow; // actual line in array
@@ -1269,41 +1374,44 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                 case BUTTON_UP:
                     channelFlags[selectedMatrixChannel] = FALSE; // mute selected
                     for (u8 ch = 0; ch < CHANNELS_TOTAL; ch++) muted += channelFlags[ch];
-
                     if (!muted) // all channels muted
                     {
-                        for (u8 i=0; i<CHANNELS_TOTAL; i++)
+                        for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
                         {
-                            channelFlags[i] = TRUE; // un-mute all
-                            VDP_fillTileMapRect(BG_B, NULL, (i * 3) + 1, 1, 2, 1); // clear all marks
+                            channelFlags[channel] = TRUE; // un-mute all
+                            WriteMatrixChannelMutedSRAM(channel, TRUE);
+                            VDP_fillTileMapRect(BG_B, NULL, (channel * 3) + 1, 1, 2, 1); // clear all marks
                         }
-
                     }
                     else
                     {
+                        WriteMatrixChannelMutedSRAM(selectedMatrixChannel, FALSE);
                         FillRowRight(BG_B, PAL1, FALSE, FALSE, GUI_MUTE, 2,(selectedMatrixChannel * 3) + 1, 1 ); // set mark
                     }
                     break;
 
                 case BUTTON_DOWN: // un-mute/solo
-                    for (u8 ch = 0; ch < CHANNELS_TOTAL; ch++) { muted += channelFlags[ch]; }
+                    for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++) { muted += channelFlags[channel]; }
                     if (muted == CHANNELS_TOTAL) // all channels unmuted
                     {
-                        for (u8 i=0; i<CHANNELS_TOTAL; i++)
+                        for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
                         {
-                            if (i != selectedMatrixChannel) FillRowRight(BG_B, PAL1, FALSE, FALSE, GUI_MUTE, 2,(i * 3) + 1, 1 ); // set all marks (except selected)
-                            channelFlags[i] = FALSE; // mute all
+                            if (channel != selectedMatrixChannel) FillRowRight(BG_B, PAL1, FALSE, FALSE, GUI_MUTE, 2,(channel * 3) + 1, 1 ); // set all marks (except selected)
+                            channelFlags[channel] = FALSE; // mute all
+                            WriteMatrixChannelMutedSRAM(channel, FALSE);
                         }
                     }
                     channelFlags[selectedMatrixChannel] = TRUE; // un-mute selected
+                    WriteMatrixChannelMutedSRAM(selectedMatrixChannel, TRUE);
                     VDP_fillTileMapRect(BG_B, NULL, (selectedMatrixChannel * 3) + 1, 1, 2, 1); // clear mark
                     break;
 
                 case BUTTON_Y: // un-mute all
-                    for (u8 i=0; i<CHANNELS_TOTAL; i++)
+                    for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
                     {
-                        channelFlags[i] = TRUE; // un-mute all
-                        VDP_fillTileMapRect(BG_B, NULL, (i * 3) + 1, 1, 2, 1); // clear all marks
+                        channelFlags[channel] = TRUE; // un-mute all
+                        WriteMatrixChannelMutedSRAM(channel, TRUE);
+                        VDP_fillTileMapRect(BG_B, NULL, (channel * 3) + 1, 1, 2, 1); // clear all marks
                     }
                     break;
                 }
@@ -3267,7 +3375,7 @@ static inline void RequestZ80()
 {
     //bBusTaken = Z80_getAndRequestBus(FALSE);
     //bBusTaken = Z80_isBusTaken();
-    if (!Z80_isBusTaken()) Z80_requestBus(TRUE);
+    if (!Z80_isBusTaken()) Z80_requestBus(FALSE);
 }
 
 static inline void ReleaseZ80()
@@ -3478,29 +3586,30 @@ static inline void SetPitchFM(u8 matrixChannel, u8 note)
     }
 }
 
-static inline void PlayNote(u8 note, u8 matrixChannel)
+static inline void PlayNote(u8 note, u8 channel)
 {
-    if ((note < NOTE_TOTAL) && channelFlags[matrixChannel])
+    if (note < NOTE_TOTAL)
     {
-        channelVibratoPhase[matrixChannel] = 0; // neutral state
-        channelTremoloPhase[matrixChannel] = 512; // neutral state
+        channelVibratoPhase[channel] = 0; // neutral state
+        channelTremoloPhase[channel] = 512; // neutral state
+        channelNoteCut[channel] = 0; // to disable cut if note is longer
 
-        if (matrixChannel < CHANNEL_PSG1) // FM
+        if (channel < CHANNEL_PSG1) // FM
         {
             // S1>S3>S2>S4 for common registers and S4>S3>S1>S2 for CH3 frequencies
-            StopChannelSound(matrixChannel); // need to stop current playing note to write new data; OFF needed also for CSM
-            SetPitchFM(matrixChannel, note); // set pitch (or dac), trigger note
+            StopChannelSound(channel); // need to stop current playing note to write new data; OFF needed also for CSM
+            SetPitchFM(channel, note); // set pitch (or dac), trigger note
         }
         else // PSG
         {
-            bPsgIsPlayingNote[matrixChannel - CHANNEL_PSG1] = TRUE;
-            SetPitchPSG(matrixChannel, note);
+            bPsgIsPlayingNote[channel - CHANNEL_PSG1] = TRUE;
+            SetPitchPSG(channel, note);
         }
     }
     else if (note == NOTE_OFF)
     {
-        StopChannelSound(matrixChannel);
-        StopEffects(matrixChannel);
+        StopChannelSound(channel);
+        StopEffects(channel);
     }
 }
 
@@ -4007,6 +4116,20 @@ static inline void WriteYM2612(u8 matrixChannel, u8 id)
     }
 }
 
+void DrawPP()
+{
+    // BPM
+    if (BPM < 1000) { uintToStr(BPM, str, 3); DrawNum(BG_A, PAL0, str, 3, 27); }
+    else { VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "OUT", 3, 27); }
+
+    // PPS
+    if (PPS < 1000) { uintToStr(PPS, str, 3); DrawNum(BG_A, PAL1, str, 15, 27); }
+    else { VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "OUT", 15, 27); }
+
+    // PPL
+    DrawHex(PAL1, ppl_1, 21, 27); DrawHex(PAL1, ppl_2, 23, 27);
+}
+
 static inline void ApplyCommand_Common(u8 matrixChannel, u8 fxParam, u8 fxValue)
 {
     switch (fxParam)
@@ -4019,10 +4142,9 @@ static inline void ApplyCommand_Common(u8 matrixChannel, u8 fxParam, u8 fxValue)
 
     // TICKS PER LINE
     case 0x14:
-        ticksPerOddRow = (fxValue & 0b11110000) >> 4; if (!ticksPerOddRow) ticksPerOddRow = TICKS_DEFAULT;
-        ticksPerEvenRow = fxValue & 0b00001111; if (!ticksPerEvenRow) ticksPerEvenRow = TICKS_DEFAULT;
-        DrawHex(PAL0, ticksPerOddRow, 21, 27);
-        DrawHex(PAL0, ticksPerEvenRow, 24, 27);
+        ppl_1 = (fxValue & 0b11110000) >> 4; if (!ppl_1) ppl_1 = PPL_DEFAULT;
+        ppl_2 = fxValue & 0b00001111; if (!ppl_2) ppl_2 = PPL_DEFAULT;
+        SetBPM(0);
         break;
 
     // PCM SAMPLE BANK SET
@@ -4916,7 +5038,7 @@ static inline u8 ReadInstrumentSRAM(u8 id, u16 param)
     return SRAMW_readByte((u32)INSTRUMENT_DATA + (id * INST_SIZE) + param);
 }
 
-inline void WriteInstrumentSRAM(u8 id, u16 param, u8 data)
+void WriteInstrumentSRAM(u8 id, u16 param, u8 data)
 {
     SRAMW_writeByte((u32)INSTRUMENT_DATA + (id * INST_SIZE) + param, data);
 }
@@ -4927,7 +5049,7 @@ static inline u8 ReadPatternSRAM(u16 id, u8 line, u8 param)
     return SRAMW_readByte((u32)PATTERN_DATA + (id * PATTERN_SIZE) + (line * PATTERN_COLUMNS) + param);
 }
 
-inline void WritePatternSRAM(u16 id, u8 line, u8 param, u8 data)
+void WritePatternSRAM(u16 id, u8 line, u8 param, u8 data)
 {
     SRAMW_writeByte((u32)PATTERN_DATA + (id * PATTERN_SIZE) + (line * PATTERN_COLUMNS) + param, data);
 }
@@ -4937,10 +5059,20 @@ inline u8 ReadPatternColorSRAM(u16 id)
     return SRAMW_readByte((u32)PATTERN_COLOR + id);
 }
 
-inline void WritePatternColorSRAM(u16 id, u8 color)
+void WritePatternColorSRAM(u16 id, u8 color)
 {
     SRAMW_writeByte((u32)PATTERN_COLOR + id, color);
 }
+
+/*static inline u8 ReadPatternCommandMutedSRAM(u8 id)
+{
+    return SRAMW_readByte((u32)MUTE_COMMAND + channel);
+}
+
+void WritePatternCommandMutedSRAM(u8 id, u8 state)
+{
+    SRAMW_writeByte((u32)MUTE_COMMAND + id, state);
+}*/
 
 // matrix
 static inline u16 ReadMatrixSRAM(u8 channel, u8 line)
@@ -4948,7 +5080,7 @@ static inline u16 ReadMatrixSRAM(u8 channel, u8 line)
     return SRAMW_readWord((u32)PATTERN_MATRIX + ((channel * MAX_MATRIX_ROWS) + line) * 2);
 }
 
-inline void WriteMatrixSRAM(u8 channel, u8 line, u16 data)
+void WriteMatrixSRAM(u8 channel, u8 line, u16 data)
 {
     SRAMW_writeWord((u32)PATTERN_MATRIX + ((channel * MAX_MATRIX_ROWS) + line) * 2, data);
 }
@@ -4958,9 +5090,19 @@ static inline s8 ReadMatrixTransposeSRAM(u8 channel, u8 line)
     return SRAMW_readByte((u32)MATRIX_TRANSPOSE + ((channel * MAX_MATRIX_ROWS) + line));
 }
 
-inline void WriteMatrixTransposeSRAM(u8 channel, u8 line, s8 transpose)
+void WriteMatrixTransposeSRAM(u8 channel, u8 line, s8 transpose)
 {
     SRAMW_writeByte((u32)MATRIX_TRANSPOSE + ((channel * MAX_MATRIX_ROWS) + line), transpose);
+}
+
+static inline u8 ReadMatrixChannelMutedSRAM(u8 channel)
+{
+    return SRAMW_readByte((u32)MUTE_CHANNEL + channel);
+}
+
+void WriteMatrixChannelMutedSRAM(u8 channel, u8 state)
+{
+    SRAMW_writeByte((u32)MUTE_CHANNEL + channel, state);
 }
 
 // pcm
@@ -4969,7 +5111,7 @@ inline u32 ReadSampleRegionSRAM(u8 bank, u8 note, u8 byteNum)
     return (u32)SRAMW_readByte((u32)SAMPLE_DATA + (bank * NOTE_TOTAL * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum);
 }
 
-inline void WriteSampleRegionSRAM(u8 bank, u8 note, u8 byteNum, u8 data)
+void WriteSampleRegionSRAM(u8 bank, u8 note, u8 byteNum, u8 data)
 {
     SRAMW_writeByte((u32)SAMPLE_DATA + (bank * NOTE_TOTAL * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum, data);
 }
@@ -4980,7 +5122,6 @@ static inline void YM2612_writeRegZ80(u16 part, u8 reg, u8 data)
     YM2612_writeReg(part, reg, data);
     ReleaseZ80();
 }
-
 
 void InitTracker()
 {
@@ -5105,6 +5246,15 @@ void InitTracker()
         channelVibratoMode[channel] = 0;
 
         channelNoteCut[channel]  = 0;
+
+        channelFlags[channel] = ReadMatrixChannelMutedSRAM(channel);
+        if (channelFlags[channel]) { VDP_fillTileMapRect(BG_B, NULL, (channel * 3) + 1, 1, 2, 1); }
+        else
+        {
+            VDP_fillTileMapRect(BG_B, bgBaseTileIndex[2] + GUI_MUTE, (channel * 3) + 1, 1, 2, 1);
+            //VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_MUTE), (channel * 3) + 1, 1);
+            //VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, TRUE, bgBaseTileIndex[2] + GUI_MUTE), (channel * 3) + 2, 1);
+        }
     }
 
     if (SRAMW_readWord(DEAD_INSTRUMENT) != 0xDEAD) // there is no SRAM file, needs fresh init.
@@ -5339,13 +5489,18 @@ void DrawStaticHeaders()
         VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_4 - i), (i * 3) + 8, 27);
     }*/
 
-    VDP_setTextPalette(PAL3); VDP_drawText("O: E:", 19, 27); // even/odd ticks
-
     FillRowRight(BG_A, PAL3, FALSE, FALSE, GUI_SLASH, 3, 27, 27); // bottom line
-    FillRowRight(BG_A, PAL3, FALSE, FALSE, GUI_LOWLINE, 18, 30, 27);
+    FillRowRight(BG_A, PAL3, FALSE, FALSE, GUI_LOWLINE, 10, 30, 27);
 
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_BPM), 1, 27); // bpm
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_BPM + 1), 2, 27);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_BPM), 1, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_BPM + 1), 2, 27);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_FPS), 7, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_FPS + 1), 8, 27);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPS), 13, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPS + 1), 14, 27);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPL), 19, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPL + 1), 20, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SLASH), 22, 27);
 
     //! for (u8 y=2; y<27; y++) VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 27, y); // fm/psg
 

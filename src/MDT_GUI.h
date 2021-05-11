@@ -99,7 +99,6 @@
 #define PATTEN_ROWS_PER_SIDE        16
 // -----------------------------------------------------------
 #define GUI_VERSION                 0
-#define GUI_BPM                     2
 #define GUI_PSG_SQUARE              4
 #define GUI_FM                      5
 #define GUI_FM_OP                   6
@@ -176,13 +175,17 @@
 #define GUI_MATRIX_2XX              1
 #define GUI_MATRIX_3XX              2
 #define GUI_TRANSPOSE               28
+#define GUI_BPM                     56
+#define GUI_FPS                     58
+#define GUI_PPS                     60
+#define GUI_PPL                     62
 // -----------------------------------------------------------
 #define GUI_NAVIGATION_SPEED_COUNTER    3
 #define GUI_NAVIGATION_DELAY            15
 #define GUI_PATTERN_COLORS_MAX          13
 
 void DrawStaticHeaders();
-
+void DrawPP();
 void DisplayPatternMatrix();
 void DisplayPatternEditor();
 void DisplayInstrumentEditor();
