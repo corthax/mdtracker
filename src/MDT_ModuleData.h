@@ -1,8 +1,6 @@
 #ifndef MDT_MODULEDATA_H_INCLUDED
 #define MDT_MODULEDATA_H_INCLUDED
 
-#define MD_TRACKER_VERSION 5
-
 //{ Instrument data SRAM offsets
 #define INST_ALG 0 // 1 byte ..
 #define INST_FMS 1
@@ -109,13 +107,8 @@
 #define INST_NAME_8 88
 //}
 
-#if (MD_TRACKER_VERSION == 5)   // ~80Kb sram free
-    #define PATTERN_COLUMNS     14
-    #define PATTERN_SIZE        448 // 32 (pattern rows) * PATTERN_COLUMNS bytes
-#elif (MD_TRACKER_VERSION == 2) // 216 bytes sram free
-    #define PATTERN_COLUMNS     8
-    #define PATTERN_SIZE        256
-#endif
+#define PATTERN_COLUMNS     14
+#define PATTERN_SIZE        448 // 32 (pattern rows) * PATTERN_COLUMNS bytes
 
 //{ SRAM data blocks (BYTESWAPPED!!!)
 #define INSTRUMENT_DATA     0x00002 // 89 * 256 bytes
@@ -128,7 +121,6 @@
 #define PATTERN_COLOR       0x6A06B // PATTERN_DATA + PATTERN_SIZE * (MAX_PATTERN + 1); last is 0x6A3E9
 #define MATRIX_TRANSPOSE    0x6A3EA //
 #define MUTE_CHANNEL        0x6B09C // store disabled matrix channels
-//#define MUTE_COMMAND        0x6B0A9 // store disabled pattern commands
 //}
 
 //{ Pattern data 14 * 32 bytes
@@ -140,15 +132,12 @@
 #define DATA_FX2_VALUE      5
 #define DATA_FX3_TYPE       6
 #define DATA_FX3_VALUE      7
-
-#if (MD_TRACKER_VERSION == 5)
-    #define DATA_FX4_TYPE       8
-    #define DATA_FX4_VALUE      9
-    #define DATA_FX5_TYPE       10
-    #define DATA_FX5_VALUE      11
-    #define DATA_FX6_TYPE       12
-    #define DATA_FX6_VALUE      13
-#endif
+#define DATA_FX4_TYPE       8
+#define DATA_FX4_VALUE      9
+#define DATA_FX5_TYPE       10
+#define DATA_FX5_VALUE      11
+#define DATA_FX6_TYPE       12
+#define DATA_FX6_VALUE      13
 //}
 
 #endif // MDT_MODULEDATA_H_INCLUDED

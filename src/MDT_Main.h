@@ -1,8 +1,6 @@
 #ifndef MDT_MAIN_H_INCLUDED
 #define MDT_MAIN_H_INCLUDED
 
-#define MD_TRACKER_VERSION 5
-
 //! HEADERS ARE NOT REPARSED IN CODEBLOCKS WHEN BUILD. DO REBUILD
 
 // bit help
@@ -59,8 +57,8 @@
 #define CH3_NORMAL              0b00000000
 #define CH3_SPECIAL_CSM_OFF     0b11000000
 
-#define EVALUATE_0xFF           0xFF
-#define EVALUATE_0xFFFF         0xFFFF
+#define OXFF                    0xFF
+#define OXFFFF                  0xFFFF
 #define NOTHING                 -1
 
 #define CHANNEL_FM1             0
@@ -82,13 +80,7 @@
 #define SCREEN_PATTERN          1
 #define SCREEN_INSTRUMENT       2
 
-#if (MD_TRACKER_VERSION == 5)
-    #define EFFECTS_TOTAL          6
-#elif (MD_TRACKER_VERSION == 2)
-    #define EFFECTS_TOTAL          3
-#else
-    #define EFFECTS_TOTAL          3
-#endif
+#define EFFECTS_TOTAL          6
 
 #define COMB_FB_ALG 0
 #define COMB_PAN_AMS_FMS 1
@@ -118,10 +110,6 @@
 #define MSU_SEEK_OFF	0x1601
 #define MSU_PLAYOF 	    0x1A00 // #1 = decimal no. of track (1-99) #2 = offset in sectors from the start of the track to apply when looping; play cdda track and loop from specified sector offset
 
-//const char *channelNames[13] = { "y1", "y2", "y3", "..", "..", "..", "y4", "y5", "y6", "p1", "p2", "p3", "n4" };
-//const char *noteNames[12] = { "C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-" };
-//const char *alphabet[38] = {"-", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W",
-//"X", "Y", "Z", " ", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 void InitTracker();
 void DrawText(u8 plane, u8 pal, const char *str, u8 x, u8 y);
 void DrawNum(u8 plane, u8 pal, const char *str, u8 x, u8 y);

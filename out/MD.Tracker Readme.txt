@@ -1,5 +1,5 @@
 ----------------
-MD.Tracker 1.0f
+MD.Tracker 1.0b (wip)
 Native music tracker for SEGA MEGADRIVE / GENESIS / NOMAD
 Source code: https://github.com/corthax/mdtracker
 Powered by SGDK
@@ -15,7 +15,7 @@ Powered by SGDK
 
 //////////////////
 Supported emulators: 
-	PicoDrive 			(Needs "SEGA GENESIS    " in rom header.)
+	PicoDrive 			(Needs any standard rom header.)
 		rom_pico.bin	(CD not supported)
 		
 You may want to turn on overclocking for the best pefromance.
@@ -107,7 +107,7 @@ I recommend to always use the first (--) matrix row for first instruments initia
 	A+U		Change value (+16).
 	A+D		Change value (-16).
 	
-	A+B 	Find first unused pattern. (slow)
+	A+B 	Find first unused pattern (Slow!).
 
 	C		Clear matrix cell.
 
@@ -160,12 +160,6 @@ Setting instrument explicitly rewrites the channel's FM registers, if there are 
 	A+C 	Copy and Paste data from previously selected range into selected column of current pattern, starting from selected row.
 	A+B 	Same as above, but paste all data columns.
 	
-	Multi-edit: [NOT IMPLEMENTED]
-	
-	Z		Link/Un-link cell for multi-edit.
-	Z+A		Link all cells of the same type.
-	Z+B		Un-link all cells.
-	
 '
 
 ----------------
@@ -203,11 +197,6 @@ Instrument Editor
 
 	A+L/R	Change value (+-1).
 	A+U/D	Change value (+-4).
-	
-	Multi-edit: [NOT IMPLEMENTED]
-	
-	Z		Link/Un-link parameter for multi-edit.
-	Z+B		Un-link all parameters.
 
 	There are two 16 step sequencers there, ARP (arpeggiator) and VOL (attenuation).
 	Applied channel sequencers always reset on song stop.
@@ -278,8 +267,8 @@ WARNING
 	Reserved space for DAC data in ROM (This range may change on next versions).
 	
 	DAC ROM Samples region: (do not overlap the end or rom will be corrupted)
-		START:	028600
-		END:	18AB00
+		START:	028600 [While WIP: See symbols.txt sample_bank_1]
+		END:	18AB00 [...]
 	
 	Sample format: RAW (header-less), Signed 8 bit PCM, 32000 hz
 		
@@ -305,7 +294,7 @@ SPECIAL+CSM:
 --: set to NORMAL.
 
 ************************************************
-TEMPO (hInt Skip)
+TEMPO (H-INT counter skip, more skipped = slower BPM)
 	13xx	
 xx: 01 .. FF
 --: reset to default project tempo.
@@ -321,7 +310,7 @@ y: 0 .. F; Even lines.
 N4 Channel Mode
 	15xy	PSG channels only.
 x: 1 = periodic noise; 2 = white noise;
-y: 0 = tonal, SQ3 muted; 1 = tonal, SQ3 unmuted; 2, 3, 4 = fixed clock /2, /4, /8 (note pitch is ignored).
+y: 0 = tonal, SQ3 muted; 1 = tonal, SQ3 not muted; 2, 3, 4 = fixed clock /2, /4, /8 (note pitch is ignored).
 
 ************************************************
 PCM Sample ranges bank select
@@ -348,24 +337,22 @@ xx: 01 .. 1F; Row in the next pattern jump to.
 --: jump to beginning.
 
 ************************************************
-MSU MD: CD Audio - Play Once
+MSU MD: CD Audio - Play Once [NOT WORKING]
 	20xx	
 xx: 01 .. 63; Track number in .wav + .cue (99 tracks max)
 --: stop.
 
 ************************************************
-MSU MD: CD Audio - Play Loop
+MSU MD: CD Audio - Play Loop [NOT WORKING]
 	21xx	
 xx: 01 .. 63; Track number in .wav + .cue (99 tracks max)
 --: stop.
 
 ************************************************
-MSU MD: CD Audio - Seek Time
+MSU MD: CD Audio - Seek Time [NOT WORKING]
 	22xx	
 xx: 01 .. FF; Enable
 --: disable.
-
-Tip: SQ3 channel can be used for global commands only, since it's muted most of the time anyway when N4 is set to tonal noise mode :)
 
 ------------------------------------------------
 + FM Instrument General
@@ -535,7 +522,7 @@ FE: stop.
 FF: reset.
 
 ************************************************
-Vibrato [!!! Very heavy on CPU, use FMS on FM instead when possible !!!]
+Vibrato [!!! Very heavy on CPU, use FM native instead when possible !!!]
 	33xy	
 x: 1 .. F; Total Speed = (Speed * Speed Multiplier) per tick. Phase += Total Speed. Phase is 0 .. 1024 of sin cycle.
 y: 1 .. F; Depth * Depth Multiplier * 1/32 semitone.
@@ -567,14 +554,14 @@ xx: ticks to skip. allow slower effect.
 --: no skip.
 
 ************************************************
-Portamento to Semitones UP (Turned off when new note is triggered before portamento reaches target pitch.)
+Portamento to Semitones UP (Turned off when new note is triggered before portamento reaches target pitch.) [NOT IMPLEMENTED]
 	38xy
 x: Amount of rows it takes.
 y: Target shift in semitones.
 --: reset.
 
 ************************************************
-Portamento to Semitones DOWN (Turned off when new note is triggered before portamento reaches target pitch.)
+Portamento to Semitones DOWN (Turned off when new note is triggered before portamento reaches target pitch.) [NOT IMPLEMENTED]
 	39xx
 x: Amount of rows it takes.
 y: Target shift in semitones.
@@ -603,7 +590,7 @@ xx: 01 .. 7F; Divided by 8 for PSG.
 --: no attenuation.
 
 ************************************************
-Tremolo [!!! Very heavy on CPU !!!]
+Tremolo [!!! Very heavy on CPU, use FM native instead when possible !!!]
 	42xy	
 x: 1 .. F; Speed, full cycle ticks.
 y: 1 .. F; Depth.

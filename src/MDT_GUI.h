@@ -1,9 +1,6 @@
 #ifndef MDT_GUI_H_INCLUDED
 #define MDT_GUI_H_INCLUDED
 
-#define MD_TRACKER_VERSION 5
-
-// -----------------------------------------------------------
 #define GUI_INST_PARAM_ALG      0
 #define GUI_INST_PARAM_FMS      1
 #define GUI_INST_PARAM_AMS      2
@@ -44,47 +41,31 @@
 #define GUI_PATTERN_L_FX3_TYPE      6
 #define GUI_PATTERN_L_FX3_VALUE     7
 
-#if (MD_TRACKER_VERSION == 5)
-    #define GUI_PATTERN_L_FX4_TYPE      8
-    #define GUI_PATTERN_L_FX4_VALUE     9
-    #define GUI_PATTERN_L_FX5_TYPE      10
-    #define GUI_PATTERN_L_FX5_VALUE     11
-    #define GUI_PATTERN_L_FX6_TYPE      12
-    #define GUI_PATTERN_L_FX6_VALUE     13
-    #define GUI_PATTERN_R_NOTE          14
-    #define GUI_PATTERN_R_INST          15
-    #define GUI_PATTERN_R_FX1_TYPE      16
-    #define GUI_PATTERN_R_FX1_VALUE     17
-    #define GUI_PATTERN_R_FX2_TYPE      18
-    #define GUI_PATTERN_R_FX2_VALUE     19
-    #define GUI_PATTERN_R_FX3_TYPE      20
-    #define GUI_PATTERN_R_FX3_VALUE     21
-    #define GUI_PATTERN_R_FX4_TYPE      22
-    #define GUI_PATTERN_R_FX4_VALUE     23
-    #define GUI_PATTERN_R_FX5_TYPE      24
-    #define GUI_PATTERN_R_FX5_VALUE     25
-    #define GUI_PATTERN_R_FX6_TYPE      26
-    #define GUI_PATTERN_R_FX6_VALUE     27
-    #define GUI_PATTERN_COLUMN_LAST     27
+#define GUI_PATTERN_L_FX4_TYPE      8
+#define GUI_PATTERN_L_FX4_VALUE     9
+#define GUI_PATTERN_L_FX5_TYPE      10
+#define GUI_PATTERN_L_FX5_VALUE     11
+#define GUI_PATTERN_L_FX6_TYPE      12
+#define GUI_PATTERN_L_FX6_VALUE     13
+#define GUI_PATTERN_R_NOTE          14
+#define GUI_PATTERN_R_INST          15
+#define GUI_PATTERN_R_FX1_TYPE      16
+#define GUI_PATTERN_R_FX1_VALUE     17
+#define GUI_PATTERN_R_FX2_TYPE      18
+#define GUI_PATTERN_R_FX2_VALUE     19
+#define GUI_PATTERN_R_FX3_TYPE      20
+#define GUI_PATTERN_R_FX3_VALUE     21
+#define GUI_PATTERN_R_FX4_TYPE      22
+#define GUI_PATTERN_R_FX4_VALUE     23
+#define GUI_PATTERN_R_FX5_TYPE      24
+#define GUI_PATTERN_R_FX5_VALUE     25
+#define GUI_PATTERN_R_FX6_TYPE      26
+#define GUI_PATTERN_R_FX6_VALUE     27
+#define GUI_PATTERN_COLUMN_LAST     27
 
-    #define GUI_PATTERN_R_NOTE_OFFSET   6
-    #define GUI_PATTERN_R_INST_OFFSET   20
-    #define GUI_PATTERN_R_FX_OFFSET   52
-#elif (MD_TRACKER_VERSION == 2)
-    #define GUI_PATTERN_R_NOTE          8
-    #define GUI_PATTERN_R_INST          9
-    #define GUI_PATTERN_R_FX1_TYPE      10
-    #define GUI_PATTERN_R_FX1_VALUE     11
-    #define GUI_PATTERN_R_FX2_TYPE      12
-    #define GUI_PATTERN_R_FX2_VALUE     13
-    #define GUI_PATTERN_R_FX3_TYPE      14
-    #define GUI_PATTERN_R_FX3_VALUE     15
-    #define GUI_PATTERN_COLUMN_LAST     15
-
-    #define GUI_PATTERN_R_NOTE_OFFSET   30
-    #define GUI_PATTERN_R_INST_OFFSET   38
-    #define GUI_PATTERN_R_FX_OFFSET   58
-#endif
+#define GUI_PATTERN_R_NOTE_OFFSET   6
+#define GUI_PATTERN_R_INST_OFFSET   20
+#define GUI_PATTERN_R_FX_OFFSET   52
 
 // -----------------------------------------------------------
 #define GUI_PATTERN_ROW_LAST        15

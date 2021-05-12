@@ -4,7 +4,7 @@
 u8 SRAMW_readByte(u32 offset)
 {
     if (offset & 1) offset -= 2;
-    return *(vu8*)(SRAM_BASE + offset); // SRAM_BASE 0x280001,  0x200001
+    return *(vu8*)(SRAM_BASE + offset);
 }
 
 void SRAMW_writeByte(u32 offset, u8 val)

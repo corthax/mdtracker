@@ -20,15 +20,13 @@
 #include "MDT_PCM.h"
 #include "MDT_Info.h"
 
-#define MD_TRACKER_VERSION  5
-
 #define STRING_EMPTY    ""
 
 #define H_INT_DURATION_NTSC     744     // ; 744
 #define H_INT_DURATION_PAL      892     // ; 892
 #define H_INT_SKIP              1       // counter; 1
 #define TICK_SKIP_MIN           1       // fast tempo limit, 1 tick = H_INT_SKIP h-Blanks; 6
-#define TICK_SKIP_MAX           255     // slow tempo limit; 128
+#define TICK_SKIP_MAX           0xFF    // slow tempo limit; 128
 #define COUNTER_COMPENSATION    0       // code timer h-int shift compensation (slower code limit the max bpm); 6
 
 u16 playingPatternID = 0;
@@ -43,9 +41,9 @@ u8 selectedPatternRow = 0;
 u8 selectedPatternColumn = 0;
 u16 selectedPatternID = 0;
 
-u8 patternRowToRefresh = EVALUATE_0xFF; // to refresh only edited pattern line; 255 = refresh everything
-u16 matrixRowToRefresh = EVALUATE_0xFFFF; //! change
-u8 instrumentParameterToRefresh = EVALUATE_0xFF; // 255-- counter to refresh one instrument parameter per frame; avoid slowdown
+u8 patternRowToRefresh = OXFF; // to refresh only edited pattern line; 255 = refresh everything
+u16 matrixRowToRefresh = OXFFFF; //! change
+u8 instrumentParameterToRefresh = OXFF; // 255-- counter to refresh one instrument parameter per frame; avoid slowdown
 
 u8 lastEnteredNote = 45; // A-3 by default
 u8 lastEnteredEffect = 1; // TL1
@@ -75,29 +73,25 @@ u8 selectedInstrumentParameter = 0; // 0..53
 u8 selectedInstrumentOperator = 0; // 0..53
 
 // screen
-u8 currentScreen = 0;
-u8 bInitScreen = TRUE; // redraw selection brackets
-u8 bRefreshScreen = TRUE; // refresh data of current screen
+u8 currentScreen = SCREEN_MATRIX;
+bool bInitScreen = TRUE; // redraw selection brackets
+bool bRefreshScreen = TRUE; // refresh data of current screen
 
 char str[6]; //! symbol buffer !!!may cause crash if overflowed!!!
 
 // engine
-u8 ch3Mode = CH3_NORMAL; // global
-u8 ch3OpNoteStatus = 0b00000010; // ch3 each of operators status, note on or off
-u8 psg_noise_mode = PSG_NOISE_TYPE_PERIODIC;
+u8 FM_CH3_Mode = CH3_NORMAL; // global
+u8 FM_CH3_OpNoteStatus = 0b00000010; // ch3 each of operators status, note on or off
+u8 PSG_NoiseMode = PSG_NOISE_TYPE_PERIODIC;
 
 bool bPlayback = FALSE;
 u8 ppl_1 = PPL_DEFAULT; // pulse per line
 u8 ppl_2 = PPL_DEFAULT;
-u8 maxFrame = PPL_DEFAULT;
+u8 maxPulse = PPL_DEFAULT;
 s8 pulseCounter = 0;
 
-u16 subTicksToSkip = 0;
-
 // channel effects
-//u16 channelFlags = 0b0001111111111111; // mute/unmute channels
 u8 channelFlags[CHANNELS_TOTAL] = {1,1,1,1,1,1,1,1,1,1,1,1,1};
-//u8 commandFlags[EFFECTS_TOTAL] = {1,1,1,1,1,1};
 u8 channelPitchSlideSpeed[CHANNELS_TOTAL];
 s8 channelMicrotone[CHANNELS_TOTAL];
 u8 channelArpNote[CHANNELS_TOTAL];
@@ -131,17 +125,17 @@ u8 channelNoteCut[CHANNELS_TOTAL];
 u8 channelNoteRetrigger[CHANNELS_TOTAL];
 u16 channelNoteRetriggerCounter[CHANNELS_TOTAL];
 
-u8 bPsgIsPlayingNote[4];
+bool bPsgIsPlayingNote[4];
 
-s16 matrixRowJumpTo = EVALUATE_0xFF;
-u8 patternRowJumpTo = EVALUATE_0xFF;
+s16 matrixRowJumpTo = OXFF;
+u8 patternRowJumpTo = OXFF;
 u8 channelNoteDelay[CHANNELS_TOTAL];
 
-u8 ch3OpFreq[4];
+u8 FM_CH3_OpFreq[4];
 
 u8 instrumentIsMuted[MAX_INSTRUMENT+1]; // 1 = mute
 
-// dac
+// FM CH6 DAC
 u32 samplesSize = 0;
 u8 sampleToPlay = 0;
 u32 sampleSeekTime = 0;
@@ -151,16 +145,7 @@ u8 selectedSampleNote = 0;
 u32 sampleBankSize = 0;
 u8 activeSampleBank = 0;
 
-u8 bDAC_enable = TRUE; // global, 0xF0 to enable. 0 to disable
-//u8 DAC_softsynth = 0; // 0 is disabled, 0< to set mode
-//static void WriteDAC(u8 sample);
-//static void PCMPlay();
-//static u8 SoftsynthRoutine();
-//u16 softsynthFreq = 1;
-//u8 sampleStack[1024];
-
-// sys
-//bool bBusTaken = FALSE;
+bool bDAC_enable = TRUE; // global, 0xF0 to enable. 0 to disable
 
 // copy/paste
 u16 patternCopyFrom = 1;
@@ -168,19 +153,19 @@ s8 patternCopyRangeStart = NOTHING;
 s8 patternCopyRangeEnd = NOTHING;
 
 u16 hIntToSkip = 0;
-s16 hIntCounter = 0;
+s32 hIntCounter = 0;
 
 u16 bgBaseTileIndex[4];
 u16 asciiBaseLetters, asciiBaseNumbers;
 u8 instCopyTo = 0x01; // instrument copy
 
 s8 buttonCounter = GUI_NAVIGATION_DELAY; // signed just in case of overflow
-u8 doCount = FALSE;
+bool doCount = FALSE;
 u8 navigationDirection = BUTTON_RIGHT;
 
-u8 psgPWM = FALSE;
-u8 psgPulseCounter = 0;
-u8 dacPan = SOUND_PAN_CENTER;
+//u8 psgPWM = FALSE;
+//u8 psgPulseCounter = 0;
+u8 FM_CH6_DAC_Pan = SOUND_PAN_CENTER;
 
 u32 FPS = 0;
 u32 BPM = 0;
@@ -318,67 +303,26 @@ const s16 GUI_ALPHABET[38] =
 int main()
 {
     InitTracker();
-	while(1) { DoEngine(); FPS = SYS_getFPS(); }
+	while(1)
+    {
+        DoEngine();
+        switch (currentScreen)
+        {
+        case SCREEN_MATRIX: DisplayPatternMatrix(); break;
+        case SCREEN_PATTERN: DisplayPatternEditor(); break;
+        case SCREEN_INSTRUMENT: DisplayInstrumentEditor(); break;
+        default: break;
+        }
+        FPS = SYS_getFPS();
+    }
 	return(0);
 }
 
-// must not be very cpu hungry
-static inline void hIntCallback()
-{
-    //static u8 flipEnvelope = 0;
-    //static u8 hIntSkipCounter = 0;
-
-    /*if (!hIntSkipCounter)
-    {
-        hIntSkipCounter = hIntToSkip;*/
-
-        //if (bPlayback)
-        //{
-            hIntCounter--;
-            // PSG PWM
-            /*if (psgPWM)
-            {
-                if (!psgPulseCounter)
-                {
-                    if (flipEnvelope) { PSG_setEnvelope(0, PSG_ENVELOPE_MAX); flipEnvelope = FALSE; }
-                    else { PSG_setEnvelope(0, PSG_ENVELOPE_MIN); flipEnvelope = TRUE; }
-                    psgPulseCounter = pwmNoteTableNTSC[psgPWM]; // 0..11 C .. B notes
-                }
-                psgPulseCounter--;
-            }*/
-       //}
-
-    /*}
-    else if (bPlayback)
-    {
-        // PSG PWM
-        if (psgPWM)
-        {
-            if (!psgPulseCounter)
-            {
-                if (flipEnvelope) { PSG_setEnvelope(0, PSG_ENVELOPE_MAX); flipEnvelope = FALSE; }
-                else { PSG_setEnvelope(0, PSG_ENVELOPE_MIN); flipEnvelope = TRUE; }
-                psgPulseCounter = pwmNoteTableNTSC[psgPWM]; // 0..11 C .. B notes
-            }
-            psgPulseCounter--;
-        }
-    }
-    hIntSkipCounter--;*/
-
-    // fast GUI, playback slowdown when updating screen
-    switch (currentScreen)
-    {
-    case SCREEN_MATRIX: DisplayPatternMatrix(); break;
-    case SCREEN_PATTERN: DisplayPatternEditor(); break;
-    case SCREEN_INSTRUMENT: DisplayInstrumentEditor(); break;
-    default: break;
-    }
-}
-
+static inline void hIntCallback() { hIntCounter--; } //! only counter
 static inline void vIntCallback()
 {
-    static u32 _fps = 0;
-    if (_fps != FPS) { uintToStr(FPS, str, 3); DrawNum(BG_A, PAL1, str, 9, 27); }
+    static u32 _fps; // redraw only if FPS changes
+    if (_fps != FPS) { _fps = FPS; uintToStr(FPS, str, 3); DrawNum(BG_A, PAL1, str, 9, 27); }
 
     SYS_doVBlankProcessEx(IMMEDIATELY);
     // fast navigation
@@ -393,17 +337,10 @@ static inline void vIntCallback()
             case SCREEN_MATRIX: NavigateMatrix(navigationDirection); break;
             case SCREEN_PATTERN: NavigatePattern(navigationDirection); break;
             case SCREEN_INSTRUMENT: NavigateInstrument(navigationDirection); break;
+            default: break;
             }
         }
     }
-    // slow GUI, less CPU (not that much really...)
-    /*switch (currentScreen)
-    {
-    case SCREEN_MATRIX: DisplayPatternMatrix(); break;
-    case SCREEN_PATTERN: DisplayPatternEditor(); break;
-    case SCREEN_INSTRUMENT: DisplayInstrumentEditor(); break;
-    default: break;
-    }*/
 }
 
 // -------------------------------------------------------------------------------------------------------------
@@ -655,7 +592,7 @@ static inline void DoEngine()
             {
                 // new note
                 channelSEQCounter_VOL[channel] = INST_VOL_TICK_01; // reset VOL SEQ to start
-                voltick_value = ReadInstrumentSRAM(channelVolSeqID[channel], INST_VOL_TICK_01);
+                voltick_value = SRAM_ReadInstrument(channelVolSeqID[channel], INST_VOL_TICK_01);
                 if (voltick_value != SEQ_VOL_SKIP)
                 {
                     channelSeqAttenuation[channel] = voltick_value;
@@ -665,7 +602,7 @@ static inline void DoEngine()
             else if (channelCurrentRowNote[channel] == NOTE_EMPTY)
             {
                 // no new note
-                voltick_value = ReadInstrumentSRAM(channelVolSeqID[channel], ++channelSEQCounter_VOL[channel]);
+                voltick_value = SRAM_ReadInstrument(channelVolSeqID[channel], ++channelSEQCounter_VOL[channel]);
                 if (voltick_value != SEQ_VOL_SKIP)
                 {
                     channelSeqAttenuation[channel] = voltick_value;
@@ -681,7 +618,7 @@ static inline void DoEngine()
         }
         else // second pulses
         {
-            voltick_value = ReadInstrumentSRAM(channelVolSeqID[channel], ++channelSEQCounter_VOL[channel]);
+            voltick_value = SRAM_ReadInstrument(channelVolSeqID[channel], ++channelSEQCounter_VOL[channel]);
             if (voltick_value != SEQ_VOL_SKIP)
             {
                 channelSeqAttenuation[channel] = voltick_value;
@@ -705,7 +642,7 @@ static inline void DoEngine()
             {
                 // new note
                 channelSEQCounter_ARP[channel] = INST_ARP_TICK_01; // reset ARP SEQ to start
-                arptick_value = ReadInstrumentSRAM(channelArpSeqID[channel], INST_ARP_TICK_01);
+                arptick_value = SRAM_ReadInstrument(channelArpSeqID[channel], INST_ARP_TICK_01);
                 if (arptick_value != NOTE_EMPTY)
                 {
                     if (channelCurrentRowNote[channel] < NOTE_TOTAL) // if there is note, modify it with ARP seq
@@ -725,7 +662,7 @@ static inline void DoEngine()
             else if (channelCurrentRowNote[channel] == NOTE_EMPTY)
             {
                 // no new note
-                arptick_value = ReadInstrumentSRAM(channelArpSeqID[channel], ++channelSEQCounter_ARP[channel]);
+                arptick_value = SRAM_ReadInstrument(channelArpSeqID[channel], ++channelSEQCounter_ARP[channel]);
                 if (arptick_value != NOTE_EMPTY)
                 {
                     if (arptick_value > ARP_BASE)
@@ -752,7 +689,7 @@ static inline void DoEngine()
         }
         else // second pulses
         {
-            arptick_value = ReadInstrumentSRAM(channelArpSeqID[channel], ++channelSEQCounter_ARP[channel]);
+            arptick_value = SRAM_ReadInstrument(channelArpSeqID[channel], ++channelSEQCounter_ARP[channel]);
             if (arptick_value != NOTE_EMPTY)
             {
                 if (arptick_value > ARP_BASE)
@@ -784,8 +721,8 @@ static inline void DoEngine()
         {
             auto inline void command(u8 type, u8 val, u8 effect)
             {
-                fxtype_value = ReadPatternSRAM(playingPatternID, playingPatternRow, type);
-                fxval_value = ReadPatternSRAM(playingPatternID, playingPatternRow, val);
+                fxtype_value = SRAM_ReadPattern(playingPatternID, playingPatternRow, type);
+                fxval_value = SRAM_ReadPattern(playingPatternID, playingPatternRow, val);
                 if (fxtype_value) {
                     ApplyCommand_Common(channel, fxtype_value, fxval_value);
                     ApplyCommand_FM(channel, channelPreviousInstrument[channel], fxtype_value, fxval_value);
@@ -811,10 +748,10 @@ static inline void DoEngine()
             }
 
             // write only when instrument is changed and not empty
-            playingPatternID = ReadMatrixSRAM(channel, playingMatrixRow);
+            playingPatternID = SRAM_ReadMatrix(channel, playingMatrixRow);
 
-            inst = ReadPatternSRAM(playingPatternID, playingPatternRow, DATA_INSTRUMENT);
-            matrixTranspose = ReadMatrixTransposeSRAM(channel, playingMatrixRow);
+            inst = SRAM_ReadPattern(playingPatternID, playingPatternRow, DATA_INSTRUMENT);
+            matrixTranspose = SRAM_ReadMatrixTranspose(channel, playingMatrixRow);
 
             if (instrumentIsMuted[inst] == INST_MUTE) // check if instrument is muted. ignore writes, replace note with OFF if so
             {
@@ -822,7 +759,7 @@ static inline void DoEngine()
             }
             else
             {
-                channelCurrentRowNote[channel] = ReadPatternSRAM(playingPatternID, playingPatternRow, DATA_NOTE);
+                channelCurrentRowNote[channel] = SRAM_ReadPattern(playingPatternID, playingPatternRow, DATA_NOTE);
             }
 
             seq_vol(channel);
@@ -859,8 +796,8 @@ static inline void DoEngine()
 
             if (!channelNoteDelay[channel])
                 PlayNote((u8)key, channel);
-            else if (channel == CHANNEL_FM3_OP4 && (ch3Mode == CH3_SPECIAL_CSM || ch3Mode == CH3_SPECIAL_CSM_OFF))
-                ch3Mode = CH3_NORMAL;
+            else if (channel == CHANNEL_FM3_OP4 && (FM_CH3_Mode == CH3_SPECIAL_CSM || FM_CH3_Mode == CH3_SPECIAL_CSM_OFF))
+                FM_CH3_Mode = CH3_NORMAL;
         }
     }
 
@@ -896,9 +833,6 @@ static inline void DoEngine()
                 }
             }
 
-            //! do only at every 4th step?
-            //if (!(frameCounter & 3))
-            //{
             //!slow! volume slide
             if (channelVolumeChangeSpeed[channel]) //! worst case
             {
@@ -907,7 +841,7 @@ static inline void DoEngine()
                     channelAttenuation[channel] += channelVolumeChangeSpeed[channel];
                     if (channelAttenuation[channel] > 0x7F) { channelAttenuation[channel] = 0x7F; channelVolumeChangeSpeed[channel] = 0; }
                     else if (channelAttenuation[channel] < 0) { channelAttenuation[channel] = 0; channelVolumeChangeSpeed[channel] = 0; }
-                    //SetChannelVolume(channel); //!slow!
+                    SetChannelVolume(channel); //!slow!
                     channelVolumePulseCounter[channel] = channelVolumePulseSkip[channel];
                 }
                 channelVolumePulseCounter[channel]--;
@@ -971,7 +905,7 @@ static inline void DoEngine()
                     //!also triggers note! need different function for set pitch
                     if (channel < CHANNEL_PSG1) SetPitchFM(channel, channelArpNote[channel]); //!slow!
                     else SetPitchPSG(channel, channelArpNote[channel]);
-                } //
+                }
                 else
                 {
                     channelFinalPitch[channel] = 0;
@@ -991,21 +925,20 @@ static inline void DoEngine()
 
     if (bPlayback)
     {
-        // need to be this way to avoid playback cursor glitches and hang notes at stop
         if (beginPlay)
         {
             SYS_disableInts();
-            //SetBPM(SRAMW_readWord(TEMPO)); // reset tempo
             beginPlay = FALSE;
 
             for (u16 channel = 0; channel <= MAX_INSTRUMENT; channel++) { CacheIstrumentToRAM(channel); } // reset [tempInst]
+            //! check and apply first found previous commands if playing not from beginning of song !!!
 
             // start timer B
-            YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00001111);
+            YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, FM_CH3_Mode | 0b00001111);
 
             // set frame length
-            if (playingPatternRow & 1) maxFrame = ppl_1; // ticks per line
-            else maxFrame = ppl_2;
+            if (playingPatternRow & 1) maxPulse = ppl_1; // ticks per line
+            else maxPulse = ppl_2;
 
             DrawMatrixPlaybackCursor(FALSE);
             hIntCounter = hIntToSkip; // reset counter
@@ -1016,15 +949,13 @@ static inline void DoEngine()
         {
             hIntCounter = hIntToSkip; // reset counter
             if (pulseCounter == -1) pulseCounter = 1; else pulseCounter++;
-            if (pulseCounter == maxFrame)
+            if (pulseCounter == maxPulse)
             {
-                if (playingPatternRow & 1) maxFrame = ppl_1; else maxFrame = ppl_2;
+                if (playingPatternRow & 1) maxPulse = ppl_1; else maxPulse = ppl_2;
                 pulseCounter = 0;
             }
             //! every 4th step only?
             //if (!(frameCounter & 3))
-            //! every even step only?
-            //if (!(frameCounter & 1))
             do_effects(CHANNEL_FM1);
             do_effects(CHANNEL_FM2);
             do_effects(CHANNEL_FM3_OP4);
@@ -1059,31 +990,31 @@ static inline void DoEngine()
 
             ClearPatternPlaybackCursor();
 
-            if (matrixRowJumpTo != EVALUATE_0xFF && currentScreen == SCREEN_MATRIX)
+            if (matrixRowJumpTo != OXFF && currentScreen == SCREEN_MATRIX)
             {
                 playingPatternRow = PATTERN_ROW_LAST + 1; // exceed to trigger next condition
             }
             else playingPatternRow++; // next line is..
 
             // jump to next...
-            if (playingPatternRow > PATTERN_ROW_LAST || patternRowJumpTo != EVALUATE_0xFF)
+            if (playingPatternRow > PATTERN_ROW_LAST || patternRowJumpTo != OXFF)
             {
                 DrawMatrixPlaybackCursor(TRUE); // erase
 
                 // endless cycle pattern if not in matrix editor
                 if (currentScreen == SCREEN_MATRIX)
                 {
-                    if (matrixRowJumpTo != EVALUATE_0xFF)
+                    if (matrixRowJumpTo != OXFF)
                     {
                         playingMatrixRow = matrixRowJumpTo - 1; // set to before, then increment
-                        matrixRowJumpTo = EVALUATE_0xFF;
+                        matrixRowJumpTo = OXFF;
                     }
                     playingMatrixRow++; // next patterns in matrix is..
 
-                    if (patternRowJumpTo != EVALUATE_0xFF)
+                    if (patternRowJumpTo != OXFF)
                     {
                         playingPatternRow = patternRowJumpTo;
-                        patternRowJumpTo = EVALUATE_0xFF;
+                        patternRowJumpTo = OXFF;
                     }
                     else playingPatternRow = 0;
 
@@ -1095,8 +1026,8 @@ static inline void DoEngine()
                 else if (playingPatternRow > PATTERN_ROW_LAST)
                 {
                     playingPatternRow = 0;
-                    matrixRowJumpTo = EVALUATE_0xFF;
-                    patternRowJumpTo = EVALUATE_0xFF;
+                    matrixRowJumpTo = OXFF;
+                    patternRowJumpTo = OXFF;
                 }
 
                 DrawMatrixPlaybackCursor(FALSE);
@@ -1112,7 +1043,7 @@ static inline void DoEngine()
         beginPlay = TRUE;
         // stop timer A (load: 1 to start, 0 to stop; enable: 1 to set register flag when overflowed, 0 to keep cycling without setting flag)
         // reset read register flag, timer overflowing is enabled
-        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00111100);
+        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, FM_CH3_Mode | 0b00111100);
 
         StopAllSound();
         ClearPatternPlaybackCursor();
@@ -1129,7 +1060,7 @@ inline static s16 FindUnusedPattern()
     for (s16 pattern = 1; pattern <= MAX_PATTERN; pattern++) {
         used = FALSE;
         for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++) {
-            for (u8 line = 0; line < MAX_MATRIX_ROWS; line++) { if (ReadMatrixSRAM(channel, line) == pattern) { used = TRUE; break; } }
+            for (u8 line = 0; line < MAX_MATRIX_ROWS; line++) { if (SRAM_ReadMatrix(channel, line) == pattern) { used = TRUE; break; } }
             if (used) break;
         }
         if (!used) return pattern;
@@ -1143,22 +1074,13 @@ static void SetBPM(u16 counter)
 
     if (!counter) { counter = SRAMW_readWord(TEMPO); }
 
-    /*YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_B, counter);
-    microseconds = 3003 * (256 - counter); // timer B = 300.34 microseconds*/
-
     if (!IS_PALSYSTEM) microseconds = H_INT_DURATION_NTSC * (H_INT_SKIP+1) * (counter + COUNTER_COMPENSATION); // h-blank = 1/13440 sec; 74.4047 microseconds; 224 * 60
     else microseconds = H_INT_DURATION_PAL * (H_INT_SKIP+1) * (counter + COUNTER_COMPENSATION); // h-blank = 1/11200 sec; 89.2857 microseconds;
     hIntToSkip = counter;
 
-    //! software cpu subtick. very unstable
-    //microseconds = 130 * timer; // sub-tick = 1/76800 sec; 13.0208333 microseconds
-    //subTicksToSkip = timer;
-
     u16 ppb = (ppl_2 + ppl_1) << 1; // pulses per beat
     BPM = (600000000 / microseconds) / ppb; // beat per minute
-    //BPM = fix32ToRoundedInt(fix32Div(fix32Div(FIX32(60000000.0), fix32Mul(fix32Mul(FIX32(74.4047), FIX32(2.0)), FIX32(counter))), FIX32(ppb)));
     PPS = (((BPM * 1000) / 6) * ppb) / 10000; // pulse per second
-    //PPS = fix32Mul(fix32Div(BPM, FIX32(60.0)), ppb);
 
     SRAMW_writeWord(TEMPO, counter); // store
     DrawPP();
@@ -1199,13 +1121,13 @@ void DrawPatternPlaybackCursor()
 
 static void ChangeMatrixValue(s16 mod)
 {
-    static s16 value = 0;
+    static s32 value = 0;
 
     if (selectedMatrixScreenRow < MATRIX_SCREEN_ROWS) // matrix
     {
         if (mod != 0)
         {
-            value = ReadMatrixSRAM(selectedMatrixChannel, selectedMatrixRow);
+            value = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow);
             if (value == NULL && lastEnteredPattern != NULL) value = lastEnteredPattern;
             else
             {
@@ -1213,12 +1135,12 @@ static void ChangeMatrixValue(s16 mod)
                 if (value < 1) value = MAX_PATTERN; // last pattern
                 else if (value > MAX_PATTERN) value = 1; // first pattern
             }
-            WriteMatrixSRAM(selectedMatrixChannel, selectedMatrixRow, value); bRefreshScreen = TRUE; matrixRowToRefresh = selectedMatrixRow;
+            SRAM_WriteMatrix(selectedMatrixChannel, selectedMatrixRow, value); bRefreshScreen = TRUE; matrixRowToRefresh = selectedMatrixRow;
             lastEnteredPattern = value;
         }
         else
         {
-            WriteMatrixSRAM(selectedMatrixChannel, selectedMatrixRow, 0); bRefreshScreen = TRUE; matrixRowToRefresh = selectedMatrixRow;
+            SRAM_WriteMatrix(selectedMatrixChannel, selectedMatrixRow, 0); bRefreshScreen = TRUE; matrixRowToRefresh = selectedMatrixRow;
         }
     }
     else // tempo
@@ -1264,7 +1186,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
 
     auto void switch_to_pattern_editor()
     {
-        selectedPatternID = ReadMatrixSRAM(selectedMatrixChannel, selectedMatrixRow);
+        selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow);
         if (selectedPatternID != 0x00) // -- pattern should not be editable
         {
             currentScreen = SCREEN_PATTERN;
@@ -1290,20 +1212,20 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
             (selectedPatternColumn == DATA_INSTRUMENT + PATTERN_COLUMNS)
         )
         {
-            u8 value = ReadPatternSRAM(selectedPatternID, selectedPatternRow, DATA_INSTRUMENT);
+            u8 value = SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_INSTRUMENT);
             if (value != 0x00) selectedInstrumentID = value;
         }
     }
 
     auto void switch_to_matrix_editor()
     {
-        selectedPatternID = ReadMatrixSRAM(selectedMatrixChannel, selectedMatrixRow);
+        selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow);
         currentScreen = SCREEN_MATRIX;
         bInitScreen = TRUE;
         bRefreshScreen = TRUE;
         VDP_setHorizontalScroll(BG_A, 0);
         VDP_setHorizontalScroll(BG_B, 0);
-        matrixRowToRefresh = EVALUATE_0xFFFF;
+        matrixRowToRefresh = OXFFFF;
     }
 
     if (joy == JOY_1 || joy == JOY_2)
@@ -1317,12 +1239,10 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                 playingPatternRow = 0; // start from the first line of current pattern
                 playingMatrixRow = selectedMatrixRow; // actual line in array
                 bPlayback = TRUE;
-                //ssf_led_on(); // breaks PicoDrive (no sound, then hang on)
             }
             else
             {
                 stop_playback();
-                //ssf_led_off();
             }
             break;
 
@@ -1334,12 +1254,10 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                 else playingPatternRow = selectedPatternRow + PATTEN_ROWS_PER_SIDE;
                 playingMatrixRow = selectedMatrixRow; // actual line in array
                 bPlayback = TRUE;
-                //ssf_led_on();
             }
             else
             {
                 stop_playback();
-                //ssf_led_off();
             }
             break;
         }
@@ -1379,13 +1297,13 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                         for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
                         {
                             channelFlags[channel] = TRUE; // un-mute all
-                            WriteMatrixChannelMutedSRAM(channel, TRUE);
+                            SRAM_WriteMatrixChannelMuted(channel, TRUE);
                             VDP_fillTileMapRect(BG_B, NULL, (channel * 3) + 1, 1, 2, 1); // clear all marks
                         }
                     }
                     else
                     {
-                        WriteMatrixChannelMutedSRAM(selectedMatrixChannel, FALSE);
+                        SRAM_WriteMatrixChannelMuted(selectedMatrixChannel, FALSE);
                         FillRowRight(BG_B, PAL1, FALSE, FALSE, GUI_MUTE, 2,(selectedMatrixChannel * 3) + 1, 1 ); // set mark
                     }
                     break;
@@ -1398,11 +1316,11 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                         {
                             if (channel != selectedMatrixChannel) FillRowRight(BG_B, PAL1, FALSE, FALSE, GUI_MUTE, 2,(channel * 3) + 1, 1 ); // set all marks (except selected)
                             channelFlags[channel] = FALSE; // mute all
-                            WriteMatrixChannelMutedSRAM(channel, FALSE);
+                            SRAM_WriteMatrixChannelMuted(channel, FALSE);
                         }
                     }
                     channelFlags[selectedMatrixChannel] = TRUE; // un-mute selected
-                    WriteMatrixChannelMutedSRAM(selectedMatrixChannel, TRUE);
+                    SRAM_WriteMatrixChannelMuted(selectedMatrixChannel, TRUE);
                     VDP_fillTileMapRect(BG_B, NULL, (selectedMatrixChannel * 3) + 1, 1, 2, 1); // clear mark
                     break;
 
@@ -1410,7 +1328,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                     for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
                     {
                         channelFlags[channel] = TRUE; // un-mute all
-                        WriteMatrixChannelMutedSRAM(channel, TRUE);
+                        SRAM_WriteMatrixChannelMuted(channel, TRUE);
                         VDP_fillTileMapRect(BG_B, NULL, (channel * 3) + 1, 1, 2, 1); // clear all marks
                     }
                     break;
@@ -1421,53 +1339,53 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                 switch(changed)
                 {
                 case BUTTON_LEFT: // pattern colors
-                    selectedPatternID = ReadMatrixSRAM(selectedMatrixChannel, selectedMatrixRow); // select current pattern
+                    selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow); // select current pattern
                     if (selectedPatternID != NULL)
                     {
-                        col = ReadPatternColorSRAM(selectedPatternID)-1;
+                        col = SRAM_ReadPatternColor(selectedPatternID)-1;
                         if (col < 1) col = GUI_PATTERN_COLORS_MAX;
-                        WritePatternColorSRAM(selectedPatternID, col);
+                        SRAM_WritePatternColor(selectedPatternID, col);
                         ReColorsAndTranspose();
                     }
                     break;
 
                 case BUTTON_RIGHT:
-                    selectedPatternID = ReadMatrixSRAM(selectedMatrixChannel, selectedMatrixRow);
+                    selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow);
                     if (selectedPatternID != NULL)
                     {
-                        col = ReadPatternColorSRAM(selectedPatternID)+1;
+                        col = SRAM_ReadPatternColor(selectedPatternID)+1;
                         if (col > GUI_PATTERN_COLORS_MAX) col = 1;
-                        WritePatternColorSRAM(selectedPatternID, col);
+                        SRAM_WritePatternColor(selectedPatternID, col);
                         ReColorsAndTranspose();
                     }
                     break;
 
                 case BUTTON_UP: // matrix transpose
-                    transpose = ReadMatrixTransposeSRAM(selectedMatrixChannel, selectedMatrixRow);
+                    transpose = SRAM_ReadMatrixTranspose(selectedMatrixChannel, selectedMatrixRow);
                     if (transpose < 12)
                     {
-                        transpose++; WriteMatrixTransposeSRAM(selectedMatrixChannel, selectedMatrixRow, transpose);
+                        transpose++; SRAM_WriteMatrixTranspose(selectedMatrixChannel, selectedMatrixRow, transpose);
                         ReColorsAndTranspose();
                     }
                     break;
 
                 case BUTTON_DOWN:
-                    transpose = ReadMatrixTransposeSRAM(selectedMatrixChannel, selectedMatrixRow);
+                    transpose = SRAM_ReadMatrixTranspose(selectedMatrixChannel, selectedMatrixRow);
                     if (transpose > -12)
                     {
-                        transpose--; WriteMatrixTransposeSRAM(selectedMatrixChannel, selectedMatrixRow, transpose);
+                        transpose--; SRAM_WriteMatrixTranspose(selectedMatrixChannel, selectedMatrixRow, transpose);
                         ReColorsAndTranspose();
                     }
                     break;
 
                 case BUTTON_C: // clear
-                    selectedPatternID = ReadMatrixSRAM(selectedMatrixChannel, selectedMatrixRow);
+                    selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow);
                     if (selectedPatternID != NULL)
                     {
-                        col = ReadPatternColorSRAM(selectedPatternID);
+                        col = SRAM_ReadPatternColor(selectedPatternID);
                         if (col != 0)
                         {
-                            WritePatternColorSRAM(selectedPatternID, 0);
+                            SRAM_WritePatternColor(selectedPatternID, 0);
                             ReColorsAndTranspose();
                         }
                     }
@@ -1484,7 +1402,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                     {
                         currentPage++;
                         bRefreshScreen = bInitScreen = TRUE;
-                        matrixRowToRefresh = EVALUATE_0xFFFF;
+                        matrixRowToRefresh = OXFFFF;
                         ReColorsAndTranspose();
                     }
                     break;
@@ -1494,7 +1412,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                     {
                         currentPage--;
                         bRefreshScreen = bInitScreen = TRUE;
-                        matrixRowToRefresh = EVALUATE_0xFFFF;
+                        matrixRowToRefresh = OXFFFF;
                         ReColorsAndTranspose();
                     }
                     break;
@@ -1503,7 +1421,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                     currentPage += 4;
                     if (currentPage > MAX_MATRIX_PAGE) currentPage = MAX_MATRIX_PAGE;
                     bRefreshScreen = bInitScreen = TRUE;
-                    matrixRowToRefresh = EVALUATE_0xFFFF;
+                    matrixRowToRefresh = OXFFFF;
                     ReColorsAndTranspose();
                     break;
 
@@ -1511,7 +1429,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                     currentPage -= 4;
                     if (currentPage < 0) currentPage = 0;
                     bRefreshScreen = bInitScreen = TRUE;
-                    matrixRowToRefresh = EVALUATE_0xFFFF;
+                    matrixRowToRefresh = OXFFFF;
                     ReColorsAndTranspose();
                     break;
                 }
@@ -1522,12 +1440,12 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                 switch (changed)
                 {
                 case BUTTON_B:
-                    if (!ReadMatrixSRAM(selectedMatrixChannel, selectedMatrixRow))
+                    if (!SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow))
                     {
                         u16 value = FindUnusedPattern();
                         if (value)
                         {
-                            WriteMatrixSRAM(selectedMatrixChannel, selectedMatrixRow, value );
+                            SRAM_WriteMatrix(selectedMatrixChannel, selectedMatrixRow, value );
                             bRefreshScreen = TRUE;
                             matrixRowToRefresh = selectedMatrixRow;
                             lastEnteredPattern = value;
@@ -1543,10 +1461,6 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                 case BUTTON_DOWN: ChangeMatrixValue(-16);
                     break;
                 }
-                /*if (changed & BUTTON_RIGHT) { ChangeMatrixValue(1); }
-                else if (changed & BUTTON_LEFT) { ChangeMatrixValue(-1); }
-                else if (changed & BUTTON_UP) { ChangeMatrixValue(16); }
-                else if (changed & BUTTON_DOWN) { ChangeMatrixValue(-16); }*/
                 break;
 
             case BUTTON_B:
@@ -1559,17 +1473,17 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                         {
                             for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
                             {
-                                WriteMatrixSRAM(channel, row, ReadMatrixSRAM(channel, row+1));
+                                SRAM_WriteMatrix(channel, row, SRAM_ReadMatrix(channel, row+1));
                             }
                         }
 
                         // always clear last row
                         for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
                         {
-                            WriteMatrixSRAM(channel, MAX_MATRIX_ROWS-1, 0);
+                            SRAM_WriteMatrix(channel, MAX_MATRIX_ROWS-1, 0);
                         }
 
-                        matrixRowToRefresh = EVALUATE_0xFFFF;
+                        matrixRowToRefresh = OXFFFF;
                         bRefreshScreen = TRUE;
                     }
                     break;
@@ -1581,11 +1495,11 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                         {
                             for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
                             {
-                                WriteMatrixSRAM(channel, row+1, ReadMatrixSRAM(channel, row));
+                                SRAM_WriteMatrix(channel, row+1, SRAM_ReadMatrix(channel, row));
                             }
                         }
 
-                        matrixRowToRefresh = EVALUATE_0xFFFF;
+                        matrixRowToRefresh = OXFFFF;
                         bRefreshScreen = TRUE;
                     }
                     break;
@@ -1621,12 +1535,6 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
 
             case BUTTON_Y:
                 NavigatePattern(PATTERN_JUMP_SIDE);
-                /*switch (changed)
-                {
-                case BUTTON_Y:
-
-                    break;
-                }*/
                 break;
 
             /*case BUTTON_Z:
@@ -1681,27 +1589,24 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                         {
                             row = selectedPatternRow + patternColumnShift + inc;
                             if (row <= PATTERN_ROW_LAST) {
-                                WritePatternSRAM(selectedPatternID, row, DATA_NOTE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_NOTE));
-                                WritePatternSRAM(selectedPatternID, row, DATA_INSTRUMENT, ReadPatternSRAM(patternCopyFrom, cnt, DATA_INSTRUMENT));
-                                WritePatternSRAM(selectedPatternID, row, DATA_FX1_TYPE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX1_TYPE));
-                                WritePatternSRAM(selectedPatternID, row, DATA_FX1_VALUE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX1_VALUE));
-                                WritePatternSRAM(selectedPatternID, row, DATA_FX2_TYPE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX2_TYPE));
-                                WritePatternSRAM(selectedPatternID, row, DATA_FX2_VALUE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX2_VALUE));
-                                WritePatternSRAM(selectedPatternID, row, DATA_FX3_TYPE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX3_TYPE));
-                                WritePatternSRAM(selectedPatternID, row, DATA_FX3_VALUE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX3_VALUE));
-
-#if (MD_TRACKER_VERSION == 5)
-                                WritePatternSRAM(selectedPatternID, row, DATA_FX4_TYPE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX4_TYPE));
-                                WritePatternSRAM(selectedPatternID, row, DATA_FX4_VALUE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX4_VALUE));
-                                WritePatternSRAM(selectedPatternID, row, DATA_FX5_TYPE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX5_TYPE));
-                                WritePatternSRAM(selectedPatternID, row, DATA_FX5_VALUE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX5_VALUE));
-                                WritePatternSRAM(selectedPatternID, row, DATA_FX6_TYPE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX6_TYPE));
-                                WritePatternSRAM(selectedPatternID, row, DATA_FX6_VALUE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX6_VALUE));
-#endif
+                                SRAM_WritePattern(selectedPatternID, row, DATA_NOTE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_NOTE));
+                                SRAM_WritePattern(selectedPatternID, row, DATA_INSTRUMENT, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_INSTRUMENT));
+                                SRAM_WritePattern(selectedPatternID, row, DATA_FX1_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX1_TYPE));
+                                SRAM_WritePattern(selectedPatternID, row, DATA_FX1_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX1_VALUE));
+                                SRAM_WritePattern(selectedPatternID, row, DATA_FX2_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX2_TYPE));
+                                SRAM_WritePattern(selectedPatternID, row, DATA_FX2_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX2_VALUE));
+                                SRAM_WritePattern(selectedPatternID, row, DATA_FX3_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX3_TYPE));
+                                SRAM_WritePattern(selectedPatternID, row, DATA_FX3_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX3_VALUE));
+                                SRAM_WritePattern(selectedPatternID, row, DATA_FX4_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX4_TYPE));
+                                SRAM_WritePattern(selectedPatternID, row, DATA_FX4_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX4_VALUE));
+                                SRAM_WritePattern(selectedPatternID, row, DATA_FX5_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX5_TYPE));
+                                SRAM_WritePattern(selectedPatternID, row, DATA_FX5_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX5_VALUE));
+                                SRAM_WritePattern(selectedPatternID, row, DATA_FX6_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX6_TYPE));
+                                SRAM_WritePattern(selectedPatternID, row, DATA_FX6_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX6_VALUE));
                                 inc++;
                             }
                         }
-                        inc = 0; bRefreshScreen = TRUE; patternRowToRefresh = EVALUATE_0xFF;
+                        inc = 0; bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
                     }
                     break;
 
@@ -1716,105 +1621,103 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                             case DATA_NOTE: case (DATA_NOTE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
-                                    WritePatternSRAM(selectedPatternID, row, DATA_NOTE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_NOTE)); inc++;
+                                    SRAM_WritePattern(selectedPatternID, row, DATA_NOTE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_NOTE)); inc++;
                                 } //else break;
                                 break;
 
                             case DATA_INSTRUMENT: case (DATA_INSTRUMENT + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
-                                    WritePatternSRAM(selectedPatternID, row, DATA_INSTRUMENT, ReadPatternSRAM(patternCopyFrom, cnt, DATA_INSTRUMENT)); inc++;
+                                    SRAM_WritePattern(selectedPatternID, row, DATA_INSTRUMENT, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_INSTRUMENT)); inc++;
                                 } //else return;
                                 break;
 
                             case DATA_FX1_TYPE: case (DATA_FX1_TYPE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
-                                    WritePatternSRAM(selectedPatternID, row, DATA_FX1_TYPE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX1_TYPE)); inc++;
+                                    SRAM_WritePattern(selectedPatternID, row, DATA_FX1_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX1_TYPE)); inc++;
                                 } //else return;
                                 break;
 
                             case DATA_FX1_VALUE: case (DATA_FX1_VALUE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
-                                    WritePatternSRAM(selectedPatternID, row, DATA_FX1_VALUE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX1_VALUE)); inc++;
+                                    SRAM_WritePattern(selectedPatternID, row, DATA_FX1_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX1_VALUE)); inc++;
                                 } //else return;
                                 break;
 
                             case DATA_FX2_TYPE: case (DATA_FX2_TYPE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
-                                    WritePatternSRAM(selectedPatternID, row, DATA_FX2_TYPE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX2_TYPE)); inc++;
+                                    SRAM_WritePattern(selectedPatternID, row, DATA_FX2_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX2_TYPE)); inc++;
                                 } //else return;
                                 break;
 
                             case DATA_FX2_VALUE: case (DATA_FX2_VALUE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
-                                    WritePatternSRAM(selectedPatternID, row, DATA_FX2_VALUE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX2_VALUE)); inc++;
+                                    SRAM_WritePattern(selectedPatternID, row, DATA_FX2_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX2_VALUE)); inc++;
                                 } //else return;
                                 break;
 
                             case DATA_FX3_TYPE: case (DATA_FX3_TYPE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
-                                    WritePatternSRAM(selectedPatternID, row, DATA_FX3_TYPE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX3_TYPE)); inc++;
+                                    SRAM_WritePattern(selectedPatternID, row, DATA_FX3_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX3_TYPE)); inc++;
                                 } //else return;
                                 break;
 
                             case DATA_FX3_VALUE: case (DATA_FX3_VALUE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
-                                    WritePatternSRAM(selectedPatternID, row, DATA_FX3_VALUE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX3_VALUE)); inc++;
+                                    SRAM_WritePattern(selectedPatternID, row, DATA_FX3_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX3_VALUE)); inc++;
                                 } //else return;
                                 break;
 
-#if (MD_TRACKER_VERSION == 5)
                             case DATA_FX4_TYPE: case (DATA_FX4_TYPE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
-                                    WritePatternSRAM(selectedPatternID, row, DATA_FX4_TYPE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX4_TYPE)); inc++;
+                                    SRAM_WritePattern(selectedPatternID, row, DATA_FX4_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX4_TYPE)); inc++;
                                 } //else return;
                                 break;
 
                             case DATA_FX4_VALUE: case (DATA_FX4_VALUE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
-                                    WritePatternSRAM(selectedPatternID, row, DATA_FX4_VALUE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX4_VALUE)); inc++;
+                                    SRAM_WritePattern(selectedPatternID, row, DATA_FX4_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX4_VALUE)); inc++;
                                 } //else return;
                                 break;
 
                             case DATA_FX5_TYPE: case (DATA_FX5_TYPE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
-                                    WritePatternSRAM(selectedPatternID, row, DATA_FX5_TYPE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX5_TYPE)); inc++;
+                                    SRAM_WritePattern(selectedPatternID, row, DATA_FX5_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX5_TYPE)); inc++;
                                 } //else return;
                                 break;
 
                             case DATA_FX5_VALUE: case (DATA_FX5_VALUE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
-                                    WritePatternSRAM(selectedPatternID, row, DATA_FX5_VALUE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX5_VALUE)); inc++;
+                                    SRAM_WritePattern(selectedPatternID, row, DATA_FX5_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX5_VALUE)); inc++;
                                 } //else return;
                                 break;
 
                             case DATA_FX6_TYPE: case (DATA_FX6_TYPE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
-                                    WritePatternSRAM(selectedPatternID, row, DATA_FX6_TYPE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX6_TYPE)); inc++;
+                                    SRAM_WritePattern(selectedPatternID, row, DATA_FX6_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX6_TYPE)); inc++;
                                 } //else return;
                                 break;
 
                             case DATA_FX6_VALUE: case (DATA_FX6_VALUE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
-                                    WritePatternSRAM(selectedPatternID, row, DATA_FX6_VALUE, ReadPatternSRAM(patternCopyFrom, cnt, DATA_FX6_VALUE)); inc++;
+                                    SRAM_WritePattern(selectedPatternID, row, DATA_FX6_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX6_VALUE)); inc++;
                                 } //else return;
                                 break;
-#endif
                             }
                         }
-                        inc = 0; bRefreshScreen = TRUE; patternRowToRefresh = EVALUATE_0xFF;
+                        inc = 0; bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
                     }
                     break;
                 }
@@ -1878,77 +1781,75 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                 switch (selectedPatternColumn)
                 {
                 case DATA_NOTE: case (DATA_NOTE + PATTERN_COLUMNS):
-                    WritePatternSRAM(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_NOTE, NOTE_EMPTY);
+                    SRAM_WritePattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_NOTE, NOTE_EMPTY);
                     bRefreshScreen = TRUE;
                     patternRowToRefresh = selectedPatternRow + patternColumnShift;
                     break;
                 case DATA_INSTRUMENT: case (DATA_INSTRUMENT + PATTERN_COLUMNS):
-                    WritePatternSRAM(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_INSTRUMENT, NULL);
+                    SRAM_WritePattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_INSTRUMENT, NULL);
                     bRefreshScreen = TRUE;
                     patternRowToRefresh = selectedPatternRow + patternColumnShift;
                     break;
                 case DATA_FX1_TYPE: case (DATA_FX1_TYPE + PATTERN_COLUMNS):
-                    WritePatternSRAM(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX1_TYPE, NULL);
+                    SRAM_WritePattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX1_TYPE, NULL);
                     bRefreshScreen = TRUE;
                     patternRowToRefresh = selectedPatternRow + patternColumnShift;
                     break;
                 case DATA_FX1_VALUE: case (DATA_FX1_VALUE + PATTERN_COLUMNS):
-                    WritePatternSRAM(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX1_VALUE, NULL);
+                    SRAM_WritePattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX1_VALUE, NULL);
                     bRefreshScreen = TRUE;
                     patternRowToRefresh = selectedPatternRow + patternColumnShift;
                     break;
                 case DATA_FX2_TYPE: case (DATA_FX2_TYPE + PATTERN_COLUMNS):
-                    WritePatternSRAM(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX2_TYPE, NULL);
+                    SRAM_WritePattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX2_TYPE, NULL);
                     bRefreshScreen = TRUE;
                     patternRowToRefresh = selectedPatternRow + patternColumnShift;
                     break;
                 case DATA_FX2_VALUE: case (DATA_FX2_VALUE + PATTERN_COLUMNS):
-                    WritePatternSRAM(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX2_VALUE, NULL);
+                    SRAM_WritePattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX2_VALUE, NULL);
                     bRefreshScreen = TRUE;
                     patternRowToRefresh = selectedPatternRow + patternColumnShift;
                     break;
                 case DATA_FX3_TYPE: case (DATA_FX3_TYPE + PATTERN_COLUMNS):
-                    WritePatternSRAM(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX3_TYPE, NULL);
+                    SRAM_WritePattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX3_TYPE, NULL);
                     bRefreshScreen = TRUE;
                     patternRowToRefresh = selectedPatternRow + patternColumnShift;
                     break;
                 case DATA_FX3_VALUE: case (DATA_FX3_VALUE + PATTERN_COLUMNS):
-                    WritePatternSRAM(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX3_VALUE, NULL);
+                    SRAM_WritePattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX3_VALUE, NULL);
                     bRefreshScreen = TRUE;
                     patternRowToRefresh = selectedPatternRow + patternColumnShift;
                     break;
-#if (MD_TRACKER_VERSION == 5)
                 case DATA_FX4_TYPE: case (DATA_FX4_TYPE + PATTERN_COLUMNS):
-                    WritePatternSRAM(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX4_TYPE, NULL);
+                    SRAM_WritePattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX4_TYPE, NULL);
                     bRefreshScreen = TRUE;
                     patternRowToRefresh = selectedPatternRow + patternColumnShift;
                     break;
                 case DATA_FX4_VALUE: case (DATA_FX4_VALUE + PATTERN_COLUMNS):
-                    WritePatternSRAM(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX4_VALUE, NULL);
+                    SRAM_WritePattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX4_VALUE, NULL);
                     bRefreshScreen = TRUE;
                     patternRowToRefresh = selectedPatternRow + patternColumnShift;
                     break;
                 case DATA_FX5_TYPE: case (DATA_FX5_TYPE + PATTERN_COLUMNS):
-                    WritePatternSRAM(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX5_TYPE, NULL);
+                    SRAM_WritePattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX5_TYPE, NULL);
                     bRefreshScreen = TRUE;
                     patternRowToRefresh = selectedPatternRow + patternColumnShift;
                     break;
                 case DATA_FX5_VALUE: case (DATA_FX5_VALUE + PATTERN_COLUMNS):
-                    WritePatternSRAM(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX5_VALUE, NULL);
+                    SRAM_WritePattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX5_VALUE, NULL);
                     bRefreshScreen = TRUE;
                     patternRowToRefresh = selectedPatternRow + patternColumnShift;
                     break;
                 case DATA_FX6_TYPE: case (DATA_FX6_TYPE + PATTERN_COLUMNS):
-                    WritePatternSRAM(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX6_TYPE, NULL);
+                    SRAM_WritePattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX6_TYPE, NULL);
                     bRefreshScreen = TRUE;
                     patternRowToRefresh = selectedPatternRow + patternColumnShift;
                     break;
                 case DATA_FX6_VALUE: case (DATA_FX6_VALUE + PATTERN_COLUMNS):
-                    WritePatternSRAM(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX6_VALUE, NULL);
+                    SRAM_WritePattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX6_VALUE, NULL);
                     bRefreshScreen = TRUE;
                     patternRowToRefresh = selectedPatternRow + patternColumnShift;
                     break;
-#endif
                 }
 
                 switch (changed)
@@ -1958,7 +1859,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                     switch (selectedPatternColumn)
                     {
                     case DATA_NOTE: case (DATA_NOTE + PATTERN_COLUMNS):
-                        WritePatternSRAM(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_NOTE, NOTE_OFF);
+                        SRAM_WritePattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_NOTE, NOTE_OFF);
                         bRefreshScreen = TRUE;
                         patternRowToRefresh = selectedPatternRow + patternColumnShift;
                         break;
@@ -2008,21 +1909,21 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                 switch (changed)
                 {
                 case BUTTON_RIGHT:
-                    if (selectedInstrumentID < MAX_INSTRUMENT) { selectedInstrumentID++; bRefreshScreen = TRUE; instrumentParameterToRefresh = EVALUATE_0xFF; }
+                    if (selectedInstrumentID < MAX_INSTRUMENT) { selectedInstrumentID++; bRefreshScreen = TRUE; instrumentParameterToRefresh = OXFF; }
                     break;
 
                 case BUTTON_LEFT:
-                    if (selectedInstrumentID > 1) { selectedInstrumentID--; bRefreshScreen = TRUE; instrumentParameterToRefresh = EVALUATE_0xFF; }
+                    if (selectedInstrumentID > 1) { selectedInstrumentID--; bRefreshScreen = TRUE; instrumentParameterToRefresh = OXFF; }
                     break;
 
                 case BUTTON_UP:
                     if (selectedInstrumentID < (MAX_INSTRUMENT - 16)) selectedInstrumentID += 16; else selectedInstrumentID = MAX_INSTRUMENT;
-                    bRefreshScreen = TRUE; instrumentParameterToRefresh = EVALUATE_0xFF;
+                    bRefreshScreen = TRUE; instrumentParameterToRefresh = OXFF;
                     break;
 
                 case BUTTON_DOWN:
                     if (selectedInstrumentID > 16) selectedInstrumentID -= 16; else selectedInstrumentID = 1;
-                    bRefreshScreen = TRUE; instrumentParameterToRefresh = EVALUATE_0xFF;
+                    bRefreshScreen = TRUE; instrumentParameterToRefresh = OXFF;
                     break;
                 }
                 break;
@@ -2065,12 +1966,12 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
             case BUTTON_C:
                 if (selectedInstrumentParameter == GUI_INST_PARAM_VOLSEQ)
                 {
-                    WriteInstrumentSRAM(selectedInstrumentID, INST_VOL_TICK_01 + selectedInstrumentOperator, SEQ_VOL_SKIP); // VOL
+                    SRAM_WriteInstrument(selectedInstrumentID, INST_VOL_TICK_01 + selectedInstrumentOperator, SEQ_VOL_SKIP); // VOL
                     bRefreshScreen = TRUE; instrumentParameterToRefresh = GUI_INST_PARAM_VOLSEQ;
                 }
                 else if (selectedInstrumentParameter == GUI_INST_PARAM_ARPSEQ)
                 {
-                    WriteInstrumentSRAM(selectedInstrumentID, INST_ARP_TICK_01 + selectedInstrumentOperator, ARP_BASE); // ARP
+                    SRAM_WriteInstrument(selectedInstrumentID, INST_ARP_TICK_01 + selectedInstrumentOperator, ARP_BASE); // ARP
                     bRefreshScreen = TRUE; instrumentParameterToRefresh = GUI_INST_PARAM_ARPSEQ;
                 }
                 break;
@@ -2079,11 +1980,11 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                 switch (selectedInstrumentParameter)
                 {
                 case GUI_INST_PARAM_VOLSEQ:
-                    WriteInstrumentSRAM(selectedInstrumentID, INST_VOL_TICK_01 + selectedInstrumentOperator, SEQ_VOL_MIN_ATT); // VOL
+                    SRAM_WriteInstrument(selectedInstrumentID, INST_VOL_TICK_01 + selectedInstrumentOperator, SEQ_VOL_MIN_ATT); // VOL
                     bRefreshScreen = TRUE; instrumentParameterToRefresh = GUI_INST_PARAM_VOLSEQ;
                     break;
                 case GUI_INST_PARAM_ARPSEQ:
-                    WriteInstrumentSRAM(selectedInstrumentID, INST_ARP_TICK_01 + selectedInstrumentOperator, NOTE_EMPTY); // ARP
+                    SRAM_WriteInstrument(selectedInstrumentID, INST_ARP_TICK_01 + selectedInstrumentOperator, NOTE_EMPTY); // ARP
                     bRefreshScreen = TRUE; instrumentParameterToRefresh = GUI_INST_PARAM_ARPSEQ;
                     break;
                 case GUI_INST_PARAM_COPY:
@@ -2092,7 +1993,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                     {
                         for (u8 param = INST_ALG; param < INST_SSGEG4; param++)
                         {
-                            WriteInstrumentSRAM(instCopyTo, param, ReadInstrumentSRAM(selectedInstrumentID, param));
+                            SRAM_WriteInstrument(instCopyTo, param, SRAM_ReadInstrument(selectedInstrumentID, param));
                         }
                         VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "OK", GUI_INST_NAME_START, 1);
                     }
@@ -2136,14 +2037,12 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
         case GUI_PATTERN_L_FX2_VALUE:
         case GUI_PATTERN_L_FX3_TYPE:
         case GUI_PATTERN_L_FX3_VALUE:
-#if (MD_TRACKER_VERSION == 5)
         case GUI_PATTERN_L_FX4_TYPE:
         case GUI_PATTERN_L_FX4_VALUE:
         case GUI_PATTERN_L_FX5_TYPE:
         case GUI_PATTERN_L_FX5_VALUE:
         case GUI_PATTERN_L_FX6_TYPE:
         case GUI_PATTERN_L_FX6_VALUE:
-#endif
             offset_x = 40+6; offset_y = 4; width = 1;
             break;
         case GUI_PATTERN_R_NOTE:
@@ -2158,16 +2057,15 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
         case GUI_PATTERN_R_FX2_VALUE:
         case GUI_PATTERN_R_FX3_TYPE:
         case GUI_PATTERN_R_FX3_VALUE:
-#if (MD_TRACKER_VERSION == 5)
         case GUI_PATTERN_R_FX4_TYPE:
         case GUI_PATTERN_R_FX4_VALUE:
         case GUI_PATTERN_R_FX5_TYPE:
         case GUI_PATTERN_R_FX5_VALUE:
         case GUI_PATTERN_R_FX6_TYPE:
         case GUI_PATTERN_R_FX6_VALUE:
-#endif
             offset_x = 40+12; offset_y = 4; width = 1;
             break;
+        default: break;
         }
     }
     // instrument
@@ -2226,49 +2124,50 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
         case GUI_INST_PARAM_PCM_RATE:
             offset_x = 80+33; offset_y = 6-GUI_INST_PARAM_PCM_RATE; width = 0; selectedInstrumentOperator = 0;
             break;
+        default: break;
         }
     }
 
-    auto void draw_cursor_1(u8 x, u8 y)
+    auto inline void draw_cursor_1(u8 x, u8 y)
     {
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x, y);
     }
 
-    auto void draw_cursor_2(u8 x, u8 y)
+    auto inline void draw_cursor_2(u8 x, u8 y)
     {
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x, y);
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x + 1, y);
     }
 
-    auto void draw_cursor_3(u8 x, u8 y)
+    auto inline void draw_cursor_3(u8 x, u8 y)
     {
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x, y);
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x + 1, y);
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x + 2, y);
     }
 
-    auto void clear_cursor_1(u8 x, u8 y)
+    auto inline void clear_cursor_1(u8 x, u8 y)
     {
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x, y);
     }
 
-    auto void clear_cursor_2(u8 x, u8 y)
+    auto inline void clear_cursor_2(u8 x, u8 y)
     {
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x, y);
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x + 1, y);
     }
 
-    auto void clear_cursor_2_color(u8 x, u8 y)
+    auto inline void clear_cursor_2_color(u8 x, u8 y)
     {
-        selectedPatternID = ReadMatrixSRAM(selectedMatrixChannel, selectedMatrixRow); // select previous pattern on clear
+        selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow); // select previous pattern on clear
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x, y);
         if (selectedPatternID != NULL)
-            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PATTERNCOLORS[ReadPatternColorSRAM(selectedPatternID)]), x + 1, y);
+            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PATTERNCOLORS[SRAM_ReadPatternColor(selectedPatternID)]), x + 1, y);
         else
             VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x + 1, y);
     }
 
-    auto void clear_cursor_3(u8 x, u8 y)
+    auto inline void clear_cursor_3(u8 x, u8 y)
     {
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x, y);
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x + 1, y);
@@ -2302,10 +2201,8 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
             case GUI_PATTERN_L_FX1_VALUE: case GUI_PATTERN_R_FX1_VALUE:
             case GUI_PATTERN_L_FX2_VALUE: case GUI_PATTERN_R_FX2_VALUE:
             case GUI_PATTERN_L_FX3_VALUE: case GUI_PATTERN_R_FX3_VALUE:
-#if (MD_TRACKER_VERSION == 5)
             case GUI_PATTERN_L_FX4_VALUE: case GUI_PATTERN_R_FX4_VALUE:
             case GUI_PATTERN_L_FX5_VALUE: case GUI_PATTERN_R_FX5_VALUE:
-#endif
                 VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SEPARATOR), pos_x * width + offset_x, pos_y + offset_y); break; // draw separator
             default: clear_cursor_1(pos_x * width + offset_x, pos_y + offset_y); break; // effects
             }
@@ -2341,6 +2238,7 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
             }
         }
     break;
+    default: break;
     }
 }
 // ------------------------------ PATTERN MATRIX
@@ -2369,18 +2267,18 @@ inline void DisplayPatternMatrix()
     {
         pageShift = currentPage * MATRIX_SCREEN_ROWS; // page shift
 
-        if (matrixRowToRefresh != EVALUATE_0xFFFF) // if refresh only once only particular line
+        if (matrixRowToRefresh != OXFFFF) // if refresh only once only particular line
         {
             line = matrixRowToRefresh - pageShift; // map to 0..24
         }
 
-        patternID = ReadMatrixSRAM(chan, line + pageShift);
+        patternID = SRAM_ReadMatrix(chan, line + pageShift);
 
         // display assigned pattern number
         shiftX = chan * 3;
         shiftY = line + 2;
 
-        if (patternID == 0)
+        if (!patternID)
         {
             VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, 0), shiftX, shiftY); // clear digit 3
             VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_MINUS), shiftX + 1, shiftY); // -
@@ -2403,7 +2301,7 @@ inline void DisplayPatternMatrix()
 
         if (chan > CHANNEL_PSG4_NOISE) // end or row
         {
-            if (matrixRowToRefresh == EVALUATE_0xFFFF) // redraw the whole matrix
+            if (matrixRowToRefresh == OXFFFF) // redraw the whole matrix
             {
                 VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[0] + line + pageShift), 39, shiftY); // line number
                 line++;
@@ -2417,7 +2315,7 @@ inline void DisplayPatternMatrix()
             }
             else // redraw only currently changed edited row
             {
-                matrixRowToRefresh = EVALUATE_0xFFFF; // set the trigger off
+                matrixRowToRefresh = OXFFFF; // set the trigger off
                 bRefreshScreen = FALSE;
                 chan = 0;
             }
@@ -2435,17 +2333,17 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
     auto void write_note(u8 column)
     {
         row = selectedPatternRow + 16 * column;
-        value = ReadPatternSRAM(selectedPatternID, row, DATA_NOTE);
+        value = SRAM_ReadPattern(selectedPatternID, row, DATA_NOTE);
         if (value > NOTE_MAX)
         {
-            WritePatternSRAM(selectedPatternID, row, DATA_NOTE, lastEnteredNote);
+            SRAM_WritePattern(selectedPatternID, row, DATA_NOTE, lastEnteredNote);
             patternRowToRefresh = row;
         }
         else
         {
             value += noteMod;
             if (value < 0) value = 0; else if (value > NOTE_MAX) value = NOTE_MAX;
-            WritePatternSRAM(selectedPatternID, row, DATA_NOTE, value);
+            SRAM_WritePattern(selectedPatternID, row, DATA_NOTE, value);
             patternRowToRefresh = row;
             lastEnteredNote = value;
         }
@@ -2454,17 +2352,17 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
     auto void write_instrument(u8 column)
     {
         row = selectedPatternRow + 16 * column;
-        value = ReadPatternSRAM(selectedPatternID, row, DATA_INSTRUMENT);
+        value = SRAM_ReadPattern(selectedPatternID, row, DATA_INSTRUMENT);
         if (value == 0)
         {
-            WritePatternSRAM(selectedPatternID, row, DATA_INSTRUMENT, lastEnteredInstrumentID);
+            SRAM_WritePattern(selectedPatternID, row, DATA_INSTRUMENT, lastEnteredInstrumentID);
             patternRowToRefresh = row;
         }
         else
         {
             value += parameterMod;
             if (value < 1) value = MAX_INSTRUMENT; else if (value > MAX_INSTRUMENT) value = 1;
-            WritePatternSRAM(selectedPatternID, row, DATA_INSTRUMENT, value);
+            SRAM_WritePattern(selectedPatternID, row, DATA_INSTRUMENT, value);
             patternRowToRefresh = row;
             lastEnteredInstrumentID = value;
         }
@@ -2474,26 +2372,25 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
         for (u8 i = 0; i < 8; i++)
         {
             VDP_setTileMapXY(BG_A,
-                TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_ALPHABET[ReadInstrumentSRAM(lastEnteredInstrumentID, INST_NAME_1 + i)]),
+                TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_ALPHABET[SRAM_ReadInstrument(lastEnteredInstrumentID, INST_NAME_1 + i)]),
                 GUI_INFO_PRINT_INST_X + i, GUI_INFO_PRINT_INST_Y);
         }
-        //VDP_clearText(GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y, 25); // clear rest of line (33-8)
     }
 
     auto void write_fx_type(u8 id, u8 column)
     {
         row = selectedPatternRow + 16 * column;
-        value = ReadPatternSRAM(selectedPatternID, row, id);
+        value = SRAM_ReadPattern(selectedPatternID, row, id);
         if (value == 0)
         {
-            WritePatternSRAM(selectedPatternID, row, id, lastEnteredEffect);
+            SRAM_WritePattern(selectedPatternID, row, id, lastEnteredEffect);
             patternRowToRefresh = row;
         }
         else
         {
             value += parameterMod;
             if (value < 1) value = 0xFF; else if (value > 0xFF) value = 1;
-            WritePatternSRAM(selectedPatternID, row, id, value);
+            SRAM_WritePattern(selectedPatternID, row, id, value);
             patternRowToRefresh = row;
             lastEnteredEffect = value;
         }
@@ -2513,17 +2410,17 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
     auto void write_fx_value(u8 id, u8 column)
     {
         row = selectedPatternRow + 16 * column;
-        value = ReadPatternSRAM(selectedPatternID, row, id);
+        value = SRAM_ReadPattern(selectedPatternID, row, id);
         if (value == 0)
         {
-            WritePatternSRAM(selectedPatternID, row, id, lastEnteredEffectValue);
+            SRAM_WritePattern(selectedPatternID, row, id, lastEnteredEffectValue);
             patternRowToRefresh = row;
         }
         else
         {
             value += parameterMod;
             if (value < 1) value = 0xFF; else if (value > 0xFF) value = 1;
-            WritePatternSRAM(selectedPatternID, row, id, value);
+            SRAM_WritePattern(selectedPatternID, row, id, value);
             patternRowToRefresh = row;
             lastEnteredEffectValue = value;
         }
@@ -2539,14 +2436,12 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
     case DATA_FX2_VALUE:                        write_fx_value(DATA_FX2_VALUE, 0); break;
     case DATA_FX3_TYPE:                         write_fx_type(DATA_FX3_TYPE, 0); break;
     case DATA_FX3_VALUE:                        write_fx_value(DATA_FX3_VALUE, 0); break;
-#if (MD_TRACKER_VERSION == 5)
     case DATA_FX4_TYPE:                         write_fx_type(DATA_FX4_TYPE, 0); break;
     case DATA_FX4_VALUE:                        write_fx_value(DATA_FX4_VALUE, 0); break;
     case DATA_FX5_TYPE:                         write_fx_type(DATA_FX5_TYPE, 0); break;
     case DATA_FX5_VALUE:                        write_fx_value(DATA_FX5_VALUE, 0); break;
     case DATA_FX6_TYPE:                         write_fx_type(DATA_FX6_TYPE, 0); break;
     case DATA_FX6_VALUE:                        write_fx_value(DATA_FX6_VALUE, 0); break;
-#endif
 
     case (DATA_NOTE + PATTERN_COLUMNS):         write_note(1); break;
     case (DATA_INSTRUMENT + PATTERN_COLUMNS):   write_instrument(1); break;
@@ -2556,14 +2451,12 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
     case (DATA_FX2_VALUE + PATTERN_COLUMNS):    write_fx_value(DATA_FX2_VALUE, 1); break;
     case (DATA_FX3_TYPE + PATTERN_COLUMNS):     write_fx_type(DATA_FX3_TYPE, 1); break;
     case (DATA_FX3_VALUE + PATTERN_COLUMNS):    write_fx_value(DATA_FX3_VALUE, 1); break;
-#if (MD_TRACKER_VERSION == 5)
     case (DATA_FX4_TYPE + PATTERN_COLUMNS):     write_fx_type(DATA_FX4_TYPE, 1); break;
     case (DATA_FX4_VALUE + PATTERN_COLUMNS):    write_fx_value(DATA_FX4_VALUE, 1); break;
     case (DATA_FX5_TYPE + PATTERN_COLUMNS):     write_fx_type(DATA_FX5_TYPE, 1); break;
     case (DATA_FX5_VALUE + PATTERN_COLUMNS):    write_fx_value(DATA_FX5_VALUE, 1); break;
     case (DATA_FX6_TYPE + PATTERN_COLUMNS):     write_fx_type(DATA_FX6_TYPE, 1); break;
     case (DATA_FX6_VALUE + PATTERN_COLUMNS):    write_fx_value(DATA_FX6_VALUE, 1); break;
-#endif
     }
 }
 
@@ -2587,7 +2480,7 @@ inline void DisplayPatternEditor()
         static u8 palminus = PAL1;
         static u8 lineShiftY = 0;
 
-        if (patternRowToRefresh != EVALUATE_0xFF) // refresh only selected line
+        if (patternRowToRefresh != OXFF) // refresh only selected line
         {
             line = patternRowToRefresh; // actual line selected in pattern array
         }
@@ -2602,7 +2495,7 @@ inline void DisplayPatternEditor()
         }
 
         // display pattern lines
-        note = ReadPatternSRAM(selectedPatternID, line, DATA_NOTE); // notes
+        note = SRAM_ReadPattern(selectedPatternID, line, DATA_NOTE); // notes
         noteFreqID = note;
         while (noteFreqID > 11) noteFreqID -= 12;
 
@@ -2615,7 +2508,7 @@ inline void DisplayPatternEditor()
 
         auto void display_fx_type(u8 id, u8 shift)
         {
-            value = ReadPatternSRAM(selectedPatternID, line, id);
+            value = SRAM_ReadPattern(selectedPatternID, line, id);
             u8 xPos = GUI_FX_TYPE_START + shiftX + shift;
 
             if (value == 0)
@@ -2631,7 +2524,7 @@ inline void DisplayPatternEditor()
 
         auto void display_fx_value(u8 id, u8 shift)
         {
-            value = ReadPatternSRAM(selectedPatternID, line, id);
+            value = SRAM_ReadPattern(selectedPatternID, line, id);
             u8 xPos = GUI_FX_VALUE_START + shiftX + shift;
 
             if (value == 0)
@@ -2667,7 +2560,7 @@ inline void DisplayPatternEditor()
         }
 
         // instrument id
-        value = ReadPatternSRAM(selectedPatternID, line, DATA_INSTRUMENT);
+        value = SRAM_ReadPattern(selectedPatternID, line, DATA_INSTRUMENT);
         if (value == 0)
         {
             if (palx == PAL0) palminus = PAL1; else palminus = PAL2;
@@ -2682,16 +2575,14 @@ inline void DisplayPatternEditor()
         display_fx_value(DATA_FX2_VALUE, 2);
         display_fx_type(DATA_FX3_TYPE, 4);
         display_fx_value(DATA_FX3_VALUE, 4);
-#if (MD_TRACKER_VERSION == 5)
         display_fx_type(DATA_FX4_TYPE, 6);
         display_fx_value(DATA_FX4_VALUE, 6);
         display_fx_type(DATA_FX5_TYPE, 8);
         display_fx_value(DATA_FX5_VALUE, 8);
         display_fx_type(DATA_FX6_TYPE, 10);
         display_fx_value(DATA_FX6_VALUE, 10);
-#endif
         // refresh all, line by frame; or only currently edited line;
-        if (patternRowToRefresh == EVALUATE_0xFF) // refresh all
+        if (patternRowToRefresh == OXFF) // refresh all
         {
             line++;
             if (line > 31)
@@ -2702,7 +2593,7 @@ inline void DisplayPatternEditor()
         }
         else // selected line is refreshed, stop here
         {
-            patternRowToRefresh = EVALUATE_0xFF;
+            patternRowToRefresh = OXFF;
             bRefreshScreen = FALSE;
         }
     }
@@ -2717,137 +2608,137 @@ static void ChangeInstrumentParameter(s8 modifier)
 
     auto void write_pcm(u8 byteNum)
     {
-        value = ReadSampleRegionSRAM(selectedSampleBank, selectedSampleNote, byteNum) + modifier;
+        value = SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, byteNum) + modifier;
         if (value < 0) value = 255; else if (value > 255) value = 0;
-        WriteSampleRegionSRAM(selectedSampleBank, selectedSampleNote, byteNum, value);
+        SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, byteNum, value);
 
         // border check
         u32 sampleEnd =
-                (ReadSampleRegionSRAM(activeSampleBank, selectedSampleNote, 3) << 16) |
-                (ReadSampleRegionSRAM(activeSampleBank, selectedSampleNote, 4) << 8) |
-                ReadSampleRegionSRAM(activeSampleBank, selectedSampleNote, 5);
+                (SRAM_ReadSampleRegion(activeSampleBank, selectedSampleNote, 3) << 16) |
+                (SRAM_ReadSampleRegion(activeSampleBank, selectedSampleNote, 4) << 8) |
+                SRAM_ReadSampleRegion(activeSampleBank, selectedSampleNote, 5);
 
         if (sampleEnd > DAC_DATA_END)
         {
-            WriteSampleRegionSRAM(selectedSampleBank, selectedSampleNote, 3, (u8)((DAC_DATA_END >> 16) & 0xFF));
-            WriteSampleRegionSRAM(selectedSampleBank, selectedSampleNote, 4, (u8)((DAC_DATA_END >> 8) & 0xFF));
-            WriteSampleRegionSRAM(selectedSampleBank, selectedSampleNote, 5, (u8)(DAC_DATA_END & 0xFF));
+            SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, 3, (u8)((DAC_DATA_END >> 16) & 0xFF));
+            SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, 4, (u8)((DAC_DATA_END >> 8) & 0xFF));
+            SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, 5, (u8)(DAC_DATA_END & 0xFF));
         }
     }
 
     switch (selectedInstrumentParameter)
     {
     case GUI_INST_PARAM_ALG:
-        value = ReadInstrumentSRAM(selectedInstrumentID, INST_ALG) + modifier;
+        value = SRAM_ReadInstrument(selectedInstrumentID, INST_ALG) + modifier;
         if (value < 0) value = 0; else if (value > 7) value = 7;
-        WriteInstrumentSRAM(selectedInstrumentID, INST_ALG, value);
+        SRAM_WriteInstrument(selectedInstrumentID, INST_ALG, value);
         break;
     case GUI_INST_PARAM_FMS:
-        value = ReadInstrumentSRAM(selectedInstrumentID, INST_FMS) + modifier;
+        value = SRAM_ReadInstrument(selectedInstrumentID, INST_FMS) + modifier;
         if (value < 0) value = 0; else if (value > 7) value = 7;
-        WriteInstrumentSRAM(selectedInstrumentID, INST_FMS, value);
+        SRAM_WriteInstrument(selectedInstrumentID, INST_FMS, value);
         break;
     case GUI_INST_PARAM_AMS:
-        value = ReadInstrumentSRAM(selectedInstrumentID, INST_AMS) + modifier;
+        value = SRAM_ReadInstrument(selectedInstrumentID, INST_AMS) + modifier;
         if (value < 0) value = 0; else if (value > 3) value = 3;
-        WriteInstrumentSRAM(selectedInstrumentID, INST_AMS, value);
+        SRAM_WriteInstrument(selectedInstrumentID, INST_AMS, value);
         break;
     case GUI_INST_PARAM_PAN:
-        value = ReadInstrumentSRAM(selectedInstrumentID, INST_PAN) + modifier;
+        value = SRAM_ReadInstrument(selectedInstrumentID, INST_PAN) + modifier;
         if (value < 0) value = 0; else if (value > 3) value = 3;
-        WriteInstrumentSRAM(selectedInstrumentID, INST_PAN, value);
+        SRAM_WriteInstrument(selectedInstrumentID, INST_PAN, value);
         break;
     case GUI_INST_PARAM_FB:
-        value = ReadInstrumentSRAM(selectedInstrumentID, INST_FB) + modifier;
+        value = SRAM_ReadInstrument(selectedInstrumentID, INST_FB) + modifier;
         if (value < 0) value = 0; else if (value > 7) value = 7;
-        WriteInstrumentSRAM(selectedInstrumentID, INST_FB, value);
+        SRAM_WriteInstrument(selectedInstrumentID, INST_FB, value);
         break;
     case GUI_INST_PARAM_TL:
         if (selectedInstrumentOperator < 4)
         {
-            value = ReadInstrumentSRAM(selectedInstrumentID, INST_TL1 + selectedInstrumentOperator) - modifier;
+            value = SRAM_ReadInstrument(selectedInstrumentID, INST_TL1 + selectedInstrumentOperator) - modifier;
             if (value < 0) value = 0x7F; else if (value > 0x7F) value = 0;
-            WriteInstrumentSRAM(selectedInstrumentID, INST_TL1 + selectedInstrumentOperator, value);
+            SRAM_WriteInstrument(selectedInstrumentID, INST_TL1 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_RS:
         if (selectedInstrumentOperator < 4)
         {
-            value = ReadInstrumentSRAM(selectedInstrumentID, INST_RS1 + selectedInstrumentOperator) + modifier;
+            value = SRAM_ReadInstrument(selectedInstrumentID, INST_RS1 + selectedInstrumentOperator) + modifier;
             if (value < 0) value = 0; else if (value > 3) value = 3;
-            WriteInstrumentSRAM(selectedInstrumentID, INST_RS1 + selectedInstrumentOperator, value);
+            SRAM_WriteInstrument(selectedInstrumentID, INST_RS1 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_MUL:
         if (selectedInstrumentOperator < 4)
         {
-            value = ReadInstrumentSRAM(selectedInstrumentID, INST_MUL1 + selectedInstrumentOperator) + modifier;
+            value = SRAM_ReadInstrument(selectedInstrumentID, INST_MUL1 + selectedInstrumentOperator) + modifier;
             if (value < 0) value = 0; else if (value > 15) value = 15;
-            WriteInstrumentSRAM(selectedInstrumentID, INST_MUL1 + selectedInstrumentOperator, value);
+            SRAM_WriteInstrument(selectedInstrumentID, INST_MUL1 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_DT:
         if (selectedInstrumentOperator < 4)
         {
-            value = ReadInstrumentSRAM(selectedInstrumentID, INST_DT1 + selectedInstrumentOperator) + modifier;
+            value = SRAM_ReadInstrument(selectedInstrumentID, INST_DT1 + selectedInstrumentOperator) + modifier;
             if (value < 1) value = 1; else if (value > 7) value = 7;
-            WriteInstrumentSRAM(selectedInstrumentID, INST_DT1 + selectedInstrumentOperator, value);
+            SRAM_WriteInstrument(selectedInstrumentID, INST_DT1 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_AR:
         if (selectedInstrumentOperator < 4)
         {
-            value = ReadInstrumentSRAM(selectedInstrumentID, INST_AR1 + selectedInstrumentOperator) + modifier;
+            value = SRAM_ReadInstrument(selectedInstrumentID, INST_AR1 + selectedInstrumentOperator) + modifier;
             if (value < 0) value = 0; else if (value > 31) value = 31;
-            WriteInstrumentSRAM(selectedInstrumentID, INST_AR1 + selectedInstrumentOperator, value);
+            SRAM_WriteInstrument(selectedInstrumentID, INST_AR1 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_D1R:
         if (selectedInstrumentOperator < 4)
         {
-            value = ReadInstrumentSRAM(selectedInstrumentID, INST_D1R1 + selectedInstrumentOperator) + modifier;
+            value = SRAM_ReadInstrument(selectedInstrumentID, INST_D1R1 + selectedInstrumentOperator) + modifier;
             if (value < 0) value = 0; else if (value > 31) value = 31;
-            WriteInstrumentSRAM(selectedInstrumentID, INST_D1R1 + selectedInstrumentOperator, value);
+            SRAM_WriteInstrument(selectedInstrumentID, INST_D1R1 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_D1L:
         if (selectedInstrumentOperator < 4)
         {
-            value = ReadInstrumentSRAM(selectedInstrumentID, INST_D1L1 + selectedInstrumentOperator) + modifier;
+            value = SRAM_ReadInstrument(selectedInstrumentID, INST_D1L1 + selectedInstrumentOperator) + modifier;
             if (value < 0) value = 0; else if (value > 15) value = 15;
-            WriteInstrumentSRAM(selectedInstrumentID, INST_D1L1 + selectedInstrumentOperator, value);
+            SRAM_WriteInstrument(selectedInstrumentID, INST_D1L1 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_D2R:
         if (selectedInstrumentOperator < 4)
         {
-            value = ReadInstrumentSRAM(selectedInstrumentID, INST_D2R1 + selectedInstrumentOperator) + modifier;
+            value = SRAM_ReadInstrument(selectedInstrumentID, INST_D2R1 + selectedInstrumentOperator) + modifier;
             if (value < 0) value = 0; else if (value > 31) value = 31;
-            WriteInstrumentSRAM(selectedInstrumentID, INST_D2R1 + selectedInstrumentOperator, value);
+            SRAM_WriteInstrument(selectedInstrumentID, INST_D2R1 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_RR:
         if (selectedInstrumentOperator < 4)
         {
-            value = ReadInstrumentSRAM(selectedInstrumentID, INST_RR1 + selectedInstrumentOperator) + modifier;
+            value = SRAM_ReadInstrument(selectedInstrumentID, INST_RR1 + selectedInstrumentOperator) + modifier;
             if (value < 0) value = 0; else if (value > 15) value = 15;
-            WriteInstrumentSRAM(selectedInstrumentID, INST_RR1 + selectedInstrumentOperator, value);
+            SRAM_WriteInstrument(selectedInstrumentID, INST_RR1 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_AM:
         if (selectedInstrumentOperator < 4)
         {
-            value = ReadInstrumentSRAM(selectedInstrumentID, INST_AM1 + selectedInstrumentOperator) + modifier;
+            value = SRAM_ReadInstrument(selectedInstrumentID, INST_AM1 + selectedInstrumentOperator) + modifier;
             if (value < 0) value = FALSE; else if (value > 1) value = TRUE;
-            WriteInstrumentSRAM(selectedInstrumentID, INST_AM1 + selectedInstrumentOperator, value);
+            SRAM_WriteInstrument(selectedInstrumentID, INST_AM1 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_SSGEG:
         if (selectedInstrumentOperator < 4)
         {
-            value = ReadInstrumentSRAM(selectedInstrumentID, INST_SSGEG1 + selectedInstrumentOperator) + modifier;
+            value = SRAM_ReadInstrument(selectedInstrumentID, INST_SSGEG1 + selectedInstrumentOperator) + modifier;
             if (value < 7) value = 7; else if (value > 15) value = 15;
-            WriteInstrumentSRAM(selectedInstrumentID, INST_SSGEG1 + selectedInstrumentOperator, value);
+            SRAM_WriteInstrument(selectedInstrumentID, INST_SSGEG1 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_LFO:
@@ -2856,23 +2747,23 @@ static void ChangeInstrumentParameter(s8 modifier)
         SRAMW_writeByte(GLOBAL_LFO, value); SetGlobalLFO(value);
         break;
     case GUI_INST_PARAM_VOLSEQ:
-        value = ReadInstrumentSRAM(selectedInstrumentID, INST_VOL_TICK_01 + selectedInstrumentOperator) - modifier;
+        value = SRAM_ReadInstrument(selectedInstrumentID, INST_VOL_TICK_01 + selectedInstrumentOperator) - modifier;
         if (value < SEQ_VOL_MIN_ATT) value = SEQ_VOL_MAX_ATT; else if (value > SEQ_VOL_MAX_ATT) value = SEQ_VOL_MIN_ATT;
-        WriteInstrumentSRAM(selectedInstrumentID, INST_VOL_TICK_01 + selectedInstrumentOperator, value);
+        SRAM_WriteInstrument(selectedInstrumentID, INST_VOL_TICK_01 + selectedInstrumentOperator, value);
         break;
     case GUI_INST_PARAM_ARPSEQ:
-        value = ReadInstrumentSRAM(selectedInstrumentID, INST_ARP_TICK_01 + selectedInstrumentOperator); // need to check first
+        value = SRAM_ReadInstrument(selectedInstrumentID, INST_ARP_TICK_01 + selectedInstrumentOperator); // need to check first
         if (value != NOTE_EMPTY)
         {
             value += modifier;
             if (value < 76) value = 76; else if (value > 124) value = 124; // +- 24 semitones
-            WriteInstrumentSRAM(selectedInstrumentID, INST_ARP_TICK_01 + selectedInstrumentOperator, value);
+            SRAM_WriteInstrument(selectedInstrumentID, INST_ARP_TICK_01 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_NAME:
-        value = ReadInstrumentSRAM(selectedInstrumentID, INST_NAME_1 + selectedInstrumentOperator) + modifier;
+        value = SRAM_ReadInstrument(selectedInstrumentID, INST_NAME_1 + selectedInstrumentOperator) + modifier;
         if (value < 0) value = 37; else if (value > 37) value = 0;
-        WriteInstrumentSRAM(selectedInstrumentID, INST_NAME_1 + selectedInstrumentOperator, value);
+        SRAM_WriteInstrument(selectedInstrumentID, INST_NAME_1 + selectedInstrumentOperator, value);
         break;
     case GUI_INST_PARAM_PCM_BANK:
         value = selectedSampleBank + modifier;
@@ -2893,14 +2784,14 @@ static void ChangeInstrumentParameter(s8 modifier)
         write_pcm(selectedInstrumentOperator + 3);
         break;
     case GUI_INST_PARAM_PCM_LOOP:
-        value = ReadSampleRegionSRAM(selectedSampleBank, selectedSampleNote, 6) + modifier;
+        value = SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 6) + modifier;
         if (value < FALSE) value = FALSE; else if (value > TRUE) value = TRUE;
-        WriteSampleRegionSRAM(selectedSampleBank, selectedSampleNote, 6, value);
+        SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, 6, value);
         break;
     case GUI_INST_PARAM_PCM_RATE:
-        value = ReadSampleRegionSRAM(selectedSampleBank, selectedSampleNote, 7) + modifier;
+        value = SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 7) + modifier;
         if (value < SOUND_RATE_32000) value = SOUND_RATE_32000; else if (value > SOUND_RATE_8000) value = SOUND_RATE_8000;
-        WriteSampleRegionSRAM(selectedSampleBank, selectedSampleNote, 7, value);
+        SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, 7, value);
         break;
     case GUI_INST_PARAM_COPY: // global, not saved to sram
         value = instCopyTo + modifier;
@@ -2918,28 +2809,28 @@ inline void DisplayInstrumentEditor()
 
     auto void draw_pcm_start()
     {
-        DrawHex2(PAL0, ReadSampleRegionSRAM(selectedSampleBank, selectedSampleNote, 0), 113, 3);
-        DrawHex2(PAL0, ReadSampleRegionSRAM(selectedSampleBank, selectedSampleNote, 1), 115, 3);
-        DrawHex2(PAL0, ReadSampleRegionSRAM(selectedSampleBank, selectedSampleNote, 2), 117, 3);
+        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 0), 113, 3);
+        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 1), 115, 3);
+        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 2), 117, 3);
     }
 
     auto void draw_pcm_end()
     {
-        DrawHex2(PAL0, ReadSampleRegionSRAM(selectedSampleBank, selectedSampleNote, 3), 113, 4);
-        DrawHex2(PAL0, ReadSampleRegionSRAM(selectedSampleBank, selectedSampleNote, 4), 115, 4);
-        DrawHex2(PAL0, ReadSampleRegionSRAM(selectedSampleBank, selectedSampleNote, 5), 117, 4);
+        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 3), 113, 4);
+        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 4), 115, 4);
+        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 5), 117, 4);
     }
 
     auto void draw_pcm_loop()
     {
-        value = ReadSampleRegionSRAM(selectedSampleBank, selectedSampleNote, 6);
+        value = SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 6);
         if (value == FALSE) FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_BIGDOT, 2, 113, 5);
         else DrawText(BG_A, PAL0, "ON", 113, 5);
     }
 
     auto void draw_pcm_rate()
     {
-        value = ReadSampleRegionSRAM(selectedSampleBank, selectedSampleNote, 7);
+        value = SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 7);
         switch (value)
         {
             case SOUND_RATE_32000: DrawNum(BG_A, PAL1, "32000", 114, 6); break;
@@ -2954,12 +2845,12 @@ inline void DisplayInstrumentEditor()
     if (bInitScreen)
     {
         bInitScreen = FALSE;
-        instrumentParameterToRefresh = EVALUATE_0xFF;
+        instrumentParameterToRefresh = OXFF;
     }
 
     if (bRefreshScreen)
     {
-        if (instrumentParameterToRefresh == EVALUATE_0xFF)
+        if (instrumentParameterToRefresh == OXFF)
         {
             DrawHex2(PAL1, selectedInstrumentID, 87, 0);
         }
@@ -2967,7 +2858,7 @@ inline void DisplayInstrumentEditor()
         switch (instrumentParameterToRefresh)
         {
         case GUI_INST_PARAM_ALG: case 255:
-            alg = ReadInstrumentSRAM(selectedInstrumentID, INST_ALG);
+            alg = SRAM_ReadInstrument(selectedInstrumentID, INST_ALG);
             DrawHex2(PAL0, alg, 87, 2);
 
             for(u8 i=0; i<4; i++)
@@ -2993,17 +2884,17 @@ inline void DisplayInstrumentEditor()
             }
             break;
         case GUI_INST_PARAM_FMS: case 254:
-            value = ReadInstrumentSRAM(selectedInstrumentID, INST_FMS);
+            value = SRAM_ReadInstrument(selectedInstrumentID, INST_FMS);
             if (value == 0) FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_MINUS, 2, 87, 3);
             else DrawHex2(PAL0, value, 87, 3);
             break;
         case GUI_INST_PARAM_AMS: case 253:
-            value = ReadInstrumentSRAM(selectedInstrumentID, INST_AMS);
+            value = SRAM_ReadInstrument(selectedInstrumentID, INST_AMS);
             if (value == 0) FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_MINUS, 2, 87, 4);
             else DrawHex2(PAL0, value, 87, 4);
             break;
         case GUI_INST_PARAM_PAN: case 252:
-            value = ReadInstrumentSRAM(selectedInstrumentID, INST_PAN);
+            value = SRAM_ReadInstrument(selectedInstrumentID, INST_PAN);
             switch (value)
             {
                 case 0: FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_MINUS, 2, 87, 5); break;
@@ -3019,23 +2910,23 @@ inline void DisplayInstrumentEditor()
             }
             break;
         case GUI_INST_PARAM_FB: case 251:
-            DrawHex2(PAL0, ReadInstrumentSRAM(selectedInstrumentID, INST_FB), 87, 6);
+            DrawHex2(PAL0, SRAM_ReadInstrument(selectedInstrumentID, INST_FB), 87, 6);
             break;
         case GUI_INST_PARAM_TL: case 250:
-            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 0x80 - ReadInstrumentSRAM(selectedInstrumentID, INST_TL1 + i), 94 + i*3, 9);
+            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 0x80 - SRAM_ReadInstrument(selectedInstrumentID, INST_TL1 + i), 94 + i*3, 9);
             break;
         case GUI_INST_PARAM_RS: case 249:
             for (u8 i=0; i<4; i++)
-                VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + ReadInstrumentSRAM(selectedInstrumentID, INST_RS1 + i)), 95 + i*3, 10);
+                VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + SRAM_ReadInstrument(selectedInstrumentID, INST_RS1 + i)), 95 + i*3, 10);
             break;
         case GUI_INST_PARAM_MUL: case 248:
             for (u8 i=0; i<4; i++)
-                VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + ReadInstrumentSRAM(selectedInstrumentID, INST_MUL1 + i)), 95 + i*3, 11);
+                VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + SRAM_ReadInstrument(selectedInstrumentID, INST_MUL1 + i)), 95 + i*3, 11);
             break;
         case GUI_INST_PARAM_DT: case 247:
             for (u8 i=0; i<4; i++)
             {
-                value = ReadInstrumentSRAM(selectedInstrumentID, INST_DT1 + i);
+                value = SRAM_ReadInstrument(selectedInstrumentID, INST_DT1 + i);
                 if (value > 4) {
                     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + value - 4), 95 + i*3, 12);
                     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PLUS), 94 + i*3, 12); }
@@ -3046,29 +2937,29 @@ inline void DisplayInstrumentEditor()
             }
             break;
         case GUI_INST_PARAM_AR: case 246:
-            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ ReadInstrumentSRAM(selectedInstrumentID, INST_AR1 + i), 94 + i*3, 14);
+            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ SRAM_ReadInstrument(selectedInstrumentID, INST_AR1 + i), 94 + i*3, 14);
             break;
         case GUI_INST_PARAM_D1R: case 245:
-            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ ReadInstrumentSRAM(selectedInstrumentID, INST_D1R1 + i), 94 + i*3, 15);
+            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ SRAM_ReadInstrument(selectedInstrumentID, INST_D1R1 + i), 94 + i*3, 15);
             break;
         case GUI_INST_PARAM_D1L: case 244:
-            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ ReadInstrumentSRAM(selectedInstrumentID, INST_D1L1 + i), 94 + i*3, 16);
+            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ SRAM_ReadInstrument(selectedInstrumentID, INST_D1L1 + i), 94 + i*3, 16);
             break;
         case GUI_INST_PARAM_D2R: case 243:
-            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ ReadInstrumentSRAM(selectedInstrumentID, INST_D2R1 + i), 94 + i*3, 17);
+            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ SRAM_ReadInstrument(selectedInstrumentID, INST_D2R1 + i), 94 + i*3, 17);
             break;
         case GUI_INST_PARAM_RR: case 242:
-            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ ReadInstrumentSRAM(selectedInstrumentID, INST_RR1 + i), 94 + i*3, 18);
+            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ SRAM_ReadInstrument(selectedInstrumentID, INST_RR1 + i), 94 + i*3, 18);
             break;
         case GUI_INST_PARAM_AM: case 241:
             for (u8 i=0; i<4; i++)
-                if (ReadInstrumentSRAM(selectedInstrumentID, INST_AM1 + i) == 1) DrawText(BG_A, PAL0, "ON", 94 + i*3, 20);
+                if (SRAM_ReadInstrument(selectedInstrumentID, INST_AM1 + i) == 1) DrawText(BG_A, PAL0, "ON", 94 + i*3, 20);
                 else FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_BIGDOT, 2, 94 + i*3, 20);
             break;
         case GUI_INST_PARAM_SSGEG: case 240:
             for (u8 i=0; i<4; i++)
             {
-                value = ReadInstrumentSRAM(selectedInstrumentID, INST_SSGEG1 + i);
+                value = SRAM_ReadInstrument(selectedInstrumentID, INST_SSGEG1 + i);
                 if (value > 7) DrawHex2(PAL0, value - 7, 94 + i*3, 21);
                 else FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_BIGDOT, 2, 94 + i*3, 21);
             }
@@ -3080,7 +2971,7 @@ inline void DisplayInstrumentEditor()
         case GUI_INST_PARAM_VOLSEQ: case 238:
             for (u8 i = 0; i < 16; i++)
             {
-                value = ReadInstrumentSRAM(selectedInstrumentID, INST_VOL_TICK_01 + i);
+                value = SRAM_ReadInstrument(selectedInstrumentID, INST_VOL_TICK_01 + i);
                 stepDrawPos = 86 + (i*2) + (i/8);
 
                 switch (value)
@@ -3106,7 +2997,7 @@ inline void DisplayInstrumentEditor()
         case GUI_INST_PARAM_ARPSEQ: case 237:
             for (u8 i = 0; i < 16; i++)
             {
-                value = ReadInstrumentSRAM(selectedInstrumentID, INST_ARP_TICK_01 + i);
+                value = SRAM_ReadInstrument(selectedInstrumentID, INST_ARP_TICK_01 + i);
                 stepDrawPos = 86 + (i*2) + (i/8);
                 if (value == 100)
                 {
@@ -3139,7 +3030,7 @@ inline void DisplayInstrumentEditor()
         case GUI_INST_PARAM_NAME: case 236:
             for (u8 i = 0; i < 8; i++)
             {
-                VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_ALPHABET[ReadInstrumentSRAM(selectedInstrumentID, INST_NAME_1 + i)]), GUI_INST_NAME_START + i, 0);
+                VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_ALPHABET[SRAM_ReadInstrument(selectedInstrumentID, INST_NAME_1 + i)]), GUI_INST_NAME_START + i, 0);
             }
             break;
         case GUI_INST_PARAM_STATE: case 235:
@@ -3356,11 +3247,11 @@ static inline void SetChannelVolume(u8 matrixChannel)
             break;
         case CHANNEL_FM3_OP4:
             port = PORT_1; fmChannel = 2;
-            if (ch3Mode == CH3_NORMAL) { set_normal_channel_vol(); }
+            if (FM_CH3_Mode == CH3_NORMAL) { set_normal_channel_vol(); }
             else { set_special_channel_vol(); }
             break;
         case CHANNEL_FM3_OP3: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP1:
-            if (ch3Mode == CH3_SPECIAL) { port = PORT_1; fmChannel = 2; set_special_channel_vol();  }
+            if (FM_CH3_Mode == CH3_SPECIAL) { port = PORT_1; fmChannel = 2; set_special_channel_vol();  }
             break;
         case CHANNEL_FM4: case CHANNEL_FM5: case CHANNEL_FM6_DAC:
             port = PORT_2; fmChannel = matrixChannel - 6;
@@ -3373,14 +3264,11 @@ static inline void SetChannelVolume(u8 matrixChannel)
 
 static inline void RequestZ80()
 {
-    //bBusTaken = Z80_getAndRequestBus(FALSE);
-    //bBusTaken = Z80_isBusTaken();
-    if (!Z80_isBusTaken()) Z80_requestBus(FALSE);
+    if (!Z80_isBusTaken()) Z80_requestBus(TRUE);
 }
 
 static inline void ReleaseZ80()
 {
-    //bBusTaken = Z80_isBusTaken();
     if (bDAC_enable) YM2612_write(PORT_1, YM2612REG_DAC); // needed for DAC
     if (Z80_isBusTaken()) Z80_releaseBus();
 }
@@ -3411,7 +3299,7 @@ static inline void SetPitchPSG(u8 matrixChannel, u8 note)
             PSG_setTone(matrixChannel - 9, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[matrixChannel] / 2]);
             break;
         case CHANNEL_PSG3:
-            switch (psg_noise_mode)
+            switch (PSG_NoiseMode)
             {
             case PSG_TONAL_CH3_MUTED:
                 PSG_setEnvelope(2, PSG_ENVELOPE_MIN); // mute PSG3 channel
@@ -3423,7 +3311,7 @@ static inline void SetPitchPSG(u8 matrixChannel, u8 note)
             }
             break;
         case CHANNEL_PSG4_NOISE:
-            switch (psg_noise_mode)
+            switch (PSG_NoiseMode)
             {
             case PSG_TONAL_CH3_MUTED:
                 setvol();
@@ -3458,13 +3346,13 @@ static inline void SetPitchFM(u8 matrixChannel, u8 note)
         // play CSM note
         YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_FREQ_MSB, 0b10001111);
         //YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_FREQ_MSB, CH3_SPECIAL_CSM | 0b00001111); // bb Ch3 mode, Reset B, Reset A, Enable B, Enable A, Load B, Load A
-        ch3Mode = CH3_SPECIAL_CSM;
+        FM_CH3_Mode = CH3_SPECIAL_CSM;
     }
 
     // CSM
-    if ((matrixChannel == CHANNEL_FM3_OP4) && (ch3Mode == CH3_SPECIAL_CSM || ch3Mode == CH3_SPECIAL_CSM_OFF))
+    if ((matrixChannel == CHANNEL_FM3_OP4) && (FM_CH3_Mode == CH3_SPECIAL_CSM || FM_CH3_Mode == CH3_SPECIAL_CSM_OFF))
     {
-       key = ch3OpFreq[0] + channelModNotePitch[matrixChannel] + channelModNoteVibrato[matrixChannel];
+       key = FM_CH3_OpFreq[0] + channelModNotePitch[matrixChannel] + channelModNoteVibrato[matrixChannel];
     }
     // Normal or Special
     else
@@ -3496,14 +3384,14 @@ static inline void SetPitchFM(u8 matrixChannel, u8 note)
             YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_FREQ_MSB, part1);
             YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_FREQ_LSB, part2);
 
-            switch (ch3Mode)
+            switch (FM_CH3_Mode)
             {
             case CH3_NORMAL:
                 YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 0b11110010); // 2
                 break;
             case CH3_SPECIAL:
-                BIT_SET(ch3OpNoteStatus, 7); // 0b1???0010
-                YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, ch3OpNoteStatus);// 2
+                BIT_SET(FM_CH3_OpNoteStatus, 7); // 0b1???0010
+                YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, FM_CH3_OpNoteStatus);// 2
                 break;
             case CH3_SPECIAL_CSM: case CH3_SPECIAL_CSM_OFF:
                 csm_pitch();
@@ -3513,30 +3401,30 @@ static inline void SetPitchFM(u8 matrixChannel, u8 note)
             }
             break;
         case CHANNEL_FM3_OP3:
-            if (ch3Mode == CH3_SPECIAL)
+            if (FM_CH3_Mode == CH3_SPECIAL)
             {
-                BIT_SET(ch3OpNoteStatus, 5); // 0b??1?0010
+                BIT_SET(FM_CH3_OpNoteStatus, 5); // 0b??1?0010
                 YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP3_MSB, part1);
                 YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP3_LSB, part2);
-                YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // 2
+                YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, FM_CH3_OpNoteStatus); // 2
             }
             break;
         case CHANNEL_FM3_OP2:
-            if (ch3Mode == CH3_SPECIAL)
+            if (FM_CH3_Mode == CH3_SPECIAL)
             {
-                BIT_SET(ch3OpNoteStatus, 6); // 0b?1??0010
+                BIT_SET(FM_CH3_OpNoteStatus, 6); // 0b?1??0010
                 YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP2_MSB, part1);
                 YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP2_LSB, part2);
-                YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // 2
+                YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, FM_CH3_OpNoteStatus); // 2
             }
             break;
         case CHANNEL_FM3_OP1:
-            if (ch3Mode == CH3_SPECIAL)
+            if (FM_CH3_Mode == CH3_SPECIAL)
             {
-                BIT_SET(ch3OpNoteStatus, 4); // 0b???10010
+                BIT_SET(FM_CH3_OpNoteStatus, 4); // 0b???10010
                 YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP1_MSB, part1);
                 YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP1_LSB, part2);
-                YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // 2
+                YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, FM_CH3_OpNoteStatus); // 2
             }
             break;
         case CHANNEL_FM4:
@@ -3555,20 +3443,20 @@ static inline void SetPitchFM(u8 matrixChannel, u8 note)
                 static u32 sampleStart = 0, sampleEnd = 0;
 
                 sampleStart =
-                (ReadSampleRegionSRAM(activeSampleBank, note, 0) << 16) |
-                (ReadSampleRegionSRAM(activeSampleBank, note, 1) << 8) |
-                ReadSampleRegionSRAM(activeSampleBank, note, 2);
+                (SRAM_ReadSampleRegion(activeSampleBank, note, 0) << 16) |
+                (SRAM_ReadSampleRegion(activeSampleBank, note, 1) << 8) |
+                SRAM_ReadSampleRegion(activeSampleBank, note, 2);
 
                 sampleEnd =
-                (ReadSampleRegionSRAM(activeSampleBank, note, 3) << 16) |
-                (ReadSampleRegionSRAM(activeSampleBank, note, 4) << 8) |
-                ReadSampleRegionSRAM(activeSampleBank, note, 5);
+                (SRAM_ReadSampleRegion(activeSampleBank, note, 3) << 16) |
+                (SRAM_ReadSampleRegion(activeSampleBank, note, 4) << 8) |
+                SRAM_ReadSampleRegion(activeSampleBank, note, 5);
 
                 SND_startPlay_PCM(sample_bank_1 + sampleStart,
                                   (sampleBankSize - sampleStart) - (sampleBankSize - sampleEnd),
-                                  ReadSampleRegionSRAM(activeSampleBank, note, 7),
-                                  dacPan,
-                                  ReadSampleRegionSRAM(activeSampleBank, note, 6));
+                                  SRAM_ReadSampleRegion(activeSampleBank, note, 7),
+                                  FM_CH6_DAC_Pan,
+                                  SRAM_ReadSampleRegion(activeSampleBank, note, 6));
             }
             else
             {
@@ -3640,8 +3528,8 @@ static void StopEffects(u8 matrixChannel)
 
     channelPreviousNote[matrixChannel] = NOTE_OFF;
 
-    matrixRowJumpTo = EVALUATE_0xFF;
-    patternRowJumpTo = EVALUATE_0xFF;
+    matrixRowJumpTo = OXFF;
+    patternRowJumpTo = OXFF;
 }
 
 // stopping sound on matrix channel
@@ -3658,44 +3546,44 @@ static inline void StopChannelSound(u8 matrixChannel)
         break;
 
     case CHANNEL_FM3_OP4:
-        if (ch3Mode == CH3_NORMAL)
+        if (FM_CH3_Mode == CH3_NORMAL)
         {
             YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 2); // all OP Off
         }
-        else if (ch3Mode == CH3_SPECIAL)
+        else if (FM_CH3_Mode == CH3_SPECIAL)
         {
-            BIT_CLEAR(ch3OpNoteStatus, 7);
-            YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // OP4
+            BIT_CLEAR(FM_CH3_OpNoteStatus, 7);
+            YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, FM_CH3_OpNoteStatus); // OP4
         }
-        else if (ch3Mode == CH3_SPECIAL_CSM || ch3Mode == CH3_SPECIAL_CSM_OFF)
+        else if (FM_CH3_Mode == CH3_SPECIAL_CSM || FM_CH3_Mode == CH3_SPECIAL_CSM_OFF)
         {
             YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 2); // set operators key off for CSM to work
             YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_SPECIAL_CSM_OFF | 0b00001111);
-            ch3Mode = CH3_SPECIAL_CSM_OFF;
+            FM_CH3_Mode = CH3_SPECIAL_CSM_OFF;
         }
         break;
 
     case CHANNEL_FM3_OP3:
-        if (ch3Mode == CH3_SPECIAL)
+        if (FM_CH3_Mode == CH3_SPECIAL)
         {
-            BIT_CLEAR(ch3OpNoteStatus, 5);
-            YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // OP3
+            BIT_CLEAR(FM_CH3_OpNoteStatus, 5);
+            YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, FM_CH3_OpNoteStatus); // OP3
         }
         break;
 
     case CHANNEL_FM3_OP2:
-        if (ch3Mode == CH3_SPECIAL)
+        if (FM_CH3_Mode == CH3_SPECIAL)
         {
-            BIT_CLEAR(ch3OpNoteStatus, 6);
-            YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // OP2
+            BIT_CLEAR(FM_CH3_OpNoteStatus, 6);
+            YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, FM_CH3_OpNoteStatus); // OP2
         }
         break;
 
     case CHANNEL_FM3_OP1:
-        if (ch3Mode == CH3_SPECIAL)
+        if (FM_CH3_Mode == CH3_SPECIAL)
         {
-            BIT_CLEAR(ch3OpNoteStatus, 4);
-            YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, ch3OpNoteStatus); // OP1
+            BIT_CLEAR(FM_CH3_OpNoteStatus, 4);
+            YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, FM_CH3_OpNoteStatus); // OP1
         }
         break;
 
@@ -3747,9 +3635,9 @@ static inline void StopAllSound()
         channelAttenuation[matrixChannel] = 0;
         channelVolumeChangeSpeed[matrixChannel] = 0;
 
-        channelArpSeqID[matrixChannel] = NULL;
-        channelVolSeqID[matrixChannel] = NULL;
-        channelSeqAttenuation[matrixChannel] = SEQ_VOL_MIN_ATT;
+        //channelArpSeqID[matrixChannel] = NULL;
+        //channelVolSeqID[matrixChannel] = NULL;
+        //channelSeqAttenuation[matrixChannel] = SEQ_VOL_MIN_ATT;
     }
 }
 
@@ -3761,66 +3649,66 @@ static void SetGlobalLFO(u8 freq)
 // cache instrument
 static inline void CacheIstrumentToRAM(u8 id)
 {
-    tmpInst[id].ALG = ReadInstrumentSRAM(id, INST_ALG);
-    tmpInst[id].AMS = ReadInstrumentSRAM(id, INST_FMS);
-    tmpInst[id].FMS = ReadInstrumentSRAM(id, INST_AMS);
-    tmpInst[id].PAN = ReadInstrumentSRAM(id, INST_PAN);
-    tmpInst[id].FB = ReadInstrumentSRAM(id, INST_FB);
+    tmpInst[id].ALG = SRAM_ReadInstrument(id, INST_ALG);
+    tmpInst[id].AMS = SRAM_ReadInstrument(id, INST_FMS);
+    tmpInst[id].FMS = SRAM_ReadInstrument(id, INST_AMS);
+    tmpInst[id].PAN = SRAM_ReadInstrument(id, INST_PAN);
+    tmpInst[id].FB = SRAM_ReadInstrument(id, INST_FB);
 
-    tmpInst[id].TL1 = ReadInstrumentSRAM(id, INST_TL1);
-    tmpInst[id].TL2 = ReadInstrumentSRAM(id, INST_TL2);
-    tmpInst[id].TL3 = ReadInstrumentSRAM(id, INST_TL3);
-    tmpInst[id].TL4 = ReadInstrumentSRAM(id, INST_TL4);
+    tmpInst[id].TL1 = SRAM_ReadInstrument(id, INST_TL1);
+    tmpInst[id].TL2 = SRAM_ReadInstrument(id, INST_TL2);
+    tmpInst[id].TL3 = SRAM_ReadInstrument(id, INST_TL3);
+    tmpInst[id].TL4 = SRAM_ReadInstrument(id, INST_TL4);
 
-    tmpInst[id].RS1 = ReadInstrumentSRAM(id, INST_RS1);
-    tmpInst[id].RS2 = ReadInstrumentSRAM(id, INST_RS2);
-    tmpInst[id].RS3 = ReadInstrumentSRAM(id, INST_RS3);
-    tmpInst[id].RS4 = ReadInstrumentSRAM(id, INST_RS4);
+    tmpInst[id].RS1 = SRAM_ReadInstrument(id, INST_RS1);
+    tmpInst[id].RS2 = SRAM_ReadInstrument(id, INST_RS2);
+    tmpInst[id].RS3 = SRAM_ReadInstrument(id, INST_RS3);
+    tmpInst[id].RS4 = SRAM_ReadInstrument(id, INST_RS4);
 
-    tmpInst[id].MUL1 = ReadInstrumentSRAM(id, INST_MUL1);
-    tmpInst[id].MUL2 = ReadInstrumentSRAM(id, INST_MUL2);
-    tmpInst[id].MUL3 = ReadInstrumentSRAM(id, INST_MUL3);
-    tmpInst[id].MUL4 = ReadInstrumentSRAM(id, INST_MUL4);
+    tmpInst[id].MUL1 = SRAM_ReadInstrument(id, INST_MUL1);
+    tmpInst[id].MUL2 = SRAM_ReadInstrument(id, INST_MUL2);
+    tmpInst[id].MUL3 = SRAM_ReadInstrument(id, INST_MUL3);
+    tmpInst[id].MUL4 = SRAM_ReadInstrument(id, INST_MUL4);
 
-    tmpInst[id].DT1 = ReadInstrumentSRAM(id, INST_DT1);
-    tmpInst[id].DT2 = ReadInstrumentSRAM(id, INST_DT2);
-    tmpInst[id].DT3 = ReadInstrumentSRAM(id, INST_DT3);
-    tmpInst[id].DT4 = ReadInstrumentSRAM(id, INST_DT4);
+    tmpInst[id].DT1 = SRAM_ReadInstrument(id, INST_DT1);
+    tmpInst[id].DT2 = SRAM_ReadInstrument(id, INST_DT2);
+    tmpInst[id].DT3 = SRAM_ReadInstrument(id, INST_DT3);
+    tmpInst[id].DT4 = SRAM_ReadInstrument(id, INST_DT4);
 
-    tmpInst[id].AR1 = ReadInstrumentSRAM(id, INST_AR1);
-    tmpInst[id].AR2 = ReadInstrumentSRAM(id, INST_AR2);
-    tmpInst[id].AR3 = ReadInstrumentSRAM(id, INST_AR3);
-    tmpInst[id].AR4 = ReadInstrumentSRAM(id, INST_AR4);
+    tmpInst[id].AR1 = SRAM_ReadInstrument(id, INST_AR1);
+    tmpInst[id].AR2 = SRAM_ReadInstrument(id, INST_AR2);
+    tmpInst[id].AR3 = SRAM_ReadInstrument(id, INST_AR3);
+    tmpInst[id].AR4 = SRAM_ReadInstrument(id, INST_AR4);
 
-    tmpInst[id].D1R1 = ReadInstrumentSRAM(id, INST_D1R1);
-    tmpInst[id].D1R2 = ReadInstrumentSRAM(id, INST_D1R2);
-    tmpInst[id].D1R3 = ReadInstrumentSRAM(id, INST_D1R3);
-    tmpInst[id].D1R4 = ReadInstrumentSRAM(id, INST_D1R4);
+    tmpInst[id].D1R1 = SRAM_ReadInstrument(id, INST_D1R1);
+    tmpInst[id].D1R2 = SRAM_ReadInstrument(id, INST_D1R2);
+    tmpInst[id].D1R3 = SRAM_ReadInstrument(id, INST_D1R3);
+    tmpInst[id].D1R4 = SRAM_ReadInstrument(id, INST_D1R4);
 
-    tmpInst[id].D1L1 = ReadInstrumentSRAM(id, INST_D1L1);
-    tmpInst[id].D1L2 = ReadInstrumentSRAM(id, INST_D1L2);
-    tmpInst[id].D1L3 = ReadInstrumentSRAM(id, INST_D1L3);
-    tmpInst[id].D1L4 = ReadInstrumentSRAM(id, INST_D1L4);
+    tmpInst[id].D1L1 = SRAM_ReadInstrument(id, INST_D1L1);
+    tmpInst[id].D1L2 = SRAM_ReadInstrument(id, INST_D1L2);
+    tmpInst[id].D1L3 = SRAM_ReadInstrument(id, INST_D1L3);
+    tmpInst[id].D1L4 = SRAM_ReadInstrument(id, INST_D1L4);
 
-    tmpInst[id].D2R1 = ReadInstrumentSRAM(id, INST_D2R1);
-    tmpInst[id].D2R2 = ReadInstrumentSRAM(id, INST_D2R2);
-    tmpInst[id].D2R3 = ReadInstrumentSRAM(id, INST_D2R3);
-    tmpInst[id].D2R4 = ReadInstrumentSRAM(id, INST_D2R4);
+    tmpInst[id].D2R1 = SRAM_ReadInstrument(id, INST_D2R1);
+    tmpInst[id].D2R2 = SRAM_ReadInstrument(id, INST_D2R2);
+    tmpInst[id].D2R3 = SRAM_ReadInstrument(id, INST_D2R3);
+    tmpInst[id].D2R4 = SRAM_ReadInstrument(id, INST_D2R4);
 
-    tmpInst[id].RR1 = ReadInstrumentSRAM(id, INST_RR1);
-    tmpInst[id].RR2 = ReadInstrumentSRAM(id, INST_RR2);
-    tmpInst[id].RR3 = ReadInstrumentSRAM(id, INST_RR3);
-    tmpInst[id].RR4 = ReadInstrumentSRAM(id, INST_RR4);
+    tmpInst[id].RR1 = SRAM_ReadInstrument(id, INST_RR1);
+    tmpInst[id].RR2 = SRAM_ReadInstrument(id, INST_RR2);
+    tmpInst[id].RR3 = SRAM_ReadInstrument(id, INST_RR3);
+    tmpInst[id].RR4 = SRAM_ReadInstrument(id, INST_RR4);
 
-    tmpInst[id].AM1 = ReadInstrumentSRAM(id, INST_AM1);
-    tmpInst[id].AM2 = ReadInstrumentSRAM(id, INST_AM2);
-    tmpInst[id].AM3 = ReadInstrumentSRAM(id, INST_AM3);
-    tmpInst[id].AM4 = ReadInstrumentSRAM(id, INST_AM4);
+    tmpInst[id].AM1 = SRAM_ReadInstrument(id, INST_AM1);
+    tmpInst[id].AM2 = SRAM_ReadInstrument(id, INST_AM2);
+    tmpInst[id].AM3 = SRAM_ReadInstrument(id, INST_AM3);
+    tmpInst[id].AM4 = SRAM_ReadInstrument(id, INST_AM4);
 
-    tmpInst[id].SSGEG1 = ReadInstrumentSRAM(id, INST_SSGEG1);
-    tmpInst[id].SSGEG2 = ReadInstrumentSRAM(id, INST_SSGEG2);
-    tmpInst[id].SSGEG3 = ReadInstrumentSRAM(id, INST_SSGEG3);
-    tmpInst[id].SSGEG4 = ReadInstrumentSRAM(id, INST_SSGEG4);
+    tmpInst[id].SSGEG1 = SRAM_ReadInstrument(id, INST_SSGEG1);
+    tmpInst[id].SSGEG2 = SRAM_ReadInstrument(id, INST_SSGEG2);
+    tmpInst[id].SSGEG3 = SRAM_ReadInstrument(id, INST_SSGEG3);
+    tmpInst[id].SSGEG4 = SRAM_ReadInstrument(id, INST_SSGEG4);
 
     // calculate YM2612 combined registers from module data
     CalculateCombined(id, COMB_FB_ALG);
@@ -3929,7 +3817,7 @@ static inline void SetChannelBaseVolume(u8 matrixChannel, u8 id)
     switch (matrixChannel)
     {
     case CHANNEL_FM3_OP4:
-        if (ch3Mode == CH3_NORMAL) set_normal_slots();
+        if (FM_CH3_Mode == CH3_NORMAL) set_normal_slots();
         else
         {
             channelSlotBaseLevel[matrixChannel][3] = tmpInst[id].TL4;
@@ -3938,7 +3826,7 @@ static inline void SetChannelBaseVolume(u8 matrixChannel, u8 id)
         }
         break;
     case CHANNEL_FM3_OP3:
-        if (ch3Mode != CH3_NORMAL)
+        if (FM_CH3_Mode != CH3_NORMAL)
         {
             channelSlotBaseLevel[matrixChannel][2] = tmpInst[id].TL3;
             tmpInst[id].TL3 += channelAttenuation[matrixChannel];
@@ -3946,7 +3834,7 @@ static inline void SetChannelBaseVolume(u8 matrixChannel, u8 id)
         }
         break;
     case CHANNEL_FM3_OP2:
-        if (ch3Mode != CH3_NORMAL)
+        if (FM_CH3_Mode != CH3_NORMAL)
         {
             channelSlotBaseLevel[matrixChannel][1] = tmpInst[id].TL2;
             tmpInst[id].TL2 += channelAttenuation[matrixChannel];
@@ -3954,7 +3842,7 @@ static inline void SetChannelBaseVolume(u8 matrixChannel, u8 id)
         }
         break;
     case CHANNEL_FM3_OP1:
-        if (ch3Mode != CH3_NORMAL)
+        if (FM_CH3_Mode != CH3_NORMAL)
         {
             channelSlotBaseLevel[matrixChannel][0] = tmpInst[id].TL1;
             tmpInst[id].TL1 += channelAttenuation[matrixChannel];
@@ -4363,13 +4251,13 @@ static inline void ApplyCommand_Common(u8 matrixChannel, u8 fxParam, u8 fxValue)
     case 0x52:
         if (fxValue > 0 && fxValue <= MAX_MATRIX_ROWS) matrixRowJumpTo = fxValue - 1;
         else if (fxValue == 0) matrixRowJumpTo = playingMatrixRow + 1;
-        else matrixRowJumpTo = EVALUATE_0xFF;
+        else matrixRowJumpTo = OXFF;
         break;
 
     // PATTERN ROW JUMP
     case 0x53:
         if (fxValue <= PATTERN_ROW_LAST) patternRowJumpTo = fxValue;
-        else patternRowJumpTo = EVALUATE_0xFF;
+        else patternRowJumpTo = OXFF;
         break;
 
     // NOTE DELAY
@@ -4384,7 +4272,7 @@ static inline void ApplyCommand_Common(u8 matrixChannel, u8 fxParam, u8 fxValue)
             //switch (matrixChannel)
             //{
             //case 2:
-                ch3OpFreq[0] = fxValue;
+                FM_CH3_OpFreq[0] = fxValue;
                 //break;
             //case 3: ch3OpFreq[1] = fxValue; break;
             //case 4: ch3OpFreq[2] = fxValue; break;
@@ -4404,23 +4292,24 @@ static inline void ApplyCommand_PSG(u8 fxParam, u8 fxValue)
     case 0x15:
         switch (fxValue)
         {
-        case 0x10: PSG_setNoise(PSG_NOISE_TYPE_PERIODIC, PSG_NOISE_FREQ_TONE3); psg_noise_mode = PSG_TONAL_CH3_MUTED; break;
-        case 0x11: PSG_setNoise(PSG_NOISE_TYPE_PERIODIC, PSG_NOISE_FREQ_TONE3); psg_noise_mode = PSG_TONAL_CH3_NOT_MUTED; break;
-        case 0x12: PSG_setNoise(PSG_NOISE_TYPE_PERIODIC, PSG_NOISE_FREQ_CLOCK2); psg_noise_mode = PSG_FIXED; break;
-        case 0x13: PSG_setNoise(PSG_NOISE_TYPE_PERIODIC, PSG_NOISE_FREQ_CLOCK4); psg_noise_mode = PSG_FIXED; break;
-        case 0x14: PSG_setNoise(PSG_NOISE_TYPE_PERIODIC, PSG_NOISE_FREQ_CLOCK8); psg_noise_mode = PSG_FIXED; break;
-        case 0x20: PSG_setNoise(PSG_NOISE_TYPE_WHITE, PSG_NOISE_FREQ_TONE3); psg_noise_mode = PSG_TONAL_CH3_MUTED; break;
-        case 0x21: PSG_setNoise(PSG_NOISE_TYPE_WHITE, PSG_NOISE_FREQ_TONE3); psg_noise_mode = PSG_TONAL_CH3_NOT_MUTED; break;
-        case 0x22: PSG_setNoise(PSG_NOISE_TYPE_WHITE, PSG_NOISE_FREQ_CLOCK2); psg_noise_mode = PSG_FIXED; break;
-        case 0x23: PSG_setNoise(PSG_NOISE_TYPE_WHITE, PSG_NOISE_FREQ_CLOCK4); psg_noise_mode = PSG_FIXED; break;
-        case 0x24: PSG_setNoise(PSG_NOISE_TYPE_WHITE, PSG_NOISE_FREQ_CLOCK8); psg_noise_mode = PSG_FIXED; break;
+        case 0x10: PSG_setNoise(PSG_NOISE_TYPE_PERIODIC, PSG_NOISE_FREQ_TONE3); PSG_NoiseMode = PSG_TONAL_CH3_MUTED; break;
+        case 0x11: PSG_setNoise(PSG_NOISE_TYPE_PERIODIC, PSG_NOISE_FREQ_TONE3); PSG_NoiseMode = PSG_TONAL_CH3_NOT_MUTED; break;
+        case 0x12: PSG_setNoise(PSG_NOISE_TYPE_PERIODIC, PSG_NOISE_FREQ_CLOCK2); PSG_NoiseMode = PSG_FIXED; break;
+        case 0x13: PSG_setNoise(PSG_NOISE_TYPE_PERIODIC, PSG_NOISE_FREQ_CLOCK4); PSG_NoiseMode = PSG_FIXED; break;
+        case 0x14: PSG_setNoise(PSG_NOISE_TYPE_PERIODIC, PSG_NOISE_FREQ_CLOCK8); PSG_NoiseMode = PSG_FIXED; break;
+        case 0x20: PSG_setNoise(PSG_NOISE_TYPE_WHITE, PSG_NOISE_FREQ_TONE3); PSG_NoiseMode = PSG_TONAL_CH3_MUTED; break;
+        case 0x21: PSG_setNoise(PSG_NOISE_TYPE_WHITE, PSG_NOISE_FREQ_TONE3); PSG_NoiseMode = PSG_TONAL_CH3_NOT_MUTED; break;
+        case 0x22: PSG_setNoise(PSG_NOISE_TYPE_WHITE, PSG_NOISE_FREQ_CLOCK2); PSG_NoiseMode = PSG_FIXED; break;
+        case 0x23: PSG_setNoise(PSG_NOISE_TYPE_WHITE, PSG_NOISE_FREQ_CLOCK4); PSG_NoiseMode = PSG_FIXED; break;
+        case 0x24: PSG_setNoise(PSG_NOISE_TYPE_WHITE, PSG_NOISE_FREQ_CLOCK8); PSG_NoiseMode = PSG_FIXED; break;
+        default: return; break;
         }
         break;
 
     // PWM/Waveform
-    case 0x17:
+    /*case 0x17:
         if (fxValue < 0x0D) psgPWM = fxValue;
-        break;
+        break;*/
     default: return; break;
     }
 }
@@ -4584,25 +4473,25 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
     {
     // TOTAL LEVEL
     case 0x01:
-        if (fxValue == 0) tmpInst[id].TL1 = ReadInstrumentSRAM(id, INST_TL1);
+        if (fxValue == 0) tmpInst[id].TL1 = SRAM_ReadInstrument(id, INST_TL1);
         else if (fxValue <= 0x80) tmpInst[id].TL1 = 0x80 - fxValue;
         else return;
         write_tl1();
         break;
     case 0x02:
-        if (fxValue == 0)tmpInst[id].TL2 = ReadInstrumentSRAM(id, INST_TL2);
+        if (fxValue == 0)tmpInst[id].TL2 = SRAM_ReadInstrument(id, INST_TL2);
         else if (fxValue <= 0x80) tmpInst[id].TL2 = 0x80 - fxValue;
         else return;
         write_tl2();
         break;
     case 0x03:
-        if (fxValue == 0) tmpInst[id].TL3 = ReadInstrumentSRAM(id, INST_TL3);
+        if (fxValue == 0) tmpInst[id].TL3 = SRAM_ReadInstrument(id, INST_TL3);
         else if (fxValue <= 0x80) tmpInst[id].TL3 = 0x80 - fxValue;
         else return;
         write_tl3();
         break;
     case 0x04:
-        if (fxValue == 0) tmpInst[id].TL4 = ReadInstrumentSRAM(id, INST_TL4);
+        if (fxValue == 0) tmpInst[id].TL4 = SRAM_ReadInstrument(id, INST_TL4);
         else if (fxValue <= 0x80) tmpInst[id].TL4 = 0x80 - fxValue;
         else return;
         write_tl4();
@@ -4610,24 +4499,24 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
 
     // RATE SCALE
     case 0x05:
-        if (fxValue == 0x10) { tmpInst[id].RS1 = ReadInstrumentSRAM(id, INST_RS1); write_rs1_ar1(); }
+        if (fxValue == 0x10) { tmpInst[id].RS1 = SRAM_ReadInstrument(id, INST_RS1); write_rs1_ar1(); }
         else if ((fxValue >= 0x11) && (fxValue <= 0x14)) { tmpInst[id].RS1 = fxValue - 0x11; write_rs1_ar1(); }
 
-        else if (fxValue == 0x20) { tmpInst[id].RS2 = ReadInstrumentSRAM(id, INST_RS2); write_rs2_ar2(); }
+        else if (fxValue == 0x20) { tmpInst[id].RS2 = SRAM_ReadInstrument(id, INST_RS2); write_rs2_ar2(); }
         else if ((fxValue >= 0x21) && (fxValue <= 0x24)) { tmpInst[id].RS2 = fxValue - 0x21; write_rs2_ar2(); }
 
-        else if (fxValue == 0x30) { tmpInst[id].RS3 = ReadInstrumentSRAM(id, INST_RS3); write_rs3_ar3(); }
+        else if (fxValue == 0x30) { tmpInst[id].RS3 = SRAM_ReadInstrument(id, INST_RS3); write_rs3_ar3(); }
         else if ((fxValue >= 0x31) && (fxValue <= 0x34)) { tmpInst[id].RS3 = fxValue - 0x31; write_rs3_ar3(); }
 
-        else if (fxValue == 0x40) { tmpInst[id].RS4 = ReadInstrumentSRAM(id, INST_RS4); write_rs4_ar4(); }
+        else if (fxValue == 0x40) { tmpInst[id].RS4 = SRAM_ReadInstrument(id, INST_RS4); write_rs4_ar4(); }
         else if ((fxValue >= 0x41) && (fxValue <= 0x44)) { tmpInst[id].RS4 = fxValue - 0x41; write_rs4_ar4(); }
 
         else if (fxValue == 0x00 || fxValue == 0x50) // reset all
         {
-            tmpInst[id].RS1 = ReadInstrumentSRAM(id, INST_RS1);
-            tmpInst[id].RS2 = ReadInstrumentSRAM(id, INST_RS2);
-            tmpInst[id].RS3 = ReadInstrumentSRAM(id, INST_RS3);
-            tmpInst[id].RS4 = ReadInstrumentSRAM(id, INST_RS4);
+            tmpInst[id].RS1 = SRAM_ReadInstrument(id, INST_RS1);
+            tmpInst[id].RS2 = SRAM_ReadInstrument(id, INST_RS2);
+            tmpInst[id].RS3 = SRAM_ReadInstrument(id, INST_RS3);
+            tmpInst[id].RS4 = SRAM_ReadInstrument(id, INST_RS4);
             write_rs1_ar1(); write_rs2_ar2(); write_rs3_ar3(); write_rs4_ar4();
         }
         else if ((fxValue >= 0x51) && (fxValue <= 0x54))
@@ -4639,49 +4528,49 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
 
     // MULTIPLIER
     case 0x06:
-        if (fxValue == 0x01) { tmpInst[id].MUL1 = ReadInstrumentSRAM(id, INST_MUL1); write_dt1_mul1(); }
+        if (fxValue == 0x01) { tmpInst[id].MUL1 = SRAM_ReadInstrument(id, INST_MUL1); write_dt1_mul1(); }
         else if ((fxValue >= 0x10) && (fxValue < 0x20)) { tmpInst[id].MUL1 = fxValue - 0x10; write_dt1_mul1(tmpInst[id].MUL1); }
 
-        else if (fxValue == 0x02) { tmpInst[id].MUL2 = ReadInstrumentSRAM(id, INST_MUL2); write_dt2_mul2(); }
+        else if (fxValue == 0x02) { tmpInst[id].MUL2 = SRAM_ReadInstrument(id, INST_MUL2); write_dt2_mul2(); }
         else if ((fxValue >= 0x20) && (fxValue < 0x30)) { tmpInst[id].MUL2 = fxValue - 0x20; write_dt2_mul2(tmpInst[id].MUL2); }
 
-        else if (fxValue == 0x03) { tmpInst[id].MUL3 = ReadInstrumentSRAM(id, INST_MUL3); write_dt3_mul3(); }
+        else if (fxValue == 0x03) { tmpInst[id].MUL3 = SRAM_ReadInstrument(id, INST_MUL3); write_dt3_mul3(); }
         else if ((fxValue >= 0x30) && (fxValue < 0x40)) { tmpInst[id].MUL3 = fxValue - 0x30; write_dt3_mul3(tmpInst[id].MUL3); }
 
-        else if (fxValue == 0x04) { tmpInst[id].MUL4 = ReadInstrumentSRAM(id, INST_MUL4); write_dt4_mul4(); }
+        else if (fxValue == 0x04) { tmpInst[id].MUL4 = SRAM_ReadInstrument(id, INST_MUL4); write_dt4_mul4(); }
         else if ((fxValue >= 0x40) && (fxValue < 0x50)) { tmpInst[id].MUL4 = fxValue - 0x40; write_dt4_mul4(tmpInst[id].MUL4); }
 
 
         else if (fxValue == 0x00) // reset all
         {
-            tmpInst[id].MUL1 = ReadInstrumentSRAM(id, INST_MUL1);
-            tmpInst[id].MUL2 = ReadInstrumentSRAM(id, INST_MUL2);
-            tmpInst[id].MUL3 = ReadInstrumentSRAM(id, INST_MUL3);
-            tmpInst[id].MUL4 = ReadInstrumentSRAM(id, INST_MUL4);
+            tmpInst[id].MUL1 = SRAM_ReadInstrument(id, INST_MUL1);
+            tmpInst[id].MUL2 = SRAM_ReadInstrument(id, INST_MUL2);
+            tmpInst[id].MUL3 = SRAM_ReadInstrument(id, INST_MUL3);
+            tmpInst[id].MUL4 = SRAM_ReadInstrument(id, INST_MUL4);
             write_dt1_mul1(); write_dt2_mul2(); write_dt3_mul3(); write_dt4_mul4();
         }
         break;
 
     // DETUNE
     case 0x07:
-        if (fxValue == 0x10) { tmpInst[id].DT1 = ReadInstrumentSRAM(id, INST_DT1); write_dt1_mul1(); }
+        if (fxValue == 0x10) { tmpInst[id].DT1 = SRAM_ReadInstrument(id, INST_DT1); write_dt1_mul1(); }
         else if ((fxValue >= 0x11) && (fxValue <= 0x18)) { tmpInst[id].DT1 = fxValue - 0x11; write_dt1_mul1(tmpInst[id].DT1); }
 
-        else if (fxValue == 0x20) { tmpInst[id].DT2 = ReadInstrumentSRAM(id, INST_DT2); write_dt2_mul2(); }
+        else if (fxValue == 0x20) { tmpInst[id].DT2 = SRAM_ReadInstrument(id, INST_DT2); write_dt2_mul2(); }
         else if ((fxValue >= 0x21) && (fxValue <= 0x28)) { tmpInst[id].DT2 = fxValue - 0x21; write_dt2_mul2(tmpInst[id].DT2); }
 
-        else if (fxValue == 0x30) { tmpInst[id].DT3 = ReadInstrumentSRAM(id, INST_DT3); write_dt3_mul3(); }
+        else if (fxValue == 0x30) { tmpInst[id].DT3 = SRAM_ReadInstrument(id, INST_DT3); write_dt3_mul3(); }
         else if ((fxValue >= 0x31) && (fxValue <= 0x38)) { tmpInst[id].DT3 = fxValue - 0x31; write_dt3_mul3(tmpInst[id].DT3); }
 
-        else if (fxValue == 0x40) { tmpInst[id].DT4 = ReadInstrumentSRAM(id, INST_DT4); write_dt4_mul4(); }
+        else if (fxValue == 0x40) { tmpInst[id].DT4 = SRAM_ReadInstrument(id, INST_DT4); write_dt4_mul4(); }
         else if ((fxValue >= 0x41) && (fxValue <= 0x48)) { tmpInst[id].DT4 = fxValue - 0x41; write_dt4_mul4(tmpInst[id].DT4); }
 
         else if (fxValue == 0x00) // reset all
         {
-            tmpInst[id].DT1 = ReadInstrumentSRAM(id, INST_DT1);
-            tmpInst[id].DT2 = ReadInstrumentSRAM(id, INST_DT2);
-            tmpInst[id].DT3 = ReadInstrumentSRAM(id, INST_DT3);
-            tmpInst[id].DT4 = ReadInstrumentSRAM(id, INST_DT4);
+            tmpInst[id].DT1 = SRAM_ReadInstrument(id, INST_DT1);
+            tmpInst[id].DT2 = SRAM_ReadInstrument(id, INST_DT2);
+            tmpInst[id].DT3 = SRAM_ReadInstrument(id, INST_DT3);
+            tmpInst[id].DT4 = SRAM_ReadInstrument(id, INST_DT4);
             write_dt1_mul1(); write_dt2_mul2(); write_dt3_mul3(); write_dt4_mul4();
         }
         break;
@@ -4707,34 +4596,34 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
 
     // CH3 MODE
     case 0x12:
-        if (fxValue == 0) ch3Mode = CH3_NORMAL; // special
-        else if (fxValue == 1) ch3Mode = CH3_SPECIAL; // normal
-        else if (fxValue == 2) ch3Mode = CH3_SPECIAL_CSM; // special+CSM
+        if (fxValue == 0) FM_CH3_Mode = CH3_NORMAL; // special
+        else if (fxValue == 1) FM_CH3_Mode = CH3_SPECIAL; // normal
+        else if (fxValue == 2) FM_CH3_Mode = CH3_SPECIAL_CSM; // special+CSM
         else return;
-        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, ch3Mode | 0b00001111);
+        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, FM_CH3_Mode | 0b00001111);
         break;
 
     // ATTACK
     case 0xA1:
-        if (fxValue == 0) tmpInst[id].AR1 = ReadInstrumentSRAM(id, INST_AR1);
+        if (fxValue == 0) tmpInst[id].AR1 = SRAM_ReadInstrument(id, INST_AR1);
         else if (fxValue <= 0x20) tmpInst[id].AR1 = fxValue - 1;
         else return;
         write_rs1_ar1();
         break;
     case 0xA2:
-        if (fxValue == 0) tmpInst[id].AR2 = ReadInstrumentSRAM(id, INST_AR2);
+        if (fxValue == 0) tmpInst[id].AR2 = SRAM_ReadInstrument(id, INST_AR2);
         else if (fxValue <= 0x20) tmpInst[id].AR2 = fxValue - 1;
         else return;
         write_rs2_ar2();
         break;
     case 0xA3:
-        if (fxValue == 0) tmpInst[id].AR3 = ReadInstrumentSRAM(id, INST_AR3);
+        if (fxValue == 0) tmpInst[id].AR3 = SRAM_ReadInstrument(id, INST_AR3);
         else if (fxValue <= 0x20) tmpInst[id].AR3 = fxValue - 1;
         else return;
         write_rs3_ar3();
         break;
     case 0xA4:
-        if (fxValue == 0) tmpInst[id].AR4 = ReadInstrumentSRAM(id, INST_AR4);
+        if (fxValue == 0) tmpInst[id].AR4 = SRAM_ReadInstrument(id, INST_AR4);
         else if (fxValue <= 0x20) tmpInst[id].AR4 = fxValue - 1;
         else return;
         write_rs4_ar4();
@@ -4742,25 +4631,25 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
 
     // DECAY 1
     case 0xB1:
-        if (fxValue == 0) tmpInst[id].D1R1 = ReadInstrumentSRAM(id, INST_D1R1);
+        if (fxValue == 0) tmpInst[id].D1R1 = SRAM_ReadInstrument(id, INST_D1R1);
         else if (fxValue <= 0x20) tmpInst[id].D1R1 = fxValue - 1;
         else return;
         write_am1_d1r1();
         break;
     case 0xB2:
-        if (fxValue == 0) tmpInst[id].D1R2 = ReadInstrumentSRAM(id, INST_D1R2);
+        if (fxValue == 0) tmpInst[id].D1R2 = SRAM_ReadInstrument(id, INST_D1R2);
         else if (fxValue <= 0x20) tmpInst[id].D1R2 = fxValue - 1;
         else return;
         write_am2_d1r2();
         break;
     case 0xB3:
-        if (fxValue == 0) tmpInst[id].D1R3 = ReadInstrumentSRAM(id, INST_D1R3);
+        if (fxValue == 0) tmpInst[id].D1R3 = SRAM_ReadInstrument(id, INST_D1R3);
         else if (fxValue <= 0x20) tmpInst[id].D1R3 = fxValue - 1;
         else return;
         write_am3_d1r3();
         break;
     case 0xB4:
-        if (fxValue == 0) tmpInst[id].D1R4 = ReadInstrumentSRAM(id, INST_D1R4);
+        if (fxValue == 0) tmpInst[id].D1R4 = SRAM_ReadInstrument(id, INST_D1R4);
         else if (fxValue <= 0x20) tmpInst[id].D1R4 = fxValue - 1;
         else return;
         write_am4_d1r4();
@@ -4768,25 +4657,25 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
 
     // SUSTAIN
     case 0xC1:
-        if (fxValue == 0) tmpInst[id].D1L1 = ReadInstrumentSRAM(id, INST_D1L1);
+        if (fxValue == 0) tmpInst[id].D1L1 = SRAM_ReadInstrument(id, INST_D1L1);
         else if (fxValue <= 0x10) tmpInst[id].D1L1 = fxValue - 1;
         else return;
         write_d1l1_rr1();
         break;
     case 0xC2:
-        if (fxValue == 0) tmpInst[id].D1L2 = ReadInstrumentSRAM(id, INST_D1L2);
+        if (fxValue == 0) tmpInst[id].D1L2 = SRAM_ReadInstrument(id, INST_D1L2);
         else if (fxValue <= 0x10) tmpInst[id].D1L2 = fxValue - 1;
         else return;
         write_d1l2_rr2();
         break;
     case 0xC3:
-        if (fxValue == 0) tmpInst[id].D1L3 = ReadInstrumentSRAM(id, INST_D1L3);
+        if (fxValue == 0) tmpInst[id].D1L3 = SRAM_ReadInstrument(id, INST_D1L3);
         else if (fxValue <= 0x10) tmpInst[id].D1L3 = fxValue - 1;
         else return;
         write_d1l3_rr3();
         break;
     case 0xC4:
-        if (fxValue == 0) tmpInst[id].D1L4 = ReadInstrumentSRAM(id, INST_D1L4);
+        if (fxValue == 0) tmpInst[id].D1L4 = SRAM_ReadInstrument(id, INST_D1L4);
         else if (fxValue <= 0x10) tmpInst[id].D1L4 = fxValue - 1;
         else return;
         write_d1l4_rr4();
@@ -4794,25 +4683,25 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
 
     // DECAY 2
     case 0xD1:
-        if (fxValue == 0) tmpInst[id].D2R1 = ReadInstrumentSRAM(id, INST_D2R1);
+        if (fxValue == 0) tmpInst[id].D2R1 = SRAM_ReadInstrument(id, INST_D2R1);
         else if (fxValue <= 0x20) tmpInst[id].D2R1 = fxValue - 1;
         else return;
         write_d2r1();
         break;
     case 0xD2:
-        if (fxValue == 0) tmpInst[id].D2R2 = ReadInstrumentSRAM(id, INST_D2R2);
+        if (fxValue == 0) tmpInst[id].D2R2 = SRAM_ReadInstrument(id, INST_D2R2);
         else if (fxValue <= 0x20) tmpInst[id].D2R2 = fxValue - 1;
         else return;
         write_d2r2();
         break;
     case 0xD3:
-        if (fxValue == 0) tmpInst[id].D2R3 = ReadInstrumentSRAM(id, INST_D2R3);
+        if (fxValue == 0) tmpInst[id].D2R3 = SRAM_ReadInstrument(id, INST_D2R3);
         else if (fxValue <= 0x20) tmpInst[id].D2R3 = fxValue - 1;
         else return;
         write_d2r3();
         break;
     case 0xD4:
-        if (fxValue == 0) tmpInst[id].D2R4 = ReadInstrumentSRAM(id, INST_D2R4);
+        if (fxValue == 0) tmpInst[id].D2R4 = SRAM_ReadInstrument(id, INST_D2R4);
         else if (fxValue <= 0x20) tmpInst[id].D2R4 = fxValue - 1;
         else return;
         write_d2r4();
@@ -4820,25 +4709,25 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
 
     // RELEASE
     case 0xE1:
-        if (fxValue == 0) tmpInst[id].RR1 = ReadInstrumentSRAM(id, INST_RR1);
+        if (fxValue == 0) tmpInst[id].RR1 = SRAM_ReadInstrument(id, INST_RR1);
         else if (fxValue <= 0x10) tmpInst[id].RR1 = fxValue - 1;
         else return;
         write_d1l1_rr1();
         break;
     case 0xE2:
-        if (fxValue == 0) tmpInst[id].RR2 = ReadInstrumentSRAM(id, INST_RR2);
+        if (fxValue == 0) tmpInst[id].RR2 = SRAM_ReadInstrument(id, INST_RR2);
         else if (fxValue <= 0x10) tmpInst[id].RR2 = fxValue - 1;
         else return;
         write_d1l2_rr2();
         break;
     case 0xE3:
-        if (fxValue == 0) tmpInst[id].RR3 = ReadInstrumentSRAM(id, INST_RR3);
+        if (fxValue == 0) tmpInst[id].RR3 = SRAM_ReadInstrument(id, INST_RR3);
         else if (fxValue <= 0x10) tmpInst[id].RR3 = fxValue - 1;
         else return;
         write_d1l3_rr3();
         break;
     case 0xE4:
-        if (fxValue == 0) tmpInst[id].RR4 = ReadInstrumentSRAM(id, INST_RR4);
+        if (fxValue == 0) tmpInst[id].RR4 = SRAM_ReadInstrument(id, INST_RR4);
         else if (fxValue <= 0x10) tmpInst[id].RR4 = fxValue - 1;
         else return;
         write_d1l4_rr4();
@@ -4848,35 +4737,35 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
     case 0x08:
         switch(fxValue)
         {
-            case 0x10: { tmpInst[id].AM1 = ReadInstrumentSRAM(id, INST_AM1); write_am1_d1r1(); }
+            case 0x10: { tmpInst[id].AM1 = SRAM_ReadInstrument(id, INST_AM1); write_am1_d1r1(); }
                 break;
             case 0x11: { tmpInst[id].AM1 = 1; write_am1_d1r1(); }
                 break;
             case 0x12: { tmpInst[id].AM1 = 0; write_am1_d1r1(); }
                 break;
-            case 0x20: { tmpInst[id].AM2 = ReadInstrumentSRAM(id, INST_AM2); write_am2_d1r2(); }
+            case 0x20: { tmpInst[id].AM2 = SRAM_ReadInstrument(id, INST_AM2); write_am2_d1r2(); }
                 break;
             case 0x21: { tmpInst[id].AM2 = 1; write_am2_d1r2(); }
                 break;
             case 0x22: { tmpInst[id].AM2 = 0; write_am2_d1r2(); }
                 break;
-            case 0x30: { tmpInst[id].AM3 = ReadInstrumentSRAM(id, INST_AM3); write_am3_d1r3(); }
+            case 0x30: { tmpInst[id].AM3 = SRAM_ReadInstrument(id, INST_AM3); write_am3_d1r3(); }
                 break;
             case 0x31: { tmpInst[id].AM3 = 1; write_am3_d1r3(); }
                 break;
             case 0x32: { tmpInst[id].AM3 = 0; write_am3_d1r3(); }
                 break;
-            case 0x40: { tmpInst[id].AM4 = ReadInstrumentSRAM(id, INST_AM4); write_am4_d1r4(); }
+            case 0x40: { tmpInst[id].AM4 = SRAM_ReadInstrument(id, INST_AM4); write_am4_d1r4(); }
                 break;
             case 0x41: { tmpInst[id].AM4 = 1; write_am4_d1r4(); }
                 break;
             case 0x42: { tmpInst[id].AM4 = 0; write_am4_d1r4(); }
                 break;
             case 0x00: case 0x50:
-                tmpInst[id].AM1 = ReadInstrumentSRAM(id, INST_AM1);
-                tmpInst[id].AM2 = ReadInstrumentSRAM(id, INST_AM2);
-                tmpInst[id].AM3 = ReadInstrumentSRAM(id, INST_AM3);
-                tmpInst[id].AM4 = ReadInstrumentSRAM(id, INST_AM4);
+                tmpInst[id].AM1 = SRAM_ReadInstrument(id, INST_AM1);
+                tmpInst[id].AM2 = SRAM_ReadInstrument(id, INST_AM2);
+                tmpInst[id].AM3 = SRAM_ReadInstrument(id, INST_AM3);
+                tmpInst[id].AM4 = SRAM_ReadInstrument(id, INST_AM4);
                 write_am1_d1r1(); write_am2_d1r2(); write_am3_d1r3(); write_am4_d1r4();
                 break;
             case 0x51:
@@ -4893,24 +4782,24 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
 
     // SSG-EG
     case 0x09:
-             if (fxValue == 0x10) { tmpInst[id].SSGEG1 = ReadInstrumentSRAM(id, INST_SSGEG1); write_ssgeg1(); }
+             if (fxValue == 0x10) { tmpInst[id].SSGEG1 = SRAM_ReadInstrument(id, INST_SSGEG1); write_ssgeg1(); }
         else if ((fxValue >= 0x11) && (fxValue <= 0x19)) { tmpInst[id].SSGEG1 = fxValue - 0x0A; write_ssgeg1(); }
 
-        else if (fxValue == 0x20) { tmpInst[id].SSGEG2 = ReadInstrumentSRAM(id, INST_SSGEG2); write_ssgeg2(); }
+        else if (fxValue == 0x20) { tmpInst[id].SSGEG2 = SRAM_ReadInstrument(id, INST_SSGEG2); write_ssgeg2(); }
         else if ((fxValue >= 0x21) && (fxValue <= 0x29)) { tmpInst[id].SSGEG2 = fxValue - 0x1A; write_ssgeg2(); }
 
-        else if (fxValue == 0x30) { tmpInst[id].SSGEG3 = ReadInstrumentSRAM(id, INST_SSGEG3); write_ssgeg3(); }
+        else if (fxValue == 0x30) { tmpInst[id].SSGEG3 = SRAM_ReadInstrument(id, INST_SSGEG3); write_ssgeg3(); }
         else if ((fxValue >= 0x31) && (fxValue <= 0x39)) { tmpInst[id].SSGEG3 = fxValue - 0x2A; write_ssgeg3(); }
 
-        else if (fxValue == 0x40) { tmpInst[id].SSGEG4 = ReadInstrumentSRAM(id, INST_SSGEG4); write_ssgeg4(); }
+        else if (fxValue == 0x40) { tmpInst[id].SSGEG4 = SRAM_ReadInstrument(id, INST_SSGEG4); write_ssgeg4(); }
         else if ((fxValue >= 0x41) && (fxValue <= 0x49)) { tmpInst[id].SSGEG4 = fxValue - 0x3A; write_ssgeg4(); }
 
         else if (fxValue == 0x00 || fxValue == 0x50) // reset all
         {
-            tmpInst[id].SSGEG1 = ReadInstrumentSRAM(id, INST_SSGEG1);
-            tmpInst[id].SSGEG2 = ReadInstrumentSRAM(id, INST_SSGEG2);
-            tmpInst[id].SSGEG3 = ReadInstrumentSRAM(id, INST_SSGEG3);
-            tmpInst[id].SSGEG4 = ReadInstrumentSRAM(id, INST_SSGEG4);
+            tmpInst[id].SSGEG1 = SRAM_ReadInstrument(id, INST_SSGEG1);
+            tmpInst[id].SSGEG2 = SRAM_ReadInstrument(id, INST_SSGEG2);
+            tmpInst[id].SSGEG3 = SRAM_ReadInstrument(id, INST_SSGEG3);
+            tmpInst[id].SSGEG4 = SRAM_ReadInstrument(id, INST_SSGEG4);
             write_ssgeg1(); write_ssgeg2(); write_ssgeg3(); write_ssgeg4();
         }
         else if ((fxValue >= 0x51) && (fxValue <= 0x59))
@@ -4923,7 +4812,7 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
 
     // ALGORITHM
     case 0x0A:
-        if (fxValue == 0) tmpInst[id].ALG = ReadInstrumentSRAM(id, INST_ALG);
+        if (fxValue == 0) tmpInst[id].ALG = SRAM_ReadInstrument(id, INST_ALG);
         else if (fxValue < 9) tmpInst[id].ALG = fxValue - 1;
         else return;
         write_fb_alg();
@@ -4931,7 +4820,7 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
 
     // OP1 FEEDBACK
     case 0x0B:
-        if (fxValue == 0) tmpInst[id].FB = ReadInstrumentSRAM(id, INST_FB);
+        if (fxValue == 0) tmpInst[id].FB = SRAM_ReadInstrument(id, INST_FB);
         else if (fxValue < 9) tmpInst[id].FB = fxValue - 1;
         else return;
         write_fb_alg();
@@ -4939,7 +4828,7 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
 
     // AMS
     case 0x0C:
-        if (fxValue == 0) tmpInst[id].AMS = ReadInstrumentSRAM(id, INST_FMS);
+        if (fxValue == 0) tmpInst[id].AMS = SRAM_ReadInstrument(id, INST_FMS);
         else if (fxValue < 8) tmpInst[id].AMS = fxValue;
         else if (fxValue == 0x0F) tmpInst[id].AMS = 0;
         else return;
@@ -4948,7 +4837,7 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
 
     // FMS
     case 0x0D:
-        if (fxValue == 0) tmpInst[id].FMS = ReadInstrumentSRAM(id, INST_AMS);
+        if (fxValue == 0) tmpInst[id].FMS = SRAM_ReadInstrument(id, INST_AMS);
         else if (fxValue < 4) tmpInst[id].FMS = fxValue;
         else if (fxValue == 0x0F) tmpInst[id].FMS = 0;
         else return;
@@ -4959,13 +4848,13 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
     case 0x0E:
         switch (fxValue)
         {
-        case 0x00: tmpInst[id].PAN = ReadInstrumentSRAM(id, INST_PAN);
+        case 0x00: tmpInst[id].PAN = SRAM_ReadInstrument(id, INST_PAN);
             break;
-        case 0x10: tmpInst[id].PAN = 2; if (matrixChannel == CHANNEL_FM6_DAC) dacPan = SOUND_PAN_LEFT;
+        case 0x10: tmpInst[id].PAN = 2; if (matrixChannel == CHANNEL_FM6_DAC) FM_CH6_DAC_Pan = SOUND_PAN_LEFT;
             break;
-        case 0x01: tmpInst[id].PAN = 1; if (matrixChannel == CHANNEL_FM6_DAC) dacPan = SOUND_PAN_RIGHT;
+        case 0x01: tmpInst[id].PAN = 1; if (matrixChannel == CHANNEL_FM6_DAC) FM_CH6_DAC_Pan = SOUND_PAN_RIGHT;
             break;
-        case 0x11: tmpInst[id].PAN = 3; if (matrixChannel == CHANNEL_FM6_DAC) dacPan = SOUND_PAN_CENTER;
+        case 0x11: tmpInst[id].PAN = 3; if (matrixChannel == CHANNEL_FM6_DAC) FM_CH6_DAC_Pan = SOUND_PAN_CENTER;
             break;
         case 0xFF: tmpInst[id].PAN = 0;
             break;
@@ -5017,11 +4906,11 @@ void ReColorsAndTranspose() // on color change
     {
         for (u8 row = 0; row < MATRIX_SCREEN_ROWS; row++)
         {
-            pt = ReadMatrixSRAM(ch, row + currentPage * MATRIX_SCREEN_ROWS);
-            tr = ReadMatrixTransposeSRAM(ch, row + currentPage * MATRIX_SCREEN_ROWS);
+            pt = SRAM_ReadMatrix(ch, row + currentPage * MATRIX_SCREEN_ROWS);
+            tr = SRAM_ReadMatrixTranspose(ch, row + currentPage * MATRIX_SCREEN_ROWS);
             if (pt != NULL)
             {
-                VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PATTERNCOLORS[ReadPatternColorSRAM(pt)]), ch*3+2, row+2);
+                VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PATTERNCOLORS[SRAM_ReadPatternColor(pt)]), ch*3+2, row+2);
             }
             else
             {
@@ -5033,85 +4922,75 @@ void ReColorsAndTranspose() // on color change
 }
 
 // instrument
-static inline u8 ReadInstrumentSRAM(u8 id, u16 param)
+static inline u8 SRAM_ReadInstrument(u8 id, u16 param)
 {
     return SRAMW_readByte((u32)INSTRUMENT_DATA + (id * INST_SIZE) + param);
 }
 
-void WriteInstrumentSRAM(u8 id, u16 param, u8 data)
+void SRAM_WriteInstrument(u8 id, u16 param, u8 data)
 {
     SRAMW_writeByte((u32)INSTRUMENT_DATA + (id * INST_SIZE) + param, data);
 }
 
 // pattern
-static inline u8 ReadPatternSRAM(u16 id, u8 line, u8 param)
+static inline u8 SRAM_ReadPattern(u16 id, u8 line, u8 param)
 {
     return SRAMW_readByte((u32)PATTERN_DATA + (id * PATTERN_SIZE) + (line * PATTERN_COLUMNS) + param);
 }
 
-void WritePatternSRAM(u16 id, u8 line, u8 param, u8 data)
+void SRAM_WritePattern(u16 id, u8 line, u8 param, u8 data)
 {
     SRAMW_writeByte((u32)PATTERN_DATA + (id * PATTERN_SIZE) + (line * PATTERN_COLUMNS) + param, data);
 }
 
-inline u8 ReadPatternColorSRAM(u16 id)
+inline u8 SRAM_ReadPatternColor(u16 id)
 {
     return SRAMW_readByte((u32)PATTERN_COLOR + id);
 }
 
-void WritePatternColorSRAM(u16 id, u8 color)
+void SRAM_WritePatternColor(u16 id, u8 color)
 {
     SRAMW_writeByte((u32)PATTERN_COLOR + id, color);
 }
 
-/*static inline u8 ReadPatternCommandMutedSRAM(u8 id)
-{
-    return SRAMW_readByte((u32)MUTE_COMMAND + channel);
-}
-
-void WritePatternCommandMutedSRAM(u8 id, u8 state)
-{
-    SRAMW_writeByte((u32)MUTE_COMMAND + id, state);
-}*/
-
 // matrix
-static inline u16 ReadMatrixSRAM(u8 channel, u8 line)
+static inline u16 SRAM_ReadMatrix(u8 channel, u8 line)
 {
     return SRAMW_readWord((u32)PATTERN_MATRIX + ((channel * MAX_MATRIX_ROWS) + line) * 2);
 }
 
-void WriteMatrixSRAM(u8 channel, u8 line, u16 data)
+void SRAM_WriteMatrix(u8 channel, u8 line, u16 data)
 {
     SRAMW_writeWord((u32)PATTERN_MATRIX + ((channel * MAX_MATRIX_ROWS) + line) * 2, data);
 }
 
-static inline s8 ReadMatrixTransposeSRAM(u8 channel, u8 line)
+static inline s8 SRAM_ReadMatrixTranspose(u8 channel, u8 line)
 {
     return SRAMW_readByte((u32)MATRIX_TRANSPOSE + ((channel * MAX_MATRIX_ROWS) + line));
 }
 
-void WriteMatrixTransposeSRAM(u8 channel, u8 line, s8 transpose)
+void SRAM_WriteMatrixTranspose(u8 channel, u8 line, s8 transpose)
 {
     SRAMW_writeByte((u32)MATRIX_TRANSPOSE + ((channel * MAX_MATRIX_ROWS) + line), transpose);
 }
 
-static inline u8 ReadMatrixChannelMutedSRAM(u8 channel)
+static inline u8 SRAM_ReadMatrixChannelMuted(u8 channel)
 {
     return SRAMW_readByte((u32)MUTE_CHANNEL + channel);
 }
 
-void WriteMatrixChannelMutedSRAM(u8 channel, u8 state)
+void SRAM_WriteMatrixChannelMuted(u8 channel, u8 state)
 {
     SRAMW_writeByte((u32)MUTE_CHANNEL + channel, state);
 }
 
 // pcm
-inline u32 ReadSampleRegionSRAM(u8 bank, u8 note, u8 byteNum)
+static inline u32 SRAM_ReadSampleRegion(u8 bank, u8 note, u8 byteNum)
 {
     return (u32)SRAMW_readByte((u32)SAMPLE_DATA + (bank * NOTE_TOTAL * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum);
 }
 
-void WriteSampleRegionSRAM(u8 bank, u8 note, u8 byteNum, u8 data)
+void SRAM_WriteSampleRegion(u8 bank, u8 note, u8 byteNum, u8 data)
 {
     SRAMW_writeByte((u32)SAMPLE_DATA + (bank * NOTE_TOTAL * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum, data);
 }
@@ -5167,14 +5046,14 @@ void InitTracker()
     // at dimensions 32x32, 32x64, 64x64, or 32x128, with up to 40x28 (1120) visible on screen
     VDP_setPlaneSize(128, 32, TRUE);
     VDP_setBGBAddress(0xC000);          // * $2000; 0xC000 default
-    VDP_setWindowAddress(0xA000);       // * $1000; 0xD000 default; WINDOW replaces BG_A when drawn, but ignores scrolling;
+    VDP_setWindowAddress(0x9000);       // * $1000; 0xD000 default; WINDOW replaces BG_A when drawn, but ignores scrolling;
     VDP_setBGAAddress(0xE000);          // * $2000; 0xE000 default
     VDP_setHScrollTableAddress(0xB800); // * $400; 0xF000 default
     VDP_setSpriteListAddress(0xBC00);   // * $400; 0xF400 default
     VDP_setScrollingMode(HSCROLL_PLANE, VSCROLL_COLUMN);
     VDP_setTextPlane(BG_A);
     VDP_loadFont(&custom_font, DMA);
-    VDP_setWindowHPos(FALSE, 0); // disable window, TRUE to enable
+    VDP_setWindowHPos(FALSE, 0);
     VDP_setWindowVPos(FALSE, 0);
 
     // BGR palettes
@@ -5247,7 +5126,7 @@ void InitTracker()
 
         channelNoteCut[channel]  = 0;
 
-        channelFlags[channel] = ReadMatrixChannelMutedSRAM(channel);
+        channelFlags[channel] = SRAM_ReadMatrixChannelMuted(channel);
         if (channelFlags[channel]) { VDP_fillTileMapRect(BG_B, NULL, (channel * 3) + 1, 1, 2, 1); }
         else
         {
@@ -5265,10 +5144,10 @@ void InitTracker()
         for (u16 i = 0; i <= MAX_INSTRUMENT; i++)
         {
             // create default instruments
-            WriteInstrumentSRAM(i, INST_MUL1, 1);
-            WriteInstrumentSRAM(i, INST_MUL2, 4);
-            WriteInstrumentSRAM(i, INST_MUL3, 2);
-            WriteInstrumentSRAM(i, INST_MUL4, 1);
+            SRAM_WriteInstrument(i, INST_MUL1, 1);
+            SRAM_WriteInstrument(i, INST_MUL2, 4);
+            SRAM_WriteInstrument(i, INST_MUL3, 2);
+            SRAM_WriteInstrument(i, INST_MUL4, 1);
             //{
             //0 	0 	0 	No change
             //0 	0 	1 	*(1+e)
@@ -5279,70 +5158,70 @@ void InitTracker()
             //1 	1 	0 	*(1-2e)
             //1 	1 	1 	*(1-3e)
             //}
-            WriteInstrumentSRAM(i, INST_DT1, 4);
-            WriteInstrumentSRAM(i, INST_DT2, 4);
-            WriteInstrumentSRAM(i, INST_DT3, 4);
-            WriteInstrumentSRAM(i, INST_DT4, 4);
+            SRAM_WriteInstrument(i, INST_DT1, 4);
+            SRAM_WriteInstrument(i, INST_DT2, 4);
+            SRAM_WriteInstrument(i, INST_DT3, 4);
+            SRAM_WriteInstrument(i, INST_DT4, 4);
 
-            WriteInstrumentSRAM(i, INST_TL1, 0x20);
-            WriteInstrumentSRAM(i, INST_TL2, 0x10);
-            WriteInstrumentSRAM(i, INST_TL3, 0x09);
-            WriteInstrumentSRAM(i, INST_TL4, 0x03);
+            SRAM_WriteInstrument(i, INST_TL1, 0x20);
+            SRAM_WriteInstrument(i, INST_TL2, 0x10);
+            SRAM_WriteInstrument(i, INST_TL3, 0x09);
+            SRAM_WriteInstrument(i, INST_TL4, 0x03);
 
-            WriteInstrumentSRAM(i, INST_RS1, 1);
-            WriteInstrumentSRAM(i, INST_RS2, 2);
-            WriteInstrumentSRAM(i, INST_RS3, 1);
-            WriteInstrumentSRAM(i, INST_RS4, 1);
+            SRAM_WriteInstrument(i, INST_RS1, 1);
+            SRAM_WriteInstrument(i, INST_RS2, 2);
+            SRAM_WriteInstrument(i, INST_RS3, 1);
+            SRAM_WriteInstrument(i, INST_RS4, 1);
 
-            WriteInstrumentSRAM(i, INST_AR1, 31);
-            WriteInstrumentSRAM(i, INST_AR2, 28);
-            WriteInstrumentSRAM(i, INST_AR3, 25);
-            WriteInstrumentSRAM(i, INST_AR4, 31);
+            SRAM_WriteInstrument(i, INST_AR1, 31);
+            SRAM_WriteInstrument(i, INST_AR2, 28);
+            SRAM_WriteInstrument(i, INST_AR3, 25);
+            SRAM_WriteInstrument(i, INST_AR4, 31);
 
-            WriteInstrumentSRAM(i, INST_D1R1, 5);
-            WriteInstrumentSRAM(i, INST_D1R2, 5);
-            WriteInstrumentSRAM(i, INST_D1R3, 5);
-            WriteInstrumentSRAM(i, INST_D1R4, 7);
+            SRAM_WriteInstrument(i, INST_D1R1, 5);
+            SRAM_WriteInstrument(i, INST_D1R2, 5);
+            SRAM_WriteInstrument(i, INST_D1R3, 5);
+            SRAM_WriteInstrument(i, INST_D1R4, 7);
 
-            WriteInstrumentSRAM(i, INST_D1L1, 2);
-            WriteInstrumentSRAM(i, INST_D1L2, 3);
-            WriteInstrumentSRAM(i, INST_D1L3, 2);
-            WriteInstrumentSRAM(i, INST_D1L4, 10);
+            SRAM_WriteInstrument(i, INST_D1L1, 2);
+            SRAM_WriteInstrument(i, INST_D1L2, 3);
+            SRAM_WriteInstrument(i, INST_D1L3, 2);
+            SRAM_WriteInstrument(i, INST_D1L4, 10);
 
-            WriteInstrumentSRAM(i, INST_AM1, 0);
-            WriteInstrumentSRAM(i, INST_AM2, 0);
-            WriteInstrumentSRAM(i, INST_AM3, 0);
-            WriteInstrumentSRAM(i, INST_AM4, 0);
+            SRAM_WriteInstrument(i, INST_AM1, 0);
+            SRAM_WriteInstrument(i, INST_AM2, 0);
+            SRAM_WriteInstrument(i, INST_AM3, 0);
+            SRAM_WriteInstrument(i, INST_AM4, 0);
 
-            WriteInstrumentSRAM(i, INST_D2R1, 2);
-            WriteInstrumentSRAM(i, INST_D2R2, 3);
-            WriteInstrumentSRAM(i, INST_D2R3, 2);
-            WriteInstrumentSRAM(i, INST_D2R4, 4);
+            SRAM_WriteInstrument(i, INST_D2R1, 2);
+            SRAM_WriteInstrument(i, INST_D2R2, 3);
+            SRAM_WriteInstrument(i, INST_D2R3, 2);
+            SRAM_WriteInstrument(i, INST_D2R4, 4);
 
-            WriteInstrumentSRAM(i, INST_RR1, 15);
-            WriteInstrumentSRAM(i, INST_RR2, 15);
-            WriteInstrumentSRAM(i, INST_RR3, 15);
-            WriteInstrumentSRAM(i, INST_RR4, 15);
+            SRAM_WriteInstrument(i, INST_RR1, 15);
+            SRAM_WriteInstrument(i, INST_RR2, 15);
+            SRAM_WriteInstrument(i, INST_RR3, 15);
+            SRAM_WriteInstrument(i, INST_RR4, 15);
 
-            WriteInstrumentSRAM(i, INST_SSGEG1, 7);// 4 bit (off + 8 values)
-            WriteInstrumentSRAM(i, INST_SSGEG2, 7);
-            WriteInstrumentSRAM(i, INST_SSGEG3, 7);
-            WriteInstrumentSRAM(i, INST_SSGEG4, 7);
+            SRAM_WriteInstrument(i, INST_SSGEG1, 7);// 4 bit (off + 8 values)
+            SRAM_WriteInstrument(i, INST_SSGEG2, 7);
+            SRAM_WriteInstrument(i, INST_SSGEG3, 7);
+            SRAM_WriteInstrument(i, INST_SSGEG4, 7);
 
-            WriteInstrumentSRAM(i, INST_FB, 3);
-            WriteInstrumentSRAM(i, INST_ALG, 3);
-            WriteInstrumentSRAM(i, INST_PAN, 3);
-            WriteInstrumentSRAM(i, INST_FMS, 0);
-            WriteInstrumentSRAM(i, INST_AMS, 0);
+            SRAM_WriteInstrument(i, INST_FB, 3);
+            SRAM_WriteInstrument(i, INST_ALG, 3);
+            SRAM_WriteInstrument(i, INST_PAN, 3);
+            SRAM_WriteInstrument(i, INST_FMS, 0);
+            SRAM_WriteInstrument(i, INST_AMS, 0);
 
             for (u8 j = 0; j < 16; j++)
             {
-                if (j == 0) WriteInstrumentSRAM(i, INST_VOL_TICK_01, SEQ_VOL_MIN_ATT); // no volume attenuation
-                else WriteInstrumentSRAM(i, INST_VOL_TICK_01 + j, SEQ_VOL_SKIP); // skip step
+                if (j == 0) SRAM_WriteInstrument(i, INST_VOL_TICK_01, SEQ_VOL_MIN_ATT); // no volume attenuation
+                else SRAM_WriteInstrument(i, INST_VOL_TICK_01 + j, SEQ_VOL_SKIP); // skip step
 
-                WriteInstrumentSRAM(i, INST_ARP_TICK_01 + j, NOTE_EMPTY);
+                SRAM_WriteInstrument(i, INST_ARP_TICK_01 + j, NOTE_EMPTY);
 
-                if (j < 8) WriteInstrumentSRAM(i, INST_NAME_1 + j, 0); // "--------" by default
+                if (j < 8) SRAM_WriteInstrument(i, INST_NAME_1 + j, 0); // "--------" by default
             }
         }
 
@@ -5354,31 +5233,31 @@ void InitTracker()
         {
             for (u8 j = 0; j < MAX_MATRIX_ROWS; j++) // 250
             {
-                WriteMatrixSRAM(i, j, NULL);
+                SRAM_WriteMatrix(i, j, NULL);
             }
         }
 
         // initialize patterns
         for (u16 i = 0; i <= MAX_PATTERN; i++)
         {
-            WritePatternColorSRAM(i, 0);
+            SRAM_WritePatternColor(i, 0);
             for (u8 j = 0; j <= PATTERN_ROW_LAST; j++)
             {
-                WritePatternSRAM(i, j, DATA_NOTE, NOTE_EMPTY);
-                WritePatternSRAM(i, j, DATA_INSTRUMENT, NULL);
-                WritePatternSRAM(i, j, DATA_FX1_TYPE, NULL);
-                WritePatternSRAM(i, j, DATA_FX1_VALUE, NULL);
-                WritePatternSRAM(i, j, DATA_FX2_TYPE, NULL);
-                WritePatternSRAM(i, j, DATA_FX2_VALUE, NULL);
-                WritePatternSRAM(i, j, DATA_FX3_TYPE, NULL);
-                WritePatternSRAM(i, j, DATA_FX3_VALUE, NULL);
+                SRAM_WritePattern(i, j, DATA_NOTE, NOTE_EMPTY);
+                SRAM_WritePattern(i, j, DATA_INSTRUMENT, NULL);
+                SRAM_WritePattern(i, j, DATA_FX1_TYPE, NULL);
+                SRAM_WritePattern(i, j, DATA_FX1_VALUE, NULL);
+                SRAM_WritePattern(i, j, DATA_FX2_TYPE, NULL);
+                SRAM_WritePattern(i, j, DATA_FX2_VALUE, NULL);
+                SRAM_WritePattern(i, j, DATA_FX3_TYPE, NULL);
+                SRAM_WritePattern(i, j, DATA_FX3_VALUE, NULL);
 #if (MD_TRACKER_VERSION == 5)
-                WritePatternSRAM(i, j, DATA_FX4_TYPE, NULL);
-                WritePatternSRAM(i, j, DATA_FX4_VALUE, NULL);
-                WritePatternSRAM(i, j, DATA_FX5_TYPE, NULL);
-                WritePatternSRAM(i, j, DATA_FX5_VALUE, NULL);
-                WritePatternSRAM(i, j, DATA_FX6_TYPE, NULL);
-                WritePatternSRAM(i, j, DATA_FX6_VALUE, NULL);
+                SRAM_WritePattern(i, j, DATA_FX4_TYPE, NULL);
+                SRAM_WritePattern(i, j, DATA_FX4_VALUE, NULL);
+                SRAM_WritePattern(i, j, DATA_FX5_TYPE, NULL);
+                SRAM_WritePattern(i, j, DATA_FX5_VALUE, NULL);
+                SRAM_WritePattern(i, j, DATA_FX6_TYPE, NULL);
+                SRAM_WritePattern(i, j, DATA_FX6_VALUE, NULL);
 #endif
             }
         }
@@ -5423,7 +5302,7 @@ void InitTracker()
     YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00111100);
     YM2612_enableDAC();
 
-    psg_noise_mode = PSG_TONAL_CH3_MUTED;
+    PSG_NoiseMode = PSG_TONAL_CH3_MUTED;
     PSG_setNoise(PSG_NOISE_TYPE_WHITE, PSG_NOISE_FREQ_TONE3);
 
     for (u16 id = 0; id <= MAX_INSTRUMENT; id++)
@@ -5441,6 +5320,8 @@ void DrawStaticHeaders()
     currentScreen = 2; DrawSelectionCursor(0, 0, 0); // instrument
     currentScreen = 1; DrawSelectionCursor(0, 0, 0); // pattern
     currentScreen = 0; DrawSelectionCursor(0, 0, 0); // matrix
+
+    //VDP_clearTileMap(WINDOW, 0, 40*28, TRUE); // BG_B still visible
 
     // ----------------------------------- matrix editor
     VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_VERSION),     38, 27); // version
@@ -5500,7 +5381,8 @@ void DrawStaticHeaders()
         VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPS + 1), 14, 27);
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPL), 19, 27);
         VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPL + 1), 20, 27);
-        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SLASH), 22, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SLASH), 22, 27);
+    DrawNum(BG_A, PAL1, "999", 9, 27); // default FPS
 
     //! for (u8 y=2; y<27; y++) VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 27, y); // fm/psg
 
@@ -5514,11 +5396,7 @@ void DrawStaticHeaders()
 
     for (u8 y=4; y<20; y++) // pattern effects separator dots
     {
-#if (MD_TRACKER_VERSION == 5)
         for (u8 x=49; x<59; x+=2)
-#elif (MD_TRACKER_VERSION == 2)
-        for (u8 x=49; x<55; x+=2)
-#endif
         {
             VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SEPARATOR), x, y);
             VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SEPARATOR), x + 20, y);

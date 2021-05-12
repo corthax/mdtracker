@@ -289,7 +289,7 @@ const u16 psgNoteMicrotone[96][16] =
 };
 
 // hBlank skips to frequency; max NTSC 13440Hz; PAL 11200Hz;
-const u8 pwmNoteTableNTSC[13] =
+/*const u8 pwmNoteTableNTSC[13] =
 {
     0,              // low       midi
     51, //103,      // 130.4    130.8
@@ -304,6 +304,6 @@ const u8 pwmNoteTableNTSC[13] =
     30, //61,       // 220.3    220
     28, //57,       // 235.7    233
     27, //54        // 248.8    246.9
-};
+};*/
 
 #endif // MDT_NOTETABLES_H_INCLUDED
