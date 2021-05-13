@@ -167,9 +167,9 @@
 
 void DrawStaticHeaders();
 void DrawPP();
-void DisplayPatternMatrix();
-void DisplayPatternEditor();
-void DisplayInstrumentEditor();
+static void DisplayPatternMatrix();
+static void DisplayPatternEditor();
+static void DisplayInstrumentEditor();
 void DrawSelectionCursor(u8 x, u8 y, u8 bClear);
 void DrawMatrixPlaybackCursor(u8 bClear);
 void ClearPatternPlaybackCursor();
