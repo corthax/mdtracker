@@ -130,6 +130,7 @@ static void SetBPM(u16 counter);
 static void WriteYM2612(u8 matrixChannel, u8 id);
 static void CacheIstrumentToRAM(u8 id);
 static void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue);
+static void ApplyCommand_DAC(u8 fxParam, u8 fxValue);
 static void ApplyCommand_Common(u8 matrixChannel, u8 fxParam, u8 fxValue);
 static void ApplyCommand_PSG(u8 fxParam, u8 fxValue);
 static void ChangeInstrumentParameter(s8 modifier);

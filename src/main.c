@@ -603,7 +603,7 @@ static inline void DoEngine()
                     SetChannelVolume(channel);
                 }
             }
-            else if (channelCurrentRowNote[channel] == NOTE_EMPTY)
+            else if (channelCurrentRowNote[channel] == NOTE_EMPTY && channelPreviousNote[channel] != NOTE_OFF)
             {
                 // no new note
                 _volValue = SRAM_ReadInstrument(channelVolSeqID[channel], ++channelSEQCounter_VOL[channel]);
@@ -620,10 +620,10 @@ static inline void DoEngine()
                 }
             }
         }
-        else // second pulses
+        else if (channelPreviousNote[channel] != NOTE_OFF) // second pulses
         {
             _volValue = SRAM_ReadInstrument(channelVolSeqID[channel], ++channelSEQCounter_VOL[channel]);
-            if (_volValue != SEQ_VOL_SKIP)
+            if (_volValue != SEQ_VOL_SKIP && channelPreviousNote[channel] != NOTE_OFF)
             {
                 channelSeqAttenuation[channel] = _volValue;
                 SetChannelVolume(channel);
@@ -663,7 +663,7 @@ static inline void DoEngine()
                     }
                 }
             }
-            else if (channelCurrentRowNote[channel] == NOTE_EMPTY)
+            else if (channelCurrentRowNote[channel] == NOTE_EMPTY && channelPreviousNote[channel] != NOTE_OFF)
             {
                 // no new note
                 _arpValue = SRAM_ReadInstrument(channelArpSeqID[channel], ++channelSEQCounter_ARP[channel]);
@@ -691,7 +691,7 @@ static inline void DoEngine()
                 }
             }
         }
-        else // second pulses
+        else if (channelPreviousNote[channel] != NOTE_OFF) // second pulses
         {
             _arpValue = SRAM_ReadInstrument(channelArpSeqID[channel], ++channelSEQCounter_ARP[channel]);
             if (_arpValue != NOTE_EMPTY)
@@ -727,16 +727,44 @@ static inline void DoEngine()
             {
                 _fxType = SRAM_ReadPattern(playingPatternID, playingPatternRow, type);
                 _fxValue = SRAM_ReadPattern(playingPatternID, playingPatternRow, val);
-                if (_fxType) {
+
+                if (_fxType)
+                {
                     ApplyCommand_Common(channel, _fxType, _fxValue);
-                    ApplyCommand_FM(channel, channelPreviousInstrument[channel], _fxType, _fxValue);
-                    ApplyCommand_PSG(_fxType, _fxValue);
-                    channelPreviousEffectType[channel][effect] = _fxType;
+
+                    switch (channel)
+                    {
+                    case CHANNEL_FM1: case CHANNEL_FM2: case CHANNEL_FM3_OP4: case CHANNEL_FM4: case CHANNEL_FM5:
+                        ApplyCommand_FM(channel, channelPreviousInstrument[channel], _fxType, _fxValue);
+                        break;
+                    case CHANNEL_FM6_DAC:
+                        ApplyCommand_DAC(_fxType, _fxValue);
+                        if (!bDAC_enable) ApplyCommand_FM(CHANNEL_FM6_DAC, channelPreviousInstrument[CHANNEL_FM6_DAC], _fxType, _fxValue);
+                        break;
+                    case CHANNEL_FM3_OP1: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP3:
+                        //ApplyCommand_Special(channel, channelPreviousInstrument[CHANNEL_FM3_OP4], _fxType, _fxValue);
+                        break;
+                    default: ApplyCommand_PSG(_fxType, _fxValue); break;
+                    }
                 }
-                else if (_fxValue) {
+                else if (_fxValue)
+                {
                     ApplyCommand_Common(channel, channelPreviousEffectType[channel][effect], _fxValue);
-                    ApplyCommand_FM(channel, channelPreviousInstrument[channel], channelPreviousEffectType[channel][effect], _fxValue);
-                    ApplyCommand_PSG(channelPreviousEffectType[channel][effect], _fxValue);
+
+                    switch (channel)
+                    {
+                    case CHANNEL_FM1: case CHANNEL_FM2: case CHANNEL_FM3_OP4: case CHANNEL_FM4: case CHANNEL_FM5:
+                        ApplyCommand_FM(channel, channelPreviousInstrument[channel], channelPreviousEffectType[channel][effect], _fxValue);
+                        break;
+                    case CHANNEL_FM6_DAC:
+                        ApplyCommand_DAC(channelPreviousEffectType[CHANNEL_FM6_DAC][effect], _fxValue);
+                        if (!bDAC_enable) ApplyCommand_FM(CHANNEL_FM6_DAC, channelPreviousInstrument[CHANNEL_FM6_DAC], channelPreviousEffectType[CHANNEL_FM6_DAC][effect], _fxValue);
+                        break;
+                    case CHANNEL_FM3_OP1: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP3:
+                        //ApplyCommand_Special(channel, channelPreviousInstrument[CHANNEL_FM3_OP4], channelPreviousEffectType[channel][effect], _fxValue);
+                        break;
+                    default: ApplyCommand_PSG(channelPreviousEffectType[channel][effect], _fxValue); break;
+                    }
                 }
             }
 
@@ -3609,8 +3637,8 @@ static void StopEffects(u8 channel)
 
     channelPreviousNote[channel] = NOTE_OFF;
 
-    channelSEQCounter_ARP[channel] = 0;
-    channelSEQCounter_VOL[channel] = 0;
+    channelSEQCounter_ARP[channel] = INST_ARP_TICK_01;
+    channelSEQCounter_VOL[channel] = INST_VOL_TICK_01;
 
     matrixRowJumpTo = OXFF;
     patternRowJumpTo = OXFF;
@@ -3719,9 +3747,9 @@ static inline void StopAllSound()
         channelAttenuation[channel] = 0;
         channelVolumeChangeSpeed[channel] = 0;
 
-        channelArpSeqID[channel] = NULL;
-        channelVolSeqID[channel] = NULL;
-        channelSeqAttenuation[channel] = SEQ_VOL_MIN_ATT;
+        //channelArpSeqID[channel] = NULL;
+        //channelVolSeqID[channel] = NULL;
+        //channelSeqAttenuation[channel] = SEQ_VOL_MIN_ATT;
     }
 }
 
@@ -4119,55 +4147,6 @@ static inline void ApplyCommand_Common(u8 matrixChannel, u8 fxParam, u8 fxValue)
         SetBPM(0);
         break;
 
-    // PCM SAMPLE BANK SET
-    case 0x16:
-        if (fxValue < 4) activeSampleBank = fxValue;
-        break;
-
-    // MSU MD CD audio PLAY ONCE
-    case 0x20:
-        if (fxValue == 0)
-        {
-            *mcd_cmd = MSU_PAUSE;
-            *mcd_arg = 0;
-            *mcd_cmd_ck = *mcd_cmd_ck + 1;
-        }
-        else
-        {
-            *mcd_cmd = MSU_PLAY | fxValue; // track number
-            *mcd_cmd_ck = *mcd_cmd_ck + 1;
-        }
-        break;
-
-    // MSU MD CD audio PLAY LOOP
-    case 0x21:
-        if (fxValue == 0)
-        {
-            *mcd_cmd = MSU_PAUSE;
-            *mcd_arg = 0;
-            *mcd_cmd_ck = *mcd_cmd_ck + 1;
-        }
-        else
-        {
-            *mcd_cmd = MSU_PLAY_LOOP | fxValue;
-            *mcd_cmd_ck = *mcd_cmd_ck + 1;
-        }
-        break;
-
-    // MSU MD CD audio SEEK TIME EMULATION
-    case 0x22:
-        if (fxValue == 0)
-        {
-            *mcd_cmd = MSU_SEEK_OFF;
-            *mcd_cmd_ck = *mcd_cmd_ck + 1;
-        }
-        else
-        {
-            *mcd_cmd = MSU_SEEK_ON;
-            *mcd_cmd_ck = *mcd_cmd_ck + 1;
-        }
-        break;
-
     // ------------------------------------------------------------------------
 
     // ARP SEQUENCE MODE
@@ -4366,6 +4345,76 @@ static inline void ApplyCommand_Common(u8 matrixChannel, u8 fxParam, u8 fxValue)
         }
         break;
     default: return; break;
+    }
+}
+
+static inline void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
+{
+    switch (fxParam)
+    {
+    // DAC
+    case 0x11:
+        if (fxValue == 0x00)
+        {
+            RequestZ80(); YM2612_disableDAC(); ReleaseZ80();
+            bDAC_enable = FALSE;
+        }
+        else if (fxValue == 0x01)
+        {
+            RequestZ80(); YM2612_enableDAC(); ReleaseZ80();
+            bDAC_enable = TRUE;
+        }
+        break;
+
+    // PCM SAMPLE BANK SET
+    case 0x16:
+        if (fxValue < 4) activeSampleBank = fxValue;
+        break;
+
+    // MSU MD CD audio PLAY ONCE
+    case 0x20:
+        if (fxValue == 0)
+        {
+            *mcd_cmd = MSU_PAUSE;
+            *mcd_arg = 0;
+            *mcd_cmd_ck = *mcd_cmd_ck + 1;
+        }
+        else
+        {
+            *mcd_cmd = MSU_PLAY | fxValue; // track number
+            *mcd_cmd_ck = *mcd_cmd_ck + 1;
+        }
+        break;
+
+    // MSU MD CD audio PLAY LOOP
+    case 0x21:
+        if (fxValue == 0)
+        {
+            *mcd_cmd = MSU_PAUSE;
+            *mcd_arg = 0;
+            *mcd_cmd_ck = *mcd_cmd_ck + 1;
+        }
+        else
+        {
+            *mcd_cmd = MSU_PLAY_LOOP | fxValue;
+            *mcd_cmd_ck = *mcd_cmd_ck + 1;
+        }
+        break;
+
+    // MSU MD CD audio SEEK TIME EMULATION
+    case 0x22:
+        if (fxValue == 0)
+        {
+            *mcd_cmd = MSU_SEEK_OFF;
+            *mcd_cmd_ck = *mcd_cmd_ck + 1;
+        }
+        else
+        {
+            *mcd_cmd = MSU_SEEK_ON;
+            *mcd_cmd_ck = *mcd_cmd_ck + 1;
+        }
+        break;
+    default: break;
     }
 }
 
@@ -4663,20 +4712,6 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
     // LFO FREQUENCY
     case 0x10:
         if (fxValue < 9) SetGlobalLFO(fxValue + 7); // 7 .. F
-        break;
-
-    // DAC
-    case 0x11:
-        if (fxValue == 0x00)
-        {
-            RequestZ80(); YM2612_disableDAC(); ReleaseZ80();
-            bDAC_enable = FALSE;
-        }
-        else if (fxValue == 0x01)
-        {
-            RequestZ80(); YM2612_enableDAC(); ReleaseZ80();
-            bDAC_enable = TRUE;
-        }
         break;
 
     // CH3 MODE
@@ -5223,7 +5258,7 @@ void InitTracker()
 
     if (SRAMW_readWord(DEAD_INSTRUMENT) != 0xDEAD) // there is no SRAM file, needs fresh init.
     {
-        SetBPM(H_INT_SKIP * 0x2D); // 140 BPM NTSC
+        SetBPM(H_INT_SKIP * 0xB0); // 140 BPM NTSC
         // init with default instrument; 49 non-global parameters (5 for whole channel, 11*4 per operator)
         DrawText(BG_A, PAL0, "GENERATING", 3, 3); DrawText(BG_A, PAL0, "MODULE", 14, 3); DrawText(BG_A, PAL0, "DATA", 21, 3);
         for (u16 i = 0; i <= MAX_INSTRUMENT; i++)
