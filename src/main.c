@@ -155,7 +155,8 @@ s8 patternCopyRangeStart = NOTHING;
 s8 patternCopyRangeEnd = NOTHING;
 
 u16 hIntToSkip = 0;
-s32 hIntCounter = 0;
+s16 hIntCounter = 0;
+bool doPulse = FALSE;
 
 u16 bgBaseTileIndex[4];
 u16 asciiBaseLetters, asciiBaseNumbers;
@@ -321,7 +322,16 @@ int main()
 	return(0);
 }
 
-static inline void hIntCallback() { hIntCounter--; } //! only counter
+static inline void hIntCallback()
+{
+    hIntCounter--;
+    if (!hIntCounter) // more stable, but can skip ticks. FPS independent
+    {
+        doPulse = TRUE;
+        hIntCounter = hIntToSkip;
+    }
+}
+
 static inline void vIntCallback()
 {
     static u32 _fps; // redraw only if FPS changes
@@ -332,7 +342,7 @@ static inline void vIntCallback()
     if (doCount)
     {
         buttonCounter--;
-        if (buttonCounter <= 0)
+        if (buttonCounter < 1)
         {
             buttonCounter = GUI_NAVIGATION_SPEED_COUNTER;
             switch (currentScreen)
@@ -797,7 +807,7 @@ static inline void DoEngine()
             seq_vol(channel);
 
             // commands
-            if (_inst)
+            if (_inst && channel < CHANNEL_PSG1) // ignore inst on PSG
             {
                 channelPreviousInstrument[channel] = _inst; // change current channel instrument for later use
                 apply_commands(); // update [tmpInst] if any commands, write command *registers*, recalculate *combined registers*
@@ -1044,12 +1054,16 @@ static inline void DoEngine()
 
             DrawMatrixPlaybackCursor(FALSE);
             hIntCounter = hIntToSkip; // reset h-int counter
+            doPulse = FALSE;
             SYS_enableInts();
         }
 
-        if (hIntCounter < 1) // counter overflow; do song tick
+        /*if (hIntCounter < 1) // counter overflow; do song tick
         {
-            hIntCounter = hIntToSkip; // reset counter
+            hIntCounter = hIntToSkip; // reset counter*/
+        if (doPulse)
+        {
+            doPulse = FALSE;
             if (pulseCounter == -1) pulseCounter = 1; else pulseCounter++;
             if (pulseCounter == maxPulse)
             {
@@ -1120,7 +1134,7 @@ static inline void DoEngine()
                     }
                     else playingPatternRow = 0;
 
-                    if (playingMatrixRow == MAX_MATRIX_ROWS)
+                    if (playingMatrixRow == MATRIX_ROWS_TOTAL)
                     {
                         playingMatrixRow = 0;
                     }
@@ -1163,10 +1177,10 @@ inline static s16 FindUnusedPattern()
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_BIGDOT), x, y);
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_BIGDOT), x+1, y);
 
-    for (s16 pattern = 1; pattern <= MAX_PATTERN; pattern++) {
+    for (s16 pattern = 1; pattern <= PATTERN_LAST; pattern++) {
         used = FALSE;
         for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++) {
-            for (u8 line = 0; line < MAX_MATRIX_ROWS; line++) { if (SRAM_ReadMatrix(channel, line) == pattern) { used = TRUE; break; } }
+            for (u8 line = 0; line < MATRIX_ROWS_TOTAL; line++) { if (SRAM_ReadMatrix(channel, line) == pattern) { used = TRUE; break; } }
             if (used) break;
         }
         if (!used) return pattern;
@@ -1238,8 +1252,8 @@ static void ChangeMatrixValue(s16 mod)
             else
             {
                 value += mod;
-                if (value < 1) value = MAX_PATTERN; // last pattern
-                else if (value > MAX_PATTERN) value = 1; // first pattern
+                if (value < 1) value = PATTERN_LAST; // last pattern
+                else if (value > PATTERN_LAST) value = 1; // first pattern
             }
             SRAM_WriteMatrix(selectedMatrixChannel, selectedMatrixRow, value); bRefreshScreen = TRUE; matrixRowToRefresh = selectedMatrixRow;
             lastEnteredPattern = value;
@@ -1403,13 +1417,13 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                         for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
                         {
                             channelFlags[channel] = TRUE; // un-mute all
-                            SRAM_WriteMatrixChannelMuted(channel, TRUE);
+                            SRAM_WriteMatrixChannelEnabled(channel, TRUE);
                             VDP_fillTileMapRect(BG_B, NULL, (channel * 3) + 1, 1, 2, 1); // clear all marks
                         }
                     }
                     else
                     {
-                        SRAM_WriteMatrixChannelMuted(selectedMatrixChannel, FALSE);
+                        SRAM_WriteMatrixChannelEnabled(selectedMatrixChannel, FALSE);
                         FillRowRight(BG_B, PAL1, FALSE, FALSE, GUI_MUTE, 2,(selectedMatrixChannel * 3) + 1, 1 ); // set mark
                     }
                     break;
@@ -1422,11 +1436,11 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                         {
                             if (channel != selectedMatrixChannel) FillRowRight(BG_B, PAL1, FALSE, FALSE, GUI_MUTE, 2,(channel * 3) + 1, 1 ); // set all marks (except selected)
                             channelFlags[channel] = FALSE; // mute all
-                            SRAM_WriteMatrixChannelMuted(channel, FALSE);
+                            SRAM_WriteMatrixChannelEnabled(channel, FALSE);
                         }
                     }
                     channelFlags[selectedMatrixChannel] = TRUE; // un-mute selected
-                    SRAM_WriteMatrixChannelMuted(selectedMatrixChannel, TRUE);
+                    SRAM_WriteMatrixChannelEnabled(selectedMatrixChannel, TRUE);
                     VDP_fillTileMapRect(BG_B, NULL, (selectedMatrixChannel * 3) + 1, 1, 2, 1); // clear mark
                     break;
 
@@ -1434,7 +1448,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                     for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
                     {
                         channelFlags[channel] = TRUE; // un-mute all
-                        SRAM_WriteMatrixChannelMuted(channel, TRUE);
+                        SRAM_WriteMatrixChannelEnabled(channel, TRUE);
                         VDP_fillTileMapRect(BG_B, NULL, (channel * 3) + 1, 1, 2, 1); // clear all marks
                     }
                     break;
@@ -1575,7 +1589,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                 case BUTTON_UP: // delete selected matrix row
                     if (selectedMatrixScreenRow < MATRIX_SCREEN_ROWS)
                     {
-                        for (u8 row = selectedMatrixRow; row < MAX_MATRIX_ROWS-2; row++)
+                        for (u8 row = selectedMatrixRow; row < MATRIX_ROWS_TOTAL-2; row++)
                         {
                             for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
                             {
@@ -1586,7 +1600,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                         // always clear last row
                         for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
                         {
-                            SRAM_WriteMatrix(channel, MAX_MATRIX_ROWS-1, 0);
+                            SRAM_WriteMatrix(channel, MATRIX_ROWS_TOTAL-1, 0);
                         }
 
                         matrixRowToRefresh = OXFFFF;
@@ -1597,7 +1611,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                 case BUTTON_DOWN: // copy and insert selected matrix row
                     if (selectedMatrixScreenRow < MATRIX_SCREEN_ROWS)
                     {
-                        for (u8 row = MAX_MATRIX_ROWS-2; row >= selectedMatrixRow; row--)
+                        for (u8 row = MATRIX_ROWS_TOTAL-2; row >= selectedMatrixRow; row--)
                         {
                             for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
                             {
@@ -3187,7 +3201,9 @@ static inline void DisplayInstrumentEditor()
 //! slow
 static inline void SetChannelVolume(u8 matrixChannel)
 {
-    static s16 volT = 0, volT1 = 0, volT2 = 0, volT3 =0 , volT4 = 0; // volume, tremolo
+    static s16 volT = 0, volT1 = 0, volT2 = 0, volT3 = 0, volT4 = 0; // volume, tremolo
+    static u8 port = 0;
+    static u8 fmChannel = 0;
 
     if (matrixChannel > CHANNEL_FM6_DAC) // PSG
     {
@@ -3206,9 +3222,6 @@ static inline void SetChannelVolume(u8 matrixChannel)
     }
     else // FM
     {
-        static u8 port = 0;
-        static u8 fmChannel = 0;
-
         auto inline void set_normal_channel_vol()
         {
             switch (tmpInst[channelPreviousInstrument[matrixChannel]].ALG)
@@ -3747,9 +3760,10 @@ static inline void StopAllSound()
         channelAttenuation[channel] = 0;
         channelVolumeChangeSpeed[channel] = 0;
 
-        //channelArpSeqID[channel] = NULL;
-        //channelVolSeqID[channel] = NULL;
-        //channelSeqAttenuation[channel] = SEQ_VOL_MIN_ATT;
+        channelSeqAttenuation[channel] = SEQ_VOL_MIN_ATT;
+
+        channelArpSeqID[channel] = 0;
+        channelVolSeqID[channel] = 0;
     }
 }
 
@@ -3875,7 +3889,10 @@ inline void CalculateCombined(u8 id, u8 reg)
         case COMB_D1L_RR_4:      tmpInst[id].D1L4_RR4 = (tmpInst[id].D1L4 << 4) | tmpInst[id].RR4; break;
     }
 }
-
+ //! will apply channels attenuation multiple times to the same cached instrument
+ //! not apply each channel attenuation to instrument multiple times
+ //!? need temp instrument per channel for manipulation, not the global cached one
+ //!? just dont play the same instrument on multiple channels at the same time when want it to have different FM parameters
 static inline void SetChannelBaseVolume(u8 matrixChannel, u8 id)
 {
     auto void set_normal_slots()
@@ -3886,41 +3903,41 @@ static inline void SetChannelBaseVolume(u8 matrixChannel, u8 id)
             {
             case 0: case 1: case 2: case 3:
                 channelSlotBaseLevel[matrixChannel][3] = tmpInst[id].TL4;
-                tmpInst[id].TL4 += channelAttenuation[matrixChannel];
-                if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL4 = 0x7F;
+                /*tmpInst[id].TL4 += channelAttenuation[matrixChannel];
+                if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL4 = 0x7F;*/
                 break;
             case 4:
                 channelSlotBaseLevel[matrixChannel][2] = tmpInst[id].TL3;
                 channelSlotBaseLevel[matrixChannel][3] = tmpInst[id].TL4;
-                tmpInst[id].TL3 += channelAttenuation[matrixChannel];
+                /*tmpInst[id].TL3 += channelAttenuation[matrixChannel];
                 tmpInst[id].TL4 += channelAttenuation[matrixChannel];
                 if (tmpInst[id].TL3 > 0x7F) tmpInst[id].TL3 = 0x7F;
-                if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL4 = 0x7F;
+                if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL4 = 0x7F;*/
                 break;
             case 5: case 6:
                 channelSlotBaseLevel[matrixChannel][1] = tmpInst[id].TL2;
                 channelSlotBaseLevel[matrixChannel][2] = tmpInst[id].TL3;
                 channelSlotBaseLevel[matrixChannel][3] = tmpInst[id].TL4;
-                tmpInst[id].TL2 += channelAttenuation[matrixChannel];
+                /*tmpInst[id].TL2 += channelAttenuation[matrixChannel];
                 tmpInst[id].TL3 += channelAttenuation[matrixChannel];
                 tmpInst[id].TL4 += channelAttenuation[matrixChannel];
                 if (tmpInst[id].TL2 > 0x7F) tmpInst[id].TL2 = 0x7F;
                 if (tmpInst[id].TL3 > 0x7F) tmpInst[id].TL3 = 0x7F;
-                if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL4 = 0x7F;
+                if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL4 = 0x7F;*/
                 break;
             case 7:
                 channelSlotBaseLevel[matrixChannel][0] = tmpInst[id].TL1;
                 channelSlotBaseLevel[matrixChannel][1] = tmpInst[id].TL2;
                 channelSlotBaseLevel[matrixChannel][2] = tmpInst[id].TL3;
                 channelSlotBaseLevel[matrixChannel][3] = tmpInst[id].TL4;
-                tmpInst[id].TL1 += channelAttenuation[matrixChannel];
+                /*tmpInst[id].TL1 += channelAttenuation[matrixChannel];
                 tmpInst[id].TL2 += channelAttenuation[matrixChannel];
                 tmpInst[id].TL3 += channelAttenuation[matrixChannel];
                 tmpInst[id].TL4 += channelAttenuation[matrixChannel];
                 if (tmpInst[id].TL1 > 0x7F) tmpInst[id].TL1 = 0x7F;
                 if (tmpInst[id].TL2 > 0x7F) tmpInst[id].TL2 = 0x7F;
                 if (tmpInst[id].TL3 > 0x7F) tmpInst[id].TL3 = 0x7F;
-                if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL4 = 0x7F;
+                if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL4 = 0x7F;*/
                 break;
             }
         }
@@ -3933,32 +3950,32 @@ static inline void SetChannelBaseVolume(u8 matrixChannel, u8 id)
         else
         {
             channelSlotBaseLevel[matrixChannel][3] = tmpInst[id].TL4;
-            tmpInst[id].TL4 += channelAttenuation[matrixChannel];
-            if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL1 = 0x7F;
+            /*tmpInst[id].TL4 += channelAttenuation[matrixChannel];
+            if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL1 = 0x7F;*/
         }
         break;
     case CHANNEL_FM3_OP3:
         if (FM_CH3_Mode != CH3_NORMAL)
         {
             channelSlotBaseLevel[matrixChannel][2] = tmpInst[id].TL3;
-            tmpInst[id].TL3 += channelAttenuation[matrixChannel];
-            if (tmpInst[id].TL3 > 0x7F) tmpInst[id].TL1 = 0x7F;
+            /*tmpInst[id].TL3 += channelAttenuation[matrixChannel];
+            if (tmpInst[id].TL3 > 0x7F) tmpInst[id].TL1 = 0x7F;*/
         }
         break;
     case CHANNEL_FM3_OP2:
         if (FM_CH3_Mode != CH3_NORMAL)
         {
             channelSlotBaseLevel[matrixChannel][1] = tmpInst[id].TL2;
-            tmpInst[id].TL2 += channelAttenuation[matrixChannel];
-            if (tmpInst[id].TL2 > 0x7F) tmpInst[id].TL1 = 0x7F;
+            /*tmpInst[id].TL2 += channelAttenuation[matrixChannel];
+            if (tmpInst[id].TL2 > 0x7F) tmpInst[id].TL1 = 0x7F;*/
         }
         break;
     case CHANNEL_FM3_OP1:
         if (FM_CH3_Mode != CH3_NORMAL)
         {
             channelSlotBaseLevel[matrixChannel][0] = tmpInst[id].TL1;
-            tmpInst[id].TL1 += channelAttenuation[matrixChannel];
-            if (tmpInst[id].TL1 > 0x7F) tmpInst[id].TL1 = 0x7F;
+            /*tmpInst[id].TL1 += channelAttenuation[matrixChannel];
+            if (tmpInst[id].TL1 > 0x7F) tmpInst[id].TL1 = 0x7F;*/
         }
         break;
     default:
@@ -3988,7 +4005,7 @@ static inline void WriteYM2612(u8 matrixChannel, u8 id)
             port = PORT_2; fmChannel = matrixChannel - 6; // 0, 1, 2
             break;
         }
-        SetChannelBaseVolume(matrixChannel, id); //! SLOW!
+        SetChannelBaseVolume(matrixChannel, id);
 
         switch (fmChannel)
         {
@@ -4312,7 +4329,7 @@ static inline void ApplyCommand_Common(u8 matrixChannel, u8 fxParam, u8 fxValue)
 
     // MATRIX JUMP
     case 0x52:
-        if (fxValue > 0 && fxValue <= MAX_MATRIX_ROWS) matrixRowJumpTo = fxValue - 1;
+        if (fxValue > 0 && fxValue <= MATRIX_ROWS_TOTAL) matrixRowJumpTo = fxValue - 1;
         else if (fxValue == 0) matrixRowJumpTo = playingMatrixRow + 1;
         else matrixRowJumpTo = OXFF;
         break;
@@ -4448,6 +4465,7 @@ static inline void ApplyCommand_PSG(u8 fxParam, u8 fxValue)
     }
 }
 
+//! FM parameters will change for the same instrument on every channel
 static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // matrix channel; instrument id
 {
     static u16 port = 0;
@@ -5076,30 +5094,30 @@ void SRAM_WritePatternColor(u16 id, u8 color)
 // matrix
 static inline u16 SRAM_ReadMatrix(u8 channel, u8 line)
 {
-    return SRAMW_readWord((u32)PATTERN_MATRIX + ((channel * MAX_MATRIX_ROWS) + line) * 2);
+    return SRAMW_readWord((u32)PATTERN_MATRIX + ((channel * MATRIX_ROWS_TOTAL) + line) * 2);
 }
 
 void SRAM_WriteMatrix(u8 channel, u8 line, u16 data)
 {
-    SRAMW_writeWord((u32)PATTERN_MATRIX + ((channel * MAX_MATRIX_ROWS) + line) * 2, data);
+    SRAMW_writeWord((u32)PATTERN_MATRIX + ((channel * MATRIX_ROWS_TOTAL) + line) * 2, data);
 }
 
 static inline s8 SRAM_ReadMatrixTranspose(u8 channel, u8 line)
 {
-    return SRAMW_readByte((u32)MATRIX_TRANSPOSE + ((channel * MAX_MATRIX_ROWS) + line));
+    return SRAMW_readByte((u32)MATRIX_TRANSPOSE + ((channel * MATRIX_ROWS_TOTAL) + line));
 }
 
 void SRAM_WriteMatrixTranspose(u8 channel, u8 line, s8 transpose)
 {
-    SRAMW_writeByte((u32)MATRIX_TRANSPOSE + ((channel * MAX_MATRIX_ROWS) + line), transpose);
+    SRAMW_writeByte((u32)MATRIX_TRANSPOSE + ((channel * MATRIX_ROWS_TOTAL) + line), transpose);
 }
 
-static inline u8 SRAM_ReadMatrixChannelMuted(u8 channel)
+static inline u8 SRAM_ReadMatrixChannelEnabled(u8 channel)
 {
     return SRAMW_readByte((u32)MUTE_CHANNEL + channel);
 }
 
-void SRAM_WriteMatrixChannelMuted(u8 channel, u8 state)
+void SRAM_WriteMatrixChannelEnabled(u8 channel, u8 state)
 {
     SRAMW_writeByte((u32)MUTE_CHANNEL + channel, state);
 }
@@ -5213,7 +5231,6 @@ void InitTracker()
     VDP_waitDMACompletion();
 
     VDP_setTextPalette(PAL0);
-    DrawStaticHeaders();
 
     SRAM_enable();
 
@@ -5246,7 +5263,7 @@ void InitTracker()
 
         channelNoteCut[channel]  = 0;
 
-        channelFlags[channel] = SRAM_ReadMatrixChannelMuted(channel);
+        channelFlags[channel] = SRAM_ReadMatrixChannelEnabled(channel);
         if (channelFlags[channel]) { VDP_fillTileMapRect(BG_B, NULL, (channel * 3) + 1, 1, 2, 1); }
         else
         {
@@ -5256,18 +5273,19 @@ void InitTracker()
         }
     }
 
-    if (SRAMW_readWord(DEAD_INSTRUMENT) != 0xDEAD) // there is no SRAM file, needs fresh init.
+    // there is no SRAM file, needs fresh init.
+    if (SRAMW_readWord(DEAD_INSTRUMENT) != 0xDEAD)
     {
-        SetBPM(H_INT_SKIP * 0xB0); // 140 BPM NTSC
+        SetBPM(H_INT_SKIP * 0xB3); // 140 BPM NTSC
         // init with default instrument; 49 non-global parameters (5 for whole channel, 11*4 per operator)
         DrawText(BG_A, PAL0, "GENERATING", 3, 3); DrawText(BG_A, PAL0, "MODULE", 14, 3); DrawText(BG_A, PAL0, "DATA", 21, 3);
-        for (u16 i = 0; i <= MAX_INSTRUMENT; i++)
+        for (u16 inst = 0; inst <= MAX_INSTRUMENT; inst++)
         {
             // create default instruments
-            SRAM_WriteInstrument(i, INST_MUL1, 1);
-            SRAM_WriteInstrument(i, INST_MUL2, 4);
-            SRAM_WriteInstrument(i, INST_MUL3, 2);
-            SRAM_WriteInstrument(i, INST_MUL4, 1);
+            SRAM_WriteInstrument(inst, INST_MUL1, 1);
+            SRAM_WriteInstrument(inst, INST_MUL2, 4);
+            SRAM_WriteInstrument(inst, INST_MUL3, 2);
+            SRAM_WriteInstrument(inst, INST_MUL4, 1);
             //{
             //0 	0 	0 	No change
             //0 	0 	1 	*(1+e)
@@ -5278,70 +5296,68 @@ void InitTracker()
             //1 	1 	0 	*(1-2e)
             //1 	1 	1 	*(1-3e)
             //}
-            SRAM_WriteInstrument(i, INST_DT1, 4);
-            SRAM_WriteInstrument(i, INST_DT2, 4);
-            SRAM_WriteInstrument(i, INST_DT3, 4);
-            SRAM_WriteInstrument(i, INST_DT4, 4);
+            SRAM_WriteInstrument(inst, INST_DT1, 4);
+            SRAM_WriteInstrument(inst, INST_DT2, 4);
+            SRAM_WriteInstrument(inst, INST_DT3, 4);
+            SRAM_WriteInstrument(inst, INST_DT4, 4);
 
-            SRAM_WriteInstrument(i, INST_TL1, 0x20);
-            SRAM_WriteInstrument(i, INST_TL2, 0x10);
-            SRAM_WriteInstrument(i, INST_TL3, 0x09);
-            SRAM_WriteInstrument(i, INST_TL4, 0x03);
+            SRAM_WriteInstrument(inst, INST_TL1, 0x20);
+            SRAM_WriteInstrument(inst, INST_TL2, 0x10);
+            SRAM_WriteInstrument(inst, INST_TL3, 0x09);
+            SRAM_WriteInstrument(inst, INST_TL4, 0x03);
 
-            SRAM_WriteInstrument(i, INST_RS1, 1);
-            SRAM_WriteInstrument(i, INST_RS2, 2);
-            SRAM_WriteInstrument(i, INST_RS3, 1);
-            SRAM_WriteInstrument(i, INST_RS4, 1);
+            SRAM_WriteInstrument(inst, INST_RS1, 1);
+            SRAM_WriteInstrument(inst, INST_RS2, 2);
+            SRAM_WriteInstrument(inst, INST_RS3, 1);
+            SRAM_WriteInstrument(inst, INST_RS4, 1);
 
-            SRAM_WriteInstrument(i, INST_AR1, 31);
-            SRAM_WriteInstrument(i, INST_AR2, 28);
-            SRAM_WriteInstrument(i, INST_AR3, 25);
-            SRAM_WriteInstrument(i, INST_AR4, 31);
+            SRAM_WriteInstrument(inst, INST_AR1, 31);
+            SRAM_WriteInstrument(inst, INST_AR2, 28);
+            SRAM_WriteInstrument(inst, INST_AR3, 25);
+            SRAM_WriteInstrument(inst, INST_AR4, 31);
 
-            SRAM_WriteInstrument(i, INST_D1R1, 5);
-            SRAM_WriteInstrument(i, INST_D1R2, 5);
-            SRAM_WriteInstrument(i, INST_D1R3, 5);
-            SRAM_WriteInstrument(i, INST_D1R4, 7);
+            SRAM_WriteInstrument(inst, INST_D1R1, 5);
+            SRAM_WriteInstrument(inst, INST_D1R2, 5);
+            SRAM_WriteInstrument(inst, INST_D1R3, 5);
+            SRAM_WriteInstrument(inst, INST_D1R4, 7);
 
-            SRAM_WriteInstrument(i, INST_D1L1, 2);
-            SRAM_WriteInstrument(i, INST_D1L2, 3);
-            SRAM_WriteInstrument(i, INST_D1L3, 2);
-            SRAM_WriteInstrument(i, INST_D1L4, 10);
+            SRAM_WriteInstrument(inst, INST_D1L1, 2);
+            SRAM_WriteInstrument(inst, INST_D1L2, 3);
+            SRAM_WriteInstrument(inst, INST_D1L3, 2);
+            SRAM_WriteInstrument(inst, INST_D1L4, 10);
 
-            SRAM_WriteInstrument(i, INST_AM1, 0);
-            SRAM_WriteInstrument(i, INST_AM2, 0);
-            SRAM_WriteInstrument(i, INST_AM3, 0);
-            SRAM_WriteInstrument(i, INST_AM4, 0);
+            SRAM_WriteInstrument(inst, INST_AM1, 0);
+            SRAM_WriteInstrument(inst, INST_AM2, 0);
+            SRAM_WriteInstrument(inst, INST_AM3, 0);
+            SRAM_WriteInstrument(inst, INST_AM4, 0);
 
-            SRAM_WriteInstrument(i, INST_D2R1, 2);
-            SRAM_WriteInstrument(i, INST_D2R2, 3);
-            SRAM_WriteInstrument(i, INST_D2R3, 2);
-            SRAM_WriteInstrument(i, INST_D2R4, 4);
+            SRAM_WriteInstrument(inst, INST_D2R1, 2);
+            SRAM_WriteInstrument(inst, INST_D2R2, 3);
+            SRAM_WriteInstrument(inst, INST_D2R3, 2);
+            SRAM_WriteInstrument(inst, INST_D2R4, 4);
 
-            SRAM_WriteInstrument(i, INST_RR1, 15);
-            SRAM_WriteInstrument(i, INST_RR2, 15);
-            SRAM_WriteInstrument(i, INST_RR3, 15);
-            SRAM_WriteInstrument(i, INST_RR4, 15);
+            SRAM_WriteInstrument(inst, INST_RR1, 15);
+            SRAM_WriteInstrument(inst, INST_RR2, 15);
+            SRAM_WriteInstrument(inst, INST_RR3, 15);
+            SRAM_WriteInstrument(inst, INST_RR4, 15);
 
-            SRAM_WriteInstrument(i, INST_SSGEG1, 7);// 4 bit (off + 8 values)
-            SRAM_WriteInstrument(i, INST_SSGEG2, 7);
-            SRAM_WriteInstrument(i, INST_SSGEG3, 7);
-            SRAM_WriteInstrument(i, INST_SSGEG4, 7);
+            SRAM_WriteInstrument(inst, INST_SSGEG1, 7);// 4 bit (off + 8 values)
+            SRAM_WriteInstrument(inst, INST_SSGEG2, 7);
+            SRAM_WriteInstrument(inst, INST_SSGEG3, 7);
+            SRAM_WriteInstrument(inst, INST_SSGEG4, 7);
 
-            SRAM_WriteInstrument(i, INST_FB, 3);
-            SRAM_WriteInstrument(i, INST_ALG, 3);
-            SRAM_WriteInstrument(i, INST_PAN, 3);
-            SRAM_WriteInstrument(i, INST_FMS, 0);
-            SRAM_WriteInstrument(i, INST_AMS, 0);
+            SRAM_WriteInstrument(inst, INST_FB, 3);
+            SRAM_WriteInstrument(inst, INST_ALG, 3);
+            SRAM_WriteInstrument(inst, INST_PAN, 3);
+            SRAM_WriteInstrument(inst, INST_FMS, 0);
+            SRAM_WriteInstrument(inst, INST_AMS, 0);
 
-            for (u8 j = 0; j < 16; j++)
+            for (u8 pulse = 0; pulse < 16; pulse++)
             {
-                if (j == 0) SRAM_WriteInstrument(i, INST_VOL_TICK_01, SEQ_VOL_MIN_ATT); // no volume attenuation
-                else SRAM_WriteInstrument(i, INST_VOL_TICK_01 + j, SEQ_VOL_SKIP); // skip step
-
-                SRAM_WriteInstrument(i, INST_ARP_TICK_01 + j, NOTE_EMPTY);
-
-                if (j < 8) SRAM_WriteInstrument(i, INST_NAME_1 + j, 0); // "--------" by default
+                if (!pulse) SRAM_WriteInstrument(inst, INST_VOL_TICK_01, SEQ_VOL_MIN_ATT); // no volume attenuation
+                else SRAM_WriteInstrument(inst, INST_VOL_TICK_01 + pulse, SEQ_VOL_SKIP); // skip step
+                SRAM_WriteInstrument(inst, INST_ARP_TICK_01 + pulse, NOTE_EMPTY);
+                if (pulse < 8) SRAM_WriteInstrument(inst, INST_NAME_1 + pulse, 0); // "--------" by default
             }
         }
 
@@ -5349,36 +5365,38 @@ void InitTracker()
         SRAMW_writeWord(DEAD_INSTRUMENT, 0xDEAD); // checker
 
         // init matrix
-        for (u8 i = CHANNEL_FM1; i < CHANNELS_TOTAL; i++) // 12
+        for (u8 channel = CHANNEL_FM1; channel < CHANNELS_TOTAL; channel++)
         {
-            for (u8 j = 0; j < MAX_MATRIX_ROWS; j++) // 250
+            SRAM_WriteMatrixChannelEnabled(channel, TRUE); // enable channel
+            channelFlags[channel] = TRUE;
+            VDP_fillTileMapRect(BG_B, NULL, (channel * 3) + 1, 1, 2, 1);
+
+            for (u8 row = 0; row < MATRIX_ROWS_TOTAL; row++) // 250
             {
-                SRAM_WriteMatrix(i, j, NULL);
+                SRAM_WriteMatrix(channel, row, NULL);
             }
         }
 
         // initialize patterns
-        for (u16 i = 0; i <= MAX_PATTERN; i++)
+        for (u16 pattern = 0; pattern <= PATTERN_LAST; pattern++)
         {
-            SRAM_WritePatternColor(i, 0);
-            for (u8 j = 0; j <= PATTERN_ROW_LAST; j++)
+            SRAM_WritePatternColor(pattern, 0);
+            for (u8 row = 0; row <= PATTERN_ROW_LAST; row++)
             {
-                SRAM_WritePattern(i, j, DATA_NOTE, NOTE_EMPTY);
-                SRAM_WritePattern(i, j, DATA_INSTRUMENT, NULL);
-                SRAM_WritePattern(i, j, DATA_FX1_TYPE, NULL);
-                SRAM_WritePattern(i, j, DATA_FX1_VALUE, NULL);
-                SRAM_WritePattern(i, j, DATA_FX2_TYPE, NULL);
-                SRAM_WritePattern(i, j, DATA_FX2_VALUE, NULL);
-                SRAM_WritePattern(i, j, DATA_FX3_TYPE, NULL);
-                SRAM_WritePattern(i, j, DATA_FX3_VALUE, NULL);
-#if (MD_TRACKER_VERSION == 5)
-                SRAM_WritePattern(i, j, DATA_FX4_TYPE, NULL);
-                SRAM_WritePattern(i, j, DATA_FX4_VALUE, NULL);
-                SRAM_WritePattern(i, j, DATA_FX5_TYPE, NULL);
-                SRAM_WritePattern(i, j, DATA_FX5_VALUE, NULL);
-                SRAM_WritePattern(i, j, DATA_FX6_TYPE, NULL);
-                SRAM_WritePattern(i, j, DATA_FX6_VALUE, NULL);
-#endif
+                SRAM_WritePattern(pattern, row, DATA_NOTE, NOTE_EMPTY);
+                SRAM_WritePattern(pattern, row, DATA_INSTRUMENT, NULL);
+                SRAM_WritePattern(pattern, row, DATA_FX1_TYPE, NULL);
+                SRAM_WritePattern(pattern, row, DATA_FX1_VALUE, NULL);
+                SRAM_WritePattern(pattern, row, DATA_FX2_TYPE, NULL);
+                SRAM_WritePattern(pattern, row, DATA_FX2_VALUE, NULL);
+                SRAM_WritePattern(pattern, row, DATA_FX3_TYPE, NULL);
+                SRAM_WritePattern(pattern, row, DATA_FX3_VALUE, NULL);
+                SRAM_WritePattern(pattern, row, DATA_FX4_TYPE, NULL);
+                SRAM_WritePattern(pattern, row, DATA_FX4_VALUE, NULL);
+                SRAM_WritePattern(pattern, row, DATA_FX5_TYPE, NULL);
+                SRAM_WritePattern(pattern, row, DATA_FX5_VALUE, NULL);
+                SRAM_WritePattern(pattern, row, DATA_FX6_TYPE, NULL);
+                SRAM_WritePattern(pattern, row, DATA_FX6_VALUE, NULL);
             }
         }
     }
@@ -5431,6 +5449,8 @@ void InitTracker()
         instrumentIsMuted[id] = INST_PLAY;
     }
 
+    DrawStaticHeaders();
+
     SYS_enableInts();
 }
 
@@ -5441,7 +5461,7 @@ void DrawStaticHeaders()
     currentScreen = 1; DrawSelectionCursor(0, 0, 0); // pattern
     currentScreen = 0; DrawSelectionCursor(0, 0, 0); // matrix
 
-    //VDP_clearTileMap(WINDOW, 0, 40*28, TRUE); // BG_B still visible
+    //VDP_clearTileMap(WINDOW, 0, 40*28, TRUE); // BG_B is still visible
 
     // ----------------------------------- matrix editor
     VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_VERSION),     38, 27); // version
