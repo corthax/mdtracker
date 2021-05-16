@@ -118,20 +118,21 @@ void DrawHex2(u8 pal, u16 number, u8 x, u8 y);
 void FillRowRight(u8 plane, u8 pal, u8 flipV, u8 flipH, u8 guiSymbol, u8 fillCount, u8 startX, u8 y);
 
 static void DoEngine();
-static void SetPitchFM(u8 matrixChannel, u8 note);
-static void SetPitchPSG(u8 matrixChannel, u8 note);
-static void PlayNote(u8 note, u8 matrixChannel);
-static void StopChannelSound(u8 channel);
+static void SetPitchFM(u8 mtxCh, u8 note);
+static void SetPitchPSG(u8 mtxCh, u8 note);
+static void PlayNote(u8 note, u8 mtxCh);
+static void StopChannelSound(u8 mtxCh);
 static void StopAllSound();
-static void StopEffects(u8 channel);
+static void StopEffects(u8 mtxCh);
 static void SetGlobalLFO(u8 freq);
-static void SetChannelVolume(u8 channel);
+static void SetChannelVolume(u8 mtxCh);
+static void SetChannelBaseVolume_FM(u8 mtxCh, u8 id);
 static void SetBPM(u16 counter);
-static void WriteYM2612(u8 matrixChannel, u8 id);
+static void WriteYM2612(u8 mtxCh, u8 id);
 static void CacheIstrumentToRAM(u8 id);
-static void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue);
+static void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue);
 static void ApplyCommand_DAC(u8 fxParam, u8 fxValue);
-static void ApplyCommand_Common(u8 matrixChannel, u8 fxParam, u8 fxValue);
+static void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue);
 static void ApplyCommand_PSG(u8 fxParam, u8 fxValue);
 static void ChangeInstrumentParameter(s8 modifier);
 static void ChangePatternParameter(s8 note, s8 par);
@@ -143,7 +144,7 @@ static void hIntCallback();
 static void vIntCallback();
 static void YM2612_writeRegZ80(u16 part, u8 reg, u8 data);
 static s16 FindUnusedPattern();
-void CalculateCombined(u8 id, u8 reg);
+void CalculateCombined(u8 fmCh, u8 reg);
 
 // temporal instrument storage
 struct Instrument

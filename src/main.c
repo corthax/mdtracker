@@ -175,6 +175,7 @@ u32 BPM = 0;
 u32 PPS = 0;
 
 Instrument tmpInst[MAX_INSTRUMENT+1]; // cache instruments to RAM for faster access
+Instrument chInst[6]; // to apply commands
 
 u16 msu_drv();
 vu16 *mcd_cmd = (vu16 *) 0xA12010;  // command
@@ -740,6 +741,7 @@ static inline void DoEngine()
 
                 if (_fxType)
                 {
+                    channelPreviousEffectType[channel][effect] = _fxType;
                     ApplyCommand_Common(channel, _fxType, _fxValue);
 
                     switch (channel)
@@ -752,7 +754,7 @@ static inline void DoEngine()
                         if (!bDAC_enable) ApplyCommand_FM(CHANNEL_FM6_DAC, channelPreviousInstrument[CHANNEL_FM6_DAC], _fxType, _fxValue);
                         break;
                     case CHANNEL_FM3_OP1: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP3:
-                        //ApplyCommand_Special(channel, channelPreviousInstrument[CHANNEL_FM3_OP4], _fxType, _fxValue);
+                        //ApplyCommand_FM_SP(channel, channelPreviousInstrument[CHANNEL_FM3_OP4], _fxType, _fxValue);
                         break;
                     default: ApplyCommand_PSG(_fxType, _fxValue); break;
                     }
@@ -810,8 +812,10 @@ static inline void DoEngine()
             if (_inst && channel < CHANNEL_PSG1) // ignore inst on PSG
             {
                 channelPreviousInstrument[channel] = _inst; // change current channel instrument for later use
-                apply_commands(); // update [tmpInst] if any commands, write command *registers*, recalculate *combined registers*
-                WriteYM2612(channel, _inst); //!slow! write all FM registers from [tmpInst]; all [tmpInst] are re-cached at play from SRAM to RAM
+                //CopyCachedInst();
+                //apply_commands();
+                WriteYM2612(channel, _inst);
+                apply_commands();
             }
             else
             {
@@ -3198,80 +3202,80 @@ static inline void DisplayInstrumentEditor()
         if (instrumentParameterToRefresh < 235) bRefreshScreen = FALSE; // put last case here; redraw only changed parameter
     }
 }
-//! slow
-static inline void SetChannelVolume(u8 matrixChannel)
+// only attenuate, not increase
+static inline void SetChannelVolume(u8 mtxCh)
 {
     static s16 volT = 0, volT1 = 0, volT2 = 0, volT3 = 0, volT4 = 0; // volume, tremolo
     static u8 port = 0;
     static u8 fmChannel = 0;
 
-    if (matrixChannel > CHANNEL_FM6_DAC) // PSG
+    if (mtxCh > CHANNEL_FM6_DAC) // PSG
     {
-        if (bPsgIsPlayingNote[matrixChannel - CHANNEL_PSG1] == TRUE)
+        if (bPsgIsPlayingNote[mtxCh - CHANNEL_PSG1] == TRUE)
         {
-            volT =// channelBaseVolume[matrixChannel] +
-            channelAttenuation[matrixChannel] / 8 +
-            channelSeqAttenuation[matrixChannel] / 8 +
-            channelTremolo[matrixChannel];
+            volT =// channelBaseVolume[mtxCh] +
+            channelAttenuation[mtxCh] / 8 +
+            channelSeqAttenuation[mtxCh] / 8 +
+            channelTremolo[mtxCh];
 
             if (volT > PSG_ENVELOPE_MIN) volT = PSG_ENVELOPE_MIN;
             //else if (volT < PSG_ENVELOPE_MAX) volT = PSG_ENVELOPE_MAX;
 
-            PSG_setEnvelope(matrixChannel - CHANNEL_PSG1, (u8)volT);
+            PSG_setEnvelope(mtxCh - CHANNEL_PSG1, (u8)volT);
         }
     }
     else // FM
     {
         auto inline void set_normal_channel_vol()
         {
-            switch (tmpInst[channelPreviousInstrument[matrixChannel]].ALG)
+            switch (tmpInst[channelPreviousInstrument[mtxCh]].ALG)
             {
             case 0: case 1: case 2: case 3:
                 volT4 =
-                    channelSlotBaseLevel[matrixChannel][3] +
-                    channelAttenuation[matrixChannel] +
-                    channelSeqAttenuation[matrixChannel] +
-                    channelTremolo[matrixChannel];
+                    channelSlotBaseLevel[mtxCh][3] +
+                    channelAttenuation[mtxCh] +
+                    channelSeqAttenuation[mtxCh] +
+                    channelTremolo[mtxCh];
                 if (volT4 > 0x7F) volT4 = 0x7F;
                 YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
                 break;
             case 4:
                 volT3 =
-                    channelSlotBaseLevel[matrixChannel][2] +
-                    channelAttenuation[matrixChannel] +
-                    channelSeqAttenuation[matrixChannel] +
-                    channelTremolo[matrixChannel];
+                    channelSlotBaseLevel[mtxCh][2] +
+                    channelAttenuation[mtxCh] +
+                    channelSeqAttenuation[mtxCh] +
+                    channelTremolo[mtxCh];
                 if (volT3 > 0x7F) volT3 = 0x7F;
 
                 volT4 =
-                    channelSlotBaseLevel[matrixChannel][3] +
-                    channelAttenuation[matrixChannel] +
-                    channelSeqAttenuation[matrixChannel] +
-                    channelTremolo[matrixChannel];
+                    channelSlotBaseLevel[mtxCh][3] +
+                    channelAttenuation[mtxCh] +
+                    channelSeqAttenuation[mtxCh] +
+                    channelTremolo[mtxCh];
                 if (volT4 > 0x7F) volT4 = 0x7F;
                 YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + fmChannel, (u8)volT3);
                 YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
                 break;
             case 5: case 6:
                 volT2 =
-                    channelSlotBaseLevel[matrixChannel][1] +
-                    channelAttenuation[matrixChannel] +
-                    channelSeqAttenuation[matrixChannel] +
-                    channelTremolo[matrixChannel];
+                    channelSlotBaseLevel[mtxCh][1] +
+                    channelAttenuation[mtxCh] +
+                    channelSeqAttenuation[mtxCh] +
+                    channelTremolo[mtxCh];
                 if (volT2 > 0x7F) volT2 = 0x7F;
 
                 volT3 =
-                    channelSlotBaseLevel[matrixChannel][2] +
-                    channelAttenuation[matrixChannel] +
-                    channelSeqAttenuation[matrixChannel] +
-                    channelTremolo[matrixChannel];
+                    channelSlotBaseLevel[mtxCh][2] +
+                    channelAttenuation[mtxCh] +
+                    channelSeqAttenuation[mtxCh] +
+                    channelTremolo[mtxCh];
                 if (volT3 > 0x7F) volT3 = 0x7F;
 
                 volT4 =
-                    channelSlotBaseLevel[matrixChannel][3] +
-                    channelAttenuation[matrixChannel] +
-                    channelSeqAttenuation[matrixChannel] +
-                    channelTremolo[matrixChannel];
+                    channelSlotBaseLevel[mtxCh][3] +
+                    channelAttenuation[mtxCh] +
+                    channelSeqAttenuation[mtxCh] +
+                    channelTremolo[mtxCh];
                 if (volT4 > 0x7F) volT4 = 0x7F;
 
                 YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + fmChannel, (u8)volT2);
@@ -3280,31 +3284,31 @@ static inline void SetChannelVolume(u8 matrixChannel)
                 break;
             case 7:
                 volT1 =
-                    channelSlotBaseLevel[matrixChannel][0] +
-                    channelAttenuation[matrixChannel] +
-                    channelSeqAttenuation[matrixChannel] +
-                    channelTremolo[matrixChannel];
+                    channelSlotBaseLevel[mtxCh][0] +
+                    channelAttenuation[mtxCh] +
+                    channelSeqAttenuation[mtxCh] +
+                    channelTremolo[mtxCh];
                 if (volT1 > 0x7F) volT1 = 0x7F;
 
                 volT2 =
-                    channelSlotBaseLevel[matrixChannel][1] +
-                    channelAttenuation[matrixChannel] +
-                    channelSeqAttenuation[matrixChannel] +
-                    channelTremolo[matrixChannel];
+                    channelSlotBaseLevel[mtxCh][1] +
+                    channelAttenuation[mtxCh] +
+                    channelSeqAttenuation[mtxCh] +
+                    channelTremolo[mtxCh];
                 if (volT2 > 0x7F) volT2 = 0x7F;
 
                 volT3 =
-                    channelSlotBaseLevel[matrixChannel][2] +
-                    channelAttenuation[matrixChannel] +
-                    channelSeqAttenuation[matrixChannel] +
-                    channelTremolo[matrixChannel];
+                    channelSlotBaseLevel[mtxCh][2] +
+                    channelAttenuation[mtxCh] +
+                    channelSeqAttenuation[mtxCh] +
+                    channelTremolo[mtxCh];
                 if (volT3 > 0x7F) volT3 = 0x7F;
 
                 volT4 =
-                    channelSlotBaseLevel[matrixChannel][3] +
-                    channelAttenuation[matrixChannel] +
-                    channelSeqAttenuation[matrixChannel] +
-                    channelTremolo[matrixChannel];
+                    channelSlotBaseLevel[mtxCh][3] +
+                    channelAttenuation[mtxCh] +
+                    channelSeqAttenuation[mtxCh] +
+                    channelTremolo[mtxCh];
                 if (volT4 > 0x7F) volT4 = 0x7F;
 
                 YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + fmChannel, (u8)volT1);
@@ -3317,51 +3321,51 @@ static inline void SetChannelVolume(u8 matrixChannel)
 
         auto inline void set_special_channel_vol()
         {
-            switch (matrixChannel)
+            switch (mtxCh)
             {
             case CHANNEL_FM3_OP4:
                 volT4 =
-                    channelSlotBaseLevel[matrixChannel][3] +
-                    channelAttenuation[matrixChannel] +
-                    channelSeqAttenuation[matrixChannel] +
-                    channelTremolo[matrixChannel];
+                    channelSlotBaseLevel[mtxCh][3] +
+                    channelAttenuation[mtxCh] +
+                    channelSeqAttenuation[mtxCh] +
+                    channelTremolo[mtxCh];
                 if (volT4 > 0x7F) volT4 = 0x7F;
                 YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
                 break;
             case CHANNEL_FM3_OP3:
                 volT3 =
-                    channelSlotBaseLevel[matrixChannel][2] +
-                    channelAttenuation[matrixChannel] +
-                    channelSeqAttenuation[matrixChannel] +
-                    channelTremolo[matrixChannel];
+                    channelSlotBaseLevel[mtxCh][2] +
+                    channelAttenuation[mtxCh] +
+                    channelSeqAttenuation[mtxCh] +
+                    channelTremolo[mtxCh];
                 if (volT3 > 0x7F) volT3 = 0x7F;
                 YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + fmChannel, (u8)volT3);
                 break;
             case CHANNEL_FM3_OP2:
                 volT2 =
-                    channelSlotBaseLevel[matrixChannel][1] +
-                    channelAttenuation[matrixChannel] +
-                    channelSeqAttenuation[matrixChannel] +
-                    channelTremolo[matrixChannel];
+                    channelSlotBaseLevel[mtxCh][1] +
+                    channelAttenuation[mtxCh] +
+                    channelSeqAttenuation[mtxCh] +
+                    channelTremolo[mtxCh];
                 if (volT2 > 0x7F) volT2 = 0x7F;
                 YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + fmChannel, (u8)volT2);
                 break;
             case CHANNEL_FM3_OP1:
                 volT1 =
-                    channelSlotBaseLevel[matrixChannel][0] +
-                    channelAttenuation[matrixChannel] +
-                    channelSeqAttenuation[matrixChannel] +
-                    channelTremolo[matrixChannel];
+                    channelSlotBaseLevel[mtxCh][0] +
+                    channelAttenuation[mtxCh] +
+                    channelSeqAttenuation[mtxCh] +
+                    channelTremolo[mtxCh];
                 if (volT1 > 0x7F) volT1 = 0x7F;
                 YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + fmChannel, (u8)volT1);
                 break;
             }
         }
 
-        switch (matrixChannel)
+        switch (mtxCh)
         {
         case CHANNEL_FM1: case CHANNEL_FM2:
-            port = PORT_1; fmChannel = matrixChannel;
+            port = PORT_1; fmChannel = mtxCh;
             set_normal_channel_vol();
             break;
         case CHANNEL_FM3_OP4:
@@ -3373,7 +3377,7 @@ static inline void SetChannelVolume(u8 matrixChannel)
             if (FM_CH3_Mode == CH3_SPECIAL) { port = PORT_1; fmChannel = 2; set_special_channel_vol();  }
             break;
         case CHANNEL_FM4: case CHANNEL_FM5: case CHANNEL_FM6_DAC:
-            port = PORT_2; fmChannel = matrixChannel - 6;
+            port = PORT_2; fmChannel = mtxCh - 6;
             set_normal_channel_vol();
             break;
         default: break;
@@ -3392,30 +3396,30 @@ static inline void ReleaseZ80()
     if (Z80_isBusTaken()) Z80_releaseBus();
 }
 
-static inline void SetPitchPSG(u8 matrixChannel, u8 note)
+static inline void SetPitchPSG(u8 mtxCh, u8 note)
 {
     static s8 key = 0;
 
-    key = note + channelModNotePitch[matrixChannel] + channelModNoteVibrato[matrixChannel];
+    key = note + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh];
 
     if (key < PSG_LOWEST_NOTE) { key = PSG_LOWEST_NOTE;
-        channelPitchSlideSpeed[matrixChannel] = 0; }
+        channelPitchSlideSpeed[mtxCh] = 0; }
     else if (key > NOTE_MAX) { key = NOTE_MAX;
-        channelPitchSlideSpeed[matrixChannel] = 0; }
+        channelPitchSlideSpeed[mtxCh] = 0; }
 
     auto void setvol()
     {
-        channelBaseVolume[matrixChannel] = PSG_ENVELOPE_MAX;
-        SetChannelVolume(matrixChannel);
+        //channelBaseVolume[mtxCh] = PSG_ENVELOPE_MAX;
+        SetChannelVolume(mtxCh);
     }
 
-    if (channelFlags[matrixChannel])
+    if (channelFlags[mtxCh])
     {
-        switch (matrixChannel)
+        switch (mtxCh)
         {
         case CHANNEL_PSG1: case CHANNEL_PSG2:
             setvol();
-            PSG_setTone(matrixChannel - 9, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[matrixChannel] / 2]);
+            PSG_setTone(mtxCh - 9, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]);
             break;
         case CHANNEL_PSG3:
             switch (PSG_NoiseMode)
@@ -3425,7 +3429,7 @@ static inline void SetPitchPSG(u8 matrixChannel, u8 note)
                 break;
             case PSG_TONAL_CH3_NOT_MUTED: case PSG_FIXED:
                 setvol();
-                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[matrixChannel] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
+                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
                 break;
             }
             break;
@@ -3435,11 +3439,11 @@ static inline void SetPitchPSG(u8 matrixChannel, u8 note)
             case PSG_TONAL_CH3_MUTED:
                 setvol();
                 PSG_setEnvelope(2, PSG_ENVELOPE_MIN); // mute PSG3 channel
-                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[matrixChannel] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
+                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
                 break;
             case PSG_TONAL_CH3_NOT_MUTED:
                 setvol();
-                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[matrixChannel] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
+                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
                 break;
              case PSG_FIXED:
                 setvol();
@@ -3451,7 +3455,7 @@ static inline void SetPitchPSG(u8 matrixChannel, u8 note)
 }
 
 // DAC is also here
-static inline void SetPitchFM(u8 matrixChannel, u8 note)
+static inline void SetPitchFM(u8 mtxCh, u8 note)
 {
     static u8 part1 = 0, part2 = 0, noteFreqID = 0;
     static s8 key = 0;
@@ -3469,25 +3473,25 @@ static inline void SetPitchFM(u8 matrixChannel, u8 note)
     }
 
     // CSM
-    if ((matrixChannel == CHANNEL_FM3_OP4) && (FM_CH3_Mode == CH3_SPECIAL_CSM || FM_CH3_Mode == CH3_SPECIAL_CSM_OFF))
+    if ((mtxCh == CHANNEL_FM3_OP4) && (FM_CH3_Mode == CH3_SPECIAL_CSM || FM_CH3_Mode == CH3_SPECIAL_CSM_OFF))
     {
-       key = FM_CH3_OpFreq[0] + channelModNotePitch[matrixChannel] + channelModNoteVibrato[matrixChannel];
+       key = FM_CH3_OpFreq[0] + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh];
     }
     // Normal or Special
     else
     {
-        key = note + channelModNotePitch[matrixChannel] + channelModNoteVibrato[matrixChannel];
+        key = note + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh];
     }
 
-    if ((key > -1) && (key < NOTE_TOTAL) && channelFlags[matrixChannel])
+    if ((key > -1) && (key < NOTE_TOTAL) && channelFlags[mtxCh])
     {
         noteFreqID = key;
         while (noteFreqID > 11) noteFreqID -= 12;
 
-        part1 = ((key / 12) << 3) | (noteMicrotone[noteFreqID][(u8)channelFinalPitch[matrixChannel]] >> 8);
-        part2 = 0b0000000011111111 & noteMicrotone[noteFreqID][(u8)channelFinalPitch[matrixChannel]];
+        part1 = ((key / 12) << 3) | (noteMicrotone[noteFreqID][(u8)channelFinalPitch[mtxCh]] >> 8);
+        part2 = 0b0000000011111111 & noteMicrotone[noteFreqID][(u8)channelFinalPitch[mtxCh]];
 
-        switch (matrixChannel)
+        switch (mtxCh)
         {
         case CHANNEL_FM1:
             YM2612_writeRegZ80(PORT_1, YM2612REG_CH1_FREQ_MSB, part1);
@@ -3589,7 +3593,7 @@ static inline void SetPitchFM(u8 matrixChannel, u8 note)
     }
     else
     {
-        channelPitchSlideSpeed[matrixChannel]= 0;
+        channelPitchSlideSpeed[mtxCh]= 0;
     }
 }
 
@@ -3837,299 +3841,294 @@ static inline void CacheIstrumentToRAM(u8 id)
     tmpInst[id].SSGEG4 = SRAM_ReadInstrument(id, INST_SSGEG4);
 
     // calculate YM2612 combined registers from module data
-    CalculateCombined(id, COMB_FB_ALG);
-    CalculateCombined(id, COMB_PAN_AMS_FMS);
+    tmpInst[id].FB_ALG = (tmpInst[id].FB << 3) | tmpInst[id].ALG;
+    tmpInst[id].PAN_AMS_FMS = ((tmpInst[id].PAN << 6) | (tmpInst[id].AMS << 3)) | tmpInst[id].FMS;
 
-    CalculateCombined(id, COMB_DT_MUL_1);
-    CalculateCombined(id, COMB_DT_MUL_2);
-    CalculateCombined(id, COMB_DT_MUL_3);
-    CalculateCombined(id, COMB_DT_MUL_4);
+    tmpInst[id].DT1_MUL1 = (tmpInst[id].DT1 << 4) | tmpInst[id].MUL1;
+    tmpInst[id].DT2_MUL2 = (tmpInst[id].DT2 << 4) | tmpInst[id].MUL2;
+    tmpInst[id].DT3_MUL3 = (tmpInst[id].DT3 << 4) | tmpInst[id].MUL3;
+    tmpInst[id].DT4_MUL4 = (tmpInst[id].DT4 << 4) | tmpInst[id].MUL4;
 
-    CalculateCombined(id, COMB_RS_AR_1);
-    CalculateCombined(id, COMB_RS_AR_2);
-    CalculateCombined(id, COMB_RS_AR_3);
-    CalculateCombined(id, COMB_RS_AR_4);
+    tmpInst[id].RS1_AR1 = (tmpInst[id].RS1 << 6) | tmpInst[id].AR1;
+    tmpInst[id].RS2_AR2 = (tmpInst[id].RS2 << 6) | tmpInst[id].AR2;
+    tmpInst[id].RS3_AR3 = (tmpInst[id].RS3 << 6) | tmpInst[id].AR3;
+    tmpInst[id].RS4_AR4 = (tmpInst[id].RS4 << 6) | tmpInst[id].AR4;
 
-    CalculateCombined(id, COMB_AM_D1R_1);
-    CalculateCombined(id, COMB_AM_D1R_2);
-    CalculateCombined(id, COMB_AM_D1R_3);
-    CalculateCombined(id, COMB_AM_D1R_4);
+    tmpInst[id].AM1_D1R1 = (tmpInst[id].AM1 << 7) | tmpInst[id].D1R1;
+    tmpInst[id].AM2_D1R2 = (tmpInst[id].AM2 << 7) | tmpInst[id].D1R2;
+    tmpInst[id].AM3_D1R3 = (tmpInst[id].AM3 << 7) | tmpInst[id].D1R3;
+    tmpInst[id].AM4_D1R4 = (tmpInst[id].AM4 << 7) | tmpInst[id].D1R4;
 
-    CalculateCombined(id, COMB_D1L_RR_1);
-    CalculateCombined(id, COMB_D1L_RR_2);
-    CalculateCombined(id, COMB_D1L_RR_3);
-    CalculateCombined(id, COMB_D1L_RR_4);
+    tmpInst[id].D1L1_RR1 = (tmpInst[id].D1L1 << 4) | tmpInst[id].RR1;
+    tmpInst[id].D1L2_RR2 = (tmpInst[id].D1L2 << 4) | tmpInst[id].RR2;
+    tmpInst[id].D1L3_RR3 = (tmpInst[id].D1L3 << 4) | tmpInst[id].RR3;
+    tmpInst[id].D1L4_RR4 = (tmpInst[id].D1L4 << 4) | tmpInst[id].RR4;
 }
 
-inline void CalculateCombined(u8 id, u8 reg)
+inline void CalculateCombined(u8 fmCh, u8 reg)
 {
     switch (reg)
     {
-        case COMB_FB_ALG:        tmpInst[id].FB_ALG = (tmpInst[id].FB << 3) | tmpInst[id].ALG; break;
-        case COMB_PAN_AMS_FMS:   tmpInst[id].PAN_AMS_FMS = ((tmpInst[id].PAN << 6) | (tmpInst[id].AMS << 3)) | tmpInst[id].FMS; break;
+        case COMB_FB_ALG:        chInst[fmCh].FB_ALG = (chInst[fmCh].FB << 3) | chInst[fmCh].ALG; break;
+        case COMB_PAN_AMS_FMS:   chInst[fmCh].PAN_AMS_FMS = ((chInst[fmCh].PAN << 6) | (chInst[fmCh].AMS << 3)) | chInst[fmCh].FMS; break;
 
-        case COMB_DT_MUL_1:      tmpInst[id].DT1_MUL1 = (tmpInst[id].DT1 << 4) | tmpInst[id].MUL1; break;
-        case COMB_DT_MUL_2:      tmpInst[id].DT2_MUL2 = (tmpInst[id].DT2 << 4) | tmpInst[id].MUL2; break;
-        case COMB_DT_MUL_3:      tmpInst[id].DT3_MUL3 = (tmpInst[id].DT3 << 4) | tmpInst[id].MUL3; break;
-        case COMB_DT_MUL_4:      tmpInst[id].DT4_MUL4 = (tmpInst[id].DT4 << 4) | tmpInst[id].MUL4; break;
+        case COMB_DT_MUL_1:      chInst[fmCh].DT1_MUL1 = (chInst[fmCh].DT1 << 4) | chInst[fmCh].MUL1; break;
+        case COMB_DT_MUL_2:      chInst[fmCh].DT2_MUL2 = (chInst[fmCh].DT2 << 4) | chInst[fmCh].MUL2; break;
+        case COMB_DT_MUL_3:      chInst[fmCh].DT3_MUL3 = (chInst[fmCh].DT3 << 4) | chInst[fmCh].MUL3; break;
+        case COMB_DT_MUL_4:      chInst[fmCh].DT4_MUL4 = (chInst[fmCh].DT4 << 4) | chInst[fmCh].MUL4; break;
 
-        case COMB_RS_AR_1:       tmpInst[id].RS1_AR1 = (tmpInst[id].RS1 << 6) | tmpInst[id].AR1; break;
-        case COMB_RS_AR_2:       tmpInst[id].RS2_AR2 = (tmpInst[id].RS2 << 6) | tmpInst[id].AR2; break;
-        case COMB_RS_AR_3:       tmpInst[id].RS3_AR3 = (tmpInst[id].RS3 << 6) | tmpInst[id].AR3; break;
-        case COMB_RS_AR_4:       tmpInst[id].RS4_AR4 = (tmpInst[id].RS4 << 6) | tmpInst[id].AR4; break;
+        case COMB_RS_AR_1:       chInst[fmCh].RS1_AR1 = (chInst[fmCh].RS1 << 6) | chInst[fmCh].AR1; break;
+        case COMB_RS_AR_2:       chInst[fmCh].RS2_AR2 = (chInst[fmCh].RS2 << 6) | chInst[fmCh].AR2; break;
+        case COMB_RS_AR_3:       chInst[fmCh].RS3_AR3 = (chInst[fmCh].RS3 << 6) | chInst[fmCh].AR3; break;
+        case COMB_RS_AR_4:       chInst[fmCh].RS4_AR4 = (chInst[fmCh].RS4 << 6) | chInst[fmCh].AR4; break;
 
-        case COMB_AM_D1R_1:      tmpInst[id].AM1_D1R1 = (tmpInst[id].AM1 << 7) | tmpInst[id].D1R1; break;
-        case COMB_AM_D1R_2:      tmpInst[id].AM2_D1R2 = (tmpInst[id].AM2 << 7) | tmpInst[id].D1R2; break;
-        case COMB_AM_D1R_3:      tmpInst[id].AM3_D1R3 = (tmpInst[id].AM3 << 7) | tmpInst[id].D1R3; break;
-        case COMB_AM_D1R_4:      tmpInst[id].AM4_D1R4 = (tmpInst[id].AM4 << 7) | tmpInst[id].D1R4; break;
+        case COMB_AM_D1R_1:      chInst[fmCh].AM1_D1R1 = (chInst[fmCh].AM1 << 7) | chInst[fmCh].D1R1; break;
+        case COMB_AM_D1R_2:      chInst[fmCh].AM2_D1R2 = (chInst[fmCh].AM2 << 7) | chInst[fmCh].D1R2; break;
+        case COMB_AM_D1R_3:      chInst[fmCh].AM3_D1R3 = (chInst[fmCh].AM3 << 7) | chInst[fmCh].D1R3; break;
+        case COMB_AM_D1R_4:      chInst[fmCh].AM4_D1R4 = (chInst[fmCh].AM4 << 7) | chInst[fmCh].D1R4; break;
 
-        case COMB_D1L_RR_1:      tmpInst[id].D1L1_RR1 = (tmpInst[id].D1L1 << 4) | tmpInst[id].RR1; break;
-        case COMB_D1L_RR_2:      tmpInst[id].D1L2_RR2 = (tmpInst[id].D1L2 << 4) | tmpInst[id].RR2; break;
-        case COMB_D1L_RR_3:      tmpInst[id].D1L3_RR3 = (tmpInst[id].D1L3 << 4) | tmpInst[id].RR3; break;
-        case COMB_D1L_RR_4:      tmpInst[id].D1L4_RR4 = (tmpInst[id].D1L4 << 4) | tmpInst[id].RR4; break;
+        case COMB_D1L_RR_1:      chInst[fmCh].D1L1_RR1 = (chInst[fmCh].D1L1 << 4) | chInst[fmCh].RR1; break;
+        case COMB_D1L_RR_2:      chInst[fmCh].D1L2_RR2 = (chInst[fmCh].D1L2 << 4) | chInst[fmCh].RR2; break;
+        case COMB_D1L_RR_3:      chInst[fmCh].D1L3_RR3 = (chInst[fmCh].D1L3 << 4) | chInst[fmCh].RR3; break;
+        case COMB_D1L_RR_4:      chInst[fmCh].D1L4_RR4 = (chInst[fmCh].D1L4 << 4) | chInst[fmCh].RR4; break;
     }
 }
- //! will apply channels attenuation multiple times to the same cached instrument
- //! not apply each channel attenuation to instrument multiple times
- //!? need temp instrument per channel for manipulation, not the global cached one
- //!? just dont play the same instrument on multiple channels at the same time when want it to have different FM parameters
-static inline void SetChannelBaseVolume(u8 matrixChannel, u8 id)
+
+static inline void SetChannelBaseVolume_FM(u8 mtxCh, u8 id)
 {
     auto void set_normal_slots()
     {
-        if (matrixChannel < CHANNEL_PSG1) // FM only
+        switch (tmpInst[id].ALG)
         {
-            switch (tmpInst[id].ALG)
-            {
-            case 0: case 1: case 2: case 3:
-                channelSlotBaseLevel[matrixChannel][3] = tmpInst[id].TL4;
-                /*tmpInst[id].TL4 += channelAttenuation[matrixChannel];
-                if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL4 = 0x7F;*/
-                break;
-            case 4:
-                channelSlotBaseLevel[matrixChannel][2] = tmpInst[id].TL3;
-                channelSlotBaseLevel[matrixChannel][3] = tmpInst[id].TL4;
-                /*tmpInst[id].TL3 += channelAttenuation[matrixChannel];
-                tmpInst[id].TL4 += channelAttenuation[matrixChannel];
-                if (tmpInst[id].TL3 > 0x7F) tmpInst[id].TL3 = 0x7F;
-                if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL4 = 0x7F;*/
-                break;
-            case 5: case 6:
-                channelSlotBaseLevel[matrixChannel][1] = tmpInst[id].TL2;
-                channelSlotBaseLevel[matrixChannel][2] = tmpInst[id].TL3;
-                channelSlotBaseLevel[matrixChannel][3] = tmpInst[id].TL4;
-                /*tmpInst[id].TL2 += channelAttenuation[matrixChannel];
-                tmpInst[id].TL3 += channelAttenuation[matrixChannel];
-                tmpInst[id].TL4 += channelAttenuation[matrixChannel];
-                if (tmpInst[id].TL2 > 0x7F) tmpInst[id].TL2 = 0x7F;
-                if (tmpInst[id].TL3 > 0x7F) tmpInst[id].TL3 = 0x7F;
-                if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL4 = 0x7F;*/
-                break;
-            case 7:
-                channelSlotBaseLevel[matrixChannel][0] = tmpInst[id].TL1;
-                channelSlotBaseLevel[matrixChannel][1] = tmpInst[id].TL2;
-                channelSlotBaseLevel[matrixChannel][2] = tmpInst[id].TL3;
-                channelSlotBaseLevel[matrixChannel][3] = tmpInst[id].TL4;
-                /*tmpInst[id].TL1 += channelAttenuation[matrixChannel];
-                tmpInst[id].TL2 += channelAttenuation[matrixChannel];
-                tmpInst[id].TL3 += channelAttenuation[matrixChannel];
-                tmpInst[id].TL4 += channelAttenuation[matrixChannel];
-                if (tmpInst[id].TL1 > 0x7F) tmpInst[id].TL1 = 0x7F;
-                if (tmpInst[id].TL2 > 0x7F) tmpInst[id].TL2 = 0x7F;
-                if (tmpInst[id].TL3 > 0x7F) tmpInst[id].TL3 = 0x7F;
-                if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL4 = 0x7F;*/
-                break;
-            }
+        case 0: case 1: case 2: case 3:
+            channelSlotBaseLevel[mtxCh][3] = tmpInst[id].TL4; // or from chInst[fmCh], doesnt matter
+            /*chInst[fmCh].TL4 += channelAttenuation[mtxCh];
+            if (chInst[fmCh].TL4 > 0x7F) chInst[fmCh].TL4 = 0x7F;*/
+            break;
+        case 4:
+            channelSlotBaseLevel[mtxCh][2] = tmpInst[id].TL3;
+            channelSlotBaseLevel[mtxCh][3] = tmpInst[id].TL4;
+            /*chInst[fmCh].TL3 += channelAttenuation[mtxCh];
+            chInst[fmCh].TL4 += channelAttenuation[mtxCh];
+            if (chInst[fmCh].TL3 > 0x7F) chInst[fmCh].TL3 = 0x7F;
+            if (chInst[fmCh].TL4 > 0x7F) chInst[fmCh].TL4 = 0x7F;*/
+            break;
+        case 5: case 6:
+            channelSlotBaseLevel[mtxCh][1] = tmpInst[id].TL2;
+            channelSlotBaseLevel[mtxCh][2] = tmpInst[id].TL3;
+            channelSlotBaseLevel[mtxCh][3] = tmpInst[id].TL4;
+            /*chInst[fmCh].TL2 += channelAttenuation[mtxCh];
+            chInst[fmCh].TL3 += channelAttenuation[mtxCh];
+            chInst[fmCh].TL4 += channelAttenuation[mtxCh];
+            if (chInst[fmCh].TL2 > 0x7F) chInst[fmCh].TL2 = 0x7F;
+            if (chInst[fmCh].TL3 > 0x7F) chInst[fmCh].TL3 = 0x7F;
+            if (chInst[fmCh].TL4 > 0x7F) chInst[fmCh].TL4 = 0x7F;*/
+            break;
+        case 7:
+            channelSlotBaseLevel[mtxCh][0] = tmpInst[id].TL1;
+            channelSlotBaseLevel[mtxCh][1] = tmpInst[id].TL2;
+            channelSlotBaseLevel[mtxCh][2] = tmpInst[id].TL3;
+            channelSlotBaseLevel[mtxCh][3] = tmpInst[id].TL4;
+            /*chInst[fmCh].TL1 += channelAttenuation[mtxCh];
+            chInst[fmCh].TL2 += channelAttenuation[mtxCh];
+            chInst[fmCh].TL3 += channelAttenuation[mtxCh];
+            chInst[fmCh].TL4 += channelAttenuation[mtxCh];
+            if (chInst[fmCh].TL1 > 0x7F) chInst[fmCh].TL1 = 0x7F;
+            if (chInst[fmCh].TL2 > 0x7F) chInst[fmCh].TL2 = 0x7F;
+            if (chInst[fmCh].TL3 > 0x7F) chInst[fmCh].TL3 = 0x7F;
+            if (chInst[fmCh].TL4 > 0x7F) chInst[fmCh].TL4 = 0x7F;*/
+            break;
         }
     }
 
-    switch (matrixChannel)
+    switch (mtxCh)
     {
     case CHANNEL_FM3_OP4:
         if (FM_CH3_Mode == CH3_NORMAL) set_normal_slots();
         else
         {
-            channelSlotBaseLevel[matrixChannel][3] = tmpInst[id].TL4;
-            /*tmpInst[id].TL4 += channelAttenuation[matrixChannel];
-            if (tmpInst[id].TL4 > 0x7F) tmpInst[id].TL1 = 0x7F;*/
+            channelSlotBaseLevel[mtxCh][3] = tmpInst[id].TL4;
+            /*chInst[fmCh].TL4 += channelAttenuation[mtxCh];
+            if (chInst[fmCh].TL4 > 0x7F) chInst[fmCh].TL1 = 0x7F;*/
         }
         break;
     case CHANNEL_FM3_OP3:
         if (FM_CH3_Mode != CH3_NORMAL)
         {
-            channelSlotBaseLevel[matrixChannel][2] = tmpInst[id].TL3;
-            /*tmpInst[id].TL3 += channelAttenuation[matrixChannel];
-            if (tmpInst[id].TL3 > 0x7F) tmpInst[id].TL1 = 0x7F;*/
+            channelSlotBaseLevel[mtxCh][2] = tmpInst[id].TL3;
+            /*chInst[fmCh].TL3 += channelAttenuation[mtxCh];
+            if (chInst[fmCh].TL3 > 0x7F) chInst[fmCh].TL1 = 0x7F;*/
         }
         break;
     case CHANNEL_FM3_OP2:
         if (FM_CH3_Mode != CH3_NORMAL)
         {
-            channelSlotBaseLevel[matrixChannel][1] = tmpInst[id].TL2;
-            /*tmpInst[id].TL2 += channelAttenuation[matrixChannel];
-            if (tmpInst[id].TL2 > 0x7F) tmpInst[id].TL1 = 0x7F;*/
+            channelSlotBaseLevel[mtxCh][1] = tmpInst[id].TL2;
+            /*chInst[fmCh].TL2 += channelAttenuation[mtxCh];
+            if (chInst[fmCh].TL2 > 0x7F) chInst[fmCh].TL1 = 0x7F;*/
         }
         break;
     case CHANNEL_FM3_OP1:
         if (FM_CH3_Mode != CH3_NORMAL)
         {
-            channelSlotBaseLevel[matrixChannel][0] = tmpInst[id].TL1;
-            /*tmpInst[id].TL1 += channelAttenuation[matrixChannel];
-            if (tmpInst[id].TL1 > 0x7F) tmpInst[id].TL1 = 0x7F;*/
+            channelSlotBaseLevel[mtxCh][0] = tmpInst[id].TL1;
+            /*chInst[fmCh].TL1 += channelAttenuation[mtxCh];
+            if (chInst[fmCh].TL1 > 0x7F) chInst[fmCh].TL1 = 0x7F;*/
         }
         break;
     default:
         set_normal_slots();
         break;
     }
-    SetChannelVolume(matrixChannel); // if there is vol command, resulting same values
 }
 
-// write all YM2612 registers
-static inline void WriteYM2612(u8 matrixChannel, u8 id)
+// write all YM2612 registers from cached preset
+static inline void WriteYM2612(u8 mtxCh, u8 id)
 {
     static u16 port = 0;
-    static u8 fmChannel = 0;
+    static u8 ch = 0;       // chip channel
+    static u8 fmCh = 0;     // matrix fm channel
 
-    if (matrixChannel < CHANNEL_PSG1) // FM channel
+    switch (mtxCh)
     {
-        switch (matrixChannel)
-        {
-        case CHANNEL_FM1: case CHANNEL_FM2: case CHANNEL_FM3_OP4:
-            port = PORT_1; fmChannel = matrixChannel; // 0, 1, 2
-            break;
-        case CHANNEL_FM3_OP3: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP1:
-            port = PORT_1; fmChannel = CHANNEL_FM3_OP4; // 2
-            break;
-        case CHANNEL_FM4: case CHANNEL_FM5: case CHANNEL_FM6_DAC:
-            port = PORT_2; fmChannel = matrixChannel - 6; // 0, 1, 2
-            break;
-        }
-        SetChannelBaseVolume(matrixChannel, id);
+    case CHANNEL_FM1: case CHANNEL_FM2: case CHANNEL_FM3_OP4:
+        port = PORT_1; ch = fmCh = mtxCh;
+        break;
+    /*case CHANNEL_FM3_OP3: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP1:
+        port = PORT_1; ch = CHANNEL_FM3_OP4; // 2
+        break;*/
+    case CHANNEL_FM4: case CHANNEL_FM5: case CHANNEL_FM6_DAC:
+        port = PORT_2; ch = mtxCh - 6; fmCh = mtxCh - 3;
+        break;
+    default: return; break;
+    }
 
-        switch (fmChannel)
-        {
-        case 0:
-            YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH0, tmpInst[id].FB_ALG);
+    chInst[fmCh] = tmpInst[id]; // copy from cached preset
+    SetChannelBaseVolume_FM(mtxCh, id); // called only here
+    SetChannelVolume(mtxCh); // if there is vol command, resulting same values
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0, tmpInst[id].TL1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0, tmpInst[id].TL2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0, tmpInst[id].TL3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0, tmpInst[id].TL4);
+    switch (ch)
+    {
+    case 0:
+        YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH0, tmpInst[id].FB_ALG);
 
-            YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH0, tmpInst[id].PAN_AMS_FMS);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0, tmpInst[id].TL1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0, tmpInst[id].TL2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0, tmpInst[id].TL3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0, tmpInst[id].TL4);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH0, tmpInst[id].DT1_MUL1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH0, tmpInst[id].DT2_MUL2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH0, tmpInst[id].DT3_MUL3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH0, tmpInst[id].DT4_MUL4);
+        YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH0, tmpInst[id].PAN_AMS_FMS);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH0, tmpInst[id].RS1_AR1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH0, tmpInst[id].RS2_AR2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH0, tmpInst[id].RS3_AR3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH0, tmpInst[id].RS4_AR4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH0, tmpInst[id].DT1_MUL1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH0, tmpInst[id].DT2_MUL2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH0, tmpInst[id].DT3_MUL3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH0, tmpInst[id].DT4_MUL4);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH0, tmpInst[id].AM1_D1R1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH0, tmpInst[id].AM2_D1R2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH0, tmpInst[id].AM3_D1R3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH0, tmpInst[id].AM4_D1R4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH0, tmpInst[id].RS1_AR1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH0, tmpInst[id].RS2_AR2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH0, tmpInst[id].RS3_AR3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH0, tmpInst[id].RS4_AR4);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH0, tmpInst[id].D2R1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH0, tmpInst[id].D2R2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH0, tmpInst[id].D2R3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH0, tmpInst[id].D2R4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH0, tmpInst[id].AM1_D1R1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH0, tmpInst[id].AM2_D1R2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH0, tmpInst[id].AM3_D1R3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH0, tmpInst[id].AM4_D1R4);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH0, tmpInst[id].D1L1_RR1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH0, tmpInst[id].D1L2_RR2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH0, tmpInst[id].D1L3_RR3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH0, tmpInst[id].D1L4_RR4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH0, tmpInst[id].D2R1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH0, tmpInst[id].D2R2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH0, tmpInst[id].D2R3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH0, tmpInst[id].D2R4);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH0, tmpInst[id].SSGEG1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH0, tmpInst[id].SSGEG2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH0, tmpInst[id].SSGEG3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH0, tmpInst[id].SSGEG4);
-            break;
-        case 1:
-            YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH1, tmpInst[id].FB_ALG);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH0, tmpInst[id].D1L1_RR1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH0, tmpInst[id].D1L2_RR2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH0, tmpInst[id].D1L3_RR3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH0, tmpInst[id].D1L4_RR4);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH1, tmpInst[id].TL1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH1, tmpInst[id].TL2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH1, tmpInst[id].TL3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH1, tmpInst[id].TL4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH0, tmpInst[id].SSGEG1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH0, tmpInst[id].SSGEG2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH0, tmpInst[id].SSGEG3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH0, tmpInst[id].SSGEG4);
+        break;
+    case 1:
+        YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH1, tmpInst[id].FB_ALG);
 
-            YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH1, tmpInst[id].PAN_AMS_FMS);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH1, tmpInst[id].TL1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH1, tmpInst[id].TL2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH1, tmpInst[id].TL3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH1, tmpInst[id].TL4);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH1, tmpInst[id].DT1_MUL1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH1, tmpInst[id].DT2_MUL2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH1, tmpInst[id].DT3_MUL3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH1, tmpInst[id].DT4_MUL4);
+        YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH1, tmpInst[id].PAN_AMS_FMS);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH1, tmpInst[id].RS1_AR1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH1, tmpInst[id].RS2_AR2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH1, tmpInst[id].RS3_AR3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH1, tmpInst[id].RS4_AR4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH1, tmpInst[id].DT1_MUL1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH1, tmpInst[id].DT2_MUL2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH1, tmpInst[id].DT3_MUL3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH1, tmpInst[id].DT4_MUL4);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH1, tmpInst[id].AM1_D1R1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH1, tmpInst[id].AM2_D1R2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH1, tmpInst[id].AM3_D1R3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH1, tmpInst[id].AM4_D1R4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH1, tmpInst[id].RS1_AR1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH1, tmpInst[id].RS2_AR2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH1, tmpInst[id].RS3_AR3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH1, tmpInst[id].RS4_AR4);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH1, tmpInst[id].D2R1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH1, tmpInst[id].D2R2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH1, tmpInst[id].D2R3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH1, tmpInst[id].D2R4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH1, tmpInst[id].AM1_D1R1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH1, tmpInst[id].AM2_D1R2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH1, tmpInst[id].AM3_D1R3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH1, tmpInst[id].AM4_D1R4);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH1, tmpInst[id].D1L1_RR1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH1, tmpInst[id].D1L2_RR2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH1, tmpInst[id].D1L3_RR3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH1, tmpInst[id].D1L4_RR4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH1, tmpInst[id].D2R1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH1, tmpInst[id].D2R2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH1, tmpInst[id].D2R3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH1, tmpInst[id].D2R4);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH1, tmpInst[id].SSGEG1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH1, tmpInst[id].SSGEG2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH1, tmpInst[id].SSGEG3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH1, tmpInst[id].SSGEG4);
-            break;
-        case 2:
-            YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH2, tmpInst[id].FB_ALG);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH1, tmpInst[id].D1L1_RR1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH1, tmpInst[id].D1L2_RR2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH1, tmpInst[id].D1L3_RR3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH1, tmpInst[id].D1L4_RR4);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH2, tmpInst[id].TL1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH2, tmpInst[id].TL2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH2, tmpInst[id].TL3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH2, tmpInst[id].TL4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH1, tmpInst[id].SSGEG1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH1, tmpInst[id].SSGEG2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH1, tmpInst[id].SSGEG3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH1, tmpInst[id].SSGEG4);
+        break;
+    case 2:
+        YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH2, tmpInst[id].FB_ALG);
 
-            YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH2, tmpInst[id].PAN_AMS_FMS);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH2, tmpInst[id].TL1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH2, tmpInst[id].TL2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH2, tmpInst[id].TL3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH2, tmpInst[id].TL4);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH2, tmpInst[id].DT1_MUL1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH2, tmpInst[id].DT2_MUL2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH2, tmpInst[id].DT3_MUL3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH2, tmpInst[id].DT4_MUL4);
+        YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH2, tmpInst[id].PAN_AMS_FMS);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH2, tmpInst[id].RS1_AR1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH2, tmpInst[id].RS2_AR2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH2, tmpInst[id].RS3_AR3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH2, tmpInst[id].RS4_AR4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH2, tmpInst[id].DT1_MUL1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH2, tmpInst[id].DT2_MUL2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH2, tmpInst[id].DT3_MUL3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH2, tmpInst[id].DT4_MUL4);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH2, tmpInst[id].AM1_D1R1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH2, tmpInst[id].AM2_D1R2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH2, tmpInst[id].AM3_D1R3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH2, tmpInst[id].AM4_D1R4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH2, tmpInst[id].RS1_AR1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH2, tmpInst[id].RS2_AR2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH2, tmpInst[id].RS3_AR3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH2, tmpInst[id].RS4_AR4);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH2, tmpInst[id].D2R1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH2, tmpInst[id].D2R2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH2, tmpInst[id].D2R3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH2, tmpInst[id].D2R4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH2, tmpInst[id].AM1_D1R1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH2, tmpInst[id].AM2_D1R2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH2, tmpInst[id].AM3_D1R3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH2, tmpInst[id].AM4_D1R4);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH2, tmpInst[id].D1L1_RR1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH2, tmpInst[id].D1L2_RR2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH2, tmpInst[id].D1L3_RR3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH2, tmpInst[id].D1L4_RR4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH2, tmpInst[id].D2R1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH2, tmpInst[id].D2R2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH2, tmpInst[id].D2R3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH2, tmpInst[id].D2R4);
 
-            YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH2, tmpInst[id].SSGEG1);
-            YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH2, tmpInst[id].SSGEG2);
-            YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH2, tmpInst[id].SSGEG3);
-            YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH2, tmpInst[id].SSGEG4);
-            break;
-        }
+        YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH2, tmpInst[id].D1L1_RR1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH2, tmpInst[id].D1L2_RR2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH2, tmpInst[id].D1L3_RR3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH2, tmpInst[id].D1L4_RR4);
+
+        YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH2, tmpInst[id].SSGEG1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH2, tmpInst[id].SSGEG2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH2, tmpInst[id].SSGEG3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH2, tmpInst[id].SSGEG4);
+        break;
     }
 }
 
@@ -4147,7 +4146,7 @@ void DrawPP()
     DrawHex(PAL1, ppl_1, 21, 27); DrawHex(PAL1, ppl_2, 23, 27);
 }
 
-static inline void ApplyCommand_Common(u8 matrixChannel, u8 fxParam, u8 fxValue)
+static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
 {
     switch (fxParam)
     {
@@ -4168,12 +4167,12 @@ static inline void ApplyCommand_Common(u8 matrixChannel, u8 fxParam, u8 fxValue)
 
     // ARP SEQUENCE MODE
     case 0x2F:
-        if (fxValue == 0) channelArpSeqMODE[matrixChannel] = 0; else channelArpSeqMODE[matrixChannel] = 1;
+        if (fxValue == 0) channelArpSeqMODE[mtxCh] = 0; else channelArpSeqMODE[mtxCh] = 1;
         break;
 
     // ARP SEQUENCE
     case 0x30:
-        channelArpSeqID[matrixChannel] = fxValue;
+        channelArpSeqID[mtxCh] = fxValue;
         break;
 
     // PITCH SLIDE UP
@@ -4181,19 +4180,19 @@ static inline void ApplyCommand_Common(u8 matrixChannel, u8 fxParam, u8 fxValue)
         switch (fxValue)
         {
             case 0x00: // stop and reset
-                channelPitchSlideSpeed[matrixChannel] = 0;
-                channelMicrotone[matrixChannel] = 0;
-                channelModNotePitch[matrixChannel] = 0;
+                channelPitchSlideSpeed[mtxCh] = 0;
+                channelMicrotone[mtxCh] = 0;
+                channelModNotePitch[mtxCh] = 0;
                 break;
             case 0xFE: // stop
-                channelPitchSlideSpeed[matrixChannel] = 0;
+                channelPitchSlideSpeed[mtxCh] = 0;
                 break;
             case 0xFF: // reset
-                channelMicrotone[matrixChannel] = 0;
-                channelModNotePitch[matrixChannel] = 0;
+                channelMicrotone[mtxCh] = 0;
+                channelModNotePitch[mtxCh] = 0;
                 break;
             default: // do portamento
-                if (fxValue < 0x80) channelPitchSlideSpeed[matrixChannel] = fxValue;
+                if (fxValue < 0x80) channelPitchSlideSpeed[mtxCh] = fxValue;
                 break;
         }
         break;
@@ -4203,128 +4202,128 @@ static inline void ApplyCommand_Common(u8 matrixChannel, u8 fxParam, u8 fxValue)
         switch (fxValue)
         {
             case 0x00: // stop and reset
-                channelPitchSlideSpeed[matrixChannel] = 0;
-                channelMicrotone[matrixChannel] = 0;
-                channelModNotePitch[matrixChannel] = 0;
+                channelPitchSlideSpeed[mtxCh] = 0;
+                channelMicrotone[mtxCh] = 0;
+                channelModNotePitch[mtxCh] = 0;
                 break;
             case 0xFE: // stop
-                channelPitchSlideSpeed[matrixChannel] = 0;
+                channelPitchSlideSpeed[mtxCh] = 0;
                 break;
             case 0xFF: // reset
-                channelMicrotone[matrixChannel] = 0;
-                channelModNotePitch[matrixChannel] = 0;
+                channelMicrotone[mtxCh] = 0;
+                channelModNotePitch[mtxCh] = 0;
                 break;
             default: // do portamento
-                if (fxValue < 0x80) channelPitchSlideSpeed[matrixChannel] = -fxValue;
+                if (fxValue < 0x80) channelPitchSlideSpeed[mtxCh] = -fxValue;
                 break;
         }
         break;
 
     // VIBRATO
     case 0x33:
-        channelVibratoSpeed[matrixChannel] = ((fxValue & 0b11110000) >> 4) * channelVibratoSpeedMult[matrixChannel];
-        channelVibratoDepth[matrixChannel] = (fxValue & 0b00001111) * channelVibratoDepthMult[matrixChannel];
-        channelVibratoPhase[matrixChannel] = 0;
-        channelModNoteVibrato[matrixChannel] = 0;
+        channelVibratoSpeed[mtxCh] = ((fxValue & 0b11110000) >> 4) * channelVibratoSpeedMult[mtxCh];
+        channelVibratoDepth[mtxCh] = (fxValue & 0b00001111) * channelVibratoDepthMult[mtxCh];
+        channelVibratoPhase[mtxCh] = 0;
+        channelModNoteVibrato[mtxCh] = 0;
         break;
 
     // VIBRATO SPEED MULT
     case 0x34:
         if (fxValue > 0)
         {
-            channelVibratoSpeedMult[matrixChannel] = fxValue;
+            channelVibratoSpeedMult[mtxCh] = fxValue;
         }
         else
         {
-            channelVibratoSpeedMult[matrixChannel] = 0x08;
+            channelVibratoSpeedMult[mtxCh] = 0x08;
         }
-        channelVibratoSpeed[matrixChannel] = ((fxValue & 0b11110000) >> 4) * channelVibratoSpeedMult[matrixChannel];
+        channelVibratoSpeed[mtxCh] = ((fxValue & 0b11110000) >> 4) * channelVibratoSpeedMult[mtxCh];
         break;
 
     // VIBRATO DEPTH MULT
     case 0x35:
         if (fxValue > 0)
         {
-            channelVibratoDepthMult[matrixChannel] = fxValue;
+            channelVibratoDepthMult[mtxCh] = fxValue;
         }
         else
         {
-            channelVibratoDepthMult[matrixChannel] = 0x02;
+            channelVibratoDepthMult[mtxCh] = 0x02;
         }
-        channelVibratoDepth[matrixChannel] = (fxValue & 0b00001111) * channelVibratoDepthMult[matrixChannel];
+        channelVibratoDepth[mtxCh] = (fxValue & 0b00001111) * channelVibratoDepthMult[mtxCh];
         break;
 
     // VIBRATO MODE
     case 0x36:
-        if (fxValue < 3) channelVibratoMode[matrixChannel] = fxValue;
+        if (fxValue < 3) channelVibratoMode[mtxCh] = fxValue;
         break;
 
     // PORTAMENTO SKIP TICKS
     case 0x37:
-        channelPitchSkipStep[matrixChannel] = fxValue;
+        channelPitchSkipStep[mtxCh] = fxValue;
         break;
 
     // ------------------------------------------------------------------------
 
     // VOLUME SEQUENCE MODE
     case 0x3F:
-        if (fxValue == 0) channelVolSeqMODE[matrixChannel] = 0; else channelVolSeqMODE[matrixChannel] = 1;
+        if (fxValue == 0) channelVolSeqMODE[mtxCh] = 0; else channelVolSeqMODE[mtxCh] = 1;
         break;
 
     // VOLUME SEQUENCE
     case 0x40:
-        channelVolSeqID[matrixChannel] = fxValue;
-        if (fxValue == 0) channelSeqAttenuation[matrixChannel] = 0;
-        channelVolumeChangeSpeed[matrixChannel] = 0;
+        channelVolSeqID[mtxCh] = fxValue;
+        if (fxValue == 0) channelSeqAttenuation[mtxCh] = 0;
+        channelVolumeChangeSpeed[mtxCh] = 0;
         break;
 
     // VOLUME ATTENUATION
     case 0x41:
         if (fxValue < 0x80)
         {
-            channelAttenuation[matrixChannel] = fxValue;
-            SetChannelVolume(matrixChannel);
+            channelAttenuation[mtxCh] = fxValue;
+            SetChannelVolume(mtxCh);
         }
-        channelVolumeChangeSpeed[matrixChannel] = 0;
+        channelVolumeChangeSpeed[mtxCh] = 0;
         break;
 
     // TREMOLO
     case 0x42:
-        channelTremoloSpeed[matrixChannel] = ((fxValue & 0b11110000) >> 4) * channelTremoloSpeedMult[matrixChannel];
-        channelTremoloDepth[matrixChannel] = (fxValue & 0b00001111) * 2;
-        channelTremoloPhase[matrixChannel] = 512;
-        channelVolumeChangeSpeed[matrixChannel] = 0;
+        channelTremoloSpeed[mtxCh] = ((fxValue & 0b11110000) >> 4) * channelTremoloSpeedMult[mtxCh];
+        channelTremoloDepth[mtxCh] = (fxValue & 0b00001111) * 2;
+        channelTremoloPhase[mtxCh] = 512;
+        channelVolumeChangeSpeed[mtxCh] = 0;
         break;
 
     // TREMOLO SPEED MULT
     case 0x43:
-        channelTremoloSpeedMult[matrixChannel] = fxValue;
+        channelTremoloSpeedMult[mtxCh] = fxValue;
         break;
 
     // VOLUME INCREASE
     case 0x44:
-        channelVolumeChangeSpeed[matrixChannel] = fxValue & 0b00001111;
-        channelVolumePulseSkip[matrixChannel] = ((fxValue & 0b11110000) >> 4) + 1;
-        channelVolumePulseCounter[matrixChannel] = 0;
+        channelVolumeChangeSpeed[mtxCh] = fxValue & 0b00001111;
+        channelVolumePulseSkip[mtxCh] = ((fxValue & 0b11110000) >> 4) + 1;
+        channelVolumePulseCounter[mtxCh] = 0;
         break;
 
     // VOLUME DECREASE
     case 0x45:
-        channelVolumeChangeSpeed[matrixChannel] = -(fxValue & 0b00001111);
-        channelVolumePulseSkip[matrixChannel] = ((fxValue & 0b11110000) >> 4) + 1;
-        channelVolumePulseCounter[matrixChannel] = 0;
+        channelVolumeChangeSpeed[mtxCh] = -(fxValue & 0b00001111);
+        channelVolumePulseSkip[mtxCh] = ((fxValue & 0b11110000) >> 4) + 1;
+        channelVolumePulseCounter[mtxCh] = 0;
         break;
 
     // ------------------------------------------------------------------------
 
     // NOTE CUT
     case 0x50:
-        channelNoteCut[matrixChannel] = fxValue;
+        channelNoteCut[mtxCh] = fxValue;
         break;
 
     // NOTE RETRIGGER
     case 0x51:
-        channelNoteRetrigger[matrixChannel] = fxValue;
+        channelNoteRetrigger[mtxCh] = fxValue;
         break;
 
     // MATRIX JUMP
@@ -4342,15 +4341,15 @@ static inline void ApplyCommand_Common(u8 matrixChannel, u8 fxParam, u8 fxValue)
 
     // NOTE DELAY
     case 0x54:
-        channelNoteDelayCounter[matrixChannel] = fxValue;
-        //channelNoteDelay[matrixChannel] = fxValue;
+        channelNoteDelayCounter[mtxCh] = fxValue;
+        //channelNoteDelay[mtxCh] = fxValue;
         break;
 
     // CH3 CSM FILTER (OP4 only)
     case 0x55:
         if (fxValue >= 0x09 && fxValue <= NOTE_MAX)
         {
-            //switch (matrixChannel)
+            //switch (mtxCh)
             //{
             //case 2:
                 FM_CH3_OpFreq[0] = fxValue;
@@ -4464,106 +4463,106 @@ static inline void ApplyCommand_PSG(u8 fxParam, u8 fxValue)
     default: return; break;
     }
 }
-
-//! FM parameters will change for the same instrument on every channel
-static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxValue) // matrix channel; instrument id
+/*static inline void ApplyCommand_FM3_SP(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
 {
-    static u16 port = 0;
-    static u8 fmChannel = 0;
+}*/
 
-    // auto functions used only for effects, not for instrument change
+static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
+{
+    static u16 port = 0;    // chip port (0..1)
+    static u8 ch = 0;       // chip channel (0..2)
+    static u8 fmCh = 0;     // matrix FM channel (0..5)
 
     // TL; 0 - unused, 000 0000 - TL (0..127) high to low ~0.75db step
-    auto inline void write_tl1() { YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + fmChannel, tmpInst[id].TL1); }
-    auto inline void write_tl2() { YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + fmChannel, tmpInst[id].TL2); }
-    auto inline void write_tl3() { YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + fmChannel, tmpInst[id].TL3); }
-    auto inline void write_tl4() { YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + fmChannel, tmpInst[id].TL4); }
+    auto inline void write_tl1() { YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + ch, chInst[fmCh].TL1); }
+    auto inline void write_tl2() { YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + ch, chInst[fmCh].TL2); }
+    auto inline void write_tl3() { YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ch, chInst[fmCh].TL3); }
+    auto inline void write_tl4() { YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ch, chInst[fmCh].TL4); }
 
     // RS, AR
     // 2b - RS (0..3), 1b - unused, 5b - AR (0..31)
     auto inline void write_rs1_ar1()
     {
-        CalculateCombined(id, COMB_RS_AR_1);
-        YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH0 + fmChannel, tmpInst[id].RS1_AR1);
+        CalculateCombined(fmCh, COMB_RS_AR_1);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH0 + ch, chInst[fmCh].RS1_AR1);
     }
     auto inline void write_rs2_ar2()
     {
-        CalculateCombined(id, COMB_RS_AR_2);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH0 + fmChannel, tmpInst[id].RS2_AR2);
+        CalculateCombined(fmCh, COMB_RS_AR_2);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH0 + ch, chInst[fmCh].RS2_AR2);
     }
     auto inline void write_rs3_ar3()
     {
-        CalculateCombined(id, COMB_RS_AR_3);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH0 + fmChannel, tmpInst[id].RS3_AR3);
+        CalculateCombined(fmCh, COMB_RS_AR_3);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH0 + ch, chInst[fmCh].RS3_AR3);
     }
     auto inline void write_rs4_ar4()
     {
-        CalculateCombined(id, COMB_RS_AR_4);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH0 + fmChannel, tmpInst[id].RS4_AR4);
+        CalculateCombined(fmCh, COMB_RS_AR_4);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH0 + ch, chInst[fmCh].RS4_AR4);
     }
 
     // DT, MUL (FM channels 0, 1, 2)
     // 1b - unused, 3b - DT1, 4b - MUL; DT1 = 1..-4+..8, MUL = 0..15
     auto inline void write_dt1_mul1()
     {
-        CalculateCombined(id, COMB_DT_MUL_1);
-        YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH0 + fmChannel, tmpInst[id].DT1_MUL1);
+        CalculateCombined(fmCh, COMB_DT_MUL_1);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH0 + ch, chInst[fmCh].DT1_MUL1);
     }
     auto inline void write_dt2_mul2()
     {
-        CalculateCombined(id, COMB_DT_MUL_2);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH0 + fmChannel, tmpInst[id].DT2_MUL2);
+        CalculateCombined(fmCh, COMB_DT_MUL_2);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH0 + ch, chInst[fmCh].DT2_MUL2);
     }
     auto inline void write_dt3_mul3()
     {
-        CalculateCombined(id, COMB_DT_MUL_3);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH0 + fmChannel, tmpInst[id].DT3_MUL3);
+        CalculateCombined(fmCh, COMB_DT_MUL_3);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH0 + ch, chInst[fmCh].DT3_MUL3);
 
     }
     auto inline void write_dt4_mul4()
     {
-        CalculateCombined(id, COMB_DT_MUL_4);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH0 + fmChannel, tmpInst[id].DT4_MUL4);
+        CalculateCombined(fmCh, COMB_DT_MUL_4);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH0 + ch, chInst[fmCh].DT4_MUL4);
     }
 
     // FB, ALG
     // 2b - unused, 3b (0..7) - FB, 3b - ALG (0..7)
     auto inline void write_fb_alg()
     {
-        CalculateCombined(id, COMB_FB_ALG);
-        YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH0 + fmChannel, tmpInst[id].FB_ALG);
+        CalculateCombined(fmCh, COMB_FB_ALG);
+        YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH0 + ch, chInst[fmCh].FB_ALG);
     }
 
     // PAN, AMS, FMS
     // 2b - PAN (1..3), 3b - AMS (0..7), 1b - unused, 2b - FMS (0..3)
     auto inline void write_pan_ams_fms()
     {
-        CalculateCombined(id, COMB_PAN_AMS_FMS);
-        YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH0 + fmChannel, tmpInst[id].PAN_AMS_FMS);
-
+        CalculateCombined(fmCh, COMB_PAN_AMS_FMS);
+        YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH0 + ch, chInst[fmCh].PAN_AMS_FMS);
     }
 
     // AM, D1R
     // 1b - AM (0 or 1), 2b - unused, 5b - D1R (0..31)
     auto inline void write_am1_d1r1()
     {
-        CalculateCombined(id, COMB_AM_D1R_1);
-        YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH0 + fmChannel, tmpInst[id].AM1_D1R1);
+        CalculateCombined(fmCh, COMB_AM_D1R_1);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH0 + ch, chInst[fmCh].AM1_D1R1);
     }
     auto inline void write_am2_d1r2()
     {
-        CalculateCombined(id, COMB_AM_D1R_2);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH0 + fmChannel, tmpInst[id].AM2_D1R2);
+        CalculateCombined(fmCh, COMB_AM_D1R_2);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH0 + ch, chInst[fmCh].AM2_D1R2);
     }
     auto inline void write_am3_d1r3()
     {
-        CalculateCombined(id, COMB_AM_D1R_3);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH0 + fmChannel, tmpInst[id].AM3_D1R3);
+        CalculateCombined(fmCh, COMB_AM_D1R_3);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH0 + ch, chInst[fmCh].AM3_D1R3);
     }
     auto inline void write_am4_d1r4()
     {
-        CalculateCombined(id, COMB_AM_D1R_4);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH0 + fmChannel, tmpInst[id].AM4_D1R4);
+        CalculateCombined(fmCh, COMB_AM_D1R_4);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH0 + ch, chInst[fmCh].AM4_D1R4);
     }
 
     // SSG-EG
@@ -4572,157 +4571,157 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
     // | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
     // |---------------|---|---|---|---|
     // | /   /   /   / | E |ATT|ALT|HLD|
-    auto inline void write_ssgeg1() { YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH0 + fmChannel, tmpInst[id].SSGEG1); }
-    auto inline void write_ssgeg2() { YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH0 + fmChannel, tmpInst[id].SSGEG2); }
-    auto inline void write_ssgeg3() { YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH0 + fmChannel, tmpInst[id].SSGEG3); }
-    auto inline void write_ssgeg4() { YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH0 + fmChannel, tmpInst[id].SSGEG4); }
+    auto inline void write_ssgeg1() { YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH0 + ch, chInst[fmCh].SSGEG1); }
+    auto inline void write_ssgeg2() { YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH0 + ch, chInst[fmCh].SSGEG2); }
+    auto inline void write_ssgeg3() { YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH0 + ch, chInst[fmCh].SSGEG3); }
+    auto inline void write_ssgeg4() { YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH0 + ch, chInst[fmCh].SSGEG4); }
 
     // D1L, RR
     // 4b - D1L (0..15), 4b - RR (0..15)
     auto inline void write_d1l1_rr1()
     {
-        CalculateCombined(id, COMB_D1L_RR_1);
-        YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH0 + fmChannel, tmpInst[id].D1L1_RR1);
+        CalculateCombined(fmCh, COMB_D1L_RR_1);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH0 + ch, chInst[fmCh].D1L1_RR1);
     }
     auto inline void write_d1l2_rr2()
     {
-        CalculateCombined(id, COMB_D1L_RR_2);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH0 + fmChannel, tmpInst[id].D1L2_RR2);
+        CalculateCombined(fmCh, COMB_D1L_RR_2);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH0 + ch, chInst[fmCh].D1L2_RR2);
     }
     auto inline void write_d1l3_rr3()
     {
-        CalculateCombined(id, COMB_D1L_RR_3);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH0 + fmChannel, tmpInst[id].D1L3_RR3);
+        CalculateCombined(fmCh, COMB_D1L_RR_3);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH0 + ch, chInst[fmCh].D1L3_RR3);
     }
     auto inline void write_d1l4_rr4()
     {
-        CalculateCombined(id, COMB_D1L_RR_4);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH0 + fmChannel, tmpInst[id].D1L4_RR4);
+        CalculateCombined(fmCh, COMB_D1L_RR_4);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH0 + ch, chInst[fmCh].D1L4_RR4);
     }
 
     // D2R
     // 3b - unused, 5b - D2R (0..31)
-    auto inline void write_d2r1() { YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH0 + fmChannel, tmpInst[id].D2R1); }
-    auto inline void write_d2r2() { YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH0 + fmChannel, tmpInst[id].D2R2); }
-    auto inline void write_d2r3() { YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH0 + fmChannel, tmpInst[id].D2R3); }
-    auto inline void write_d2r4() { YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH0 + fmChannel, tmpInst[id].D2R4); }
+    auto inline void write_d2r1() { YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH0 + ch, chInst[fmCh].D2R1); }
+    auto inline void write_d2r2() { YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH0 + ch, chInst[fmCh].D2R2); }
+    auto inline void write_d2r3() { YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH0 + ch, chInst[fmCh].D2R3); }
+    auto inline void write_d2r4() { YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH0 + ch, chInst[fmCh].D2R4); }
 
-    switch (matrixChannel)
+    switch (mtxCh)
     {
     case CHANNEL_FM1: case CHANNEL_FM2: case CHANNEL_FM3_OP4:
-        port = PORT_1; fmChannel = matrixChannel; // 0, 1, 2
+        port = PORT_1; ch = fmCh = mtxCh; // 0, 1, 2
         break;
-    case CHANNEL_FM3_OP3: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP1:
-        port = PORT_1; fmChannel = CHANNEL_FM3_OP4; // 2
-        break;
+    /*case CHANNEL_FM3_OP3: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP1:
+        port = PORT_1; fm = fmCh = CHANNEL_FM3_OP4; // 2
+        break;*/ // ignore effects on CH3.SP
     case CHANNEL_FM4: case CHANNEL_FM5: case CHANNEL_FM6_DAC:
-        port = PORT_2; fmChannel = matrixChannel - 6; // 0, 1, 2
+        port = PORT_2; ch = mtxCh - 6; fmCh = mtxCh - 3; // fm: 0, 1, 2; fmCh: 3, 4, 5
         break;
-    default: break;
+    default: return; break;
     }
 
     switch (fxParam)
     {
     // TOTAL LEVEL
     case 0x01:
-        if (fxValue == 0) tmpInst[id].TL1 = SRAM_ReadInstrument(id, INST_TL1);
-        else if (fxValue <= 0x80) tmpInst[id].TL1 = 0x80 - fxValue;
+        if (!fxValue) chInst[fmCh].TL1 = tmpInst[id].TL1;
+        else if (fxValue < 0x81) chInst[fmCh].TL1 = 0x80 - fxValue;
         else return;
         write_tl1();
         break;
     case 0x02:
-        if (fxValue == 0)tmpInst[id].TL2 = SRAM_ReadInstrument(id, INST_TL2);
-        else if (fxValue <= 0x80) tmpInst[id].TL2 = 0x80 - fxValue;
+        if (!fxValue)chInst[fmCh].TL2 = tmpInst[id].TL2;
+        else if (fxValue < 0x81) chInst[fmCh].TL2 = 0x80 - fxValue;
         else return;
         write_tl2();
         break;
     case 0x03:
-        if (fxValue == 0) tmpInst[id].TL3 = SRAM_ReadInstrument(id, INST_TL3);
-        else if (fxValue <= 0x80) tmpInst[id].TL3 = 0x80 - fxValue;
+        if (!fxValue) chInst[fmCh].TL3 = tmpInst[id].TL3;
+        else if (fxValue < 0x81) chInst[fmCh].TL3 = 0x80 - fxValue;
         else return;
         write_tl3();
         break;
     case 0x04:
-        if (fxValue == 0) tmpInst[id].TL4 = SRAM_ReadInstrument(id, INST_TL4);
-        else if (fxValue <= 0x80) tmpInst[id].TL4 = 0x80 - fxValue;
+        if (!fxValue) chInst[fmCh].TL4 = tmpInst[id].TL4;
+        else if (fxValue < 0x81) chInst[fmCh].TL4 = 0x80 - fxValue;
         else return;
         write_tl4();
         break;
 
     // RATE SCALE
     case 0x05:
-        if (fxValue == 0x10) { tmpInst[id].RS1 = SRAM_ReadInstrument(id, INST_RS1); write_rs1_ar1(); }
-        else if ((fxValue >= 0x11) && (fxValue <= 0x14)) { tmpInst[id].RS1 = fxValue - 0x11; write_rs1_ar1(); }
+        if (fxValue == 0x10) { chInst[fmCh].RS1 = tmpInst[id].RS1; write_rs1_ar1(); }
+        else if ((fxValue >= 0x11) && (fxValue <= 0x14)) { chInst[fmCh].RS1 = fxValue - 0x11; write_rs1_ar1(); }
 
-        else if (fxValue == 0x20) { tmpInst[id].RS2 = SRAM_ReadInstrument(id, INST_RS2); write_rs2_ar2(); }
-        else if ((fxValue >= 0x21) && (fxValue <= 0x24)) { tmpInst[id].RS2 = fxValue - 0x21; write_rs2_ar2(); }
+        else if (fxValue == 0x20) { chInst[fmCh].RS2 = tmpInst[id].RS2; write_rs2_ar2(); }
+        else if ((fxValue >= 0x21) && (fxValue <= 0x24)) { chInst[fmCh].RS2 = fxValue - 0x21; write_rs2_ar2(); }
 
-        else if (fxValue == 0x30) { tmpInst[id].RS3 = SRAM_ReadInstrument(id, INST_RS3); write_rs3_ar3(); }
-        else if ((fxValue >= 0x31) && (fxValue <= 0x34)) { tmpInst[id].RS3 = fxValue - 0x31; write_rs3_ar3(); }
+        else if (fxValue == 0x30) { chInst[fmCh].RS3 = tmpInst[id].RS3; write_rs3_ar3(); }
+        else if ((fxValue >= 0x31) && (fxValue <= 0x34)) { chInst[fmCh].RS3 = fxValue - 0x31; write_rs3_ar3(); }
 
-        else if (fxValue == 0x40) { tmpInst[id].RS4 = SRAM_ReadInstrument(id, INST_RS4); write_rs4_ar4(); }
-        else if ((fxValue >= 0x41) && (fxValue <= 0x44)) { tmpInst[id].RS4 = fxValue - 0x41; write_rs4_ar4(); }
+        else if (fxValue == 0x40) { chInst[fmCh].RS4 = tmpInst[id].RS4; write_rs4_ar4(); }
+        else if ((fxValue >= 0x41) && (fxValue <= 0x44)) { chInst[fmCh].RS4 = fxValue - 0x41; write_rs4_ar4(); }
 
-        else if (fxValue == 0x00 || fxValue == 0x50) // reset all
+        else if (!fxValue || fxValue == 0x50) // reset all
         {
-            tmpInst[id].RS1 = SRAM_ReadInstrument(id, INST_RS1);
-            tmpInst[id].RS2 = SRAM_ReadInstrument(id, INST_RS2);
-            tmpInst[id].RS3 = SRAM_ReadInstrument(id, INST_RS3);
-            tmpInst[id].RS4 = SRAM_ReadInstrument(id, INST_RS4);
+            chInst[fmCh].RS1 = tmpInst[id].RS1;
+            chInst[fmCh].RS2 = tmpInst[id].RS2;
+            chInst[fmCh].RS3 = tmpInst[id].RS3;
+            chInst[fmCh].RS4 = tmpInst[id].RS4;
             write_rs1_ar1(); write_rs2_ar2(); write_rs3_ar3(); write_rs4_ar4();
         }
         else if ((fxValue >= 0x51) && (fxValue <= 0x54))
         {
-            tmpInst[id].RS1 = tmpInst[id].RS2 = tmpInst[id].RS3 = tmpInst[id].RS4 = fxValue - 0x51;
+            chInst[fmCh].RS1 = chInst[fmCh].RS2 = chInst[fmCh].RS3 = chInst[fmCh].RS4 = fxValue - 0x51;
             write_rs1_ar1(); write_rs2_ar2(); write_rs3_ar3(); write_rs4_ar4();
         }
         break;
 
     // MULTIPLIER
     case 0x06:
-        if (fxValue == 0x01) { tmpInst[id].MUL1 = SRAM_ReadInstrument(id, INST_MUL1); write_dt1_mul1(); }
-        else if ((fxValue >= 0x10) && (fxValue < 0x20)) { tmpInst[id].MUL1 = fxValue - 0x10; write_dt1_mul1(tmpInst[id].MUL1); }
+        if (fxValue == 0x01) { chInst[fmCh].MUL1 = tmpInst[id].MUL1; write_dt1_mul1(); }
+        else if ((fxValue >= 0x10) && (fxValue < 0x20)) { chInst[fmCh].MUL1 = fxValue - 0x10; write_dt1_mul1(chInst[fmCh].MUL1); }
 
-        else if (fxValue == 0x02) { tmpInst[id].MUL2 = SRAM_ReadInstrument(id, INST_MUL2); write_dt2_mul2(); }
-        else if ((fxValue >= 0x20) && (fxValue < 0x30)) { tmpInst[id].MUL2 = fxValue - 0x20; write_dt2_mul2(tmpInst[id].MUL2); }
+        else if (fxValue == 0x02) { chInst[fmCh].MUL2 = tmpInst[id].MUL2; write_dt2_mul2(); }
+        else if ((fxValue >= 0x20) && (fxValue < 0x30)) { chInst[fmCh].MUL2 = fxValue - 0x20; write_dt2_mul2(chInst[fmCh].MUL2); }
 
-        else if (fxValue == 0x03) { tmpInst[id].MUL3 = SRAM_ReadInstrument(id, INST_MUL3); write_dt3_mul3(); }
-        else if ((fxValue >= 0x30) && (fxValue < 0x40)) { tmpInst[id].MUL3 = fxValue - 0x30; write_dt3_mul3(tmpInst[id].MUL3); }
+        else if (fxValue == 0x03) { chInst[fmCh].MUL3 = tmpInst[id].MUL3; write_dt3_mul3(); }
+        else if ((fxValue >= 0x30) && (fxValue < 0x40)) { chInst[fmCh].MUL3 = fxValue - 0x30; write_dt3_mul3(chInst[fmCh].MUL3); }
 
-        else if (fxValue == 0x04) { tmpInst[id].MUL4 = SRAM_ReadInstrument(id, INST_MUL4); write_dt4_mul4(); }
-        else if ((fxValue >= 0x40) && (fxValue < 0x50)) { tmpInst[id].MUL4 = fxValue - 0x40; write_dt4_mul4(tmpInst[id].MUL4); }
+        else if (fxValue == 0x04) { chInst[fmCh].MUL4 = tmpInst[id].MUL4; write_dt4_mul4(); }
+        else if ((fxValue >= 0x40) && (fxValue < 0x50)) { chInst[fmCh].MUL4 = fxValue - 0x40; write_dt4_mul4(chInst[fmCh].MUL4); }
 
 
-        else if (fxValue == 0x00) // reset all
+        else if (!fxValue) // reset all
         {
-            tmpInst[id].MUL1 = SRAM_ReadInstrument(id, INST_MUL1);
-            tmpInst[id].MUL2 = SRAM_ReadInstrument(id, INST_MUL2);
-            tmpInst[id].MUL3 = SRAM_ReadInstrument(id, INST_MUL3);
-            tmpInst[id].MUL4 = SRAM_ReadInstrument(id, INST_MUL4);
+            chInst[fmCh].MUL1 = tmpInst[id].MUL1;
+            chInst[fmCh].MUL2 = tmpInst[id].MUL2;
+            chInst[fmCh].MUL3 = tmpInst[id].MUL3;
+            chInst[fmCh].MUL4 = tmpInst[id].MUL4;
             write_dt1_mul1(); write_dt2_mul2(); write_dt3_mul3(); write_dt4_mul4();
         }
         break;
 
     // DETUNE
     case 0x07:
-        if (fxValue == 0x10) { tmpInst[id].DT1 = SRAM_ReadInstrument(id, INST_DT1); write_dt1_mul1(); }
-        else if ((fxValue >= 0x11) && (fxValue <= 0x18)) { tmpInst[id].DT1 = fxValue - 0x11; write_dt1_mul1(tmpInst[id].DT1); }
+        if (fxValue == 0x10) { chInst[fmCh].DT1 = tmpInst[id].DT1; write_dt1_mul1(); }
+        else if ((fxValue >= 0x11) && (fxValue <= 0x18)) { chInst[fmCh].DT1 = fxValue - 0x11; write_dt1_mul1(chInst[fmCh].DT1); }
 
-        else if (fxValue == 0x20) { tmpInst[id].DT2 = SRAM_ReadInstrument(id, INST_DT2); write_dt2_mul2(); }
-        else if ((fxValue >= 0x21) && (fxValue <= 0x28)) { tmpInst[id].DT2 = fxValue - 0x21; write_dt2_mul2(tmpInst[id].DT2); }
+        else if (fxValue == 0x20) { chInst[fmCh].DT2 = tmpInst[id].DT2; write_dt2_mul2(); }
+        else if ((fxValue >= 0x21) && (fxValue <= 0x28)) { chInst[fmCh].DT2 = fxValue - 0x21; write_dt2_mul2(chInst[fmCh].DT2); }
 
-        else if (fxValue == 0x30) { tmpInst[id].DT3 = SRAM_ReadInstrument(id, INST_DT3); write_dt3_mul3(); }
-        else if ((fxValue >= 0x31) && (fxValue <= 0x38)) { tmpInst[id].DT3 = fxValue - 0x31; write_dt3_mul3(tmpInst[id].DT3); }
+        else if (fxValue == 0x30) { chInst[fmCh].DT3 = tmpInst[id].DT3; write_dt3_mul3(); }
+        else if ((fxValue >= 0x31) && (fxValue <= 0x38)) { chInst[fmCh].DT3 = fxValue - 0x31; write_dt3_mul3(chInst[fmCh].DT3); }
 
-        else if (fxValue == 0x40) { tmpInst[id].DT4 = SRAM_ReadInstrument(id, INST_DT4); write_dt4_mul4(); }
-        else if ((fxValue >= 0x41) && (fxValue <= 0x48)) { tmpInst[id].DT4 = fxValue - 0x41; write_dt4_mul4(tmpInst[id].DT4); }
+        else if (fxValue == 0x40) { chInst[fmCh].DT4 = tmpInst[id].DT4; write_dt4_mul4(); }
+        else if ((fxValue >= 0x41) && (fxValue <= 0x48)) { chInst[fmCh].DT4 = fxValue - 0x41; write_dt4_mul4(chInst[fmCh].DT4); }
 
-        else if (fxValue == 0x00) // reset all
+        else if (!fxValue) // reset all
         {
-            tmpInst[id].DT1 = SRAM_ReadInstrument(id, INST_DT1);
-            tmpInst[id].DT2 = SRAM_ReadInstrument(id, INST_DT2);
-            tmpInst[id].DT3 = SRAM_ReadInstrument(id, INST_DT3);
-            tmpInst[id].DT4 = SRAM_ReadInstrument(id, INST_DT4);
+            chInst[fmCh].DT1 = tmpInst[id].DT1;
+            chInst[fmCh].DT2 = tmpInst[id].DT2;
+            chInst[fmCh].DT3 = tmpInst[id].DT3;
+            chInst[fmCh].DT4 = tmpInst[id].DT4;
             write_dt1_mul1(); write_dt2_mul2(); write_dt3_mul3(); write_dt4_mul4();
         }
         break;
@@ -4734,7 +4733,7 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
 
     // CH3 MODE
     case 0x12:
-        if (fxValue == 0) FM_CH3_Mode = CH3_NORMAL; // special
+        if (!fxValue) FM_CH3_Mode = CH3_NORMAL; // special
         else if (fxValue == 1) FM_CH3_Mode = CH3_SPECIAL; // normal
         else if (fxValue == 2) FM_CH3_Mode = CH3_SPECIAL_CSM; // special+CSM
         else return;
@@ -4743,130 +4742,130 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
 
     // ATTACK
     case 0xA1:
-        if (fxValue == 0) tmpInst[id].AR1 = SRAM_ReadInstrument(id, INST_AR1);
-        else if (fxValue <= 0x20) tmpInst[id].AR1 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].AR1 = tmpInst[id].AR1;
+        else if (fxValue <= 0x20) chInst[fmCh].AR1 = fxValue - 1;
         else return;
         write_rs1_ar1();
         break;
     case 0xA2:
-        if (fxValue == 0) tmpInst[id].AR2 = SRAM_ReadInstrument(id, INST_AR2);
-        else if (fxValue <= 0x20) tmpInst[id].AR2 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].AR2 = tmpInst[id].AR2;
+        else if (fxValue <= 0x20) chInst[fmCh].AR2 = fxValue - 1;
         else return;
         write_rs2_ar2();
         break;
     case 0xA3:
-        if (fxValue == 0) tmpInst[id].AR3 = SRAM_ReadInstrument(id, INST_AR3);
-        else if (fxValue <= 0x20) tmpInst[id].AR3 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].AR3 = tmpInst[id].AR3;
+        else if (fxValue <= 0x20) chInst[fmCh].AR3 = fxValue - 1;
         else return;
         write_rs3_ar3();
         break;
     case 0xA4:
-        if (fxValue == 0) tmpInst[id].AR4 = SRAM_ReadInstrument(id, INST_AR4);
-        else if (fxValue <= 0x20) tmpInst[id].AR4 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].AR4 = tmpInst[id].AR4;
+        else if (fxValue <= 0x20) chInst[fmCh].AR4 = fxValue - 1;
         else return;
         write_rs4_ar4();
         break;
 
     // DECAY 1
     case 0xB1:
-        if (fxValue == 0) tmpInst[id].D1R1 = SRAM_ReadInstrument(id, INST_D1R1);
-        else if (fxValue <= 0x20) tmpInst[id].D1R1 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].D1R1 = tmpInst[id].D1R1;
+        else if (fxValue <= 0x20) chInst[fmCh].D1R1 = fxValue - 1;
         else return;
         write_am1_d1r1();
         break;
     case 0xB2:
-        if (fxValue == 0) tmpInst[id].D1R2 = SRAM_ReadInstrument(id, INST_D1R2);
-        else if (fxValue <= 0x20) tmpInst[id].D1R2 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].D1R2 = tmpInst[id].D1R2;
+        else if (fxValue <= 0x20) chInst[fmCh].D1R2 = fxValue - 1;
         else return;
         write_am2_d1r2();
         break;
     case 0xB3:
-        if (fxValue == 0) tmpInst[id].D1R3 = SRAM_ReadInstrument(id, INST_D1R3);
-        else if (fxValue <= 0x20) tmpInst[id].D1R3 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].D1R3 = tmpInst[id].D1R3;
+        else if (fxValue <= 0x20) chInst[fmCh].D1R3 = fxValue - 1;
         else return;
         write_am3_d1r3();
         break;
     case 0xB4:
-        if (fxValue == 0) tmpInst[id].D1R4 = SRAM_ReadInstrument(id, INST_D1R4);
-        else if (fxValue <= 0x20) tmpInst[id].D1R4 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].D1R4 = tmpInst[id].D1R4;
+        else if (fxValue <= 0x20) chInst[fmCh].D1R4 = fxValue - 1;
         else return;
         write_am4_d1r4();
         break;
 
     // SUSTAIN
     case 0xC1:
-        if (fxValue == 0) tmpInst[id].D1L1 = SRAM_ReadInstrument(id, INST_D1L1);
-        else if (fxValue <= 0x10) tmpInst[id].D1L1 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].D1L1 = tmpInst[id].D1L1;
+        else if (fxValue <= 0x10) chInst[fmCh].D1L1 = fxValue - 1;
         else return;
         write_d1l1_rr1();
         break;
     case 0xC2:
-        if (fxValue == 0) tmpInst[id].D1L2 = SRAM_ReadInstrument(id, INST_D1L2);
-        else if (fxValue <= 0x10) tmpInst[id].D1L2 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].D1L2 = tmpInst[id].D1L2;
+        else if (fxValue <= 0x10) chInst[fmCh].D1L2 = fxValue - 1;
         else return;
         write_d1l2_rr2();
         break;
     case 0xC3:
-        if (fxValue == 0) tmpInst[id].D1L3 = SRAM_ReadInstrument(id, INST_D1L3);
-        else if (fxValue <= 0x10) tmpInst[id].D1L3 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].D1L3 = tmpInst[id].D1L3;
+        else if (fxValue <= 0x10) chInst[fmCh].D1L3 = fxValue - 1;
         else return;
         write_d1l3_rr3();
         break;
     case 0xC4:
-        if (fxValue == 0) tmpInst[id].D1L4 = SRAM_ReadInstrument(id, INST_D1L4);
-        else if (fxValue <= 0x10) tmpInst[id].D1L4 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].D1L4 = tmpInst[id].D1L4;
+        else if (fxValue <= 0x10) chInst[fmCh].D1L4 = fxValue - 1;
         else return;
         write_d1l4_rr4();
         break;
 
     // DECAY 2
     case 0xD1:
-        if (fxValue == 0) tmpInst[id].D2R1 = SRAM_ReadInstrument(id, INST_D2R1);
-        else if (fxValue <= 0x20) tmpInst[id].D2R1 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].D2R1 = tmpInst[id].D2R1;
+        else if (fxValue <= 0x20) chInst[fmCh].D2R1 = fxValue - 1;
         else return;
         write_d2r1();
         break;
     case 0xD2:
-        if (fxValue == 0) tmpInst[id].D2R2 = SRAM_ReadInstrument(id, INST_D2R2);
-        else if (fxValue <= 0x20) tmpInst[id].D2R2 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].D2R2 = tmpInst[id].D2R2;
+        else if (fxValue <= 0x20) chInst[fmCh].D2R2 = fxValue - 1;
         else return;
         write_d2r2();
         break;
     case 0xD3:
-        if (fxValue == 0) tmpInst[id].D2R3 = SRAM_ReadInstrument(id, INST_D2R3);
-        else if (fxValue <= 0x20) tmpInst[id].D2R3 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].D2R3 = tmpInst[id].D2R3;
+        else if (fxValue <= 0x20) chInst[fmCh].D2R3 = fxValue - 1;
         else return;
         write_d2r3();
         break;
     case 0xD4:
-        if (fxValue == 0) tmpInst[id].D2R4 = SRAM_ReadInstrument(id, INST_D2R4);
-        else if (fxValue <= 0x20) tmpInst[id].D2R4 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].D2R4 = tmpInst[id].D2R4;
+        else if (fxValue <= 0x20) chInst[fmCh].D2R4 = fxValue - 1;
         else return;
         write_d2r4();
         break;
 
     // RELEASE
     case 0xE1:
-        if (fxValue == 0) tmpInst[id].RR1 = SRAM_ReadInstrument(id, INST_RR1);
-        else if (fxValue <= 0x10) tmpInst[id].RR1 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].RR1 = tmpInst[id].RR1;
+        else if (fxValue <= 0x10) chInst[fmCh].RR1 = fxValue - 1;
         else return;
         write_d1l1_rr1();
         break;
     case 0xE2:
-        if (fxValue == 0) tmpInst[id].RR2 = SRAM_ReadInstrument(id, INST_RR2);
-        else if (fxValue <= 0x10) tmpInst[id].RR2 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].RR2 = tmpInst[id].RR2;
+        else if (fxValue <= 0x10) chInst[fmCh].RR2 = fxValue - 1;
         else return;
         write_d1l2_rr2();
         break;
     case 0xE3:
-        if (fxValue == 0) tmpInst[id].RR3 = SRAM_ReadInstrument(id, INST_RR3);
-        else if (fxValue <= 0x10) tmpInst[id].RR3 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].RR3 = tmpInst[id].RR3;
+        else if (fxValue <= 0x10) chInst[fmCh].RR3 = fxValue - 1;
         else return;
         write_d1l3_rr3();
         break;
     case 0xE4:
-        if (fxValue == 0) tmpInst[id].RR4 = SRAM_ReadInstrument(id, INST_RR4);
-        else if (fxValue <= 0x10) tmpInst[id].RR4 = fxValue - 1;
+        if (!fxValue) chInst[fmCh].RR4 = tmpInst[id].RR4;
+        else if (fxValue <= 0x10) chInst[fmCh].RR4 = fxValue - 1;
         else return;
         write_d1l4_rr4();
         break;
@@ -4875,43 +4874,43 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
     case 0x08:
         switch(fxValue)
         {
-            case 0x10: { tmpInst[id].AM1 = SRAM_ReadInstrument(id, INST_AM1); write_am1_d1r1(); }
+            case 0x10: { chInst[fmCh].AM1 = tmpInst[id].AM1; write_am1_d1r1(); }
                 break;
-            case 0x11: { tmpInst[id].AM1 = 1; write_am1_d1r1(); }
+            case 0x11: { chInst[fmCh].AM1 = 1; write_am1_d1r1(); }
                 break;
-            case 0x12: { tmpInst[id].AM1 = 0; write_am1_d1r1(); }
+            case 0x12: { chInst[fmCh].AM1 = 0; write_am1_d1r1(); }
                 break;
-            case 0x20: { tmpInst[id].AM2 = SRAM_ReadInstrument(id, INST_AM2); write_am2_d1r2(); }
+            case 0x20: { chInst[fmCh].AM2 = tmpInst[id].AM2; write_am2_d1r2(); }
                 break;
-            case 0x21: { tmpInst[id].AM2 = 1; write_am2_d1r2(); }
+            case 0x21: { chInst[fmCh].AM2 = 1; write_am2_d1r2(); }
                 break;
-            case 0x22: { tmpInst[id].AM2 = 0; write_am2_d1r2(); }
+            case 0x22: { chInst[fmCh].AM2 = 0; write_am2_d1r2(); }
                 break;
-            case 0x30: { tmpInst[id].AM3 = SRAM_ReadInstrument(id, INST_AM3); write_am3_d1r3(); }
+            case 0x30: { chInst[fmCh].AM3 = tmpInst[id].AM3; write_am3_d1r3(); }
                 break;
-            case 0x31: { tmpInst[id].AM3 = 1; write_am3_d1r3(); }
+            case 0x31: { chInst[fmCh].AM3 = 1; write_am3_d1r3(); }
                 break;
-            case 0x32: { tmpInst[id].AM3 = 0; write_am3_d1r3(); }
+            case 0x32: { chInst[fmCh].AM3 = 0; write_am3_d1r3(); }
                 break;
-            case 0x40: { tmpInst[id].AM4 = SRAM_ReadInstrument(id, INST_AM4); write_am4_d1r4(); }
+            case 0x40: { chInst[fmCh].AM4 = tmpInst[id].AM4; write_am4_d1r4(); }
                 break;
-            case 0x41: { tmpInst[id].AM4 = 1; write_am4_d1r4(); }
+            case 0x41: { chInst[fmCh].AM4 = 1; write_am4_d1r4(); }
                 break;
-            case 0x42: { tmpInst[id].AM4 = 0; write_am4_d1r4(); }
+            case 0x42: { chInst[fmCh].AM4 = 0; write_am4_d1r4(); }
                 break;
             case 0x00: case 0x50:
-                tmpInst[id].AM1 = SRAM_ReadInstrument(id, INST_AM1);
-                tmpInst[id].AM2 = SRAM_ReadInstrument(id, INST_AM2);
-                tmpInst[id].AM3 = SRAM_ReadInstrument(id, INST_AM3);
-                tmpInst[id].AM4 = SRAM_ReadInstrument(id, INST_AM4);
+                chInst[fmCh].AM1 = tmpInst[id].AM1;
+                chInst[fmCh].AM2 = tmpInst[id].AM2;
+                chInst[fmCh].AM3 = tmpInst[id].AM3;
+                chInst[fmCh].AM4 = tmpInst[id].AM4;
                 write_am1_d1r1(); write_am2_d1r2(); write_am3_d1r3(); write_am4_d1r4();
                 break;
             case 0x51:
-                tmpInst[id].AM1 = tmpInst[id].AM2 = tmpInst[id].AM3 = tmpInst[id].AM4 = 1;
+                chInst[fmCh].AM1 = chInst[fmCh].AM2 = chInst[fmCh].AM3 = chInst[fmCh].AM4 = 1;
                 write_am1_d1r1(); write_am2_d1r2(); write_am3_d1r3(); write_am4_d1r4();
                 break;
             case 0x52:
-                tmpInst[id].AM1 = tmpInst[id].AM2 = tmpInst[id].AM3 = tmpInst[id].AM4 = 0;
+                chInst[fmCh].AM1 = chInst[fmCh].AM2 = chInst[fmCh].AM3 = chInst[fmCh].AM4 = 0;
                 write_am1_d1r1(); write_am2_d1r2(); write_am3_d1r3(); write_am4_d1r4();
                 break;
             default: return; break;
@@ -4920,29 +4919,29 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
 
     // SSG-EG
     case 0x09:
-             if (fxValue == 0x10) { tmpInst[id].SSGEG1 = SRAM_ReadInstrument(id, INST_SSGEG1); write_ssgeg1(); }
-        else if ((fxValue >= 0x11) && (fxValue <= 0x19)) { tmpInst[id].SSGEG1 = fxValue - 0x0A; write_ssgeg1(); }
+        if (fxValue == 0x10) { chInst[fmCh].SSGEG1 = tmpInst[id].SSGEG1; write_ssgeg1(); }
+        else if ((fxValue >= 0x11) && (fxValue <= 0x19)) { chInst[fmCh].SSGEG1 = fxValue - 0x0A; write_ssgeg1(); }
 
-        else if (fxValue == 0x20) { tmpInst[id].SSGEG2 = SRAM_ReadInstrument(id, INST_SSGEG2); write_ssgeg2(); }
-        else if ((fxValue >= 0x21) && (fxValue <= 0x29)) { tmpInst[id].SSGEG2 = fxValue - 0x1A; write_ssgeg2(); }
+        else if (fxValue == 0x20) { chInst[fmCh].SSGEG2 = tmpInst[id].SSGEG2; write_ssgeg2(); }
+        else if ((fxValue >= 0x21) && (fxValue <= 0x29)) { chInst[fmCh].SSGEG2 = fxValue - 0x1A; write_ssgeg2(); }
 
-        else if (fxValue == 0x30) { tmpInst[id].SSGEG3 = SRAM_ReadInstrument(id, INST_SSGEG3); write_ssgeg3(); }
-        else if ((fxValue >= 0x31) && (fxValue <= 0x39)) { tmpInst[id].SSGEG3 = fxValue - 0x2A; write_ssgeg3(); }
+        else if (fxValue == 0x30) { chInst[fmCh].SSGEG3 = tmpInst[id].SSGEG3; write_ssgeg3(); }
+        else if ((fxValue >= 0x31) && (fxValue <= 0x39)) { chInst[fmCh].SSGEG3 = fxValue - 0x2A; write_ssgeg3(); }
 
-        else if (fxValue == 0x40) { tmpInst[id].SSGEG4 = SRAM_ReadInstrument(id, INST_SSGEG4); write_ssgeg4(); }
-        else if ((fxValue >= 0x41) && (fxValue <= 0x49)) { tmpInst[id].SSGEG4 = fxValue - 0x3A; write_ssgeg4(); }
+        else if (fxValue == 0x40) { chInst[fmCh].SSGEG4 = tmpInst[id].SSGEG4; write_ssgeg4(); }
+        else if ((fxValue >= 0x41) && (fxValue <= 0x49)) { chInst[fmCh].SSGEG4 = fxValue - 0x3A; write_ssgeg4(); }
 
-        else if (fxValue == 0x00 || fxValue == 0x50) // reset all
+        else if (!fxValue || fxValue == 0x50) // reset all
         {
-            tmpInst[id].SSGEG1 = SRAM_ReadInstrument(id, INST_SSGEG1);
-            tmpInst[id].SSGEG2 = SRAM_ReadInstrument(id, INST_SSGEG2);
-            tmpInst[id].SSGEG3 = SRAM_ReadInstrument(id, INST_SSGEG3);
-            tmpInst[id].SSGEG4 = SRAM_ReadInstrument(id, INST_SSGEG4);
+            chInst[fmCh].SSGEG1 = tmpInst[id].SSGEG1;
+            chInst[fmCh].SSGEG2 = tmpInst[id].SSGEG2;
+            chInst[fmCh].SSGEG3 = tmpInst[id].SSGEG3;
+            chInst[fmCh].SSGEG4 = tmpInst[id].SSGEG4;
             write_ssgeg1(); write_ssgeg2(); write_ssgeg3(); write_ssgeg4();
         }
         else if ((fxValue >= 0x51) && (fxValue <= 0x59))
         {
-            tmpInst[id].SSGEG1 = tmpInst[id].SSGEG2 = tmpInst[id].SSGEG3 = tmpInst[id].SSGEG4 = fxValue - 0x4A;
+            chInst[fmCh].SSGEG1 = chInst[fmCh].SSGEG2 = chInst[fmCh].SSGEG3 = chInst[fmCh].SSGEG4 = fxValue - 0x4A;
             write_ssgeg1(); write_ssgeg2(); write_ssgeg3(); write_ssgeg4();
         }
         else return;
@@ -4950,34 +4949,34 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
 
     // ALGORITHM
     case 0x0A:
-        if (fxValue == 0) tmpInst[id].ALG = SRAM_ReadInstrument(id, INST_ALG);
-        else if (fxValue < 9) tmpInst[id].ALG = fxValue - 1;
+        if (!fxValue) chInst[fmCh].ALG = tmpInst[id].ALG;
+        else if (fxValue < 9) chInst[fmCh].ALG = fxValue - 1;
         else return;
         write_fb_alg();
         break;
 
     // OP1 FEEDBACK
     case 0x0B:
-        if (fxValue == 0) tmpInst[id].FB = SRAM_ReadInstrument(id, INST_FB);
-        else if (fxValue < 9) tmpInst[id].FB = fxValue - 1;
+        if (!fxValue) chInst[fmCh].FB = tmpInst[id].FB;
+        else if (fxValue < 9) chInst[fmCh].FB = fxValue - 1;
         else return;
         write_fb_alg();
         break;
 
     // AMS
     case 0x0C:
-        if (fxValue == 0) tmpInst[id].AMS = SRAM_ReadInstrument(id, INST_FMS);
-        else if (fxValue < 8) tmpInst[id].AMS = fxValue;
-        else if (fxValue == 0x0F) tmpInst[id].AMS = 0;
+        if (!fxValue) chInst[fmCh].AMS = tmpInst[id].FMS;
+        else if (fxValue < 8) chInst[fmCh].AMS = fxValue;
+        else if (fxValue == 0x0F) chInst[fmCh].AMS = 0;
         else return;
         write_pan_ams_fms();
         break;
 
     // FMS
     case 0x0D:
-        if (fxValue == 0) tmpInst[id].FMS = SRAM_ReadInstrument(id, INST_AMS);
-        else if (fxValue < 4) tmpInst[id].FMS = fxValue;
-        else if (fxValue == 0x0F) tmpInst[id].FMS = 0;
+        if (!fxValue) chInst[fmCh].FMS = tmpInst[id].AMS;
+        else if (fxValue < 4) chInst[fmCh].FMS = fxValue;
+        else if (fxValue == 0x0F) chInst[fmCh].FMS = 0;
         else return;
         write_pan_ams_fms();
         break;
@@ -4986,15 +4985,15 @@ static inline void ApplyCommand_FM(u8 matrixChannel, u8 id, u8 fxParam, u8 fxVal
     case 0x0E:
         switch (fxValue)
         {
-        case 0x00: tmpInst[id].PAN = SRAM_ReadInstrument(id, INST_PAN);
+        case 0x00: chInst[fmCh].PAN = tmpInst[id].PAN;
             break;
-        case 0x10: tmpInst[id].PAN = 2; if (matrixChannel == CHANNEL_FM6_DAC) FM_CH6_DAC_Pan = SOUND_PAN_LEFT;
+        case 0x10: chInst[fmCh].PAN = 2; if (mtxCh == CHANNEL_FM6_DAC) FM_CH6_DAC_Pan = SOUND_PAN_LEFT;
             break;
-        case 0x01: tmpInst[id].PAN = 1; if (matrixChannel == CHANNEL_FM6_DAC) FM_CH6_DAC_Pan = SOUND_PAN_RIGHT;
+        case 0x01: chInst[fmCh].PAN = 1; if (mtxCh == CHANNEL_FM6_DAC) FM_CH6_DAC_Pan = SOUND_PAN_RIGHT;
             break;
-        case 0x11: tmpInst[id].PAN = 3; if (matrixChannel == CHANNEL_FM6_DAC) FM_CH6_DAC_Pan = SOUND_PAN_CENTER;
+        case 0x11: chInst[fmCh].PAN = 3; if (mtxCh == CHANNEL_FM6_DAC) FM_CH6_DAC_Pan = SOUND_PAN_CENTER;
             break;
-        case 0xFF: tmpInst[id].PAN = 0;
+        case 0xFF: chInst[fmCh].PAN = 0;
             break;
         default: return; break;
         }

@@ -94,7 +94,7 @@ I recommend to always use the first (--) matrix row for first instruments initia
 	X+D		Un-Mute channel. Solo channel if all channels Un-Muted.
 	X+Y		Un-Mute all channels.
 	
-	Set pattern color preset:
+	Set pattern color preset: (tip: for instrument change or song chorus marks for ex.)
 	
 	Y+L		Previous slot
 	Y+R 	Next slot
@@ -127,9 +127,7 @@ Patterm Editor
 
 Split into two parts to fit nice on the screen, each consist of:
 Note, Instrument, Effect 1 type, Effect 1 value, Effect 2 type, Effect 2 value ...
-
 Current pattern is looped when pattern or instrument editor is active.
-Setting instrument explicitly rewrites the channel's FM registers, if there are any effects, they're written after that.
 
 '
 	Navigate:
@@ -627,7 +625,7 @@ xx: 01 .. 60; pitch (hBlank based frequency). xx > 60 = same as key.
 ------------------------------------------------
 
 ************************************************
-Note Cut
+Note Cut (tip: cut the bass notes end to avoid clicks)
 	50xx	
 xx: 01 .. FF; Kill note after xx ticks.
 --: no effect.
