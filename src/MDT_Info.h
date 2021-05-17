@@ -1,6 +1,7 @@
 #ifndef MDT_INFO_H_INCLUDED
 #define MDT_INFO_H_INCLUDED
 
+// used by ChangePatternParameter
 const char *infoCommands[256] =
 {
     /* 00 */ "",

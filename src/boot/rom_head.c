@@ -1,6 +1,5 @@
 #include <types.h>
-
-#define MD_TRACKER_VERSION  5
+#include "../MDT_Version.h"
 
 __attribute__((externally_visible))
 const struct
@@ -36,11 +35,22 @@ const struct
 //    "SEGA PICO       "	SEGA Pico console for kids
 //    "SEGA TERA68K    "	Tera Drive (boot from 68000 side)
 //    "SEGA TERA286    "	Tera Drive (boot from x86 side)
-    //"SEGA SSF        ", //
-    "SEGA EVERDRIVE  ",
-    "(C)CORTHAX 2021 ",
-    "MD.Tracker  [wip]                               ",
-    "MD.Tracker  [wip]                               ",
+#if (MDT_VERSION == 0)
+    "SEGA SSF        ", // Mega Everdrive Pro
+#elif (MDT_VERSION == 1)
+    "SEGA SSF        ", // BlastEm
+#else
+    "SEGA GENESIS    ", // PicoDrive
+#endif
+    "(C)Corthax 2021 ",
+#if (MDT_VERSION == 0)
+    "MD.Tracker (1.0b) [MEGA EVERDRIVE PRO]          ",
+#elif (MDT_VERSION == 1)
+    "MD.Tracker (1.0b) [BLASTEM]                     ",
+#else
+    "MD.Tracker (1.0b) [PICODRIVE]                   ",
+#endif
+    "MD.Tracker                                      ",
 //    "GM"	Game
 //    "AI"	Educational Aid
 //    "OS"	Boot ROM (TMSS)
@@ -64,7 +74,7 @@ const struct
 //"C"	CD-ROM (Sega CD)
 //"F"	Floppy drive
 //"D"	Download?
-    "6C              ",
+    "6               ",
     0x00000000, // ROM start
     0x001FFFFF, // ROM end (2MB)
     0x00FF0000, // BRAM start
@@ -79,10 +89,8 @@ const struct
 //F8	Yes	    8-bit (odd addresses)
 //"RA", 0xE840; EEPROM type
     0xE020,     // 16 bit SRAM mode
-    0x00200000,
-    0x0027FFFF,
-    //0x00280000, // not work on picodrive
-    //0x002FFFFF,
+    0x00200000, // SRAM start
+    0x0027FFFF, // SRAM end
     "            ",                             // modem
     "MUSIC TRACKER                           ", // memo
     "JUE             "                          // country

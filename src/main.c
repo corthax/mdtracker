@@ -19,6 +19,7 @@
 #include "MDT_GUI.h"
 #include "MDT_PCM.h"
 #include "MDT_Info.h"
+#include "MDT_Version.h"
 
 #define STRING_EMPTY    ""
 
@@ -177,12 +178,14 @@ u32 PPS = 0;
 Instrument tmpInst[MAX_INSTRUMENT+1]; // cache instruments to RAM for faster access
 Instrument chInst[6]; // to apply commands
 
+#if (MDT_VERSION == 0)
 u16 msu_drv();
 vu16 *mcd_cmd = (vu16 *) 0xA12010;  // command
 vu32 *mcd_arg = (vu32 *) 0xA12012;  // argument
 vu8 *mcd_cmd_ck = (vu8 *) 0xA1201F; // increment for command execution
 vu8 *mcd_stat = (vu8 *) 0xA12020;   // Driver ready for commands processing when 0xA12020 sets to 0
 u16 msu_resp;
+#endif
 
 // cant put in header. build error
 
@@ -304,8 +307,10 @@ const s16 GUI_ALPHABET[38] =
     GUI_DIGIT_9
 };
 
-int main()
+int main(bool hardReset)
 {
+    //if (hardReset) SYS_reset();
+    ForceResetVariables();
     InitTracker();
 	while(1)
     {
@@ -569,6 +574,7 @@ static inline void DoEngine()
     static s16 _key = 0;
     static s8 _matrixTranspose = 0;
     static s8 _test;
+    static u8 fmCh;
 
     // vibrato tool
     auto inline s8 vibrato(u8 channel)
@@ -746,7 +752,7 @@ static inline void DoEngine()
 
                     switch (channel)
                     {
-                    case CHANNEL_FM1: case CHANNEL_FM2: case CHANNEL_FM3_OP4: case CHANNEL_FM4: case CHANNEL_FM5:
+                    case CHANNEL_FM1: case CHANNEL_FM2: case CHANNEL_FM4: case CHANNEL_FM5:
                         ApplyCommand_FM(channel, channelPreviousInstrument[channel], _fxType, _fxValue);
                         break;
                     case CHANNEL_FM6_DAC:
@@ -754,7 +760,11 @@ static inline void DoEngine()
                         if (!bDAC_enable) ApplyCommand_FM(CHANNEL_FM6_DAC, channelPreviousInstrument[CHANNEL_FM6_DAC], _fxType, _fxValue);
                         break;
                     case CHANNEL_FM3_OP1: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP3:
-                        //ApplyCommand_FM_SP(channel, channelPreviousInstrument[CHANNEL_FM3_OP4], _fxType, _fxValue);
+                        ApplyCommand_FM3_SP(channel, _fxType, _fxValue);
+                        break;
+                    case CHANNEL_FM3_OP4:
+                        ApplyCommand_FM3_SP(channel, _fxType, _fxValue);
+                        ApplyCommand_FM(channel, channelPreviousInstrument[channel], _fxType, _fxValue);
                         break;
                     default: ApplyCommand_PSG(_fxType, _fxValue); break;
                     }
@@ -765,7 +775,7 @@ static inline void DoEngine()
 
                     switch (channel)
                     {
-                    case CHANNEL_FM1: case CHANNEL_FM2: case CHANNEL_FM3_OP4: case CHANNEL_FM4: case CHANNEL_FM5:
+                    case CHANNEL_FM1: case CHANNEL_FM2: case CHANNEL_FM4: case CHANNEL_FM5:
                         ApplyCommand_FM(channel, channelPreviousInstrument[channel], channelPreviousEffectType[channel][effect], _fxValue);
                         break;
                     case CHANNEL_FM6_DAC:
@@ -773,7 +783,11 @@ static inline void DoEngine()
                         if (!bDAC_enable) ApplyCommand_FM(CHANNEL_FM6_DAC, channelPreviousInstrument[CHANNEL_FM6_DAC], channelPreviousEffectType[CHANNEL_FM6_DAC][effect], _fxValue);
                         break;
                     case CHANNEL_FM3_OP1: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP3:
-                        //ApplyCommand_Special(channel, channelPreviousInstrument[CHANNEL_FM3_OP4], channelPreviousEffectType[channel][effect], _fxValue);
+                        ApplyCommand_FM3_SP(channel, channelPreviousEffectType[channel][effect], _fxValue);
+                        break;
+                    case CHANNEL_FM3_OP4:
+                        ApplyCommand_FM3_SP(channel, channelPreviousEffectType[channel][effect], _fxValue);
+                        ApplyCommand_FM(channel, channelPreviousInstrument[channel], channelPreviousEffectType[channel][effect], _fxValue);
                         break;
                     default: ApplyCommand_PSG(channelPreviousEffectType[channel][effect], _fxValue); break;
                     }
@@ -811,11 +825,11 @@ static inline void DoEngine()
             // commands
             if (_inst && channel < CHANNEL_PSG1) // ignore inst on PSG
             {
-                channelPreviousInstrument[channel] = _inst; // change current channel instrument for later use
-                //CopyCachedInst();
-                //apply_commands();
-                WriteYM2612(channel, _inst);
+                channelPreviousInstrument[channel] = _inst;
+                if (channel > 2) fmCh = channel - 3; else fmCh = channel;
+                chInst[fmCh] = tmpInst[_inst]; // copy from cached preset
                 apply_commands();
+                WriteYM2612(channel, fmCh);
             }
             else
             {
@@ -977,7 +991,7 @@ static inline void DoEngine()
             SYS_disableInts();
             _beginPlay = FALSE;
 
-            for (u16 inst = 0; inst <= MAX_INSTRUMENT; inst++) { CacheIstrumentToRAM(inst); } // reset [tempInst]
+            for (u16 inst = 0; inst <= MAX_INSTRUMENT; inst++) { CacheIstrumentToRAM(inst); }
 
             //! check and apply first found data if playing not from beginning of song !!! too long delay at later rows
             /*if (playingMatrixRow) // not first
@@ -1049,9 +1063,8 @@ static inline void DoEngine()
                 } // channel
             }*/
 
-            // start timer B
-            YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, FM_CH3_Mode | 0b00001111);
-
+            // reset, enable, start CSM timer A, normal mode
+            YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00000000);
             // set frame length
             if (playingPatternRow & 1) maxPulse = ppl_1; // pulses per line
             else maxPulse = ppl_2;
@@ -1065,10 +1078,10 @@ static inline void DoEngine()
         /*if (hIntCounter < 1) // counter overflow; do song tick
         {
             hIntCounter = hIntToSkip; // reset counter*/
-        if (doPulse)
+        if (doPulse) // row sub-pulse
         {
             doPulse = FALSE;
-            if (pulseCounter == -1) pulseCounter = 1; else pulseCounter++;
+            if (pulseCounter == -1) pulseCounter = 1; else pulseCounter++; // count row sub-pulses
             if (pulseCounter == maxPulse)
             {
                 if (playingPatternRow & 1) maxPulse = ppl_1; else maxPulse = ppl_2;
@@ -1091,8 +1104,7 @@ static inline void DoEngine()
             do_effects(CHANNEL_PSG4_NOISE);
         }
 
-        // playback engine
-        if (!pulseCounter)
+        if (!pulseCounter) // row pulse
         {
             do_row(CHANNEL_FM1);
             do_row(CHANNEL_FM2);
@@ -1112,7 +1124,7 @@ static inline void DoEngine()
 
             if (matrixRowJumpTo != OXFF && currentScreen == SCREEN_MATRIX)
             {
-                playingPatternRow = PATTERN_ROW_LAST + 1; // exceed to trigger next condition
+                playingPatternRow = PATTERN_ROW_LAST+1; // exceed to trigger next condition
             }
             else playingPatternRow++; // next line is..
 
@@ -1161,9 +1173,10 @@ static inline void DoEngine()
     {
         SYS_disableInts();
         _beginPlay = TRUE;
+        // reset CH.3 to normal mode
         // stop timer A (load: 1 to start, 0 to stop; enable: 1 to set register flag when overflowed, 0 to keep cycling without setting flag)
         // reset read register flag, timer overflowing is enabled
-        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, FM_CH3_Mode | 0b00111100);
+        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00000000);
 
         StopAllSound();
         ClearPatternPlaybackCursor();
@@ -1352,8 +1365,8 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
         matrixRowToRefresh = OXFFFF;
     }
 
-    if (joy == JOY_1 || joy == JOY_2)
-    {
+    //if (joy == JOY_1 || joy == JOY_2) // any joy really
+    //{
         switch (state)
         {
         case BUTTON_START:
@@ -2128,7 +2141,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
         }
         break;
         }
-    }
+    //}
 }
 
 // draw selection cursor
@@ -2299,7 +2312,8 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
     }
 
     // it goes first
-    switch (currentScreen) {
+    switch (currentScreen)
+    {
     case SCREEN_MATRIX:
         if (bClear)
         {
@@ -2311,7 +2325,7 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
             if (selectedMatrixScreenRow < MATRIX_SCREEN_ROWS) draw_cursor_2(pos_x * width + offset_x, pos_y + offset_y);
             else draw_cursor_3(3, 27); // BPM
         }
-    break;
+        break;
     case SCREEN_PATTERN:
         if (bClear)
         {
@@ -2339,7 +2353,7 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
             default: draw_cursor_1(pos_x * width + offset_x, pos_y + offset_y); break; // effects
             }
         }
-    break;
+        break;
     case SCREEN_INSTRUMENT:
         if (bClear)
         {
@@ -2361,12 +2375,12 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
             default: draw_cursor_2(pos_x * width + offset_x, pos_y + offset_y); break;
             }
         }
-    break;
+        break;
     default: break;
     }
 }
 // ------------------------------ PATTERN MATRIX
-static inline void DisplayPatternMatrix()
+inline void DisplayPatternMatrix()
 {
     static u16 patternID = 0;
     static u8 shiftX = 0;
@@ -2520,7 +2534,8 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
         }
 
         // print info: last entered effect description
-        if (strcmp(infoCommands[lastEnteredEffect], STRING_EMPTY) == 0)
+#if (MDT_VERSION != 1) //! const char array access resulting unmapped area in blastem
+        if (!strcmp(infoCommands[lastEnteredEffect], STRING_EMPTY))
         {
             VDP_clearTextArea(GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y, 39, 2);
         }
@@ -2529,6 +2544,7 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
             VDP_setTextPalette(PAL0); VDP_drawText(infoCommands[lastEnteredEffect], GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y);
             VDP_setTextPalette(PAL1); VDP_drawText(infoDescriptions[lastEnteredEffect], GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y + 1);
         }
+#endif
     }
 
     auto void write_fx_value(u8 id, u8 column)
@@ -2584,7 +2600,7 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
     }
 }
 
-static inline void DisplayPatternEditor()
+inline void DisplayPatternEditor()
 {
     if (bInitScreen)
     {
@@ -2925,7 +2941,7 @@ static void ChangeInstrumentParameter(s8 modifier)
     CacheIstrumentToRAM(selectedInstrumentID); // update RAM struct
 }
 
-static inline void DisplayInstrumentEditor()
+inline void DisplayInstrumentEditor()
 {
     static u8 value = 0; // buffer
     static u8 alg = 0;
@@ -3407,18 +3423,12 @@ static inline void SetPitchPSG(u8 mtxCh, u8 note)
     else if (key > NOTE_MAX) { key = NOTE_MAX;
         channelPitchSlideSpeed[mtxCh] = 0; }
 
-    auto void setvol()
-    {
-        //channelBaseVolume[mtxCh] = PSG_ENVELOPE_MAX;
-        SetChannelVolume(mtxCh);
-    }
-
     if (channelFlags[mtxCh])
     {
         switch (mtxCh)
         {
         case CHANNEL_PSG1: case CHANNEL_PSG2:
-            setvol();
+            SetChannelVolume(mtxCh);
             PSG_setTone(mtxCh - 9, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]);
             break;
         case CHANNEL_PSG3:
@@ -3428,7 +3438,7 @@ static inline void SetPitchPSG(u8 mtxCh, u8 note)
                 PSG_setEnvelope(2, PSG_ENVELOPE_MIN); // mute PSG3 channel
                 break;
             case PSG_TONAL_CH3_NOT_MUTED: case PSG_FIXED:
-                setvol();
+                SetChannelVolume(mtxCh);
                 PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
                 break;
             }
@@ -3437,16 +3447,16 @@ static inline void SetPitchPSG(u8 mtxCh, u8 note)
             switch (PSG_NoiseMode)
             {
             case PSG_TONAL_CH3_MUTED:
-                setvol();
+                SetChannelVolume(mtxCh);
                 PSG_setEnvelope(2, PSG_ENVELOPE_MIN); // mute PSG3 channel
                 PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
                 break;
             case PSG_TONAL_CH3_NOT_MUTED:
-                setvol();
+                SetChannelVolume(mtxCh);
                 PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
                 break;
              case PSG_FIXED:
-                setvol();
+                SetChannelVolume(mtxCh);
                 break;
             }
             break;
@@ -3467,9 +3477,9 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
         YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_A_LSB, csmMicrotone[note] & 0b0000000000000011);
 
         // play CSM note
-        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_FREQ_MSB, 0b10001111);
-        //YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_FREQ_MSB, CH3_SPECIAL_CSM | 0b00001111); // bb Ch3 mode, Reset B, Reset A, Enable B, Enable A, Load B, Load A
+        // bb: Ch3 mode, Reset B, Reset A, Enable B, Enable A, Load B, Load A
         FM_CH3_Mode = CH3_SPECIAL_CSM;
+        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_FREQ_MSB, CH3_SPECIAL_CSM | 0b00001111);
     }
 
     // CSM
@@ -3891,32 +3901,33 @@ inline void CalculateCombined(u8 fmCh, u8 reg)
         case COMB_D1L_RR_2:      chInst[fmCh].D1L2_RR2 = (chInst[fmCh].D1L2 << 4) | chInst[fmCh].RR2; break;
         case COMB_D1L_RR_3:      chInst[fmCh].D1L3_RR3 = (chInst[fmCh].D1L3 << 4) | chInst[fmCh].RR3; break;
         case COMB_D1L_RR_4:      chInst[fmCh].D1L4_RR4 = (chInst[fmCh].D1L4 << 4) | chInst[fmCh].RR4; break;
+        default: break;
     }
 }
-
-static inline void SetChannelBaseVolume_FM(u8 mtxCh, u8 id)
+// changing instrument will not reset channel attenuation (post-fader)
+static inline void SetChannelBaseVolume_FM(u8 mtxCh, u8 fmCh)
 {
     auto void set_normal_slots()
     {
-        switch (tmpInst[id].ALG)
+        switch (chInst[fmCh].ALG)
         {
         case 0: case 1: case 2: case 3:
-            channelSlotBaseLevel[mtxCh][3] = tmpInst[id].TL4; // or from chInst[fmCh], doesnt matter
+            channelSlotBaseLevel[mtxCh][3] = chInst[fmCh].TL4;
             /*chInst[fmCh].TL4 += channelAttenuation[mtxCh];
             if (chInst[fmCh].TL4 > 0x7F) chInst[fmCh].TL4 = 0x7F;*/
             break;
         case 4:
-            channelSlotBaseLevel[mtxCh][2] = tmpInst[id].TL3;
-            channelSlotBaseLevel[mtxCh][3] = tmpInst[id].TL4;
+            channelSlotBaseLevel[mtxCh][2] = chInst[fmCh].TL3;
+            channelSlotBaseLevel[mtxCh][3] = chInst[fmCh].TL4;
             /*chInst[fmCh].TL3 += channelAttenuation[mtxCh];
             chInst[fmCh].TL4 += channelAttenuation[mtxCh];
             if (chInst[fmCh].TL3 > 0x7F) chInst[fmCh].TL3 = 0x7F;
             if (chInst[fmCh].TL4 > 0x7F) chInst[fmCh].TL4 = 0x7F;*/
             break;
         case 5: case 6:
-            channelSlotBaseLevel[mtxCh][1] = tmpInst[id].TL2;
-            channelSlotBaseLevel[mtxCh][2] = tmpInst[id].TL3;
-            channelSlotBaseLevel[mtxCh][3] = tmpInst[id].TL4;
+            channelSlotBaseLevel[mtxCh][1] = chInst[fmCh].TL2;
+            channelSlotBaseLevel[mtxCh][2] = chInst[fmCh].TL3;
+            channelSlotBaseLevel[mtxCh][3] = chInst[fmCh].TL4;
             /*chInst[fmCh].TL2 += channelAttenuation[mtxCh];
             chInst[fmCh].TL3 += channelAttenuation[mtxCh];
             chInst[fmCh].TL4 += channelAttenuation[mtxCh];
@@ -3925,10 +3936,10 @@ static inline void SetChannelBaseVolume_FM(u8 mtxCh, u8 id)
             if (chInst[fmCh].TL4 > 0x7F) chInst[fmCh].TL4 = 0x7F;*/
             break;
         case 7:
-            channelSlotBaseLevel[mtxCh][0] = tmpInst[id].TL1;
-            channelSlotBaseLevel[mtxCh][1] = tmpInst[id].TL2;
-            channelSlotBaseLevel[mtxCh][2] = tmpInst[id].TL3;
-            channelSlotBaseLevel[mtxCh][3] = tmpInst[id].TL4;
+            channelSlotBaseLevel[mtxCh][0] = chInst[fmCh].TL1;
+            channelSlotBaseLevel[mtxCh][1] = chInst[fmCh].TL2;
+            channelSlotBaseLevel[mtxCh][2] = chInst[fmCh].TL3;
+            channelSlotBaseLevel[mtxCh][3] = chInst[fmCh].TL4;
             /*chInst[fmCh].TL1 += channelAttenuation[mtxCh];
             chInst[fmCh].TL2 += channelAttenuation[mtxCh];
             chInst[fmCh].TL3 += channelAttenuation[mtxCh];
@@ -3938,6 +3949,7 @@ static inline void SetChannelBaseVolume_FM(u8 mtxCh, u8 id)
             if (chInst[fmCh].TL3 > 0x7F) chInst[fmCh].TL3 = 0x7F;
             if (chInst[fmCh].TL4 > 0x7F) chInst[fmCh].TL4 = 0x7F;*/
             break;
+        default: break;
         }
     }
 
@@ -3947,7 +3959,7 @@ static inline void SetChannelBaseVolume_FM(u8 mtxCh, u8 id)
         if (FM_CH3_Mode == CH3_NORMAL) set_normal_slots();
         else
         {
-            channelSlotBaseLevel[mtxCh][3] = tmpInst[id].TL4;
+            channelSlotBaseLevel[mtxCh][3] = chInst[fmCh].TL4;
             /*chInst[fmCh].TL4 += channelAttenuation[mtxCh];
             if (chInst[fmCh].TL4 > 0x7F) chInst[fmCh].TL1 = 0x7F;*/
         }
@@ -3955,7 +3967,7 @@ static inline void SetChannelBaseVolume_FM(u8 mtxCh, u8 id)
     case CHANNEL_FM3_OP3:
         if (FM_CH3_Mode != CH3_NORMAL)
         {
-            channelSlotBaseLevel[mtxCh][2] = tmpInst[id].TL3;
+            channelSlotBaseLevel[mtxCh][2] = chInst[fmCh].TL3;
             /*chInst[fmCh].TL3 += channelAttenuation[mtxCh];
             if (chInst[fmCh].TL3 > 0x7F) chInst[fmCh].TL1 = 0x7F;*/
         }
@@ -3963,7 +3975,7 @@ static inline void SetChannelBaseVolume_FM(u8 mtxCh, u8 id)
     case CHANNEL_FM3_OP2:
         if (FM_CH3_Mode != CH3_NORMAL)
         {
-            channelSlotBaseLevel[mtxCh][1] = tmpInst[id].TL2;
+            channelSlotBaseLevel[mtxCh][1] = chInst[fmCh].TL2;
             /*chInst[fmCh].TL2 += channelAttenuation[mtxCh];
             if (chInst[fmCh].TL2 > 0x7F) chInst[fmCh].TL1 = 0x7F;*/
         }
@@ -3971,7 +3983,7 @@ static inline void SetChannelBaseVolume_FM(u8 mtxCh, u8 id)
     case CHANNEL_FM3_OP1:
         if (FM_CH3_Mode != CH3_NORMAL)
         {
-            channelSlotBaseLevel[mtxCh][0] = tmpInst[id].TL1;
+            channelSlotBaseLevel[mtxCh][0] = chInst[fmCh].TL1;
             /*chInst[fmCh].TL1 += channelAttenuation[mtxCh];
             if (chInst[fmCh].TL1 > 0x7F) chInst[fmCh].TL1 = 0x7F;*/
         }
@@ -3982,152 +3994,151 @@ static inline void SetChannelBaseVolume_FM(u8 mtxCh, u8 id)
     }
 }
 
-// write all YM2612 registers from cached preset
-static inline void WriteYM2612(u8 mtxCh, u8 id)
+// write all YM2612 registers
+static inline void WriteYM2612(u8 mtxCh, u8 fmCh)
 {
     static u16 port = 0;
     static u8 ch = 0;       // chip channel
-    static u8 fmCh = 0;     // matrix fm channel
+    //static u8 fmCh = 0;     // matrix fm channel
 
     switch (mtxCh)
     {
     case CHANNEL_FM1: case CHANNEL_FM2: case CHANNEL_FM3_OP4:
-        port = PORT_1; ch = fmCh = mtxCh;
+        port = PORT_1; ch = /*fmCh = */mtxCh;
         break;
     /*case CHANNEL_FM3_OP3: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP1:
         port = PORT_1; ch = CHANNEL_FM3_OP4; // 2
         break;*/
     case CHANNEL_FM4: case CHANNEL_FM5: case CHANNEL_FM6_DAC:
-        port = PORT_2; ch = mtxCh - 6; fmCh = mtxCh - 3;
+        port = PORT_2; ch = mtxCh - 6; //fmCh = mtxCh - 3;
         break;
     default: return; break;
     }
 
-    chInst[fmCh] = tmpInst[id]; // copy from cached preset
-    SetChannelBaseVolume_FM(mtxCh, id); // called only here
+    SetChannelBaseVolume_FM(mtxCh, fmCh); // called only here
     SetChannelVolume(mtxCh); // if there is vol command, resulting same values
 
     switch (ch)
     {
     case 0:
-        YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH0, tmpInst[id].FB_ALG);
+        YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH0, chInst[fmCh].FB_ALG);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0, tmpInst[id].TL1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0, tmpInst[id].TL2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0, tmpInst[id].TL3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0, tmpInst[id].TL4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0, chInst[fmCh].TL1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0, chInst[fmCh].TL2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0, chInst[fmCh].TL3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0, chInst[fmCh].TL4);
 
-        YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH0, tmpInst[id].PAN_AMS_FMS);
+        YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH0, chInst[fmCh].PAN_AMS_FMS);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH0, tmpInst[id].DT1_MUL1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH0, tmpInst[id].DT2_MUL2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH0, tmpInst[id].DT3_MUL3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH0, tmpInst[id].DT4_MUL4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH0, chInst[fmCh].DT1_MUL1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH0, chInst[fmCh].DT2_MUL2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH0, chInst[fmCh].DT3_MUL3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH0, chInst[fmCh].DT4_MUL4);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH0, tmpInst[id].RS1_AR1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH0, tmpInst[id].RS2_AR2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH0, tmpInst[id].RS3_AR3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH0, tmpInst[id].RS4_AR4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH0, chInst[fmCh].RS1_AR1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH0, chInst[fmCh].RS2_AR2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH0, chInst[fmCh].RS3_AR3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH0, chInst[fmCh].RS4_AR4);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH0, tmpInst[id].AM1_D1R1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH0, tmpInst[id].AM2_D1R2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH0, tmpInst[id].AM3_D1R3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH0, tmpInst[id].AM4_D1R4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH0, chInst[fmCh].AM1_D1R1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH0, chInst[fmCh].AM2_D1R2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH0, chInst[fmCh].AM3_D1R3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH0, chInst[fmCh].AM4_D1R4);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH0, tmpInst[id].D2R1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH0, tmpInst[id].D2R2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH0, tmpInst[id].D2R3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH0, tmpInst[id].D2R4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH0, chInst[fmCh].D2R1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH0, chInst[fmCh].D2R2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH0, chInst[fmCh].D2R3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH0, chInst[fmCh].D2R4);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH0, tmpInst[id].D1L1_RR1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH0, tmpInst[id].D1L2_RR2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH0, tmpInst[id].D1L3_RR3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH0, tmpInst[id].D1L4_RR4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH0, chInst[fmCh].D1L1_RR1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH0, chInst[fmCh].D1L2_RR2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH0, chInst[fmCh].D1L3_RR3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH0, chInst[fmCh].D1L4_RR4);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH0, tmpInst[id].SSGEG1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH0, tmpInst[id].SSGEG2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH0, tmpInst[id].SSGEG3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH0, tmpInst[id].SSGEG4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH0, chInst[fmCh].SSGEG1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH0, chInst[fmCh].SSGEG2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH0, chInst[fmCh].SSGEG3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH0, chInst[fmCh].SSGEG4);
         break;
     case 1:
-        YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH1, tmpInst[id].FB_ALG);
+        YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH1, chInst[fmCh].FB_ALG);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH1, tmpInst[id].TL1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH1, tmpInst[id].TL2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH1, tmpInst[id].TL3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH1, tmpInst[id].TL4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH1, chInst[fmCh].TL1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH1, chInst[fmCh].TL2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH1, chInst[fmCh].TL3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH1, chInst[fmCh].TL4);
 
-        YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH1, tmpInst[id].PAN_AMS_FMS);
+        YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH1, chInst[fmCh].PAN_AMS_FMS);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH1, tmpInst[id].DT1_MUL1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH1, tmpInst[id].DT2_MUL2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH1, tmpInst[id].DT3_MUL3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH1, tmpInst[id].DT4_MUL4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH1, chInst[fmCh].DT1_MUL1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH1, chInst[fmCh].DT2_MUL2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH1, chInst[fmCh].DT3_MUL3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH1, chInst[fmCh].DT4_MUL4);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH1, tmpInst[id].RS1_AR1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH1, tmpInst[id].RS2_AR2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH1, tmpInst[id].RS3_AR3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH1, tmpInst[id].RS4_AR4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH1, chInst[fmCh].RS1_AR1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH1, chInst[fmCh].RS2_AR2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH1, chInst[fmCh].RS3_AR3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH1, chInst[fmCh].RS4_AR4);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH1, tmpInst[id].AM1_D1R1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH1, tmpInst[id].AM2_D1R2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH1, tmpInst[id].AM3_D1R3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH1, tmpInst[id].AM4_D1R4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH1, chInst[fmCh].AM1_D1R1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH1, chInst[fmCh].AM2_D1R2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH1, chInst[fmCh].AM3_D1R3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH1, chInst[fmCh].AM4_D1R4);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH1, tmpInst[id].D2R1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH1, tmpInst[id].D2R2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH1, tmpInst[id].D2R3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH1, tmpInst[id].D2R4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH1, chInst[fmCh].D2R1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH1, chInst[fmCh].D2R2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH1, chInst[fmCh].D2R3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH1, chInst[fmCh].D2R4);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH1, tmpInst[id].D1L1_RR1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH1, tmpInst[id].D1L2_RR2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH1, tmpInst[id].D1L3_RR3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH1, tmpInst[id].D1L4_RR4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH1, chInst[fmCh].D1L1_RR1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH1, chInst[fmCh].D1L2_RR2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH1, chInst[fmCh].D1L3_RR3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH1, chInst[fmCh].D1L4_RR4);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH1, tmpInst[id].SSGEG1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH1, tmpInst[id].SSGEG2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH1, tmpInst[id].SSGEG3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH1, tmpInst[id].SSGEG4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH1, chInst[fmCh].SSGEG1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH1, chInst[fmCh].SSGEG2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH1, chInst[fmCh].SSGEG3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH1, chInst[fmCh].SSGEG4);
         break;
     case 2:
-        YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH2, tmpInst[id].FB_ALG);
+        YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH2, chInst[fmCh].FB_ALG);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH2, tmpInst[id].TL1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH2, tmpInst[id].TL2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH2, tmpInst[id].TL3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH2, tmpInst[id].TL4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH2, chInst[fmCh].TL1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH2, chInst[fmCh].TL2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH2, chInst[fmCh].TL3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH2, chInst[fmCh].TL4);
 
-        YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH2, tmpInst[id].PAN_AMS_FMS);
+        YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH2, chInst[fmCh].PAN_AMS_FMS);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH2, tmpInst[id].DT1_MUL1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH2, tmpInst[id].DT2_MUL2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH2, tmpInst[id].DT3_MUL3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH2, tmpInst[id].DT4_MUL4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH2, chInst[fmCh].DT1_MUL1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH2, chInst[fmCh].DT2_MUL2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH2, chInst[fmCh].DT3_MUL3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH2, chInst[fmCh].DT4_MUL4);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH2, tmpInst[id].RS1_AR1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH2, tmpInst[id].RS2_AR2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH2, tmpInst[id].RS3_AR3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH2, tmpInst[id].RS4_AR4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH2, chInst[fmCh].RS1_AR1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH2, chInst[fmCh].RS2_AR2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH2, chInst[fmCh].RS3_AR3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH2, chInst[fmCh].RS4_AR4);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH2, tmpInst[id].AM1_D1R1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH2, tmpInst[id].AM2_D1R2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH2, tmpInst[id].AM3_D1R3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH2, tmpInst[id].AM4_D1R4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH2, chInst[fmCh].AM1_D1R1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH2, chInst[fmCh].AM2_D1R2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH2, chInst[fmCh].AM3_D1R3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH2, chInst[fmCh].AM4_D1R4);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH2, tmpInst[id].D2R1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH2, tmpInst[id].D2R2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH2, tmpInst[id].D2R3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH2, tmpInst[id].D2R4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH2, chInst[fmCh].D2R1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH2, chInst[fmCh].D2R2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH2, chInst[fmCh].D2R3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH2, chInst[fmCh].D2R4);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH2, tmpInst[id].D1L1_RR1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH2, tmpInst[id].D1L2_RR2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH2, tmpInst[id].D1L3_RR3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH2, tmpInst[id].D1L4_RR4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH2, chInst[fmCh].D1L1_RR1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH2, chInst[fmCh].D1L2_RR2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH2, chInst[fmCh].D1L3_RR3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH2, chInst[fmCh].D1L4_RR4);
 
-        YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH2, tmpInst[id].SSGEG1);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH2, tmpInst[id].SSGEG2);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH2, tmpInst[id].SSGEG3);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH2, tmpInst[id].SSGEG4);
+        YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH2, chInst[fmCh].SSGEG1);
+        YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH2, chInst[fmCh].SSGEG2);
+        YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH2, chInst[fmCh].SSGEG3);
+        YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH2, chInst[fmCh].SSGEG4);
         break;
     }
 }
@@ -4162,8 +4173,6 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
         ppl_2 = fxValue & 0b00001111; if (!ppl_2) ppl_2 = PPL_DEFAULT;
         SetBPM(0);
         break;
-
-    // ------------------------------------------------------------------------
 
     // ARP SEQUENCE MODE
     case 0x2F:
@@ -4263,8 +4272,6 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
         channelPitchSkipStep[mtxCh] = fxValue;
         break;
 
-    // ------------------------------------------------------------------------
-
     // VOLUME SEQUENCE MODE
     case 0x3F:
         if (fxValue == 0) channelVolSeqMODE[mtxCh] = 0; else channelVolSeqMODE[mtxCh] = 1;
@@ -4314,8 +4321,6 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
         channelVolumePulseCounter[mtxCh] = 0;
         break;
 
-    // ------------------------------------------------------------------------
-
     // NOTE CUT
     case 0x50:
         channelNoteCut[mtxCh] = fxValue;
@@ -4345,21 +4350,6 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
         //channelNoteDelay[mtxCh] = fxValue;
         break;
 
-    // CH3 CSM FILTER (OP4 only)
-    case 0x55:
-        if (fxValue >= 0x09 && fxValue <= NOTE_MAX)
-        {
-            //switch (mtxCh)
-            //{
-            //case 2:
-                FM_CH3_OpFreq[0] = fxValue;
-                //break;
-            //case 3: ch3OpFreq[1] = fxValue; break;
-            //case 4: ch3OpFreq[2] = fxValue; break;
-            //case 5: ch3OpFreq[3] = fxValue; break;
-            //}
-        }
-        break;
     default: return; break;
     }
 }
@@ -4386,7 +4376,7 @@ static inline void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
     case 0x16:
         if (fxValue < 4) activeSampleBank = fxValue;
         break;
-
+#if (MDT_VERSION == 0)
     // MSU MD CD audio PLAY ONCE
     case 0x20:
         if (fxValue == 0)
@@ -4430,6 +4420,7 @@ static inline void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
             *mcd_cmd_ck = *mcd_cmd_ck + 1;
         }
         break;
+#endif
     default: break;
     }
 }
@@ -4463,9 +4454,39 @@ static inline void ApplyCommand_PSG(u8 fxParam, u8 fxValue)
     default: return; break;
     }
 }
-/*static inline void ApplyCommand_FM3_SP(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
+
+static inline void ApplyCommand_FM3_SP(u8 mtxCh, u8 fxParam, u8 fxValue)
 {
-}*/
+    switch (fxParam)
+    {
+    // CH3 MODE
+    case 0x12:
+        if (!fxValue) FM_CH3_Mode = CH3_NORMAL; // special
+        else if (fxValue == 1) FM_CH3_Mode = CH3_SPECIAL; // normal
+        else if (fxValue == 2) FM_CH3_Mode = CH3_SPECIAL_CSM; // special+CSM
+        else return;
+        // bb: Mode, ResetB ResetA, EnableB EnableA, LoadB LoadA
+        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, FM_CH3_Mode | 0b00001111);
+        break;
+
+    // CH3 CSM FILTER
+    case 0x55:
+        if (fxValue >= 0x09 && fxValue <= NOTE_MAX)
+        {
+            //switch (mtxCh)
+            //{
+            //case 2:
+                FM_CH3_OpFreq[0] = fxValue;
+                //break;
+            //case 3: FM_CH3_OpFreq[1] = fxValue; break;
+            //case 4: FM_CH3_OpFreq[2] = fxValue; break;
+            //case 5: FM_CH3_OpFreq[3] = fxValue; break;
+            //}
+        }
+        break;
+    default: return; break;
+    }
+}
 
 static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
 {
@@ -4729,15 +4750,6 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
     // LFO FREQUENCY
     case 0x10:
         if (fxValue < 9) SetGlobalLFO(fxValue + 7); // 7 .. F
-        break;
-
-    // CH3 MODE
-    case 0x12:
-        if (!fxValue) FM_CH3_Mode = CH3_NORMAL; // special
-        else if (fxValue == 1) FM_CH3_Mode = CH3_SPECIAL; // normal
-        else if (fxValue == 2) FM_CH3_Mode = CH3_SPECIAL_CSM; // special+CSM
-        else return;
-        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, FM_CH3_Mode | 0b00001111);
         break;
 
     // ATTACK
@@ -5142,33 +5154,43 @@ static inline void YM2612_writeRegZ80(u16 part, u8 reg, u8 data)
 void InitTracker()
 {
     SYS_disableInts();
+    //ForceResetVariables();
     /*
     0 $A130F1 	SRAM access register
     1 $A130F3 	Bank register for address $80000-$FFFFF
     2 $A130F5 	Bank register for address $100000-$17FFFF
     3 $A130F7 	Bank register for address $180000-$1FFFFF
     4 $A130F9 	Bank register for address $200000-$27FFFF
-    5 $A130FB 	Bank register for address $280000-$2FFFFF sram
+    5 $A130FB 	Bank register for address $280000-$2FFFFF
     6 $A130FD 	Bank register for address $300000-$37FFFF
     7 $A130FF 	Bank register for address $380000-$3FFFFF
+
+    Mega Everdrive X3, X5
+        Bank 28 can be used for saves. First 32Kbyte of this bank will be copied to SD card.
+    Mega Everdrive X7
+        Bank 31 can be used for saves. Upper 256K of this bank mapped to battery SRAM.
+    Mega Everdrive PRO
+        Backup ram mapped to the last 31th bank.
     */
+
+#if (MDT_VERSION == 0)      // Mega Everdrive Pro
+    ssf_init();
+    ssf_set_rom_bank(4, 31);
+    ssf_rom_wr_on();
+    msu_resp = msu_drv();
+#elif (MDT_VERSION == 1)    // BlastEm
+
+#else                       // PicoDrive
+    ssf_init();
+    ssf_set_rom_bank(4, 31);
+    ssf_rom_wr_on();
+#endif
+
     //if (msu_resp == 0) // Function will return 0 if driver loaded successfully or 1 if MCD hardware not detected.
     //{
         //while (*mcd_stat != 1); // Init driver ... 0-ready, 1-init, 2-cmd busy
         //while (*mcd_stat == 1); // Wait till sub CPU finish initialization
     //}
-
-    ssf_init();
-    // X3 X5
-    // Bank 28 can be used for saves. First 32Kbyte of this bank will be copied to SD card.
-    // X7
-    // Bank 31 can be used for saves. Upper 256K of this bank mapped to battery SRAM.
-    // PRO
-    // Backup ram mapped to the last 31th bank.
-    ssf_set_rom_bank(4, 31);
-    ssf_rom_wr_on();
-
-    msu_resp = msu_drv();
 
     VDP_init();
     VDP_setDMAEnabled(TRUE);
@@ -5189,7 +5211,7 @@ void InitTracker()
     VDP_setSpriteListAddress(0xBC00);   // * $400; 0xF400 default
     VDP_setScrollingMode(HSCROLL_PLANE, VSCROLL_COLUMN);
     VDP_setTextPlane(BG_A);
-    VDP_loadFont(&custom_font, DMA);
+    VDP_loadFont(&custom_font, DMA); VDP_waitDMACompletion();
     VDP_setWindowHPos(FALSE, 0);
     VDP_setWindowVPos(FALSE, 0);
 
@@ -5198,15 +5220,6 @@ void InitTracker()
     PAL_setPaletteColorsDMA(16, &palette_1);
     PAL_setPaletteColorsDMA(32, &palette_2);
     PAL_setPaletteColorsDMA(48, &palette_3);
-
-    // test
-    /*for (u8 x=0; x<40; x++)
-    {
-        for (u8 y=0; y<32; y++)
-        {
-            VDP_setTileMapXY(WINDOW, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, 0), x, y);
-        }
-    }*/
 
     // Double digit font 00(--)..FF
     u16 ind;
@@ -5226,8 +5239,6 @@ void InitTracker()
     bgBaseTileIndex[3] = ind;
     VDP_loadTileSet(&tileset_gui2, ind, DMA);
     ind += tileset_gui2.numTile;
-
-    VDP_waitDMACompletion();
 
     VDP_setTextPalette(PAL0);
 
@@ -5272,7 +5283,7 @@ void InitTracker()
         }
     }
 
-    // there is no SRAM file, needs fresh init.
+    // if there is no SRAM file, needs fresh init.
     if (SRAMW_readWord(DEAD_INSTRUMENT) != 0xDEAD)
     {
         SetBPM(H_INT_SKIP * 0xB3); // 140 BPM NTSC
@@ -5340,7 +5351,7 @@ void InitTracker()
             SRAM_WriteInstrument(inst, INST_RR3, 15);
             SRAM_WriteInstrument(inst, INST_RR4, 15);
 
-            SRAM_WriteInstrument(inst, INST_SSGEG1, 7);// 4 bit (off + 8 values)
+            SRAM_WriteInstrument(inst, INST_SSGEG1, 7); // 4 bit (off + 8 values)
             SRAM_WriteInstrument(inst, INST_SSGEG2, 7);
             SRAM_WriteInstrument(inst, INST_SSGEG3, 7);
             SRAM_WriteInstrument(inst, INST_SSGEG4, 7);
@@ -5427,8 +5438,8 @@ void InitTracker()
     //| 11 | Special
 
     // CSM mode is where Timer A performs automatic key on/off for channel 3
-    // 00 - CSM / CH3 mode, 00 0000 - Timers: Reset B, Reset A, Enable B, Enable A, Load B, Load A
-    // 0 - CH3 normal mode; 64 - CH3 special mode; timers are need to be used to
+    // bb - CSM / CH3 mode, bb bbbb - Timers: Reset B, Reset A, Enable B, Enable A, Load B, Load A
+    // b - CH3 normal mode; 64 - CH3 special mode; timers are need to be used to
 
     // set timer A time; 1111 1111 11 = 0.018 ms (minimum step), 0000 0000 00 = 18.4 ms; 1024 values; 18 * (1024 - Timer A) microseconds
     // 3FFh CSM: always key-on
@@ -5436,7 +5447,7 @@ void InitTracker()
     YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_A_MSB, 0); // 8 bit MSB
     YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_A_LSB, 0); // 2 bit LSB
     // timer B; 1111 1111 = 0.288 ms (minimum step), 0000 0000 = 73.44 ms; 288 * (256 - Timer B ) microseconds
-    YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00111100);
+    YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00000000);
     YM2612_enableDAC();
 
     PSG_NoiseMode = PSG_TONAL_CH3_MUTED;
@@ -5656,4 +5667,136 @@ void DrawStaticHeaders()
     DrawText(BG_A, PAL3, "VOL", 81, 25);
     DrawText(BG_A, PAL3, "ARP", 81, 26);
     for (u8 y=24; y<27; y++) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 84, y);
+}
+
+void ForceResetVariables()
+{
+    playingPatternID=
+    playingMatrixRow=
+    selectedMatrixScreenRow=
+    selectedMatrixRow=
+    currentPage=
+    selectedPatternRow=
+    selectedPatternColumn=
+    selectedPatternID=
+    line=
+    chan=
+    playingPatternRow=
+    selectedInstrumentID=
+    selectedInstrumentParameter=
+    selectedInstrumentOperator=
+    currentScreen=
+    pulseCounter=
+    PSG_NoiseMode=
+    bPlayback=
+    FM_CH3_Mode=
+    bPsgIsPlayingNote[0]=
+    bPsgIsPlayingNote[1]=
+    bPsgIsPlayingNote[2]=
+    bPsgIsPlayingNote[3]=
+    FM_CH3_OpFreq[0]=
+    FM_CH3_OpFreq[1]=
+    FM_CH3_OpFreq[2]=
+    FM_CH3_OpFreq[3]=
+    samplesSize=
+    sampleToPlay=
+    sampleSeekTime=
+    selectedSampleBank=
+    selectedSampleNote=
+    sampleBankSize=
+    activeSampleBank=
+    hIntToSkip=
+    hIntCounter=
+    doPulse=
+    asciiBaseLetters=
+    asciiBaseNumbers=
+    doCount=
+    selectedMatrixChannel=0;
+
+    lastEnteredEffect=
+    lastEnteredEffectValue=
+    lastEnteredInstrumentID=
+    lastEnteredPattern=
+    bInitScreen=
+    bRefreshScreen=
+    bDAC_enable=
+    patternCopyFrom=
+    instCopyTo=
+    updateCursor=1;
+
+    patternRowToRefresh=
+    instrumentParameterToRefresh=
+    matrixRowJumpTo=
+    patternRowJumpTo=OXFF;
+
+    matrixRowToRefresh=OXFFFF;
+
+    lastEnteredNote = 45;
+
+    FM_CH3_OpNoteStatus=0b00000010;
+    ppl_1=ppl_2=maxPulse=4;
+
+    patternCopyRangeStart=
+    patternCopyRangeEnd=-1;
+
+    buttonCounter=GUI_NAVIGATION_DELAY;
+    navigationDirection=BUTTON_RIGHT;
+    FM_CH6_DAC_Pan=SOUND_PAN_CENTER;
+
+    for (u16 in = 0; in <= MAX_INSTRUMENT; in++)
+    {
+        instrumentIsMuted[in]=INST_PLAY;
+    }
+
+    for (u8 ch = 0; ch < CHANNELS_TOTAL; ch++)
+    {
+        channelPreviousInstrument[ch]=
+        channelPreviousNote[ch]=
+        channelArpSeqID[ch]=
+        channelArpSeqMODE[ch]=
+        channelVolSeqID[ch]=
+        channelVolSeqMODE[ch]=
+        channelCurrentRowNote[ch]=
+        channelSEQCounter_VOL[ch]=
+        channelSEQCounter_ARP[ch]=
+        channelPitchSlideSpeed[ch]=
+        channelMicrotone[ch]=
+        channelArpNote[ch]=
+        channelPitchSkipStep[ch]=
+        channelPitchSkipStepCounter[ch]=
+        channelVibratoMode[ch]=
+        channelVibratoDepth[ch]=
+        channelVibratoDepthMult[ch]=
+        channelVibratoSpeed[ch]=
+        channelVibratoSpeedMult[ch]=
+        channelVibratoPhase[ch]=
+        channelFinalPitch[ch]=
+        channelModNoteVibrato[ch]=
+        channelModNotePitch[ch]=
+        channelTremoloDepth[ch]=
+        channelTremoloSpeed[ch]=
+        channelTremoloSpeedMult[ch]=
+        channelTremoloPhase[ch]=
+        channelTremolo[ch]=
+        channelBaseVolume[ch]=
+        channelSeqAttenuation[ch]=
+        channelAttenuation[ch]=
+        channelSlotBaseLevel[ch][0]=
+        channelSlotBaseLevel[ch][1]=
+        channelSlotBaseLevel[ch][2]=
+        channelSlotBaseLevel[ch][3]=
+        channelVolumeChangeSpeed[ch]=
+        channelVolumePulseSkip[ch]=
+        channelVolumePulseCounter[ch]=
+        channelNoteCut[ch]=
+        channelNoteRetrigger[ch]=
+        channelNoteDelayCounter[ch]=
+        channelNoteRetriggerCounter[ch]=0;
+
+        channelFlags[ch]=1;
+        for (u8 ef = 0; ef < EFFECTS_TOTAL; ef++)
+        {
+            channelPreviousEffectType[ch][ef]=0;
+        }
+    }
 }

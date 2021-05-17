@@ -1,5 +1,5 @@
 ----------------
-MD.Tracker 1.0b (wip)
+MD.Tracker 1.0b
 Native music tracker for SEGA MEGADRIVE / GENESIS / NOMAD
 Source code: https://github.com/corthax/mdtracker
 Powered by SGDK
@@ -14,16 +14,23 @@ Powered by SGDK
 ░░░░░     ░░░░░ ░░░░░░░░░░   ░░    ░░░░░    ░░░░░      ░░░░░░░░  ░░░░░░  ░░░░ ░░░░░  ░░░░░░  ░░░░░     
 
 //////////////////
-Supported emulators: 
-	PicoDrive 			(Needs any standard rom header.)
-		rom_pico.bin	(CD not supported)
-		
-You may want to turn on overclocking for the best pefromance.
+Works in:
 //////////////////
-Supported flashcarts: 
-	Mega Everdrive Pro 	(Needs "SEGA SSF        " in rom header.)
-		rom_ssf.bin 	(Execute the .bin file, not folder. Otherwise MEP will run CD player.)
-
+Emulators: 
+	PicoDrive (RetroArch)
+		ISSUES:
+		PSG Noise channel pitch is 1 semitone up.
+		FM CH.6 DAC pan not working.
+		FM CH.3 Special+CSM mode not working.
+	BlastEm (RetroArch)
+		ISSUES:
+		No command help will be displayed.
+//////////////////
+Flashcarts: 
+	Mega Everdrive Pro (MEGAOS-V4.11)
+		ISSUES:
+		Replaced .srm file is not loaded, renaming .bin and .srm helps.
+		No mapper for SSF + MSU-MD (512kb SRAM *OR* CD Audio, not both).
 //////////////////
 
 If there is no song data, default empty is generated.
@@ -32,17 +39,17 @@ There is a little playback slowdown when changing screens due graphics redraw.
 //////////////////
 
 ----------------
-Specs
+Features
 ----------------
 
 32 rows per pattern.
 250 pattern rows in matrix (25 per page).
 255 instruments. 00th(--) for empty, unusable.
-Additional 16 step ARP and VOL sequencers inside the pattern rows.
+Additional 16 step ARP and VOL tick sequencers.
 FM (YM2612/YM3438) CSM and CH3 Special Mode support, CH6 DAC support.
 PSG (SN76489) support.
-895 patterns
-6 effects/commands per row
+895 patterns.
+6 effects/commands per row.
 
 ----
 
@@ -566,7 +573,7 @@ y: Target shift in semitones.
 --: reset.
 
 ------------------------------------------------	
-+ Volume effects
++ Volume effects (!!! Channel volume effects works like post-fader automation - it will not reset on instrument change or note OFF, do it manually !!!)
 ------------------------------------------------
 
 ************************************************
@@ -582,7 +589,7 @@ xx: 01 .. FF; Instrument id sequence is taken from.
 --: disable sequence, stays on the last applied volume till next note is triggered, then returns to channel volume.
 
 ************************************************
-Channel volume attenuation
+Channel volume attenuation (Less = louder)
 	41xx
 xx: 01 .. 7F; Divided by 8 for PSG.
 --: no attenuation.

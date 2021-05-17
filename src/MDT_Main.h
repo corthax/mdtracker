@@ -1,8 +1,6 @@
 #ifndef MDT_MAIN_H_INCLUDED
 #define MDT_MAIN_H_INCLUDED
 
-//! HEADERS ARE NOT REPARSED IN CODEBLOCKS WHEN BUILD. DO REBUILD
-
 // bit help
 // a=target variable, b=bit number to act upon 0-n
 #define BIT_SET(a,b) ((a) |= (1U<<(b)))
@@ -126,11 +124,12 @@ static void StopAllSound();
 static void StopEffects(u8 mtxCh);
 static void SetGlobalLFO(u8 freq);
 static void SetChannelVolume(u8 mtxCh);
-static void SetChannelBaseVolume_FM(u8 mtxCh, u8 id);
+static void SetChannelBaseVolume_FM(u8 mtxCh, u8 fmCh);
 static void SetBPM(u16 counter);
-static void WriteYM2612(u8 mtxCh, u8 id);
+static void WriteYM2612(u8 mtxCh, u8 fmCh);
 static void CacheIstrumentToRAM(u8 id);
 static void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue);
+static void ApplyCommand_FM3_SP(u8 mtxCh, u8 fxParam, u8 fxValue);
 static void ApplyCommand_DAC(u8 fxParam, u8 fxValue);
 static void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue);
 static void ApplyCommand_PSG(u8 fxParam, u8 fxValue);
@@ -145,6 +144,7 @@ static void vIntCallback();
 static void YM2612_writeRegZ80(u16 part, u8 reg, u8 data);
 static s16 FindUnusedPattern();
 void CalculateCombined(u8 fmCh, u8 reg);
+void ForceResetVariables();
 
 // temporal instrument storage
 struct Instrument
