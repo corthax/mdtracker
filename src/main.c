@@ -163,6 +163,8 @@ u16 bgBaseTileIndex[4];
 u16 asciiBaseLetters, asciiBaseNumbers;
 u8 instCopyTo = 0x01; // instrument copy
 
+bool bBusTaken = FALSE;
+
 s8 buttonCounter = GUI_NAVIGATION_DELAY; // signed just in case of overflow
 bool doCount = FALSE;
 u8 navigationDirection = BUTTON_RIGHT;
@@ -858,7 +860,7 @@ static inline void DoEngine()
 
             if (!channelNoteDelayCounter[channel])
                 PlayNote((u8)_key, channel);
-            /*else if (channel == CHANNEL_FM3_OP4 && (FM_CH3_Mode == CH3_SPECIAL_CSM || FM_CH3_Mode == CH3_SPECIAL_CSM_OFF))
+            /*if (channel == CHANNEL_FM3_OP4 && (FM_CH3_Mode == CH3_SPECIAL_CSM || FM_CH3_Mode == CH3_SPECIAL_CSM_OFF))
                 FM_CH3_Mode = CH3_NORMAL;*/
         }
     }
@@ -1064,7 +1066,7 @@ static inline void DoEngine()
             }*/
 
             // reset, enable, start CSM timer A, normal mode
-            YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00000000);
+            YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, FM_CH3_Mode | 0b00001111);
             // set frame length
             if (playingPatternRow & 1) maxPulse = ppl_1; // pulses per line
             else maxPulse = ppl_2;
@@ -1176,7 +1178,7 @@ static inline void DoEngine()
         // reset CH.3 to normal mode
         // stop timer A (load: 1 to start, 0 to stop; enable: 1 to set register flag when overflowed, 0 to keep cycling without setting flag)
         // reset read register flag, timer overflowing is enabled
-        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00000000);
+        //YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, FM_CH3_Mode | 0b00111100);
 
         StopAllSound();
         ClearPatternPlaybackCursor();
@@ -3403,6 +3405,7 @@ static inline void SetChannelVolume(u8 mtxCh)
 
 static inline void RequestZ80()
 {
+    //bBusTaken = Z80_isBusTaken();
     if (!Z80_isBusTaken()) Z80_requestBus(TRUE);
 }
 
@@ -3470,20 +3473,8 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
     static u8 part1 = 0, part2 = 0, noteFreqID = 0;
     static s8 key = 0;
 
-    auto inline void csm_pitch() // bus requested later
-    {
-        // Timer A to note pitch
-        YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_A_MSB, csmMicrotone[note] >> 2);
-        YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_A_LSB, csmMicrotone[note] & 0b0000000000000011);
-
-        // play CSM note
-        // bb: Ch3 mode, Reset B, Reset A, Enable B, Enable A, Load B, Load A
-        FM_CH3_Mode = CH3_SPECIAL_CSM;
-        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_FREQ_MSB, CH3_SPECIAL_CSM | 0b00001111);
-    }
-
     // CSM
-    if ((mtxCh == CHANNEL_FM3_OP4) && (FM_CH3_Mode == CH3_SPECIAL_CSM || FM_CH3_Mode == CH3_SPECIAL_CSM_OFF))
+    if ((mtxCh == CHANNEL_FM3_OP4) && (FM_CH3_Mode == CH3_SPECIAL_CSM/* || FM_CH3_Mode == CH3_SPECIAL_CSM_OFF*/))
     {
        key = FM_CH3_OpFreq[0] + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh];
     }
@@ -3493,7 +3484,7 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
         key = note + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh];
     }
 
-    if ((key > -1) && (key < NOTE_TOTAL) && channelFlags[mtxCh])
+    if ((key > -1) && (key < NOTE_TOTAL))
     {
         noteFreqID = key;
         while (noteFreqID > 11) noteFreqID -= 12;
@@ -3526,8 +3517,16 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
                 BIT_SET(FM_CH3_OpNoteStatus, 7); // 0b1???0010
                 YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, FM_CH3_OpNoteStatus);// 2
                 break;
-            case CH3_SPECIAL_CSM: case CH3_SPECIAL_CSM_OFF:
-                csm_pitch();
+            case CH3_SPECIAL_CSM: /*case CH3_SPECIAL_CSM_OFF:*/
+                // Timer A to note pitch
+                YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_A_MSB, csmMicrotone[note] >> 2);
+                YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_A_LSB, csmMicrotone[note] & 0b0000000000000011);
+
+                // play CSM note
+                // bb: Ch3 mode, Reset B, Reset A, Enable B, Enable A, Load B, Load A
+                //FM_CH3_Mode = CH3_SPECIAL_CSM;
+                YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_FREQ_MSB, CH3_SPECIAL_CSM | 0b00001111);
+                YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_SPECIAL_CSM | 0b00001111); //!?
                 break;
             default:
                 break;
@@ -3618,7 +3617,7 @@ static inline void PlayNote(u8 note, u8 channel)
         if (channel < CHANNEL_PSG1) // FM
         {
             // S1>S3>S2>S4 for common registers and S4>S3>S1>S2 for CH3 frequencies
-            StopChannelSound(channel); // need to stop current playing note to write new data; OFF needed also for CSM
+            StopChannelSound(channel); // need to stop current playing note to write new data
             SetPitchFM(channel, note); // set pitch (or dac), trigger note
         }
         else // PSG
@@ -3629,6 +3628,8 @@ static inline void PlayNote(u8 note, u8 channel)
     }
     else if (note == NOTE_OFF)
     {
+        if (channel == CHANNEL_FM3_OP4 && FM_CH3_Mode == CH3_SPECIAL_CSM) FM_CH3_Mode = CH3_SPECIAL_CSM_OFF;
+
         StopChannelSound(channel);
         StopEffects(channel);
     }
@@ -3694,11 +3695,12 @@ static inline void StopChannelSound(u8 channel)
             BIT_CLEAR(FM_CH3_OpNoteStatus, 7);
             YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, FM_CH3_OpNoteStatus); // OP4
         }
-        else if (FM_CH3_Mode == CH3_SPECIAL_CSM || FM_CH3_Mode == CH3_SPECIAL_CSM_OFF)
+        else if (/*FM_CH3_Mode == CH3_SPECIAL_CSM || */FM_CH3_Mode == CH3_SPECIAL_CSM_OFF)
         {
             YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 2); // set operators key off for CSM to work
+            //!? why
             YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_SPECIAL_CSM_OFF | 0b00001111);
-            FM_CH3_Mode = CH3_SPECIAL_CSM_OFF;
+            FM_CH3_Mode = CH3_SPECIAL_CSM;
         }
         break;
 
@@ -3778,6 +3780,11 @@ static inline void StopAllSound()
 
         channelArpSeqID[channel] = 0;
         channelVolSeqID[channel] = 0;
+
+        // reset CH.3 back to normal by default
+        FM_CH3_Mode = CH3_NORMAL;
+        //YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00001111);
+        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00111100);
     }
 }
 
@@ -5447,7 +5454,7 @@ void InitTracker()
     YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_A_MSB, 0); // 8 bit MSB
     YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_A_LSB, 0); // 2 bit LSB
     // timer B; 1111 1111 = 0.288 ms (minimum step), 0000 0000 = 73.44 ms; 288 * (256 - Timer B ) microseconds
-    YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00000000);
+    YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00111100);
     YM2612_enableDAC();
 
     PSG_NoiseMode = PSG_TONAL_CH3_MUTED;

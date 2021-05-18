@@ -24,6 +24,7 @@ Emulators:
 		FM CH.3 Special+CSM mode not working.
 	BlastEm (RetroArch)
 		ISSUES:
+		FM CH.6 DAC pan not working.
 		No command help will be displayed.
 //////////////////
 Flashcarts: 

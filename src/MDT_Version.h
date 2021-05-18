@@ -8,6 +8,6 @@
 2 = PicoDrive (libretro)
 */
 
-#define MDT_VERSION 2
+#define MDT_VERSION 1
 
 #endif
