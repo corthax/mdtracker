@@ -30,6 +30,8 @@
 #define TICK_SKIP_MAX           0xFF    // slow tempo limit; 128
 #define COUNTER_COMPENSATION    0       // code timer h-int shift compensation (slower code limit the max bpm); 6
 
+bool bWriteRegs = TRUE;
+
 u16 playingPatternID = 0;
 u8 playingMatrixRow = 0; // current played line
 u8 selectedMatrixScreenRow = 0; // selected matrix line on SCREEN
@@ -90,7 +92,7 @@ bool bPlayback = FALSE;
 u8 ppl_1 = PPL_DEFAULT; // pulse per line
 u8 ppl_2 = PPL_DEFAULT;
 u8 maxPulse = PPL_DEFAULT;
-s8 pulseCounter = 0;
+s16 pulseCounter = 0;
 
 // channel effects
 u8 channelFlags[CHANNELS_TOTAL] = {1,1,1,1,1,1,1,1,1,1,1,1,1};
@@ -156,7 +158,7 @@ s8 patternCopyRangeStart = NOTHING;
 s8 patternCopyRangeEnd = NOTHING;
 
 u16 hIntToSkip = 0;
-s16 hIntCounter = 0;
+u16 hIntCounter = 0;
 bool doPulse = FALSE;
 
 u16 bgBaseTileIndex[4];
@@ -311,7 +313,7 @@ const s16 GUI_ALPHABET[38] =
 
 int main(bool hardReset)
 {
-    //if (hardReset) SYS_reset();
+    if (!hardReset) SYS_hardReset(); // clear on soft reset
     ForceResetVariables();
     InitTracker();
 	while(1)
@@ -333,7 +335,7 @@ int main(bool hardReset)
 static inline void hIntCallback()
 {
     hIntCounter--;
-    if (!hIntCounter) // more stable, but can skip ticks. FPS independent
+    if (!hIntCounter)
     {
         doPulse = TRUE;
         hIntCounter = hIntToSkip;
@@ -750,8 +752,6 @@ static inline void DoEngine()
                 if (_fxType)
                 {
                     channelPreviousEffectType[channel][effect] = _fxType;
-                    ApplyCommand_Common(channel, _fxType, _fxValue);
-
                     switch (channel)
                     {
                     case CHANNEL_FM1: case CHANNEL_FM2: case CHANNEL_FM4: case CHANNEL_FM5:
@@ -770,11 +770,10 @@ static inline void DoEngine()
                         break;
                     default: ApplyCommand_PSG(_fxType, _fxValue); break;
                     }
+                    ApplyCommand_Common(channel, _fxType, _fxValue);
                 }
                 else if (_fxValue)
                 {
-                    ApplyCommand_Common(channel, channelPreviousEffectType[channel][effect], _fxValue);
-
                     switch (channel)
                     {
                     case CHANNEL_FM1: case CHANNEL_FM2: case CHANNEL_FM4: case CHANNEL_FM5:
@@ -793,6 +792,7 @@ static inline void DoEngine()
                         break;
                     default: ApplyCommand_PSG(channelPreviousEffectType[channel][effect], _fxValue); break;
                     }
+                    ApplyCommand_Common(channel, channelPreviousEffectType[channel][effect], _fxValue);
                 }
             }
 
@@ -824,17 +824,19 @@ static inline void DoEngine()
 
             seq_vol(channel);
 
-            // commands
+            //! commands (applied a bit ahead new note, sometimes resulting in clicks)
             if (_inst && channel < CHANNEL_PSG1) // ignore inst on PSG
             {
                 channelPreviousInstrument[channel] = _inst;
                 if (channel > 2) fmCh = channel - 3; else fmCh = channel;
                 chInst[fmCh] = tmpInst[_inst]; // copy from cached preset
+                bWriteRegs = FALSE; //!not duplicate write regs
                 apply_commands();
                 WriteYM2612(channel, fmCh);
             }
             else
             {
+                bWriteRegs = TRUE; //!write regs
                 apply_commands();
             }
 
@@ -858,10 +860,7 @@ static inline void DoEngine()
 
             seq_arp(channel);
 
-            if (!channelNoteDelayCounter[channel])
-                PlayNote((u8)_key, channel);
-            /*if (channel == CHANNEL_FM3_OP4 && (FM_CH3_Mode == CH3_SPECIAL_CSM || FM_CH3_Mode == CH3_SPECIAL_CSM_OFF))
-                FM_CH3_Mode = CH3_NORMAL;*/
+            if (!channelNoteDelayCounter[channel]) PlayNote((u8)_key, channel);
         }
     }
 
@@ -979,7 +978,7 @@ static inline void DoEngine()
             if (channelNoteCut[channel] > 1) channelNoteCut[channel]--;
             else if (channelNoteCut[channel] == 1)
             {
-                // kill note
+                if (FM_CH3_Mode == CH3_SPECIAL_CSM && channel == CHANNEL_FM3_OP4) FM_CH3_Mode = CH3_SPECIAL_CSM_OFF;
                 StopChannelSound(channel);
                 channelNoteCut[channel] = 0;
             }
@@ -1065,8 +1064,8 @@ static inline void DoEngine()
                 } // channel
             }*/
 
-            // reset, enable, start CSM timer A, normal mode
-            YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, FM_CH3_Mode | 0b00001111);
+            // bb: Mode, ResetB ResetA, EnableB EnableA, LoadB LoadA
+            //YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, FM_CH3_Mode | 0b00000000);
             // set frame length
             if (playingPatternRow & 1) maxPulse = ppl_1; // pulses per line
             else maxPulse = ppl_2;
@@ -1089,8 +1088,7 @@ static inline void DoEngine()
                 if (playingPatternRow & 1) maxPulse = ppl_1; else maxPulse = ppl_2;
                 pulseCounter = 0;
             }
-            //! every 4th step only?
-            //if (!(frameCounter & 3))
+
             do_effects(CHANNEL_FM1);
             do_effects(CHANNEL_FM2);
             do_effects(CHANNEL_FM3_OP4);
@@ -1168,18 +1166,15 @@ static inline void DoEngine()
             }
 
             DrawPatternPlaybackCursor();
-            pulseCounter = -1; // changes are applied only when timer expires, not at every while loop ticks
+            pulseCounter = -1; // graphic etc. changes are applied only when timer expires, not at every while loop ticks
         }
     }
     else if (!_beginPlay) // need to run only once at playback stopped
     {
         SYS_disableInts();
         _beginPlay = TRUE;
-        // reset CH.3 to normal mode
-        // stop timer A (load: 1 to start, 0 to stop; enable: 1 to set register flag when overflowed, 0 to keep cycling without setting flag)
-        // reset read register flag, timer overflowing is enabled
-        //YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, FM_CH3_Mode | 0b00111100);
-
+        // bb: Mode, ResetB ResetA, EnableB EnableA, LoadB LoadA
+        //YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00000000);
         StopAllSound();
         ClearPatternPlaybackCursor();
         DrawMatrixPlaybackCursor(TRUE);
@@ -3224,8 +3219,7 @@ inline void DisplayInstrumentEditor()
 static inline void SetChannelVolume(u8 mtxCh)
 {
     static s16 volT = 0, volT1 = 0, volT2 = 0, volT3 = 0, volT4 = 0; // volume, tremolo
-    static u8 port = 0;
-    static u8 fmChannel = 0;
+    static u8 port = 0, fmChannel = 0;
 
     if (mtxCh > CHANNEL_FM6_DAC) // PSG
     {
@@ -3343,37 +3337,37 @@ static inline void SetChannelVolume(u8 mtxCh)
             {
             case CHANNEL_FM3_OP4:
                 volT4 =
-                    channelSlotBaseLevel[mtxCh][3] +
-                    channelAttenuation[mtxCh] +
-                    channelSeqAttenuation[mtxCh] +
-                    channelTremolo[mtxCh];
+                    channelSlotBaseLevel[CHANNEL_FM3_OP4][3] +
+                    channelAttenuation[CHANNEL_FM3_OP4] +
+                    channelSeqAttenuation[CHANNEL_FM3_OP4] +
+                    channelTremolo[CHANNEL_FM3_OP4];
                 if (volT4 > 0x7F) volT4 = 0x7F;
                 YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
                 break;
             case CHANNEL_FM3_OP3:
                 volT3 =
-                    channelSlotBaseLevel[mtxCh][2] +
-                    channelAttenuation[mtxCh] +
-                    channelSeqAttenuation[mtxCh] +
-                    channelTremolo[mtxCh];
+                    channelSlotBaseLevel[CHANNEL_FM3_OP4][2] +
+                    channelAttenuation[CHANNEL_FM3_OP3] +
+                    channelSeqAttenuation[CHANNEL_FM3_OP3] +
+                    channelTremolo[CHANNEL_FM3_OP3];
                 if (volT3 > 0x7F) volT3 = 0x7F;
                 YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + fmChannel, (u8)volT3);
                 break;
             case CHANNEL_FM3_OP2:
                 volT2 =
-                    channelSlotBaseLevel[mtxCh][1] +
-                    channelAttenuation[mtxCh] +
-                    channelSeqAttenuation[mtxCh] +
-                    channelTremolo[mtxCh];
+                    channelSlotBaseLevel[CHANNEL_FM3_OP4][1] +
+                    channelAttenuation[CHANNEL_FM3_OP2] +
+                    channelSeqAttenuation[CHANNEL_FM3_OP2] +
+                    channelTremolo[CHANNEL_FM3_OP2];
                 if (volT2 > 0x7F) volT2 = 0x7F;
                 YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + fmChannel, (u8)volT2);
                 break;
             case CHANNEL_FM3_OP1:
                 volT1 =
-                    channelSlotBaseLevel[mtxCh][0] +
-                    channelAttenuation[mtxCh] +
-                    channelSeqAttenuation[mtxCh] +
-                    channelTremolo[mtxCh];
+                    channelSlotBaseLevel[CHANNEL_FM3_OP4][0] +
+                    channelAttenuation[CHANNEL_FM3_OP1] +
+                    channelSeqAttenuation[CHANNEL_FM3_OP1] +
+                    channelTremolo[CHANNEL_FM3_OP1];
                 if (volT1 > 0x7F) volT1 = 0x7F;
                 YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + fmChannel, (u8)volT1);
                 break;
@@ -3392,7 +3386,7 @@ static inline void SetChannelVolume(u8 mtxCh)
             else { set_special_channel_vol(); }
             break;
         case CHANNEL_FM3_OP3: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP1:
-            if (FM_CH3_Mode == CH3_SPECIAL) { port = PORT_1; fmChannel = 2; set_special_channel_vol();  }
+            if (FM_CH3_Mode == CH3_SPECIAL) { port = PORT_1; fmChannel = 2; set_special_channel_vol(); }
             break;
         case CHANNEL_FM4: case CHANNEL_FM5: case CHANNEL_FM6_DAC:
             port = PORT_2; fmChannel = mtxCh - 6;
@@ -3524,9 +3518,8 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
 
                 // play CSM note
                 // bb: Ch3 mode, Reset B, Reset A, Enable B, Enable A, Load B, Load A
-                //FM_CH3_Mode = CH3_SPECIAL_CSM;
                 YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_FREQ_MSB, CH3_SPECIAL_CSM | 0b00001111);
-                YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_SPECIAL_CSM | 0b00001111); //!?
+                YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_SPECIAL_CSM | 0b00010101); //!?
                 break;
             default:
                 break;
@@ -3612,7 +3605,6 @@ static inline void PlayNote(u8 note, u8 channel)
     {
         channelVibratoPhase[channel] = 0; // neutral state
         channelTremoloPhase[channel] = 512; // neutral state
-        channelNoteCut[channel] = 0; // disable cut if note is longer
 
         if (channel < CHANNEL_PSG1) // FM
         {
@@ -3628,8 +3620,7 @@ static inline void PlayNote(u8 note, u8 channel)
     }
     else if (note == NOTE_OFF)
     {
-        if (channel == CHANNEL_FM3_OP4 && FM_CH3_Mode == CH3_SPECIAL_CSM) FM_CH3_Mode = CH3_SPECIAL_CSM_OFF;
-
+        if (FM_CH3_Mode == CH3_SPECIAL_CSM && channel == CHANNEL_FM3_OP4) FM_CH3_Mode = CH3_SPECIAL_CSM_OFF;
         StopChannelSound(channel);
         StopEffects(channel);
     }
@@ -3698,7 +3689,6 @@ static inline void StopChannelSound(u8 channel)
         else if (/*FM_CH3_Mode == CH3_SPECIAL_CSM || */FM_CH3_Mode == CH3_SPECIAL_CSM_OFF)
         {
             YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 2); // set operators key off for CSM to work
-            //!? why
             YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_SPECIAL_CSM_OFF | 0b00001111);
             FM_CH3_Mode = CH3_SPECIAL_CSM;
         }
@@ -3781,10 +3771,9 @@ static inline void StopAllSound()
         channelArpSeqID[channel] = 0;
         channelVolSeqID[channel] = 0;
 
-        // reset CH.3 back to normal by default
+        // bb: Mode, ResetB ResetA, EnableB EnableA, LoadB LoadA
         FM_CH3_Mode = CH3_NORMAL;
-        //YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00001111);
-        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00111100);
+        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00010000);
     }
 }
 
@@ -3914,7 +3903,7 @@ inline void CalculateCombined(u8 fmCh, u8 reg)
 // changing instrument will not reset channel attenuation (post-fader)
 static inline void SetChannelBaseVolume_FM(u8 mtxCh, u8 fmCh)
 {
-    auto void set_normal_slots()
+    auto inline void set_normal_slots()
     {
         switch (chInst[fmCh].ALG)
         {
@@ -3960,45 +3949,60 @@ static inline void SetChannelBaseVolume_FM(u8 mtxCh, u8 fmCh)
         }
     }
 
-    switch (mtxCh)
+    if (mtxCh == CHANNEL_FM3_OP4)
     {
-    case CHANNEL_FM3_OP4:
         if (FM_CH3_Mode == CH3_NORMAL) set_normal_slots();
         else
         {
+            channelSlotBaseLevel[CHANNEL_FM3_OP4][0] = chInst[fmCh].TL1;
+            channelSlotBaseLevel[CHANNEL_FM3_OP4][1] = chInst[fmCh].TL2;
+            channelSlotBaseLevel[CHANNEL_FM3_OP4][2] = chInst[fmCh].TL3;
+            channelSlotBaseLevel[CHANNEL_FM3_OP4][3] = chInst[fmCh].TL4;
+        }
+    } else set_normal_slots();
+
+    /*switch (mtxCh)
+    {
+    case CHANNEL_FM3_OP4:
+        if (!FM_CH3_Mode) set_normal_slots();
+        else
+        {
             channelSlotBaseLevel[mtxCh][3] = chInst[fmCh].TL4;
-            /*chInst[fmCh].TL4 += channelAttenuation[mtxCh];
-            if (chInst[fmCh].TL4 > 0x7F) chInst[fmCh].TL1 = 0x7F;*/
+            channelSlotBaseLevel[mtxCh][2] = chInst[fmCh].TL3;
+            channelSlotBaseLevel[mtxCh][1] = chInst[fmCh].TL2;
+            channelSlotBaseLevel[mtxCh][0] = chInst[fmCh].TL1;
+            //chInst[fmCh].TL4 += channelAttenuation[mtxCh];
+            //if (chInst[fmCh].TL4 > 0x7F) chInst[fmCh].TL1 = 0x7F;
         }
         break;
     case CHANNEL_FM3_OP3:
         if (FM_CH3_Mode != CH3_NORMAL)
         {
             channelSlotBaseLevel[mtxCh][2] = chInst[fmCh].TL3;
-            /*chInst[fmCh].TL3 += channelAttenuation[mtxCh];
-            if (chInst[fmCh].TL3 > 0x7F) chInst[fmCh].TL1 = 0x7F;*/
+            //chInst[fmCh].TL3 += channelAttenuation[mtxCh];
+            //if (chInst[fmCh].TL3 > 0x7F) chInst[fmCh].TL1 = 0x7F;
         }
         break;
     case CHANNEL_FM3_OP2:
         if (FM_CH3_Mode != CH3_NORMAL)
         {
             channelSlotBaseLevel[mtxCh][1] = chInst[fmCh].TL2;
-            /*chInst[fmCh].TL2 += channelAttenuation[mtxCh];
-            if (chInst[fmCh].TL2 > 0x7F) chInst[fmCh].TL1 = 0x7F;*/
+            //chInst[fmCh].TL2 += channelAttenuation[mtxCh];
+            //if (chInst[fmCh].TL2 > 0x7F) chInst[fmCh].TL1 = 0x7F;
         }
         break;
     case CHANNEL_FM3_OP1:
         if (FM_CH3_Mode != CH3_NORMAL)
         {
             channelSlotBaseLevel[mtxCh][0] = chInst[fmCh].TL1;
-            /*chInst[fmCh].TL1 += channelAttenuation[mtxCh];
-            if (chInst[fmCh].TL1 > 0x7F) chInst[fmCh].TL1 = 0x7F;*/
+            //chInst[fmCh].TL1 += channelAttenuation[mtxCh];
+            //if (chInst[fmCh].TL1 > 0x7F) chInst[fmCh].TL1 = 0x7F;
         }
         break;
     default:
         set_normal_slots();
         break;
-    }
+    }*/
 }
 
 // write all YM2612 registers
@@ -4014,7 +4018,7 @@ static inline void WriteYM2612(u8 mtxCh, u8 fmCh)
         port = PORT_1; ch = /*fmCh = */mtxCh;
         break;
     /*case CHANNEL_FM3_OP3: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP1:
-        port = PORT_1; ch = CHANNEL_FM3_OP4; // 2
+        port = PORT_1; ch = CHANNEL_FM3_OP4; // needed for volume
         break;*/
     case CHANNEL_FM4: case CHANNEL_FM5: case CHANNEL_FM6_DAC:
         port = PORT_2; ch = mtxCh - 6; //fmCh = mtxCh - 3;
@@ -4468,12 +4472,22 @@ static inline void ApplyCommand_FM3_SP(u8 mtxCh, u8 fxParam, u8 fxValue)
     {
     // CH3 MODE
     case 0x12:
-        if (!fxValue) FM_CH3_Mode = CH3_NORMAL; // special
-        else if (fxValue == 1) FM_CH3_Mode = CH3_SPECIAL; // normal
-        else if (fxValue == 2) FM_CH3_Mode = CH3_SPECIAL_CSM; // special+CSM
-        else return;
+        if (!fxValue)
+        {
+            FM_CH3_Mode = CH3_NORMAL;
+            YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00010000);
+        }
+        else if (fxValue == 1)
+        {
+            FM_CH3_Mode = CH3_SPECIAL;
+            YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_SPECIAL | 0b00010000);
+        }
+        else if (fxValue == 2)
+        {
+            FM_CH3_Mode = CH3_SPECIAL_CSM;
+            YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_SPECIAL_CSM | 0b00000101);
+        };
         // bb: Mode, ResetB ResetA, EnableB EnableA, LoadB LoadA
-        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, FM_CH3_Mode | 0b00001111);
         break;
 
     // CH3 CSM FILTER
@@ -4502,32 +4516,32 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
     static u8 fmCh = 0;     // matrix FM channel (0..5)
 
     // TL; 0 - unused, 000 0000 - TL (0..127) high to low ~0.75db step
-    auto inline void write_tl1() { YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + ch, chInst[fmCh].TL1); }
-    auto inline void write_tl2() { YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + ch, chInst[fmCh].TL2); }
-    auto inline void write_tl3() { YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ch, chInst[fmCh].TL3); }
-    auto inline void write_tl4() { YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ch, chInst[fmCh].TL4); }
+    auto inline void write_tl1() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + ch, chInst[fmCh].TL1); }
+    auto inline void write_tl2() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + ch, chInst[fmCh].TL2); }
+    auto inline void write_tl3() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ch, chInst[fmCh].TL3); }
+    auto inline void write_tl4() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ch, chInst[fmCh].TL4); }
 
     // RS, AR
     // 2b - RS (0..3), 1b - unused, 5b - AR (0..31)
     auto inline void write_rs1_ar1()
     {
         CalculateCombined(fmCh, COMB_RS_AR_1);
-        YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH0 + ch, chInst[fmCh].RS1_AR1);
+        if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH0 + ch, chInst[fmCh].RS1_AR1);
     }
     auto inline void write_rs2_ar2()
     {
         CalculateCombined(fmCh, COMB_RS_AR_2);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH0 + ch, chInst[fmCh].RS2_AR2);
+        if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH0 + ch, chInst[fmCh].RS2_AR2);
     }
     auto inline void write_rs3_ar3()
     {
         CalculateCombined(fmCh, COMB_RS_AR_3);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH0 + ch, chInst[fmCh].RS3_AR3);
+        if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH0 + ch, chInst[fmCh].RS3_AR3);
     }
     auto inline void write_rs4_ar4()
     {
         CalculateCombined(fmCh, COMB_RS_AR_4);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH0 + ch, chInst[fmCh].RS4_AR4);
+        if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH0 + ch, chInst[fmCh].RS4_AR4);
     }
 
     // DT, MUL (FM channels 0, 1, 2)
@@ -4535,23 +4549,23 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
     auto inline void write_dt1_mul1()
     {
         CalculateCombined(fmCh, COMB_DT_MUL_1);
-        YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH0 + ch, chInst[fmCh].DT1_MUL1);
+        if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH0 + ch, chInst[fmCh].DT1_MUL1);
     }
     auto inline void write_dt2_mul2()
     {
         CalculateCombined(fmCh, COMB_DT_MUL_2);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH0 + ch, chInst[fmCh].DT2_MUL2);
+        if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH0 + ch, chInst[fmCh].DT2_MUL2);
     }
     auto inline void write_dt3_mul3()
     {
         CalculateCombined(fmCh, COMB_DT_MUL_3);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH0 + ch, chInst[fmCh].DT3_MUL3);
+        if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH0 + ch, chInst[fmCh].DT3_MUL3);
 
     }
     auto inline void write_dt4_mul4()
     {
         CalculateCombined(fmCh, COMB_DT_MUL_4);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH0 + ch, chInst[fmCh].DT4_MUL4);
+        if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH0 + ch, chInst[fmCh].DT4_MUL4);
     }
 
     // FB, ALG
@@ -4559,7 +4573,7 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
     auto inline void write_fb_alg()
     {
         CalculateCombined(fmCh, COMB_FB_ALG);
-        YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH0 + ch, chInst[fmCh].FB_ALG);
+        if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH0 + ch, chInst[fmCh].FB_ALG);
     }
 
     // PAN, AMS, FMS
@@ -4567,7 +4581,7 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
     auto inline void write_pan_ams_fms()
     {
         CalculateCombined(fmCh, COMB_PAN_AMS_FMS);
-        YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH0 + ch, chInst[fmCh].PAN_AMS_FMS);
+        if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH0 + ch, chInst[fmCh].PAN_AMS_FMS);
     }
 
     // AM, D1R
@@ -4575,22 +4589,22 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
     auto inline void write_am1_d1r1()
     {
         CalculateCombined(fmCh, COMB_AM_D1R_1);
-        YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH0 + ch, chInst[fmCh].AM1_D1R1);
+        if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH0 + ch, chInst[fmCh].AM1_D1R1);
     }
     auto inline void write_am2_d1r2()
     {
         CalculateCombined(fmCh, COMB_AM_D1R_2);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH0 + ch, chInst[fmCh].AM2_D1R2);
+        if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH0 + ch, chInst[fmCh].AM2_D1R2);
     }
     auto inline void write_am3_d1r3()
     {
         CalculateCombined(fmCh, COMB_AM_D1R_3);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH0 + ch, chInst[fmCh].AM3_D1R3);
+        if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH0 + ch, chInst[fmCh].AM3_D1R3);
     }
     auto inline void write_am4_d1r4()
     {
         CalculateCombined(fmCh, COMB_AM_D1R_4);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH0 + ch, chInst[fmCh].AM4_D1R4);
+        if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH0 + ch, chInst[fmCh].AM4_D1R4);
     }
 
     // SSG-EG
@@ -4599,40 +4613,40 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
     // | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
     // |---------------|---|---|---|---|
     // | /   /   /   / | E |ATT|ALT|HLD|
-    auto inline void write_ssgeg1() { YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH0 + ch, chInst[fmCh].SSGEG1); }
-    auto inline void write_ssgeg2() { YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH0 + ch, chInst[fmCh].SSGEG2); }
-    auto inline void write_ssgeg3() { YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH0 + ch, chInst[fmCh].SSGEG3); }
-    auto inline void write_ssgeg4() { YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH0 + ch, chInst[fmCh].SSGEG4); }
+    auto inline void write_ssgeg1() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH0 + ch, chInst[fmCh].SSGEG1); }
+    auto inline void write_ssgeg2() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH0 + ch, chInst[fmCh].SSGEG2); }
+    auto inline void write_ssgeg3() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH0 + ch, chInst[fmCh].SSGEG3); }
+    auto inline void write_ssgeg4() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH0 + ch, chInst[fmCh].SSGEG4); }
 
     // D1L, RR
     // 4b - D1L (0..15), 4b - RR (0..15)
     auto inline void write_d1l1_rr1()
     {
         CalculateCombined(fmCh, COMB_D1L_RR_1);
-        YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH0 + ch, chInst[fmCh].D1L1_RR1);
+        if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH0 + ch, chInst[fmCh].D1L1_RR1);
     }
     auto inline void write_d1l2_rr2()
     {
         CalculateCombined(fmCh, COMB_D1L_RR_2);
-        YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH0 + ch, chInst[fmCh].D1L2_RR2);
+        if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH0 + ch, chInst[fmCh].D1L2_RR2);
     }
     auto inline void write_d1l3_rr3()
     {
         CalculateCombined(fmCh, COMB_D1L_RR_3);
-        YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH0 + ch, chInst[fmCh].D1L3_RR3);
+        if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH0 + ch, chInst[fmCh].D1L3_RR3);
     }
     auto inline void write_d1l4_rr4()
     {
         CalculateCombined(fmCh, COMB_D1L_RR_4);
-        YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH0 + ch, chInst[fmCh].D1L4_RR4);
+        if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH0 + ch, chInst[fmCh].D1L4_RR4);
     }
 
     // D2R
     // 3b - unused, 5b - D2R (0..31)
-    auto inline void write_d2r1() { YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH0 + ch, chInst[fmCh].D2R1); }
-    auto inline void write_d2r2() { YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH0 + ch, chInst[fmCh].D2R2); }
-    auto inline void write_d2r3() { YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH0 + ch, chInst[fmCh].D2R3); }
-    auto inline void write_d2r4() { YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH0 + ch, chInst[fmCh].D2R4); }
+    auto inline void write_d2r1() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH0 + ch, chInst[fmCh].D2R1); }
+    auto inline void write_d2r2() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH0 + ch, chInst[fmCh].D2R2); }
+    auto inline void write_d2r3() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH0 + ch, chInst[fmCh].D2R3); }
+    auto inline void write_d2r4() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH0 + ch, chInst[fmCh].D2R4); }
 
     switch (mtxCh)
     {
@@ -4641,7 +4655,7 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
         break;
     /*case CHANNEL_FM3_OP3: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP1:
         port = PORT_1; fm = fmCh = CHANNEL_FM3_OP4; // 2
-        break;*/ // ignore effects on CH3.SP
+        break;*/ // ignore effects on CH3.SP; set them instead on CH3
     case CHANNEL_FM4: case CHANNEL_FM5: case CHANNEL_FM6_DAC:
         port = PORT_2; ch = mtxCh - 6; fmCh = mtxCh - 3; // fm: 0, 1, 2; fmCh: 3, 4, 5
         break;
@@ -5727,6 +5741,7 @@ void ForceResetVariables()
     bInitScreen=
     bRefreshScreen=
     bDAC_enable=
+    bWriteRegs=
     patternCopyFrom=
     instCopyTo=
     updateCursor=1;

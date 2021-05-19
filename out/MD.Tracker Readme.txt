@@ -292,10 +292,9 @@ SPECIAL:
 SPECIAL+CSM:
 	Instrument OP AR need to be set to 31 to produce any sound.
 	This mode is active only at FM3-OP4.
-	Any empty pattern at FM3-OP4 setting FM3 channel back to NORMAL mode.
 	Pitch is far from perfect, especially for higher notes.
 	No ARP or VOL sequences applied.
-	Pitch commands acting as "lowpass filter" effect.
+	Pitch commands acting as "filtering" effect.
 	Kill previous note just a tick before enabling SPECIAL+CSM mode to not introduce noticable click.
 --: set to NORMAL.
 
@@ -635,7 +634,7 @@ xx: 01 .. 60; pitch (hBlank based frequency). xx > 60 = same as key.
 ************************************************
 Note Cut (tip: cut the bass notes end to avoid clicks)
 	50xx	
-xx: 01 .. FF; Kill note after xx ticks.
+xx: 01 .. FF; Kill note after xx ticks. [new note does not disable it]
 --: no effect.
 
 ************************************************
