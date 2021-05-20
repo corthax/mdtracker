@@ -824,15 +824,17 @@ static inline void DoEngine()
 
             seq_vol(channel);
 
-            //! commands (applied a bit ahead new note, sometimes resulting in clicks)
+            // commands
             if (_inst && channel < CHANNEL_PSG1) // ignore inst on PSG
             {
                 channelPreviousInstrument[channel] = _inst;
                 if (channel > 2) fmCh = channel - 3; else fmCh = channel;
                 chInst[fmCh] = tmpInst[_inst]; // copy from cached preset
-                bWriteRegs = FALSE; //!not duplicate write regs
+                bWriteRegs = FALSE; //! no duplicate write regs
+
+                if (_inst != channelPreviousInstrument[channel]) StopChannelSound(channel); //!? no clicks on instrument change
                 apply_commands();
-                WriteYM2612(channel, fmCh);
+                WriteYM2612(channel, fmCh); // will rewrite instrument from cached preset
             }
             else
             {
@@ -1073,12 +1075,14 @@ static inline void DoEngine()
             DrawMatrixPlaybackCursor(FALSE);
             hIntCounter = hIntToSkip; // reset h-int counter
             doPulse = FALSE;
+
+#if (MDT_VERSION == 0)
+            ssf_led_on();
+#endif
+
             SYS_enableInts();
         }
 
-        /*if (hIntCounter < 1) // counter overflow; do song tick
-        {
-            hIntCounter = hIntToSkip; // reset counter*/
         if (doPulse) // row sub-pulse
         {
             doPulse = FALSE;
@@ -1178,6 +1182,11 @@ static inline void DoEngine()
         StopAllSound();
         ClearPatternPlaybackCursor();
         DrawMatrixPlaybackCursor(TRUE);
+
+#if (MDT_VERSION == 0)
+            ssf_led_off();
+#endif
+
         SYS_enableInts();
     }
 }
@@ -3633,7 +3642,6 @@ static void StopEffects(u8 channel)
     channelNoteRetrigger[channel] = 0;
     channelNoteRetriggerCounter[channel] = 0;
 
-    //channelNoteDelay[channel] = 0;
     channelNoteDelayCounter[channel] = 0;
 
     channelTremoloSpeed[channel] = 0;
@@ -3686,7 +3694,7 @@ static inline void StopChannelSound(u8 channel)
             BIT_CLEAR(FM_CH3_OpNoteStatus, 7);
             YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, FM_CH3_OpNoteStatus); // OP4
         }
-        else if (/*FM_CH3_Mode == CH3_SPECIAL_CSM || */FM_CH3_Mode == CH3_SPECIAL_CSM_OFF)
+        else if (FM_CH3_Mode == CH3_SPECIAL_CSM_OFF)
         {
             YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 2); // set operators key off for CSM to work
             YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_SPECIAL_CSM_OFF | 0b00001111);
@@ -3770,11 +3778,10 @@ static inline void StopAllSound()
 
         channelArpSeqID[channel] = 0;
         channelVolSeqID[channel] = 0;
-
-        // bb: Mode, ResetB ResetA, EnableB EnableA, LoadB LoadA
-        FM_CH3_Mode = CH3_NORMAL;
-        YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00010000);
     }
+    // bb: Mode, ResetB ResetA, EnableB EnableA, LoadB LoadA
+    FM_CH3_Mode = CH3_NORMAL;
+    YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00010000);
 }
 
 static void SetGlobalLFO(u8 freq)
@@ -3960,49 +3967,6 @@ static inline void SetChannelBaseVolume_FM(u8 mtxCh, u8 fmCh)
             channelSlotBaseLevel[CHANNEL_FM3_OP4][3] = chInst[fmCh].TL4;
         }
     } else set_normal_slots();
-
-    /*switch (mtxCh)
-    {
-    case CHANNEL_FM3_OP4:
-        if (!FM_CH3_Mode) set_normal_slots();
-        else
-        {
-            channelSlotBaseLevel[mtxCh][3] = chInst[fmCh].TL4;
-            channelSlotBaseLevel[mtxCh][2] = chInst[fmCh].TL3;
-            channelSlotBaseLevel[mtxCh][1] = chInst[fmCh].TL2;
-            channelSlotBaseLevel[mtxCh][0] = chInst[fmCh].TL1;
-            //chInst[fmCh].TL4 += channelAttenuation[mtxCh];
-            //if (chInst[fmCh].TL4 > 0x7F) chInst[fmCh].TL1 = 0x7F;
-        }
-        break;
-    case CHANNEL_FM3_OP3:
-        if (FM_CH3_Mode != CH3_NORMAL)
-        {
-            channelSlotBaseLevel[mtxCh][2] = chInst[fmCh].TL3;
-            //chInst[fmCh].TL3 += channelAttenuation[mtxCh];
-            //if (chInst[fmCh].TL3 > 0x7F) chInst[fmCh].TL1 = 0x7F;
-        }
-        break;
-    case CHANNEL_FM3_OP2:
-        if (FM_CH3_Mode != CH3_NORMAL)
-        {
-            channelSlotBaseLevel[mtxCh][1] = chInst[fmCh].TL2;
-            //chInst[fmCh].TL2 += channelAttenuation[mtxCh];
-            //if (chInst[fmCh].TL2 > 0x7F) chInst[fmCh].TL1 = 0x7F;
-        }
-        break;
-    case CHANNEL_FM3_OP1:
-        if (FM_CH3_Mode != CH3_NORMAL)
-        {
-            channelSlotBaseLevel[mtxCh][0] = chInst[fmCh].TL1;
-            //chInst[fmCh].TL1 += channelAttenuation[mtxCh];
-            //if (chInst[fmCh].TL1 > 0x7F) chInst[fmCh].TL1 = 0x7F;
-        }
-        break;
-    default:
-        set_normal_slots();
-        break;
-    }*/
 }
 
 // write all YM2612 registers
@@ -4380,6 +4344,19 @@ static inline void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
         {
             RequestZ80(); YM2612_enableDAC(); ReleaseZ80();
             bDAC_enable = TRUE;
+        }
+        break;
+
+    // PAN
+    case 0x0E:
+        switch (fxValue)
+        {
+        case 0x10: FM_CH6_DAC_Pan = SOUND_PAN_LEFT;
+            break;
+        case 0x01: FM_CH6_DAC_Pan = SOUND_PAN_RIGHT;
+            break;
+        default: FM_CH6_DAC_Pan = SOUND_PAN_CENTER;
+            break;
         }
         break;
 
@@ -5018,17 +4995,11 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
     case 0x0E:
         switch (fxValue)
         {
-        case 0x00: chInst[fmCh].PAN = tmpInst[id].PAN;
-            break;
-        case 0x10: chInst[fmCh].PAN = 2; if (mtxCh == CHANNEL_FM6_DAC) FM_CH6_DAC_Pan = SOUND_PAN_LEFT;
-            break;
-        case 0x01: chInst[fmCh].PAN = 1; if (mtxCh == CHANNEL_FM6_DAC) FM_CH6_DAC_Pan = SOUND_PAN_RIGHT;
-            break;
-        case 0x11: chInst[fmCh].PAN = 3; if (mtxCh == CHANNEL_FM6_DAC) FM_CH6_DAC_Pan = SOUND_PAN_CENTER;
-            break;
-        case 0xFF: chInst[fmCh].PAN = 0;
-            break;
-        default: return; break;
+        case 0x00: chInst[fmCh].PAN = tmpInst[id].PAN; break;
+        case 0x10: chInst[fmCh].PAN = 2; break;
+        case 0x01: chInst[fmCh].PAN = 1; break;
+        case 0x11: chInst[fmCh].PAN = 3; break;
+        default: chInst[fmCh].PAN = 0; break;
         }
         write_pan_ams_fms();
         break;
@@ -5194,14 +5165,14 @@ void InitTracker()
         Backup ram mapped to the last 31th bank.
     */
 
-#if (MDT_VERSION == 0)      // Mega Everdrive Pro
+#if (MDT_VERSION == 0)
     ssf_init();
     ssf_set_rom_bank(4, 31);
     ssf_rom_wr_on();
     msu_resp = msu_drv();
-#elif (MDT_VERSION == 1)    // BlastEm
+#elif (MDT_VERSION == 1)
 
-#else                       // PicoDrive
+#else
     ssf_init();
     ssf_set_rom_bank(4, 31);
     ssf_rom_wr_on();

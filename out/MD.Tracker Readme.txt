@@ -19,24 +19,23 @@ Works in:
 Emulators: 
 	PicoDrive (RetroArch)
 		ISSUES:
-		PSG Noise channel pitch is 1 semitone up.
+		PSG Noise channel wrong pitch.
 		FM CH.6 DAC pan not working.
 		FM CH.3 Special+CSM mode not working.
 	BlastEm (RetroArch)
 		ISSUES:
-		FM CH.6 DAC pan not working.
 		No command help will be displayed.
 //////////////////
 Flashcarts: 
 	Mega Everdrive Pro (MEGAOS-V4.11)
 		ISSUES:
-		Replaced .srm file is not loaded, renaming .bin and .srm helps.
-		No mapper for SSF + MSU-MD (512kb SRAM *OR* CD Audio, not both).
+		Replaced .srm file is not loaded. Remove *name*.cfg in \MEGA\sys\romcfg\
+		No mapper for SSF + MSU-MD Currently.
 //////////////////
 
 If there is no song data, default empty is generated.
 To save as new song just rename the rom. Or move/rename SRAM file. Or whatever :)
-There is a little playback slowdown when changing screens due graphics redraw.
+Playback slowdown when graphics redraw happens.
 //////////////////
 
 ----------------
@@ -390,7 +389,7 @@ xx:	01 .. 03, 0F = off
 ************************************************
 PAN
 	0Exx	FM channels only
-xx: 11 center, 10 left, 01 right, FF mute.
+xx: 11 = center, 10 = left, 01 = right, enything else = mute sound (FM, not DAC).
 --: to reset.
 
 ------------------------------------------------
