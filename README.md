@@ -3,6 +3,16 @@
 	
 ---
 
+Compiled ROM:
+
+/out/_blastem - rom for BlastEm (RetroArch)
+
+/out/_medpro - rom for Mega Everdrive Pro
+
+/out/_picodrive - rom for PicoDrive (RetroArch)
+
+---
+
 SGDK 1.62
 
 Code::Blocks 20.03
@@ -13,11 +23,11 @@ Change path in compiler settings to where SGDK is.
 
 /inc - copied SGDK headers.
 
-/out - compiled rom (rom.bin)
-
 /res - graphics, samples etc.
 
 /src - source code.
+
+see "MD.Tracker Readme.txt" for help
 
 ---
 
