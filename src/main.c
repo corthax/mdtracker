@@ -73,6 +73,8 @@ u8 channelCurrentRowNote[CHANNELS_TOTAL];
 u8 channelSEQCounter_VOL[CHANNELS_TOTAL];
 u8 channelSEQCounter_ARP[CHANNELS_TOTAL];
 
+u8 channelRowShift[CHANNELS_TOTAL][PATTERN_ROW_LAST+1];
+
 u8 selectedInstrumentID = 1; // 0 instrument is empty
 u8 selectedInstrumentParameter = 0; // 0..53
 u8 selectedInstrumentOperator = 0; // 0..53
@@ -179,6 +181,8 @@ u8 FM_CH6_DAC_Pan = SOUND_PAN_CENTER;
 u32 FPS = 0;
 u32 BPM = 0;
 u32 PPS = 0;
+
+u8 patternSize = 0x1F;
 
 Instrument tmpInst[MAX_INSTRUMENT+1]; // cache instruments to RAM for faster access
 Instrument chInst[6]; // to apply commands
@@ -849,7 +853,7 @@ static inline void DoEngine()
             // --------- trigger note playback; check empty note later; pass note id: 0..95, 254, 255
             _key = channelCurrentRowNote[channel]; // note, off or empty
 
-            if (_key < NOTE_MAX) // only notes
+            if (_key < NOTE_TOTAL) // only notes
             {
                 _test = _key + _matrixTranspose;
                 if (_test < NOTE_TOTAL || _test > -1)
@@ -857,16 +861,21 @@ static inline void DoEngine()
                     _key = _test;
                     channelPreviousNote[channel] = channelArpNote[channel] = _key;
                 }
+                if (channelRowShift[channel][playingPatternRow]) channelNoteDelayCounter[channel] = channelRowShift[channel][playingPatternRow];
             }
             else if (_key != NOTE_EMPTY) // OFF
             {
                 channelPreviousNote[channel] = channelArpNote[channel] = _key;
                 if (channelNoteRetrigger[channel] > 0) channelNoteRetriggerCounter[channel] = 0;
+                if (channelRowShift[channel][playingPatternRow]) channelNoteDelayCounter[channel] = channelRowShift[channel][playingPatternRow];
             }
 
             seq_arp(channel);
 
-            if (!channelNoteDelayCounter[channel]) PlayNote((u8)_key, channel);
+            if (!channelNoteDelayCounter[channel])
+            {
+                PlayNote((u8)_key, channel);
+            }
         }
     }
 
@@ -1132,12 +1141,12 @@ static inline void DoEngine()
 
             if (matrixRowJumpTo != OXFF && currentScreen == SCREEN_MATRIX)
             {
-                playingPatternRow = PATTERN_ROW_LAST+1; // exceed to trigger next condition
+                playingPatternRow = patternSize+1; // exceed to trigger next condition
             }
             else playingPatternRow++; // next line is..
 
             // jump to next...
-            if (playingPatternRow > PATTERN_ROW_LAST || patternRowJumpTo != OXFF)
+            if (playingPatternRow > patternSize || patternRowJumpTo != OXFF)
             {
                 DrawMatrixPlaybackCursor(TRUE); // erase
 
@@ -1163,7 +1172,7 @@ static inline void DoEngine()
                         playingMatrixRow = 0;
                     }
                 }
-                else if (playingPatternRow > PATTERN_ROW_LAST)
+                else if (playingPatternRow > patternSize)
                 {
                     playingPatternRow = 0;
                     matrixRowJumpTo = OXFF;
@@ -1251,7 +1260,7 @@ void ClearPatternPlaybackCursor()
     static s8 line = 0;
 
     line = playingPatternRow - 1; // previous line
-    if (line == -1) line = 31;
+    if (line == -1) line = patternSize;
     if (line < 16) VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, NULL), 40, line+4);
     else VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, NULL), 60, line-12);
 }
@@ -1261,7 +1270,7 @@ void DrawPatternPlaybackCursor()
     static s8 line = 0;
 
     line = playingPatternRow - 1; // previous line
-    if (line == -1) line = 31;
+    if (line == -1) line = patternSize;
     if (line < 16) VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL3, 1, FALSE, TRUE, bgBaseTileIndex[2] + GUI_PLAYCURSOR), 40, line+4);
     else VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL3, 1, FALSE, TRUE, bgBaseTileIndex[2] + GUI_PLAYCURSOR), 60, line-12);
 }
@@ -2269,6 +2278,7 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
             break;
         case GUI_INST_PARAM_PCM_LOOP:
         case GUI_INST_PARAM_PCM_RATE:
+        case GUI_INST_PARAM_PCM_PAN:
             offset_x = 80+33; offset_y = 6-GUI_INST_PARAM_PCM_RATE; width = 0; selectedInstrumentOperator = 0;
             break;
         default: break;
@@ -2370,7 +2380,9 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
             switch (selectedInstrumentParameter)
             {
             case GUI_INST_PARAM_NAME:
-            case GUI_INST_PARAM_PCM_RATE: clear_cursor_1(pos_x * width + offset_x, pos_y + offset_y); break;
+            case GUI_INST_PARAM_PCM_RATE:
+            case GUI_INST_PARAM_PCM_PAN:
+                clear_cursor_1(pos_x * width + offset_x, pos_y + offset_y); break;
             case GUI_INST_PARAM_PCM_NOTE: clear_cursor_3(pos_x * width + offset_x, pos_y + offset_y); break;
             default: clear_cursor_2(pos_x * width + offset_x, pos_y + offset_y); break;
             }
@@ -2380,7 +2392,9 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
             switch (selectedInstrumentParameter)
             {
             case GUI_INST_PARAM_NAME:
-            case GUI_INST_PARAM_PCM_RATE: draw_cursor_1(pos_x * width + offset_x, pos_y + offset_y); break;
+            case GUI_INST_PARAM_PCM_RATE:
+            case GUI_INST_PARAM_PCM_PAN:
+                draw_cursor_1(pos_x * width + offset_x, pos_y + offset_y); break;
             case GUI_INST_PARAM_PCM_NOTE: draw_cursor_3(pos_x * width + offset_x, pos_y + offset_y); break;
             default: draw_cursor_2(pos_x * width + offset_x, pos_y + offset_y); break;
             }
@@ -2764,15 +2778,15 @@ static void ChangeInstrumentParameter(s8 modifier)
 
         // border check
         u32 sampleEnd =
-                (SRAM_ReadSampleRegion(activeSampleBank, selectedSampleNote, 3) << 16) |
-                (SRAM_ReadSampleRegion(activeSampleBank, selectedSampleNote, 4) << 8) |
-                SRAM_ReadSampleRegion(activeSampleBank, selectedSampleNote, 5);
+                (SRAM_ReadSampleRegion(activeSampleBank, selectedSampleNote, SAMPLE_END_1) << 16) |
+                (SRAM_ReadSampleRegion(activeSampleBank, selectedSampleNote, SAMPLE_END_2) << 8) |
+                 SRAM_ReadSampleRegion(activeSampleBank, selectedSampleNote, SAMPLE_END_3);
 
         if (sampleEnd > DAC_DATA_END)
         {
-            SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, 3, (u8)((DAC_DATA_END >> 16) & 0xFF));
-            SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, 4, (u8)((DAC_DATA_END >> 8) & 0xFF));
-            SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, 5, (u8)(DAC_DATA_END & 0xFF));
+            SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_END_1, (u8)((DAC_DATA_END >> 16) & 0xFF));
+            SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_END_2, (u8)((DAC_DATA_END >> 8) & 0xFF));
+            SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_END_3, (u8)(DAC_DATA_END & 0xFF));
         }
     }
 
@@ -2931,19 +2945,24 @@ static void ChangeInstrumentParameter(s8 modifier)
         write_pcm(selectedInstrumentOperator);
         break;
     case GUI_INST_PARAM_PCM_END:
-        write_pcm(selectedInstrumentOperator + 3);
+        write_pcm(selectedInstrumentOperator + SAMPLE_END_1);
         break;
     case GUI_INST_PARAM_PCM_LOOP:
-        value = SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 6) + modifier;
+        value = SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_LOOP) + modifier;
         if (value < FALSE) value = FALSE; else if (value > TRUE) value = TRUE;
-        SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, 6, value);
+        SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_LOOP, value);
         break;
     case GUI_INST_PARAM_PCM_RATE:
-        value = SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 7) + modifier;
+        value = SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_RATE) + modifier;
         if (value < SOUND_RATE_32000) value = SOUND_RATE_32000; else if (value > SOUND_RATE_8000) value = SOUND_RATE_8000;
-        SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, 7, value);
+        SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_RATE, value);
         break;
-    case GUI_INST_PARAM_COPY: // global, not saved to sram
+    case GUI_INST_PARAM_PCM_PAN:
+        value = SRAM_ReadSamplePan(selectedSampleBank, selectedSampleNote) + modifier * 0x40;
+        if (value < SOUND_PAN_RIGHT) value = SOUND_PAN_RIGHT; else if (value > SOUND_PAN_CENTER) value = SOUND_PAN_CENTER;
+        SRAM_WriteSamplePan(selectedSampleBank, selectedSampleNote, value);
+        break;
+    case GUI_INST_PARAM_COPY: // tool, not saved to sram
         value = instCopyTo + modifier;
         if (value < 0x01) instCopyTo = 0xFF; else if (value > 0xFF) instCopyTo = 0x01; else instCopyTo = value; // guard, wrap
         break;
@@ -2959,28 +2978,28 @@ inline void DisplayInstrumentEditor()
 
     auto void draw_pcm_start()
     {
-        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 0), 113, 3);
-        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 1), 115, 3);
-        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 2), 117, 3);
+        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_START_1), 113, 3);
+        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_START_2), 115, 3);
+        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_START_3), 117, 3);
     }
 
     auto void draw_pcm_end()
     {
-        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 3), 113, 4);
-        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 4), 115, 4);
-        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 5), 117, 4);
+        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_END_1), 113, 4);
+        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_END_2), 115, 4);
+        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_END_3), 117, 4);
     }
 
     auto void draw_pcm_loop()
     {
-        value = SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 6);
+        value = SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_LOOP);
         if (value == FALSE) FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_BIGDOT, 2, 113, 5);
         else DrawText(BG_A, PAL0, "ON", 113, 5);
     }
 
     auto void draw_pcm_rate()
     {
-        value = SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, 7);
+        value = SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_RATE);
         switch (value)
         {
             case SOUND_RATE_32000: DrawNum(BG_A, PAL1, "32000", 114, 6); break;
@@ -2989,6 +3008,19 @@ inline void DisplayInstrumentEditor()
             case SOUND_RATE_13400: DrawNum(BG_A, PAL1, "13400", 114, 6); break;
             case SOUND_RATE_11025: DrawNum(BG_A, PAL1, "11025", 114, 6); break;
             case SOUND_RATE_8000: DrawNum(BG_A, PAL1, "8000", 114, 6); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, NULL), 118, 6); break;
+            default: DrawNum(BG_A, PAL1, "-----", 114, 6); break;
+        }
+    }
+
+    auto void draw_pcm_pan()
+    {
+        value = SRAM_ReadSamplePan(selectedSampleBank, selectedSampleNote);
+        switch (value)
+        {
+            case SOUND_PAN_CENTER: VDP_setTextPalette(PAL1); VDP_drawText("C", 114, 7); break;
+            case SOUND_PAN_LEFT: VDP_setTextPalette(PAL1); VDP_drawText("L", 114, 7); break;
+            case SOUND_PAN_RIGHT: VDP_setTextPalette(PAL1); VDP_drawText("R", 114, 7); break;
+            default: VDP_setTextPalette(PAL1); VDP_drawText("-", 114, 7); break;
         }
     }
 
@@ -3206,6 +3238,7 @@ inline void DisplayInstrumentEditor()
             draw_pcm_end();
             draw_pcm_loop();
             draw_pcm_rate();
+            draw_pcm_pan();
             break;
         case GUI_INST_PARAM_PCM_START:
             draw_pcm_start();
@@ -3218,6 +3251,9 @@ inline void DisplayInstrumentEditor()
             break;
         case GUI_INST_PARAM_PCM_RATE:
             draw_pcm_rate();
+            break;
+        case GUI_INST_PARAM_PCM_PAN:
+            draw_pcm_pan();
             break;
         case GUI_INST_PARAM_COPY:
             DrawHex2(PAL0, instCopyTo, GUI_INST_NAME_START, 1); // same x position as NAME
@@ -3477,7 +3513,7 @@ static inline void SetPitchPSG(u8 mtxCh, u8 note)
 // DAC is also here
 static inline void SetPitchFM(u8 mtxCh, u8 note)
 {
-    static u8 part1 = 0, part2 = 0, noteFreqID = 0;
+    static u8 part1 = 0, part2 = 0, noteFreqID = 0, pan = SOUND_PAN_CENTER;
     static s8 key = 0;
 
     // CSM
@@ -3581,20 +3617,23 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
                 static u32 sampleStart = 0, sampleEnd = 0;
 
                 sampleStart =
-                (SRAM_ReadSampleRegion(activeSampleBank, note, 0) << 16) |
-                (SRAM_ReadSampleRegion(activeSampleBank, note, 1) << 8) |
-                SRAM_ReadSampleRegion(activeSampleBank, note, 2);
+                (SRAM_ReadSampleRegion(activeSampleBank, note, SAMPLE_START_1) << 16) |
+                (SRAM_ReadSampleRegion(activeSampleBank, note, SAMPLE_START_2) << 8) |
+                 SRAM_ReadSampleRegion(activeSampleBank, note, SAMPLE_START_3);
 
                 sampleEnd =
-                (SRAM_ReadSampleRegion(activeSampleBank, note, 3) << 16) |
-                (SRAM_ReadSampleRegion(activeSampleBank, note, 4) << 8) |
-                SRAM_ReadSampleRegion(activeSampleBank, note, 5);
+                (SRAM_ReadSampleRegion(activeSampleBank, note, SAMPLE_END_1) << 16) |
+                (SRAM_ReadSampleRegion(activeSampleBank, note, SAMPLE_END_2) << 8) |
+                 SRAM_ReadSampleRegion(activeSampleBank, note, SAMPLE_END_3);
+
+                if (!FM_CH6_DAC_Pan) pan = SRAM_ReadSamplePan(activeSampleBank, note);
+                else pan = FM_CH6_DAC_Pan;
 
                 SND_startPlay_PCM(sample_bank_1 + sampleStart,
                                   (sampleBankSize - sampleStart) - (sampleBankSize - sampleEnd),
-                                  SRAM_ReadSampleRegion(activeSampleBank, note, 7),
-                                  FM_CH6_DAC_Pan,
-                                  SRAM_ReadSampleRegion(activeSampleBank, note, 6));
+                                  SRAM_ReadSampleRegion(activeSampleBank, note, SAMPLE_RATE),
+                                  pan,
+                                  SRAM_ReadSampleRegion(activeSampleBank, note, SAMPLE_LOOP));
             }
             else
             {
@@ -3769,19 +3808,24 @@ static inline void StopChannelSound(u8 channel)
 
 static inline void StopAllSound()
 {
-    for (u8 channel = CHANNEL_FM1; channel < CHANNELS_TOTAL; channel++)
+    for (u8 ch = CHANNEL_FM1; ch < CHANNELS_TOTAL; ch++)
     {
-        StopChannelSound(channel);
-        StopEffects(channel);
+        StopChannelSound(ch);
+        StopEffects(ch);
 
         // only at playback stop, so note OFF is not affected
-        channelAttenuation[channel] = 0;
-        channelVolumeChangeSpeed[channel] = 0;
+        channelAttenuation[ch] = 0;
+        channelVolumeChangeSpeed[ch] = 0;
 
-        channelSeqAttenuation[channel] = SEQ_VOL_MIN_ATT;
+        channelSeqAttenuation[ch] = SEQ_VOL_MIN_ATT;
 
-        channelArpSeqID[channel] = 0;
-        channelVolSeqID[channel] = 0;
+        channelArpSeqID[ch] = 0;
+        channelVolSeqID[ch] = 0;
+
+        /*for (u8 row = 0; row < 32; row++)
+        {
+            channelRowShift[ch][row] = 0;
+        }*/
     }
     // bb: Mode, ResetB ResetA, EnableB EnableA, LoadB LoadA
     FM_CH3_Mode = CH3_NORMAL;
@@ -4312,7 +4356,7 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
 
     // MATRIX JUMP
     case 0x52:
-        if (fxValue > 0 && fxValue <= MATRIX_ROWS_TOTAL) matrixRowJumpTo = fxValue - 1;
+        if (fxValue > 0 && fxValue <= patternSize) matrixRowJumpTo = fxValue - 1;
         else if (fxValue == 0) matrixRowJumpTo = playingMatrixRow + 1;
         else matrixRowJumpTo = OXFF;
         break;
@@ -4326,7 +4370,21 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
     // NOTE DELAY
     case 0x54:
         channelNoteDelayCounter[mtxCh] = fxValue;
-        //channelNoteDelay[mtxCh] = fxValue;
+        break;
+
+    // PATTERN SIZE
+    case 0x60:
+        if (fxValue > 0 && fxValue < 0x20) patternSize = fxValue;
+        break;
+
+    // PATTERN SHIFT 0-15
+    case 0x61:
+        channelRowShift[mtxCh][fxValue >> 4] = fxValue & 0b00001111;
+        break;
+
+    // PATTERN SHIFT 16-31
+    case 0x62:
+        channelRowShift[mtxCh][(fxValue >> 4) + 16] = fxValue & 0b00001111;
         break;
 
     default: return; break;
@@ -4359,7 +4417,9 @@ static inline void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
             break;
         case 0x01: FM_CH6_DAC_Pan = SOUND_PAN_RIGHT;
             break;
-        default: FM_CH6_DAC_Pan = SOUND_PAN_CENTER;
+        case 0x11: FM_CH6_DAC_Pan = SOUND_PAN_CENTER;
+            break;
+        default: FM_CH6_DAC_Pan = NULL; // default sample pan
             break;
         }
         break;
@@ -5140,6 +5200,16 @@ void SRAM_WriteSampleRegion(u8 bank, u8 note, u8 byteNum, u8 data)
     SRAMW_writeByte((u32)SAMPLE_DATA + (bank * NOTE_TOTAL * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum, data);
 }
 
+static inline u32 SRAM_ReadSamplePan(u8 bank, u8 note)
+{
+    return (u32)SRAMW_readByte((u32)SAMPLE_PAN + (bank * NOTE_TOTAL) + note);
+}
+
+void SRAM_WriteSamplePan(u8 bank, u8 note, u8 data)
+{
+    SRAMW_writeByte((u32)SAMPLE_PAN + (bank * NOTE_TOTAL) + note, data);
+}
+
 static inline void YM2612_writeRegZ80(u16 part, u8 reg, u8 data)
 {
     RequestZ80();
@@ -5405,6 +5475,14 @@ void InitTracker()
                 SRAM_WritePattern(pattern, row, DATA_FX6_VALUE, NULL);
             }
         }
+
+        for (u8 bank = 0; bank < 4; bank++)
+        {
+            for (u8 note = 0; note < 96; note++)
+            {
+                SRAM_WriteSamplePan(bank, note, SOUND_PAN_CENTER);
+            }
+        }
     }
     else
     {
@@ -5619,7 +5697,8 @@ void DrawStaticHeaders()
     DrawText(BG_A, PAL3, "END", 106, 4);
     DrawText(BG_A, PAL3, "LOOP", 106, 5);
     DrawText(BG_A, PAL3, "RATE", 106, 6); VDP_setTextPalette(PAL1); VDP_drawText(">", 113, 6);
-    for (u8 y=3; y<7; y++) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 111, y);
+    DrawText(BG_A, PAL3, "PAN", 106, 7); VDP_setTextPalette(PAL1); VDP_drawText(">", 113, 7);
+    for (u8 y=3; y<8; y++) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 111, y); // sample colons
 
     DrawText(BG_A, PAL3, "STATE", 106, 20); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 111, 20);
     DrawText(BG_A, PAL0, "PLAY", 113, 20);
@@ -5678,7 +5757,6 @@ void ForceResetVariables()
     line=
     chan=
     playingPatternRow=
-    selectedInstrumentID=
     selectedInstrumentParameter=
     selectedInstrumentOperator=
     currentScreen=
@@ -5719,7 +5797,8 @@ void ForceResetVariables()
     bWriteRegs=
     patternCopyFrom=
     instCopyTo=
-    updateCursor=1;
+    updateCursor=
+    selectedInstrumentID=1;
 
     patternRowToRefresh=
     instrumentParameterToRefresh=
@@ -5738,7 +5817,9 @@ void ForceResetVariables()
 
     buttonCounter=GUI_NAVIGATION_DELAY;
     navigationDirection=BUTTON_RIGHT;
-    FM_CH6_DAC_Pan=SOUND_PAN_CENTER;
+    FM_CH6_DAC_Pan=NULL; // sample pan by default
+
+    patternSize = 0x1F;
 
     for (u16 in = 0; in <= MAX_INSTRUMENT; in++)
     {
@@ -5795,9 +5876,14 @@ void ForceResetVariables()
         {
             channelPreviousEffectType[ch][ef]=0;
         }
+
+        for (u8 row = 0; row < 32; row++)
+        {
+            channelRowShift[ch][row] = 0;
+        }
     }
 
-    // help info (RAM way because BlastEm crash if const)
+    //{ commands
     infoCommands[0x00] = "";
     infoCommands[0x01] = "FM TOTAL LEVEL [OP1]            ";
     infoCommands[0x02] = "FM TOTAL LEVEL [OP2]            ";
@@ -5894,9 +5980,9 @@ void ForceResetVariables()
     infoCommands[0x5D] = "";
     infoCommands[0x5E] = "";
     infoCommands[0x5F] = "";
-    infoCommands[0x60] = "";
-    infoCommands[0x61] = "";
-    infoCommands[0x62] = "";
+    infoCommands[0x60] = "PATTERN SIZE (GLOBAL)           ";
+    infoCommands[0x61] = "CH. PATTERN ROW SHIFT (LEFT)    ";
+    infoCommands[0x62] = "CH. PATTERN ROW SHIFT (RIGHT)   ";
     infoCommands[0x63] = "";
     infoCommands[0x64] = "";
     infoCommands[0x65] = "";
@@ -6054,7 +6140,8 @@ void ForceResetVariables()
     infoCommands[0xFD] = "";
     infoCommands[0xFE] = "";
     infoCommands[0xFF] = "";
-
+    //}
+    //{ descriptions
     infoDescriptions[0x00] = "";
     infoDescriptions[0x01] = "01..80, --=RESET                     ";
     infoDescriptions[0x02] = "01..80, --=RESET                     ";
@@ -6069,7 +6156,7 @@ void ForceResetVariables()
     infoDescriptions[0x0B] = "01..08, --=RESET                     ";
     infoDescriptions[0x0C] = "01..07, 0F=OFF, --=RESET             ";
     infoDescriptions[0x0D] = "01..03, 0F=OFF, --=RESET             ";
-    infoDescriptions[0x0E] = "11=C, 10=L, 01=R, FF=MUTE, --=RESET  ";
+    infoDescriptions[0x0E] = "11=C, 10=L, 01=R, FF=MUTE, --=DEFAULT";
     infoDescriptions[0x0F] = "";
     infoDescriptions[0x10] = "01..08, --=RESET                     ";
     infoDescriptions[0x11] = "01=ON, --=OFF                        ";
@@ -6140,7 +6227,7 @@ void ForceResetVariables()
     infoDescriptions[0x52] = "01..FA ROW TO JUMP, --=NEXT          ";
     infoDescriptions[0x53] = "01..1F ROW TO JUMP, --=FIRST         ";
     infoDescriptions[0x54] = "BY [XX] PULSES, --=NOTHING           ";
-    infoDescriptions[0x55] = "09..5F 'LOWPASS' EFFECT, --=NOTHING  ";
+    infoDescriptions[0x55] = "09..5F 'FILTER' EFFECT, --=NOTHING   ";
     infoDescriptions[0x56] = "";
     infoDescriptions[0x57] = "";
     infoDescriptions[0x58] = "";
@@ -6151,9 +6238,9 @@ void ForceResetVariables()
     infoDescriptions[0x5D] = "";
     infoDescriptions[0x5E] = "";
     infoDescriptions[0x5F] = "";
-    infoDescriptions[0x60] = "";
-    infoDescriptions[0x61] = "";
-    infoDescriptions[0x62] = "";
+    infoDescriptions[0x60] = "01..1F, --=NOTHING                   ";
+    infoDescriptions[0x61] = "X: ROW; Y: SHIFT;                    ";
+    infoDescriptions[0x62] = "X: ROW; Y: SHIFT;                    ";
     infoDescriptions[0x63] = "";
     infoDescriptions[0x64] = "";
     infoDescriptions[0x65] = "";
@@ -6311,4 +6398,5 @@ void ForceResetVariables()
     infoDescriptions[0xFD] = "";
     infoDescriptions[0xFE] = "";
     infoDescriptions[0xFF] = "";
+    //}
 }

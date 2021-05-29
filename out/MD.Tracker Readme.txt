@@ -42,13 +42,14 @@ Playback slowdown when graphics redraw happens.
 Features
 ----------------
 
-32 rows per pattern.
+32 rows per pattern (max).
 250 pattern rows in matrix (25 per page).
 255 instruments. 00th(--) for empty, unusable.
 Additional 16 step ARP and VOL tick sequencers.
 FM (YM2612/YM3438) CSM and CH3 Special Mode support, CH6 DAC support.
 PSG (SN76489) support.
 895 patterns.
+384 samples (96 notes * 4 banks).
 6 effects/commands per row.
 
 ----
@@ -339,6 +340,24 @@ Pattern Jump (Ignored while Pattern or Instrument editor is active)
 	53xx	
 xx: 01 .. 1F; Row in the next pattern jump to.
 --: jump to beginning.
+
+************************************************
+Global Matrix Row Size 
+	60xx
+xx: 01 .. 1F; 01 to 32 pattern rows.
+--: nothing.
+
+************************************************
+Global Pattern Row Shift (left side)
+	61xy
+x: 0 .. F; Row
+y: 0 .. F; Shift in pulses.
+
+************************************************
+Global Pattern Row Shift (right side)
+	62xy
+x: 0 .. F; Row
+y: 0 .. F; Shift in pulses.
 
 ************************************************
 MSU MD: CD Audio - Play Once [NOT WORKING]

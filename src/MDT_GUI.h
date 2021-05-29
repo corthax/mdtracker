@@ -1,36 +1,37 @@
 #ifndef MDT_GUI_H_INCLUDED
 #define MDT_GUI_H_INCLUDED
 
-#define GUI_INST_PARAM_ALG      0
-#define GUI_INST_PARAM_FMS      1
-#define GUI_INST_PARAM_AMS      2
-#define GUI_INST_PARAM_PAN      3
-#define GUI_INST_PARAM_FB       4
-#define GUI_INST_PARAM_TL       5
-#define GUI_INST_PARAM_RS       6
-#define GUI_INST_PARAM_MUL      7
-#define GUI_INST_PARAM_DT       8
-#define GUI_INST_PARAM_AR       9
-#define GUI_INST_PARAM_D1R      10
-#define GUI_INST_PARAM_D1L      11
-#define GUI_INST_PARAM_D2R      12
-#define GUI_INST_PARAM_RR       13
-#define GUI_INST_PARAM_AM       14
-#define GUI_INST_PARAM_SSGEG    15
-#define GUI_INST_PARAM_LFO      16
-#define GUI_INST_PARAM_VOLSEQ   17
-#define GUI_INST_PARAM_ARPSEQ   18
+#define GUI_INST_PARAM_ALG          0
+#define GUI_INST_PARAM_FMS          1
+#define GUI_INST_PARAM_AMS          2
+#define GUI_INST_PARAM_PAN          3
+#define GUI_INST_PARAM_FB           4
+#define GUI_INST_PARAM_TL           5
+#define GUI_INST_PARAM_RS           6
+#define GUI_INST_PARAM_MUL          7
+#define GUI_INST_PARAM_DT           8
+#define GUI_INST_PARAM_AR           9
+#define GUI_INST_PARAM_D1R          10
+#define GUI_INST_PARAM_D1L          11
+#define GUI_INST_PARAM_D2R          12
+#define GUI_INST_PARAM_RR           13
+#define GUI_INST_PARAM_AM           14
+#define GUI_INST_PARAM_SSGEG        15
+#define GUI_INST_PARAM_LFO          16
+#define GUI_INST_PARAM_VOLSEQ       17
+#define GUI_INST_PARAM_ARPSEQ       18
 #define GUI_INST_PARAM_PCM_BANK     19
 #define GUI_INST_PARAM_PCM_NOTE     20
 #define GUI_INST_PARAM_PCM_START    21
 #define GUI_INST_PARAM_PCM_END      22
 #define GUI_INST_PARAM_PCM_LOOP     23
 #define GUI_INST_PARAM_PCM_RATE     24
-#define GUI_INST_PARAM_NAME     25
-#define GUI_INST_PARAM_COPY     26
-#define GUI_INST_PARAM_STATE    27
+#define GUI_INST_PARAM_PCM_PAN      25
+#define GUI_INST_PARAM_NAME         26
+#define GUI_INST_PARAM_COPY         27
+#define GUI_INST_PARAM_STATE        28
 
-#define GUI_INST_MAX_PARAMETER  26
+#define GUI_INST_MAX_PARAMETER      27
 // -----------------------------------------------------------
 #define GUI_PATTERN_L_NOTE          0
 #define GUI_PATTERN_L_INST          1

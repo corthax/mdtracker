@@ -26,16 +26,16 @@
 #define SEQ_VOL_SKIP            0xFF
 #define SEQ_VOL_MIN_ATT         0x00
 #define SEQ_VOL_MAX_ATT         0x7F
-#define PPL_DEFAULT           4
+#define PPL_DEFAULT             4
 
-#define PATTERN_LAST             0x380   // 896
+#define PATTERN_LAST            0x380   // 896
 #define PATTERN_ROW_LAST        31      // index of max line; starts from 0
 #define PATTERN_JUMP_SIDE       0xFF
 
-#define MATRIX_ROWS_TOTAL         250
-#define LAST_MATRIX_SCREEN_ROW   24      // index of max line on SCREEN; starts from 0; 25 lines per page; 10 pages
-#define MATRIX_SCREEN_ROWS   25
-#define MAX_MATRIX_PAGE         9       // MAX_MATRIX_ROWS / (MAX_MATRIX_SCREEN_ROW + 1)) - 1
+#define MATRIX_ROWS_TOTAL           250
+#define LAST_MATRIX_SCREEN_ROW      24      // index of max line on SCREEN; starts from 0; 25 lines per page; 10 pages
+#define MATRIX_SCREEN_ROWS          25
+#define MAX_MATRIX_PAGE             9       // MAX_MATRIX_ROWS / (MAX_MATRIX_SCREEN_ROW + 1)) - 1
 
 #define INST_SIZE               89
 #define INST_MUTE               1
@@ -78,7 +78,7 @@
 #define SCREEN_PATTERN          1
 #define SCREEN_INSTRUMENT       2
 
-#define EFFECTS_TOTAL          6
+#define EFFECTS_TOTAL           6
 
 #define COMB_FB_ALG 0
 #define COMB_PAN_AMS_FMS 1
