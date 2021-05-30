@@ -248,7 +248,7 @@ All effect values are HEX.
 Commands are applied from left to right.
 
 ------------------------------------------------
-+ Global
++ Miscellaneous
 ------------------------------------------------
 
 ************************************************
@@ -376,6 +376,30 @@ MSU MD: CD Audio - Seek Time [NOT WORKING]
 	22xx	
 xx: 01 .. FF; Enable
 --: disable.
+
+************************************************
+Note Cut (tip: cut the bass notes end to avoid clicks)
+	50xx	
+xx: 01 .. FF; Kill note after xx ticks. [new note does not disable it]
+--: no effect.
+
+************************************************
+Note Retrigger (Will override commands [54] [61] [62])
+	51xx	
+xx: 01 .. FF; Retrigger note after xx ticks.
+--: disable.
+
+************************************************
+Note Delay
+	54xx	
+xx: 01 .. FF; Delays note by xx ticks.
+--: no effect.
+
+************************************************
+CSM OP Base Note (For "lowpass filtering" effect)
+	55xx	
+xx: 09 .. 5F; A-0 .. B-7, can be altered with pitch modifying commands.
+--: no effect.
 
 ------------------------------------------------
 + FM Instrument General
@@ -644,34 +668,6 @@ Volume discrete modulation
 	46xx
 xx: 01 .. 60; pitch (hBlank based frequency). xx > 60 = same as key.
 --: disable
-
-------------------------------------------------	
-+ Other
-------------------------------------------------
-
-************************************************
-Note Cut (tip: cut the bass notes end to avoid clicks)
-	50xx	
-xx: 01 .. FF; Kill note after xx ticks. [new note does not disable it]
---: no effect.
-
-************************************************
-Note Retrigger 
-	51xx	
-xx: 01 .. FF; Retrigger note after xx ticks.
---: disable.
-
-************************************************
-Note Delay
-	54xx	
-xx: 01 .. FF; Delays note by xx ticks.
---: no effect.
-
-************************************************
-CSM OP Base Note (For "lowpass filtering" effect)
-	55xx	
-xx: 09 .. 5F; A-0 .. B-7, can be altered with pitch modifying commands.
---: no effect.
 
 ------------------------------------------------	
 + EOF

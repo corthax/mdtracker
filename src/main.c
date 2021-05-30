@@ -890,24 +890,25 @@ static inline void DoEngine()
                 seq_arp(channel);
             }
 
+            //! re-trigger (not work with seq)
+            if (channelNoteRetrigger[channel])
+            {
+                channelNoteDelayCounter[channel] = 0; // disable delay
+                if (!(channelNoteRetriggerCounter[channel] % channelNoteRetrigger[channel]))
+                {
+                    PlayNote(channelPreviousNote[channel], channel);
+                }
+                channelNoteRetriggerCounter[channel]++;
+            }
+
             //! delay (not work with seq)
-            if (channelNoteDelayCounter[channel])
+            else if (channelNoteDelayCounter[channel])
             {
                 if (channelNoteDelayCounter[channel] == 1)
                 {
                     PlayNote(channelPreviousNote[channel], channel);
                     channelNoteDelayCounter[channel] = 0;
                 } else channelNoteDelayCounter[channel]--;
-            }
-
-            //! re-trigger (not work with seq)
-            if (channelNoteRetrigger[channel])
-            {
-                channelNoteRetriggerCounter[channel]++;
-                if (channelNoteRetriggerCounter[channel] % channelNoteRetrigger[channel] == 0)
-                {
-                    PlayNote(channelPreviousNote[channel], channel);
-                }
             }
 
             //!slow! volume slide
@@ -4352,6 +4353,7 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
     // NOTE RETRIGGER
     case 0x51:
         channelNoteRetrigger[mtxCh] = fxValue;
+        channelNoteRetriggerCounter[mtxCh] = 0;
         break;
 
     // MATRIX JUMP
