@@ -130,7 +130,7 @@ u8 channelVolumePulseCounter[CHANNELS_TOTAL];
 
 u8 channelNoteCut[CHANNELS_TOTAL];
 u8 channelNoteRetrigger[CHANNELS_TOTAL];
-u16 channelNoteRetriggerCounter[CHANNELS_TOTAL];
+u8 channelNoteRetriggerCounter[CHANNELS_TOTAL];
 
 bool bPsgIsPlayingNote[4];
 
@@ -187,14 +187,14 @@ u8 patternSize = 0x1F;
 Instrument tmpInst[MAX_INSTRUMENT+1]; // cache instruments to RAM for faster access
 Instrument chInst[6]; // to apply commands
 
-#if (MDT_VERSION == 0)
+//#if (MDT_VERSION == 0)
 u16 msu_drv();
 vu16 *mcd_cmd = (vu16 *) 0xA12010;  // command
 vu32 *mcd_arg = (vu32 *) 0xA12012;  // argument
 vu8 *mcd_cmd_ck = (vu8 *) 0xA1201F; // increment for command execution
 vu8 *mcd_stat = (vu8 *) 0xA12020;   // Driver ready for commands processing when 0xA12020 sets to 0
 u16 msu_resp;
-#endif
+//#endif
 
 // cant put in header. build error
 
@@ -861,18 +861,23 @@ static inline void DoEngine()
                     _key = _test;
                     channelPreviousNote[channel] = channelArpNote[channel] = _key;
                 }
-                if (channelRowShift[channel][playingPatternRow]) channelNoteDelayCounter[channel] = channelRowShift[channel][playingPatternRow];
+                if (channelRowShift[channel][playingPatternRow])
+                    channelNoteDelayCounter[channel] = channelRowShift[channel][playingPatternRow];
             }
             else if (_key != NOTE_EMPTY) // OFF
             {
                 channelPreviousNote[channel] = channelArpNote[channel] = _key;
-                if (channelNoteRetrigger[channel] > 0) channelNoteRetriggerCounter[channel] = 0;
-                if (channelRowShift[channel][playingPatternRow]) channelNoteDelayCounter[channel] = channelRowShift[channel][playingPatternRow];
+                if (channelNoteRetrigger[channel])
+                {
+                    channelNoteRetriggerCounter[channel] = channelNoteRetrigger[channel] = 0;
+                }
+                if (channelRowShift[channel][playingPatternRow])
+                    channelNoteDelayCounter[channel] = channelRowShift[channel][playingPatternRow];
             }
 
             seq_arp(channel);
 
-            if (!channelNoteDelayCounter[channel])
+            if (!channelNoteDelayCounter[channel] && !channelNoteRetrigger[channel]) // row note will be triggered from re-trigger if any
             {
                 PlayNote((u8)_key, channel);
             }
@@ -894,9 +899,10 @@ static inline void DoEngine()
             if (channelNoteRetrigger[channel])
             {
                 channelNoteDelayCounter[channel] = 0; // disable delay
-                if (!(channelNoteRetriggerCounter[channel] % channelNoteRetrigger[channel]))
+                if (channelNoteRetriggerCounter[channel] == channelNoteRetrigger[channel])
                 {
                     PlayNote(channelPreviousNote[channel], channel);
+                    channelNoteRetriggerCounter[channel] = 0;
                 }
                 channelNoteRetriggerCounter[channel]++;
             }
@@ -1089,11 +1095,9 @@ static inline void DoEngine()
             DrawMatrixPlaybackCursor(FALSE);
             hIntCounter = hIntToSkip; // reset h-int counter
             doPulse = FALSE;
-
-#if (MDT_VERSION == 0)
-            ssf_led_on();
-#endif
-
+/*#if (MDT_VERSION == 0)
+            ssf_led_on(); //! not work
+#endif*/
             SYS_enableInts();
         }
 
@@ -1196,11 +1200,9 @@ static inline void DoEngine()
         StopAllSound();
         ClearPatternPlaybackCursor();
         DrawMatrixPlaybackCursor(TRUE);
-
-#if (MDT_VERSION == 0)
-            ssf_led_off();
-#endif
-
+/*#if (MDT_VERSION == 0)
+        ssf_led_off();
+#endif*/
         SYS_enableInts();
     }
 }
@@ -4353,7 +4355,7 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
     // NOTE RETRIGGER
     case 0x51:
         channelNoteRetrigger[mtxCh] = fxValue;
-        channelNoteRetriggerCounter[mtxCh] = 0;
+        channelNoteRetriggerCounter[mtxCh] = fxValue;
         break;
 
     // MATRIX JUMP
@@ -5247,7 +5249,10 @@ void InitTracker()
     ssf_rom_wr_on();
     msu_resp = msu_drv();
 #elif (MDT_VERSION == 1)
-
+    ssf_init();
+    ssf_set_rom_bank(4, 31);
+    ssf_rom_wr_on();
+    msu_resp = msu_drv();
 #else
     ssf_init();
     ssf_set_rom_bank(4, 31);
