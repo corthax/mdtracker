@@ -130,7 +130,7 @@
 #define SAMPLE_END_3        5
 #define SAMPLE_LOOP         6
 #define SAMPLE_RATE         7
-#define SAMPLE_PAN          8 // 0x63E40, 0x6B0A9, default sample pan (4 * 96)
+#define SAMPLE_PAN          0x6B0A9 // default sample pan (4 * 96)
 //}
 
 //{ Pattern data 14 * 32 bytes

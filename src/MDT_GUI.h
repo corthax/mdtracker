@@ -27,11 +27,12 @@
 #define GUI_INST_PARAM_PCM_LOOP     23
 #define GUI_INST_PARAM_PCM_RATE     24
 #define GUI_INST_PARAM_PCM_PAN      25
-#define GUI_INST_PARAM_NAME         26
-#define GUI_INST_PARAM_COPY         27
-#define GUI_INST_PARAM_STATE        28
+#define GUI_INST_PARAM_PRESET       26
+#define GUI_INST_PARAM_NAME         27
+#define GUI_INST_PARAM_COPY         28
+#define GUI_INST_PARAM_STATE        29
 
-#define GUI_INST_MAX_PARAMETER      27
+#define GUI_INST_MAX_PARAMETER      28
 // -----------------------------------------------------------
 #define GUI_PATTERN_L_NOTE          0
 #define GUI_PATTERN_L_INST          1

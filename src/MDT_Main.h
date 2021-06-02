@@ -108,6 +108,8 @@
 #define MSU_SEEK_OFF	0x1601
 #define MSU_PLAYOF 	    0x1A00 // #1 = decimal no. of track (1-99) #2 = offset in sectors from the start of the track to apply when looping; play cdda track and loop from specified sector offset
 
+#define DEFAULT_TEMPO   0xB3   // 140 BPM NTSC if 16/16
+
 void InitTracker();
 void DrawText(u8 plane, u8 pal, const char *str, u8 x, u8 y);
 void DrawNum(u8 plane, u8 pal, const char *str, u8 x, u8 y);
@@ -125,7 +127,7 @@ static void StopEffects(u8 mtxCh);
 static void SetGlobalLFO(u8 freq);
 static void SetChannelVolume(u8 mtxCh);
 static void SetChannelBaseVolume_FM(u8 mtxCh, u8 fmCh);
-static void SetBPM(u16 counter);
+static void SetBPM(u16 tempo);
 static void WriteYM2612(u8 mtxCh, u8 fmCh);
 static void CacheIstrumentToRAM(u8 id);
 static void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue);

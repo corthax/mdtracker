@@ -1,12 +1,12 @@
+// sgdk
 #include <genesis.h>
-//#include <maths.h>
-//#include <everdrive.h>    // ED V1
 #include <sram.h>
-//#include <segalib.h>
-#include <ssf.h>            // PRO
 
+// krikzz
+#include <ssf.h>
+
+// res
 #include "fontdata.h"
-//#include "sprites.h"
 #include "samples.h"
 #include "graphics.h"
 
@@ -18,18 +18,16 @@
 #include "MDT_ModuleData.h"
 #include "MDT_GUI.h"
 #include "MDT_PCM.h"
-//#include "MDT_Info.h"
-
+#include "MDT_Info.h"
+#include "MDT_Presets.h"
 #include "MDT_Version.h"
 
-#define STRING_EMPTY    ""
-
+#define STRING_EMPTY            ""
 #define H_INT_DURATION_NTSC     744     // ; 744
 #define H_INT_DURATION_PAL      892     // ; 892
-#define H_INT_SKIP              1       // counter; 1
+#define H_INT_SKIP              2       // counter; +1
 #define TICK_SKIP_MIN           1       // fast tempo limit, 1 tick = H_INT_SKIP h-Blanks; 6
 #define TICK_SKIP_MAX           0xFF    // slow tempo limit; 128
-#define COUNTER_COMPENSATION    0       // code timer h-int shift compensation (slower code limit the max bpm); 6
 
 bool bWriteRegs = TRUE;
 
@@ -187,6 +185,8 @@ u8 patternSize = 0x1F;
 Instrument tmpInst[MAX_INSTRUMENT+1]; // cache instruments to RAM for faster access
 Instrument chInst[6]; // to apply commands
 
+u8 midiPreset = 0;
+
 //#if (MDT_VERSION == 0)
 u16 msu_drv();
 vu16 *mcd_cmd = (vu16 *) 0xA12010;  // command
@@ -315,9 +315,6 @@ static const s16 GUI_ALPHABET[38] =
     GUI_DIGIT_8,
     GUI_DIGIT_9
 };
-
-static const char *infoCommands[256];
-static const char *infoDescriptions[256];
 
 int main(bool hardReset)
 {
@@ -1227,21 +1224,21 @@ inline static s16 FindUnusedPattern()
     return NULL;
 }
 
-static void SetBPM(u16 counter)
+static void SetBPM(u16 tempo)
 {
     static u32 microseconds = 0;
 
-    if (!counter) { counter = SRAMW_readWord(TEMPO); }
+    if (!tempo) tempo = SRAMW_readWord(TEMPO);
+    else SRAMW_writeWord(TEMPO, tempo); // store
+    hIntToSkip = tempo;
 
-    if (!IS_PALSYSTEM) microseconds = H_INT_DURATION_NTSC * (H_INT_SKIP+1) * (counter + COUNTER_COMPENSATION); // h-blank = 1/13440 sec; 74.4047 microseconds; 224 * 60
-    else microseconds = H_INT_DURATION_PAL * (H_INT_SKIP+1) * (counter + COUNTER_COMPENSATION); // h-blank = 1/11200 sec; 89.2857 microseconds;
-    hIntToSkip = counter;
+    // GUI
+    if (!IS_PALSYSTEM) microseconds = H_INT_DURATION_NTSC * H_INT_SKIP * tempo; // h-blank = 1/13440 sec; 74.4047 microseconds; 224 * 60
+    else microseconds = H_INT_DURATION_PAL * H_INT_SKIP * tempo; // h-blank = 1/11200 sec; 89.2857 microseconds;
 
     u16 ppb = (ppl_2 + ppl_1) << 1; // pulses per beat
     BPM = (600000000 / microseconds) / ppb; // beat per minute
     PPS = (((BPM * 1000) / 6) * ppb) / 10000; // pulse per second
-
-    SRAMW_writeWord(TEMPO, counter); // store
     DrawPP();
 }
 
@@ -1312,6 +1309,70 @@ static void ChangeMatrixValue(s16 mod)
             SetBPM((u16)value);
         }
     }
+}
+
+static inline void LoadPreset(u8 preset)
+{
+    SRAM_WriteInstrument(selectedInstrumentID, INST_MUL1, M_BANK_0[preset]->multiple_1);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_MUL2, M_BANK_0[preset]->multiple_3);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_MUL3, M_BANK_0[preset]->multiple_2);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_MUL4, M_BANK_0[preset]->multiple_4);
+
+    SRAM_WriteInstrument(selectedInstrumentID, INST_DT1, M_BANK_0[preset]->detune_1);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_DT2, M_BANK_0[preset]->detune_3);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_DT3, M_BANK_0[preset]->detune_2);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_DT4, M_BANK_0[preset]->detune_4);
+
+    SRAM_WriteInstrument(selectedInstrumentID, INST_TL1, M_BANK_0[preset]->totalLevel_1);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_TL2, M_BANK_0[preset]->totalLevel_3);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_TL3, M_BANK_0[preset]->totalLevel_2);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_TL4, M_BANK_0[preset]->totalLevel_4);
+
+    SRAM_WriteInstrument(selectedInstrumentID, INST_RS1, M_BANK_0[preset]->rateScaling_1);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_RS2, M_BANK_0[preset]->rateScaling_3);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_RS3, M_BANK_0[preset]->rateScaling_2);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_RS4, M_BANK_0[preset]->rateScaling_4);
+
+    SRAM_WriteInstrument(selectedInstrumentID, INST_AR1, M_BANK_0[preset]->attackRate_1);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_AR2, M_BANK_0[preset]->attackRate_3);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_AR3, M_BANK_0[preset]->attackRate_2);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_AR4, M_BANK_0[preset]->attackRate_4);
+
+    SRAM_WriteInstrument(selectedInstrumentID, INST_D1R1, M_BANK_0[preset]->firstDecayRate_1);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_D1R2, M_BANK_0[preset]->firstDecayRate_3);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_D1R3, M_BANK_0[preset]->firstDecayRate_2);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_D1R4, M_BANK_0[preset]->firstDecayRate_4);
+
+    SRAM_WriteInstrument(selectedInstrumentID, INST_D1L1, M_BANK_0[preset]->secondaryAmplitude_1);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_D1L2, M_BANK_0[preset]->secondaryAmplitude_3);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_D1L3, M_BANK_0[preset]->secondaryAmplitude_2);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_D1L4, M_BANK_0[preset]->secondaryAmplitude_4);
+
+    SRAM_WriteInstrument(selectedInstrumentID, INST_AM1, M_BANK_0[preset]->amplitudeModulation_1);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_AM2, M_BANK_0[preset]->amplitudeModulation_3);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_AM3, M_BANK_0[preset]->amplitudeModulation_2);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_AM4, M_BANK_0[preset]->amplitudeModulation_4);
+
+    SRAM_WriteInstrument(selectedInstrumentID, INST_D2R1, M_BANK_0[preset]->secondaryDecayRate_1);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_D2R2, M_BANK_0[preset]->secondaryDecayRate_3);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_D2R3, M_BANK_0[preset]->secondaryDecayRate_2);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_D2R4, M_BANK_0[preset]->secondaryDecayRate_4);
+
+    SRAM_WriteInstrument(selectedInstrumentID, INST_RR1, M_BANK_0[preset]->releaseRate_1);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_RR2, M_BANK_0[preset]->releaseRate_3);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_RR3, M_BANK_0[preset]->releaseRate_2);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_RR4, M_BANK_0[preset]->releaseRate_4);
+
+    SRAM_WriteInstrument(selectedInstrumentID, INST_SSGEG1, M_BANK_0[preset]->ssgEg_1);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_SSGEG2, M_BANK_0[preset]->ssgEg_3);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_SSGEG3, M_BANK_0[preset]->ssgEg_2);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_SSGEG4, M_BANK_0[preset]->ssgEg_4);
+
+    SRAM_WriteInstrument(selectedInstrumentID, INST_FB, M_BANK_0[preset]->feedback);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_ALG, M_BANK_0[preset]->algorithm);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_PAN, M_BANK_0[preset]->stereo);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_FMS, M_BANK_0[preset]->fms);
+    SRAM_WriteInstrument(selectedInstrumentID, INST_AMS, M_BANK_0[preset]->ams);
 }
 
 // gamepad interrupts handler
@@ -2157,6 +2218,10 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                         VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "OK", GUI_INST_NAME_START, 1);
                     }
                     break;
+                case GUI_INST_PARAM_PRESET:
+                    LoadPreset(midiPreset);
+                    bRefreshScreen = TRUE; instrumentParameterToRefresh = OXFF;
+                    break;
                 }
                 break;
             }
@@ -2284,6 +2349,9 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
         case GUI_INST_PARAM_PCM_PAN:
             offset_x = 80+33; offset_y = 6-GUI_INST_PARAM_PCM_RATE; width = 0; selectedInstrumentOperator = 0;
             break;
+        case GUI_INST_PARAM_PRESET:
+            offset_x = 80+33; offset_y = GUI_INST_PARAM_PRESET-3; width = 0; selectedInstrumentOperator = 0;
+            break;
         default: break;
         }
     }
@@ -2385,6 +2453,7 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
             case GUI_INST_PARAM_NAME:
             case GUI_INST_PARAM_PCM_RATE:
             case GUI_INST_PARAM_PCM_PAN:
+            case GUI_INST_PARAM_PRESET:
                 clear_cursor_1(pos_x * width + offset_x, pos_y + offset_y); break;
             case GUI_INST_PARAM_PCM_NOTE: clear_cursor_3(pos_x * width + offset_x, pos_y + offset_y); break;
             default: clear_cursor_2(pos_x * width + offset_x, pos_y + offset_y); break;
@@ -2397,6 +2466,7 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
             case GUI_INST_PARAM_NAME:
             case GUI_INST_PARAM_PCM_RATE:
             case GUI_INST_PARAM_PCM_PAN:
+            case GUI_INST_PARAM_PRESET:
                 draw_cursor_1(pos_x * width + offset_x, pos_y + offset_y); break;
             case GUI_INST_PARAM_PCM_NOTE: draw_cursor_3(pos_x * width + offset_x, pos_y + offset_y); break;
             default: draw_cursor_2(pos_x * width + offset_x, pos_y + offset_y); break;
@@ -2895,9 +2965,8 @@ static void ChangeInstrumentParameter(s8 modifier)
     case GUI_INST_PARAM_AM:
         if (selectedInstrumentOperator < 4)
         {
-            value = SRAM_ReadInstrument(selectedInstrumentID, INST_AM1 + selectedInstrumentOperator) + modifier;
-            if (value < 0) value = FALSE; else if (value > 1) value = TRUE;
-            SRAM_WriteInstrument(selectedInstrumentID, INST_AM1 + selectedInstrumentOperator, value);
+            if (modifier < 0) SRAM_WriteInstrument(selectedInstrumentID, INST_AM1 + selectedInstrumentOperator, FALSE);
+            else SRAM_WriteInstrument(selectedInstrumentID, INST_AM1 + selectedInstrumentOperator, TRUE);
         }
         break;
     case GUI_INST_PARAM_SSGEG:
@@ -2951,9 +3020,8 @@ static void ChangeInstrumentParameter(s8 modifier)
         write_pcm(selectedInstrumentOperator + SAMPLE_END_1);
         break;
     case GUI_INST_PARAM_PCM_LOOP:
-        value = SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_LOOP) + modifier;
-        if (value < FALSE) value = FALSE; else if (value > TRUE) value = TRUE;
-        SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_LOOP, value);
+        if (modifier < 0) SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_LOOP, FALSE);
+        else SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_LOOP, TRUE);
         break;
     case GUI_INST_PARAM_PCM_RATE:
         value = SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_RATE) + modifier;
@@ -2961,13 +3029,17 @@ static void ChangeInstrumentParameter(s8 modifier)
         SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_RATE, value);
         break;
     case GUI_INST_PARAM_PCM_PAN:
-        value = SRAM_ReadSamplePan(selectedSampleBank, selectedSampleNote) + modifier * 0x40;
-        if (value < SOUND_PAN_RIGHT) value = SOUND_PAN_RIGHT; else if (value > SOUND_PAN_CENTER) value = SOUND_PAN_CENTER;
-        SRAM_WriteSamplePan(selectedSampleBank, selectedSampleNote, value);
+        if (modifier == -1) SRAM_WriteSamplePan(selectedSampleBank, selectedSampleNote, SOUND_PAN_LEFT);
+        else if (modifier == 1) SRAM_WriteSamplePan(selectedSampleBank, selectedSampleNote, SOUND_PAN_RIGHT);
+        else SRAM_WriteSamplePan(selectedSampleBank, selectedSampleNote, SOUND_PAN_CENTER);
         break;
     case GUI_INST_PARAM_COPY: // tool, not saved to sram
         value = instCopyTo + modifier;
         if (value < 0x01) instCopyTo = 0xFF; else if (value > 0xFF) instCopyTo = 0x01; else instCopyTo = value; // guard, wrap
+        break;
+    case GUI_INST_PARAM_PRESET: // tool, not saved to sram
+        value = midiPreset + modifier;
+        if (value < 0) midiPreset = 127; else if (value > 127) midiPreset = 0; else midiPreset = value; // guard, wrap
         break;
     }
     CacheIstrumentToRAM(selectedInstrumentID); // update RAM struct
@@ -3260,6 +3332,11 @@ inline void DisplayInstrumentEditor()
             break;
         case GUI_INST_PARAM_COPY:
             DrawHex2(PAL0, instCopyTo, GUI_INST_NAME_START, 1); // same x position as NAME
+            break;
+        case GUI_INST_PARAM_PRESET:
+            intToStr(midiPreset, str, 3);
+            VDP_setTextPalette(PAL1); VDP_drawText(str, 114, 17);
+            VDP_drawText(presetName[midiPreset], 106, 18);
             break;
         }
 
@@ -4189,8 +4266,7 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
     {
     // TEMPO
     case 0x13:
-        if (fxValue == 0) SetBPM(SRAMW_readWord(TEMPO));
-        else SetBPM(fxValue);
+        SetBPM(fxValue);
         break;
 
     // TICKS PER LINE
@@ -5204,9 +5280,9 @@ void SRAM_WriteSampleRegion(u8 bank, u8 note, u8 byteNum, u8 data)
     SRAMW_writeByte((u32)SAMPLE_DATA + (bank * NOTE_TOTAL * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum, data);
 }
 
-static inline u32 SRAM_ReadSamplePan(u8 bank, u8 note)
+static inline u8 SRAM_ReadSamplePan(u8 bank, u8 note)
 {
-    return (u32)SRAMW_readByte((u32)SAMPLE_PAN + (bank * NOTE_TOTAL) + note);
+    return SRAMW_readByte((u32)SAMPLE_PAN + (bank * NOTE_TOTAL) + note);
 }
 
 void SRAM_WriteSamplePan(u8 bank, u8 note, u8 data)
@@ -5268,7 +5344,7 @@ void InitTracker()
     VDP_init();
     VDP_setDMAEnabled(TRUE);
     VDP_setHInterrupt(TRUE);
-    VDP_setHIntCounter(H_INT_SKIP);
+    VDP_setHIntCounter(H_INT_SKIP-1);
     VDP_setScreenWidth320();
     VDP_setScreenHeight224();
     VDP_setHilightShadow(FALSE);
@@ -5359,7 +5435,7 @@ void InitTracker()
     // if there is no SRAM file, needs fresh init.
     if (SRAMW_readWord(DEAD_INSTRUMENT) != 0xDEAD)
     {
-        SetBPM(H_INT_SKIP * 0xB3); // 140 BPM NTSC
+        SetBPM(DEFAULT_TEMPO);
         // init with default instrument; 49 non-global parameters (5 for whole channel, 11*4 per operator)
         DrawText(BG_A, PAL0, "GENERATING", 3, 3); DrawText(BG_A, PAL0, "MODULE", 14, 3); DrawText(BG_A, PAL0, "DATA", 21, 3);
         for (u16 inst = 0; inst <= MAX_INSTRUMENT; inst++)
@@ -5483,9 +5559,10 @@ void InitTracker()
             }
         }
 
+        // dac default pan init
         for (u8 bank = 0; bank < 4; bank++)
         {
-            for (u8 note = 0; note < 96; note++)
+            for (u8 note = 0; note < NOTE_TOTAL; note++)
             {
                 SRAM_WriteSamplePan(bank, note, SOUND_PAN_CENTER);
             }
@@ -5493,7 +5570,7 @@ void InitTracker()
     }
     else
     {
-        SetBPM(SRAMW_readWord(TEMPO));
+        SetBPM(0);
     }
 
     sampleBankSize = sizeof(sample_bank_1);
@@ -5707,6 +5784,10 @@ void DrawStaticHeaders()
     DrawText(BG_A, PAL3, "PAN", 106, 7); VDP_setTextPalette(PAL1); VDP_drawText(">", 113, 7);
     for (u8 y=3; y<8; y++) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 111, y); // sample colons
 
+    VDP_setTextPalette(PAL3); VDP_drawText("PRESET", 106, 17);
+    VDP_setTextPalette(PAL1); VDP_drawText(">", 113, 17); VDP_drawText("000", 114, 17);
+    VDP_drawText(presetName[0], 106, 18);
+
     DrawText(BG_A, PAL3, "STATE", 106, 20); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 111, 20);
     DrawText(BG_A, PAL0, "PLAY", 113, 20);
 
@@ -5741,7 +5822,7 @@ void DrawStaticHeaders()
         switch (y)
         {
             case 13: case 19: break;
-            default : VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 92, y);
+            default: VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 92, y);
         }
     }
 
@@ -5828,12 +5909,12 @@ void ForceResetVariables()
 
     patternSize = 0x1F;
 
-    for (u16 in = 0; in <= MAX_INSTRUMENT; in++)
+    for (u16 in=0; in<=MAX_INSTRUMENT; in++)
     {
         instrumentIsMuted[in]=INST_PLAY;
     }
 
-    for (u8 ch = 0; ch < CHANNELS_TOTAL; ch++)
+    for (u8 ch=0; ch<CHANNELS_TOTAL; ch++)
     {
         channelPreviousInstrument[ch]=
         channelPreviousNote[ch]=
@@ -5879,531 +5960,18 @@ void ForceResetVariables()
         channelNoteRetriggerCounter[ch]=0;
 
         channelFlags[ch]=1;
-        for (u8 ef = 0; ef < EFFECTS_TOTAL; ef++)
+
+        for (u8 ef=0; ef<EFFECTS_TOTAL; ef++)
         {
             channelPreviousEffectType[ch][ef]=0;
         }
 
-        for (u8 row = 0; row < 32; row++)
+        for (u8 row=0; row<32; row++)
         {
             channelRowShift[ch][row] = 0;
         }
     }
 
-    //{ commands
-    infoCommands[0x00] = "";
-    infoCommands[0x01] = "FM TOTAL LEVEL [OP1]            ";
-    infoCommands[0x02] = "FM TOTAL LEVEL [OP2]            ";
-    infoCommands[0x03] = "FM TOTAL LEVEL [OP3]            ";
-    infoCommands[0x04] = "FM TOTAL LEVEL [OP4]            ";
-    infoCommands[0x05] = "FM ADSR RATE SCALE              ";
-    infoCommands[0x06] = "FM FREQUENCY MULTIPLIER         ";
-    infoCommands[0x07] = "FM DETUNE                       ";
-    infoCommands[0x08] = "FM AMPLITUDE MODULATION         ";
-    infoCommands[0x09] = "FM SSG-EG                       ";
-    infoCommands[0x0A] = "FM ALGORITHM                    ";
-    infoCommands[0x0B] = "FM [OP1] FEEDBACK               ";
-    infoCommands[0x0C] = "FM AMPLITUDE MODULATION SCALE   ";
-    infoCommands[0x0D] = "FM FREQUENCY MODULATION SCALE   ";
-    infoCommands[0x0E] = "FM/DAC PAN                      ";
-    infoCommands[0x0F] = "";
-    infoCommands[0x10] = "GLOBAL LFO                      ";
-    infoCommands[0x11] = "FM CH.6                         ";
-    infoCommands[0x12] = "FM CH.3                         ";
-    infoCommands[0x13] = "TEMPO                           ";
-    infoCommands[0x14] = "PATTERN ROW RESOLUTION (PULSES) ";
-    infoCommands[0x15] = "PSG CH.4 NOISE MODE             ";
-    infoCommands[0x16] = "PCM BANK                        ";
-    infoCommands[0x17] = "";
-    infoCommands[0x18] = "";
-    infoCommands[0x19] = "";
-    infoCommands[0x1A] = "";
-    infoCommands[0x1B] = "";
-    infoCommands[0x1C] = "";
-    infoCommands[0x1D] = "";
-    infoCommands[0x1E] = "";
-    infoCommands[0x1F] = "";
-    infoCommands[0x20] = "MSU MD: CD AUDIO - PLAY ONCE    ";
-    infoCommands[0x21] = "MSU MD: CD AUDIO - PLAY LOOP    ";
-    infoCommands[0x22] = "MSU MD: CD AUDIO - SEEK TIME    ";
-    infoCommands[0x23] = "";
-    infoCommands[0x24] = "";
-    infoCommands[0x25] = "";
-    infoCommands[0x26] = "";
-    infoCommands[0x27] = "";
-    infoCommands[0x28] = "";
-    infoCommands[0x29] = "";
-    infoCommands[0x2A] = "";
-    infoCommands[0x2B] = "";
-    infoCommands[0x2C] = "";
-    infoCommands[0x2D] = "";
-    infoCommands[0x2E] = "";
-    infoCommands[0x2F] = "ARP SEQUENCE MACRO MODE         ";
-    infoCommands[0x30] = "ARP SEQUENCE MACRO              ";
-    infoCommands[0x31] = "PITCH SLIDE UP                  ";
-    infoCommands[0x32] = "PITCH SLIDE DOWN                ";
-    infoCommands[0x33] = "VIBRATO                         ";
-    infoCommands[0x34] = "VIBRATO SPEED                   ";
-    infoCommands[0x35] = "VIBRATO DEPTH                   ";
-    infoCommands[0x36] = "VIBRATO MODE                    ";
-    infoCommands[0x37] = "PITCH SLIDE SKIP PULSES         ";
-    infoCommands[0x38] = "PORTAMENTO TO NOTE UP           ";
-    infoCommands[0x39] = "PORTAMENTO TO NOTE DOWN         ";
-    infoCommands[0x3A] = "";
-    infoCommands[0x3B] = "";
-    infoCommands[0x3C] = "";
-    infoCommands[0x3D] = "";
-    infoCommands[0x3E] = "";
-    infoCommands[0x3F] = "VOL EQUENCE MACRO MODE          ";
-    infoCommands[0x40] = "VOL EQUENCE MACRO               ";
-    infoCommands[0x41] = "CHANNEL VOLUME ATTENUATION      ";
-    infoCommands[0x42] = "TREMOLO                         ";
-    infoCommands[0x43] = "TREMOLO SPEED                   ";
-    infoCommands[0x44] = "VOLUME SLIDE DOWN               ";
-    infoCommands[0x45] = "VOLUME SLIDE UP                 ";
-    infoCommands[0x46] = "VOLUME DISCRETE MODULATION      ";
-    infoCommands[0x47] = "";
-    infoCommands[0x48] = "";
-    infoCommands[0x49] = "";
-    infoCommands[0x4A] = "";
-    infoCommands[0x4B] = "";
-    infoCommands[0x4C] = "";
-    infoCommands[0x4D] = "";
-    infoCommands[0x4E] = "";
-    infoCommands[0x4F] = "";
-    infoCommands[0x50] = "NOTE CUT                        ";
-    infoCommands[0x51] = "NOTE RETRIGER                   ";
-    infoCommands[0x52] = "MATRIX JUMP                     ";
-    infoCommands[0x53] = "PATTERN JUMP                    ";
-    infoCommands[0x54] = "NOTE DELAY                      ";
-    infoCommands[0x55] = "CSM BASE NOTE                   ";
-    infoCommands[0x56] = "";
-    infoCommands[0x57] = "";
-    infoCommands[0x58] = "";
-    infoCommands[0x59] = "";
-    infoCommands[0x5A] = "";
-    infoCommands[0x5B] = "";
-    infoCommands[0x5C] = "";
-    infoCommands[0x5D] = "";
-    infoCommands[0x5E] = "";
-    infoCommands[0x5F] = "";
-    infoCommands[0x60] = "PATTERN SIZE (GLOBAL)           ";
-    infoCommands[0x61] = "CH. PATTERN ROW SHIFT (LEFT)    ";
-    infoCommands[0x62] = "CH. PATTERN ROW SHIFT (RIGHT)   ";
-    infoCommands[0x63] = "";
-    infoCommands[0x64] = "";
-    infoCommands[0x65] = "";
-    infoCommands[0x66] = "";
-    infoCommands[0x67] = "";
-    infoCommands[0x68] = "";
-    infoCommands[0x69] = "";
-    infoCommands[0x6A] = "";
-    infoCommands[0x6B] = "";
-    infoCommands[0x6C] = "";
-    infoCommands[0x6D] = "";
-    infoCommands[0x6E] = "";
-    infoCommands[0x6F] = "";
-    infoCommands[0x70] = "";
-    infoCommands[0x71] = "";
-    infoCommands[0x72] = "";
-    infoCommands[0x73] = "";
-    infoCommands[0x74] = "";
-    infoCommands[0x75] = "";
-    infoCommands[0x76] = "";
-    infoCommands[0x77] = "";
-    infoCommands[0x78] = "";
-    infoCommands[0x79] = "";
-    infoCommands[0x7A] = "";
-    infoCommands[0x7B] = "";
-    infoCommands[0x7C] = "";
-    infoCommands[0x7D] = "";
-    infoCommands[0x7E] = "";
-    infoCommands[0x7F] = "";
-    infoCommands[0x80] = "";
-    infoCommands[0x81] = "";
-    infoCommands[0x82] = "";
-    infoCommands[0x83] = "";
-    infoCommands[0x84] = "";
-    infoCommands[0x85] = "";
-    infoCommands[0x86] = "";
-    infoCommands[0x87] = "";
-    infoCommands[0x88] = "";
-    infoCommands[0x89] = "";
-    infoCommands[0x8A] = "";
-    infoCommands[0x8B] = "";
-    infoCommands[0x8C] = "";
-    infoCommands[0x8D] = "";
-    infoCommands[0x8E] = "";
-    infoCommands[0x8F] = "";
-    infoCommands[0x90] = "";
-    infoCommands[0x91] = "";
-    infoCommands[0x92] = "";
-    infoCommands[0x93] = "";
-    infoCommands[0x94] = "";
-    infoCommands[0x95] = "";
-    infoCommands[0x96] = "";
-    infoCommands[0x97] = "";
-    infoCommands[0x98] = "";
-    infoCommands[0x99] = "";
-    infoCommands[0x9A] = "";
-    infoCommands[0x9B] = "";
-    infoCommands[0x9C] = "";
-    infoCommands[0x9D] = "";
-    infoCommands[0x9E] = "";
-    infoCommands[0x9F] = "";
-    infoCommands[0xA0] = "";
-    infoCommands[0xA1] = "FM ADSR ATTACK RATE [OP1]       ";
-    infoCommands[0xA2] = "FM ADSR ATTACK RATE [OP2]       ";
-    infoCommands[0xA3] = "FM ADSR ATTACK RATE [OP3]       ";
-    infoCommands[0xA4] = "FM ADSR ATTACK RATE [OP4]       ";
-    infoCommands[0xA5] = "";
-    infoCommands[0xA6] = "";
-    infoCommands[0xA7] = "";
-    infoCommands[0xA8] = "";
-    infoCommands[0xA9] = "";
-    infoCommands[0xAA] = "";
-    infoCommands[0xAB] = "";
-    infoCommands[0xAC] = "";
-    infoCommands[0xAD] = "";
-    infoCommands[0xAE] = "";
-    infoCommands[0xAF] = "";
-    infoCommands[0xB0] = "";
-    infoCommands[0xB1] = "FM ADSR DECAY RATE 1 [OP1]      ";
-    infoCommands[0xB2] = "FM ADSR DECAY RATE 1 [OP2]      ";
-    infoCommands[0xB3] = "FM ADSR DECAY RATE 1 [OP3]      ";
-    infoCommands[0xB4] = "FM ADSR DECAY RATE 1 [OP4]      ";
-    infoCommands[0xB5] = "";
-    infoCommands[0xB6] = "";
-    infoCommands[0xB7] = "";
-    infoCommands[0xB8] = "";
-    infoCommands[0xB9] = "";
-    infoCommands[0xBA] = "";
-    infoCommands[0xBB] = "";
-    infoCommands[0xBC] = "";
-    infoCommands[0xBD] = "";
-    infoCommands[0xBE] = "";
-    infoCommands[0xBF] = "";
-    infoCommands[0xC0] = "";
-    infoCommands[0xC1] = "FM ADSR SUSTAIN [OP1]           ";
-    infoCommands[0xC2] = "FM ADSR SUSTAIN [OP2]           ";
-    infoCommands[0xC3] = "FM ADSR SUSTAIN [OP3]           ";
-    infoCommands[0xC4] = "FM ADSR SUSTAIN [OP4]           ";
-    infoCommands[0xC5] = "";
-    infoCommands[0xC6] = "";
-    infoCommands[0xC7] = "";
-    infoCommands[0xC8] = "";
-    infoCommands[0xC9] = "";
-    infoCommands[0xCA] = "";
-    infoCommands[0xCB] = "";
-    infoCommands[0xCC] = "";
-    infoCommands[0xCD] = "";
-    infoCommands[0xCE] = "";
-    infoCommands[0xCF] = "";
-    infoCommands[0xD0] = "";
-    infoCommands[0xD1] = "FM ADSR DECAY RATE 2 [OP1]      ";
-    infoCommands[0xD2] = "FM ADSR DECAY RATE 2 [OP2]      ";
-    infoCommands[0xD3] = "FM ADSR DECAY RATE 2 [OP3]      ";
-    infoCommands[0xD4] = "FM ADSR DECAY RATE 2 [OP4]      ";
-    infoCommands[0xD5] = "";
-    infoCommands[0xD6] = "";
-    infoCommands[0xD7] = "";
-    infoCommands[0xD8] = "";
-    infoCommands[0xD9] = "";
-    infoCommands[0xDA] = "";
-    infoCommands[0xDB] = "";
-    infoCommands[0xDC] = "";
-    infoCommands[0xDD] = "";
-    infoCommands[0xDE] = "";
-    infoCommands[0xDF] = "";
-    infoCommands[0xE0] = "";
-    infoCommands[0xE1] = "FM ADSR RELEASE [OP1]           ";
-    infoCommands[0xE2] = "FM ADSR RELEASE [OP2]           ";
-    infoCommands[0xE3] = "FM ADSR RELEASE [OP3]           ";
-    infoCommands[0xE4] = "FM ADSR RELEASE [OP4]           ";
-    infoCommands[0xE5] = "";
-    infoCommands[0xE6] = "";
-    infoCommands[0xE7] = "";
-    infoCommands[0xE8] = "";
-    infoCommands[0xE9] = "";
-    infoCommands[0xEA] = "";
-    infoCommands[0xEB] = "";
-    infoCommands[0xEC] = "";
-    infoCommands[0xED] = "";
-    infoCommands[0xEE] = "";
-    infoCommands[0xEF] = "";
-    infoCommands[0xF0] = "";
-    infoCommands[0xF1] = "";
-    infoCommands[0xF2] = "";
-    infoCommands[0xF3] = "";
-    infoCommands[0xF4] = "";
-    infoCommands[0xF5] = "";
-    infoCommands[0xF6] = "";
-    infoCommands[0xF7] = "";
-    infoCommands[0xF8] = "";
-    infoCommands[0xF9] = "";
-    infoCommands[0xFA] = "";
-    infoCommands[0xFB] = "";
-    infoCommands[0xFC] = "";
-    infoCommands[0xFD] = "";
-    infoCommands[0xFE] = "";
-    infoCommands[0xFF] = "";
-    //}
-    //{ descriptions
-    infoDescriptions[0x00] = "";
-    infoDescriptions[0x01] = "01..80, --=RESET                     ";
-    infoDescriptions[0x02] = "01..80, --=RESET                     ";
-    infoDescriptions[0x03] = "01..80, --=RESET                     ";
-    infoDescriptions[0x04] = "01..80, --=RESET                     ";
-    infoDescriptions[0x05] = "X[OP] 1..5; Y 1..4; --=RESET         ";
-    infoDescriptions[0x06] = "X[OP] 1..4; Y 1..F; --=RESET         ";
-    infoDescriptions[0x07] = "X[OP] 1..4; Y 1..8; --=RESET         ";
-    infoDescriptions[0x08] = "X[OP] 1..5; Y 0=RESET, 1=ON, 2=OFF   ";
-    infoDescriptions[0x09] = "X[OP] 1..5; Y 1..9, 0=RESET          ";
-    infoDescriptions[0x0A] = "01..08, --=RESET                     ";
-    infoDescriptions[0x0B] = "01..08, --=RESET                     ";
-    infoDescriptions[0x0C] = "01..07, 0F=OFF, --=RESET             ";
-    infoDescriptions[0x0D] = "01..03, 0F=OFF, --=RESET             ";
-    infoDescriptions[0x0E] = "11=C, 10=L, 01=R, FF=MUTE, --=DEFAULT";
-    infoDescriptions[0x0F] = "";
-    infoDescriptions[0x10] = "01..08, --=RESET                     ";
-    infoDescriptions[0x11] = "01=ON, --=OFF                        ";
-    infoDescriptions[0x12] = "01=SPECIAL, 02=CSM, --=NORMAL        ";
-    infoDescriptions[0x13] = "[H-INT SKIPS] 01..FF, --=RESET       ";
-    infoDescriptions[0x14] = "X[ODD] 1..F; Y[EVEN] 1..F            ";
-    infoDescriptions[0x15] = "X: 1=P, 2=W; Y: 0,1=TONAL 2,3,4=FIXED";
-    infoDescriptions[0x16] = "01..04                               ";
-    infoDescriptions[0x17] = "";
-    infoDescriptions[0x18] = "";
-    infoDescriptions[0x19] = "";
-    infoDescriptions[0x1A] = "";
-    infoDescriptions[0x1B] = "";
-    infoDescriptions[0x1C] = "";
-    infoDescriptions[0x1D] = "";
-    infoDescriptions[0x1E] = "";
-    infoDescriptions[0x1F] = "";
-    infoDescriptions[0x20] = "01..63 TRACK NUMBER; --= PAUSE       ";
-    infoDescriptions[0x21] = "01..63 TRACK NUMBER; --= PAUSE       ";
-    infoDescriptions[0x22] = "01..FF=ENABLE; --= DISABLE           ";
-    infoDescriptions[0x23] = "";
-    infoDescriptions[0x24] = "";
-    infoDescriptions[0x25] = "";
-    infoDescriptions[0x26] = "";
-    infoDescriptions[0x27] = "";
-    infoDescriptions[0x28] = "";
-    infoDescriptions[0x29] = "";
-    infoDescriptions[0x2A] = "";
-    infoDescriptions[0x2B] = "";
-    infoDescriptions[0x2C] = "";
-    infoDescriptions[0x2D] = "";
-    infoDescriptions[0x2E] = "";
-    infoDescriptions[0x2F] = "--=LOOP, 01=ONCE                     ";
-    infoDescriptions[0x30] = "[XX] INSTRUMENT; --=DISABLE          ";
-    infoDescriptions[0x31] = "01..7F, --=OFF, FF=RESET, FE=HOLD    ";
-    infoDescriptions[0x32] = "01..7F, --=OFF, FF=RESET, FE=HOLD    ";
-    infoDescriptions[0x33] = "X=SPEED, Y=DEPTH, --=OFF             ";
-    infoDescriptions[0x34] = "01..1A, --=RESET [DEFAULT 8]         ";
-    infoDescriptions[0x35] = "--=RESET [DEFAULT 2]                 ";
-    infoDescriptions[0x36] = "01=UP, 02=DOWN, --=UP AND DOWN       ";
-    infoDescriptions[0x37] = "[XX] PULSES TO SKIP; --=NOTHING      ";
-    infoDescriptions[0x38] = "[UN]                                 ";
-    infoDescriptions[0x39] = "[UN]                                 ";
-    infoDescriptions[0x3A] = "";
-    infoDescriptions[0x3B] = "";
-    infoDescriptions[0x3C] = "";
-    infoDescriptions[0x3D] = "";
-    infoDescriptions[0x3E] = "";
-    infoDescriptions[0x3F] = "--=LOOP, 01=ONCE                     ";
-    infoDescriptions[0x40] = "--=DISABLE                           ";
-    infoDescriptions[0x41] = "[FM] 01..7F; [PSG] / 8; --=DEFAULT   ";
-    infoDescriptions[0x42] = "X=SPEED, Y=DEPTH, --=OFF             ";
-    infoDescriptions[0x43] = "--=RESET [DEFAULT 20]                ";
-    infoDescriptions[0x44] = "X=SPEED, Y=AMOUNT, --=STOP           ";
-    infoDescriptions[0x45] = "X=SPEED, Y=AMOUNT, --=STOP           ";
-    infoDescriptions[0x46] = "[UN]                                 ";
-    infoDescriptions[0x47] = "";
-    infoDescriptions[0x48] = "";
-    infoDescriptions[0x49] = "";
-    infoDescriptions[0x4A] = "";
-    infoDescriptions[0x4B] = "";
-    infoDescriptions[0x4C] = "";
-    infoDescriptions[0x4D] = "";
-    infoDescriptions[0x4E] = "";
-    infoDescriptions[0x4F] = "";
-    infoDescriptions[0x50] = "AFTER [XX] PULSES                    ";
-    infoDescriptions[0x51] = "AFTER [XX] PULSES                    ";
-    infoDescriptions[0x52] = "01..FA ROW TO JUMP, --=NEXT          ";
-    infoDescriptions[0x53] = "01..1F ROW TO JUMP, --=FIRST         ";
-    infoDescriptions[0x54] = "BY [XX] PULSES, --=NOTHING           ";
-    infoDescriptions[0x55] = "09..5F 'FILTER' EFFECT, --=NOTHING   ";
-    infoDescriptions[0x56] = "";
-    infoDescriptions[0x57] = "";
-    infoDescriptions[0x58] = "";
-    infoDescriptions[0x59] = "";
-    infoDescriptions[0x5A] = "";
-    infoDescriptions[0x5B] = "";
-    infoDescriptions[0x5C] = "";
-    infoDescriptions[0x5D] = "";
-    infoDescriptions[0x5E] = "";
-    infoDescriptions[0x5F] = "";
-    infoDescriptions[0x60] = "01..1F, --=NOTHING                   ";
-    infoDescriptions[0x61] = "X: ROW; Y: SHIFT;                    ";
-    infoDescriptions[0x62] = "X: ROW; Y: SHIFT;                    ";
-    infoDescriptions[0x63] = "";
-    infoDescriptions[0x64] = "";
-    infoDescriptions[0x65] = "";
-    infoDescriptions[0x66] = "";
-    infoDescriptions[0x67] = "";
-    infoDescriptions[0x68] = "";
-    infoDescriptions[0x69] = "";
-    infoDescriptions[0x6A] = "";
-    infoDescriptions[0x6B] = "";
-    infoDescriptions[0x6C] = "";
-    infoDescriptions[0x6D] = "";
-    infoDescriptions[0x6E] = "";
-    infoDescriptions[0x6F] = "";
-    infoDescriptions[0x70] = "";
-    infoDescriptions[0x71] = "";
-    infoDescriptions[0x72] = "";
-    infoDescriptions[0x73] = "";
-    infoDescriptions[0x74] = "";
-    infoDescriptions[0x75] = "";
-    infoDescriptions[0x76] = "";
-    infoDescriptions[0x77] = "";
-    infoDescriptions[0x78] = "";
-    infoDescriptions[0x79] = "";
-    infoDescriptions[0x7A] = "";
-    infoDescriptions[0x7B] = "";
-    infoDescriptions[0x7C] = "";
-    infoDescriptions[0x7D] = "";
-    infoDescriptions[0x7E] = "";
-    infoDescriptions[0x7F] = "";
-    infoDescriptions[0x80] = "";
-    infoDescriptions[0x81] = "";
-    infoDescriptions[0x82] = "";
-    infoDescriptions[0x83] = "";
-    infoDescriptions[0x84] = "";
-    infoDescriptions[0x85] = "";
-    infoDescriptions[0x86] = "";
-    infoDescriptions[0x87] = "";
-    infoDescriptions[0x88] = "";
-    infoDescriptions[0x89] = "";
-    infoDescriptions[0x8A] = "";
-    infoDescriptions[0x8B] = "";
-    infoDescriptions[0x8C] = "";
-    infoDescriptions[0x8D] = "";
-    infoDescriptions[0x8E] = "";
-    infoDescriptions[0x8F] = "";
-    infoDescriptions[0x90] = "";
-    infoDescriptions[0x91] = "";
-    infoDescriptions[0x92] = "";
-    infoDescriptions[0x93] = "";
-    infoDescriptions[0x94] = "";
-    infoDescriptions[0x95] = "";
-    infoDescriptions[0x96] = "";
-    infoDescriptions[0x97] = "";
-    infoDescriptions[0x98] = "";
-    infoDescriptions[0x99] = "";
-    infoDescriptions[0x9A] = "";
-    infoDescriptions[0x9B] = "";
-    infoDescriptions[0x9C] = "";
-    infoDescriptions[0x9D] = "";
-    infoDescriptions[0x9E] = "";
-    infoDescriptions[0x9F] = "";
-    infoDescriptions[0xA0] = "";
-    infoDescriptions[0xA1] = "01..20, --=RESET                     ";
-    infoDescriptions[0xA2] = "01..20, --=RESET                     ";
-    infoDescriptions[0xA3] = "01..20, --=RESET                     ";
-    infoDescriptions[0xA4] = "01..20, --=RESET                     ";
-    infoDescriptions[0xA5] = "";
-    infoDescriptions[0xA6] = "";
-    infoDescriptions[0xA7] = "";
-    infoDescriptions[0xA8] = "";
-    infoDescriptions[0xA9] = "";
-    infoDescriptions[0xAA] = "";
-    infoDescriptions[0xAB] = "";
-    infoDescriptions[0xAC] = "";
-    infoDescriptions[0xAD] = "";
-    infoDescriptions[0xAE] = "";
-    infoDescriptions[0xAF] = "";
-    infoDescriptions[0xB0] = "";
-    infoDescriptions[0xB1] = "01..20, --=RESET                     ";
-    infoDescriptions[0xB2] = "01..20, --=RESET                     ";
-    infoDescriptions[0xB3] = "01..20, --=RESET                     ";
-    infoDescriptions[0xB4] = "01..20, --=RESET                     ";
-    infoDescriptions[0xB5] = "";
-    infoDescriptions[0xB6] = "";
-    infoDescriptions[0xB7] = "";
-    infoDescriptions[0xB8] = "";
-    infoDescriptions[0xB9] = "";
-    infoDescriptions[0xBA] = "";
-    infoDescriptions[0xBB] = "";
-    infoDescriptions[0xBC] = "";
-    infoDescriptions[0xBD] = "";
-    infoDescriptions[0xBE] = "";
-    infoDescriptions[0xBF] = "";
-    infoDescriptions[0xC0] = "";
-    infoDescriptions[0xC1] = "01..10, --=RESET                     ";
-    infoDescriptions[0xC2] = "01..10, --=RESET                     ";
-    infoDescriptions[0xC3] = "01..10, --=RESET                     ";
-    infoDescriptions[0xC4] = "01..10, --=RESET                     ";
-    infoDescriptions[0xC5] = "";
-    infoDescriptions[0xC6] = "";
-    infoDescriptions[0xC7] = "";
-    infoDescriptions[0xC8] = "";
-    infoDescriptions[0xC9] = "";
-    infoDescriptions[0xCA] = "";
-    infoDescriptions[0xCB] = "";
-    infoDescriptions[0xCC] = "";
-    infoDescriptions[0xCD] = "";
-    infoDescriptions[0xCE] = "";
-    infoDescriptions[0xCF] = "";
-    infoDescriptions[0xD0] = "";
-    infoDescriptions[0xD1] = "01..20, --=RESET                     ";
-    infoDescriptions[0xD2] = "01..20, --=RESET                     ";
-    infoDescriptions[0xD3] = "01..20, --=RESET                     ";
-    infoDescriptions[0xD4] = "01..20, --=RESET                     ";
-    infoDescriptions[0xD5] = "";
-    infoDescriptions[0xD6] = "";
-    infoDescriptions[0xD7] = "";
-    infoDescriptions[0xD8] = "";
-    infoDescriptions[0xD9] = "";
-    infoDescriptions[0xDA] = "";
-    infoDescriptions[0xDB] = "";
-    infoDescriptions[0xDC] = "";
-    infoDescriptions[0xDD] = "";
-    infoDescriptions[0xDE] = "";
-    infoDescriptions[0xDF] = "";
-    infoDescriptions[0xE0] = "";
-    infoDescriptions[0xE1] = "01..10, --=RESET                     ";
-    infoDescriptions[0xE2] = "01..10, --=RESET                     ";
-    infoDescriptions[0xE3] = "01..10, --=RESET                     ";
-    infoDescriptions[0xE4] = "01..10, --=RESET                     ";
-    infoDescriptions[0xE5] = "";
-    infoDescriptions[0xE6] = "";
-    infoDescriptions[0xE7] = "";
-    infoDescriptions[0xE8] = "";
-    infoDescriptions[0xE9] = "";
-    infoDescriptions[0xEA] = "";
-    infoDescriptions[0xEB] = "";
-    infoDescriptions[0xEC] = "";
-    infoDescriptions[0xED] = "";
-    infoDescriptions[0xEE] = "";
-    infoDescriptions[0xEF] = "";
-    infoDescriptions[0xF0] = "";
-    infoDescriptions[0xF1] = "";
-    infoDescriptions[0xF2] = "";
-    infoDescriptions[0xF3] = "";
-    infoDescriptions[0xF4] = "";
-    infoDescriptions[0xF5] = "";
-    infoDescriptions[0xF6] = "";
-    infoDescriptions[0xF7] = "";
-    infoDescriptions[0xF8] = "";
-    infoDescriptions[0xF9] = "";
-    infoDescriptions[0xFA] = "";
-    infoDescriptions[0xFB] = "";
-    infoDescriptions[0xFC] = "";
-    infoDescriptions[0xFD] = "";
-    infoDescriptions[0xFE] = "";
-    infoDescriptions[0xFF] = "";
-    //}
+    InitPresets();
+    InitInfo();
 }

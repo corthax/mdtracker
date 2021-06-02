@@ -7,4 +7,5 @@ out/src/main.o: src/main.c inc/genesis.h inc/config.h inc/asm.h \
  inc/z80_ctrl.h inc/ym2612.h inc/psg.h inc/joy.h inc/timer.h inc/sram.h \
  inc/ssf.h res/fontdata.h res/samples.h res/graphics.h src/MDT_Main.h \
  src/MDT_SRAM.h src/MDT_Chips.h src/MDT_NoteTables.h src/MDT_ModuleData.h \
- src/MDT_GUI.h src/MDT_PCM.h src/MDT_Version.h
+ src/MDT_GUI.h src/MDT_PCM.h src/MDT_Info.h src/MDT_Presets.h \
+ src/MDT_Version.h
