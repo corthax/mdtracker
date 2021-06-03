@@ -185,12 +185,6 @@ Instrument Editor
 	Z+U		Select instrument (+16).
 	Z+D		Select instrument (-16).
 	
-	Mute, Un-mute, Solo:
-	
-	X+U 	Mute instrument. Ignore instrument writes, set instrument notes to OFF.
-	X+D 	Solo instrument. All other instruments are muted.
-	X+Y 	Un-Mute all instruments.
-	
 	Edit:
 	
 	A+R		Change value (+1).
@@ -208,11 +202,24 @@ Instrument Editor
 	Applied channel sequencers always reset on song stop.
 
 	Sample:
+	
 	Bank			Select bank for editing.
 	Note			Select note in bank, which region is edited.
 	Region Start	Playback start time (samples, HEX).
 	Region End		Playback end time (samples, HEX). Should be greater than start time.
 	Loop			Is sample playback oneshot or looped.
+	Pan				Default sample pan, L/C/R.
+	
+	Mute, Un-mute, Solo: (State)
+	
+	X+U 	Mute instrument. Ignore instrument writes, set instrument notes to OFF.
+	X+D 	Solo instrument. All other instruments are muted.
+	X+Y 	Un-Mute all instruments.
+	
+	General MIDI basic presets bank: (Preset)
+	
+	A+D-Pad	Select.
+	B 		Load into current instrument.	
 
 '
 

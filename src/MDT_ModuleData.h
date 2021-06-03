@@ -118,9 +118,11 @@
 #define TEMPO               0x07269 // PATTERN_MATRIX + 1964h; 2 bytes
 #define SAMPLE_DATA         0x0726B // 4 * 96 * 7 bytes (3byte start + 3byte end + 1byte loop)
 #define PATTERN_DATA        0x07CEB // SAMPLE_DATA + A80h;
-#define PATTERN_COLOR       0x6A06B // PATTERN_DATA + PATTERN_SIZE * (MAX_PATTERN + 1); last is 0x6A3E9
-#define MATRIX_TRANSPOSE    0x6A3EA // matrix slot transpose (250*13)
-#define MUTE_CHANNEL        0x6B09C // store disabled matrix channels (13)
+#define PATTERN_COLOR       0x6A06B // PATTERN_DATA + PATTERN_SIZE * (MAX_PATTERN + 1);
+#define MATRIX_TRANSPOSE    0x6A3EC // matrix slot transpose (250*13)
+#define MUTE_CHANNEL        0x6B09E // store disabled matrix channels (13)
+#define SAMPLE_PAN          0x6B0AB // default sample pan (4 * 96)
+//}
 
 #define SAMPLE_START_1      0
 #define SAMPLE_START_2      1
@@ -130,8 +132,8 @@
 #define SAMPLE_END_3        5
 #define SAMPLE_LOOP         6
 #define SAMPLE_RATE         7
-#define SAMPLE_PAN          0x6B0A9 // default sample pan (4 * 96)
-//}
+
+
 
 //{ Pattern data 14 * 32 bytes
 #define DATA_NOTE           0
