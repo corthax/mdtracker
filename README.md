@@ -5,9 +5,8 @@
 
 Compiled ROM:
 
-/out/_blastem - rom for BlastEm (RetroArch)
+/out/ - rom for BlastEm (RetroArch) / Mega Everdrive Pro
 
-/out/_medpro - rom for Mega Everdrive Pro
 
 /out/_picodrive - rom for PicoDrive (RetroArch)
 
