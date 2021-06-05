@@ -586,31 +586,27 @@ static inline void DoEngine()
     static u8 fmCh;
 
     // vibrato tool
-    auto inline s8 vibrato(u8 channel)
+    auto s8 vibrato(u8 channel)
     {
-        if (channelVibratoSpeed[channel] && channelVibratoDepth[channel])
+        static s8 vib = 0;
+
+        switch (channelVibratoMode[channel])
         {
-            static s8 vib = 0;
-
-            switch (channelVibratoMode[channel])
-            {
-            case 1:
-                vib = abs((s8)fix16ToRoundedInt(fix16Mul(FIX16(channelVibratoDepth[channel]), sinFix16(channelVibratoPhase[channel]))));
-                break;
-            case 2:
-                vib = -abs((s8)fix16ToRoundedInt(fix16Mul(FIX16(channelVibratoDepth[channel]), sinFix16(channelVibratoPhase[channel]))));
-                break;
-            default:
-                vib = (s8)fix16ToRoundedInt(fix16Mul(FIX16(channelVibratoDepth[channel]), sinFix16(channelVibratoPhase[channel])));
-                break;
-            }
-
-            channelVibratoPhase[channel] += channelVibratoSpeed[channel];
-            if (channelVibratoPhase[channel] > 1023) channelVibratoPhase[channel] -= 1024;
-
-            return vib;
+        case 1:
+            vib = abs((s8)fix16ToRoundedInt(fix16Mul(FIX16(channelVibratoDepth[channel]), sinFix16(channelVibratoPhase[channel]))));
+            break;
+        case 2:
+            vib = -abs((s8)fix16ToRoundedInt(fix16Mul(FIX16(channelVibratoDepth[channel]), sinFix16(channelVibratoPhase[channel]))));
+            break;
+        default:
+            vib = (s8)fix16ToRoundedInt(fix16Mul(FIX16(channelVibratoDepth[channel]), sinFix16(channelVibratoPhase[channel])));
+            break;
         }
-        else return 0;
+
+        channelVibratoPhase[channel] += channelVibratoSpeed[channel];
+        if (channelVibratoPhase[channel] > 1023) channelVibratoPhase[channel] -= 1024;
+
+        return vib;
     }
 
     auto inline void seq_vol(u8 channel)
@@ -891,7 +887,6 @@ static inline void DoEngine()
                 seq_vol(channel);
                 seq_arp(channel);
             }
-
             //! re-trigger (not work with seq)
             if (channelNoteRetrigger[channel])
             {
@@ -903,7 +898,6 @@ static inline void DoEngine()
                 }
                 channelNoteRetriggerCounter[channel]++;
             }
-
             //! delay (not work with seq)
             else if (channelNoteDelayCounter[channel])
             {
@@ -913,23 +907,22 @@ static inline void DoEngine()
                     channelNoteDelayCounter[channel] = 0;
                 } else channelNoteDelayCounter[channel]--;
             }
-
-            //!slow! volume slide
-            if (channelVolumeChangeSpeed[channel]) //! worst case
+            //! volume effects
+            //volume slide (set only by counter)
+            if (channelVolumeChangeSpeed[channel])
             {
                 if (!channelVolumePulseCounter[channel])
                 {
                     channelAttenuation[channel] += channelVolumeChangeSpeed[channel];
                     if (channelAttenuation[channel] > 0x7F) { channelAttenuation[channel] = 0x7F; channelVolumeChangeSpeed[channel] = 0; }
                     else if (channelAttenuation[channel] < 0) { channelAttenuation[channel] = 0; channelVolumeChangeSpeed[channel] = 0; }
-                    SetChannelVolume(channel); //!slow!
                     channelVolumePulseCounter[channel] = channelVolumePulseSkip[channel];
+                    if (!(channelTremoloDepth[channel] && channelTremoloSpeed[channel])) SetChannelVolume(channel); //! set later if tremolo
                 }
                 channelVolumePulseCounter[channel]--;
             }
-
-            //!slow! tremolo
-            if (channelTremoloDepth[channel] && channelTremoloSpeed[channel]) //!worst case
+            //tremolo (set by every pulse)
+            if (channelTremoloDepth[channel] && channelTremoloSpeed[channel])
             {
                 channelTremolo[channel] = (u8)fix16ToRoundedInt
                 (
@@ -938,37 +931,37 @@ static inline void DoEngine()
 
                 channelTremoloPhase[channel] += channelTremoloSpeed[channel];
                 if (channelTremoloPhase[channel] > 1023) channelTremoloPhase[channel] -= 1024;
-                SetChannelVolume(channel); //!slow!
+                SetChannelVolume(channel);
             }
 
-            //!slow!
-            if (channelPitchSlideSpeed[channel] || channelVibratoDepth[channel] || channelVibratoSpeed[channel]) //! worst case
+            //!pitch effects
+            if (channelPitchSlideSpeed[channel] || (channelVibratoDepth[channel] && channelVibratoSpeed[channel]))
             {
                 // portamento
-                if (channelPitchSkipStepCounter[channel] < 1)
+                if (channelPitchSlideSpeed[channel])
                 {
-                    channelMicrotone[channel] += channelPitchSlideSpeed[channel];
-
-                    while(channelMicrotone[channel] >= MICROTONE_STEPS) // wrap
+                    if (channelPitchSkipStepCounter[channel] < 1)
                     {
-                        channelMicrotone[channel] -= MICROTONE_STEPS;
-                        channelModNotePitch[channel]++;
+                        channelMicrotone[channel] += channelPitchSlideSpeed[channel];
+                        while(channelMicrotone[channel] >= MICROTONE_STEPS) // wrap
+                        {
+                            channelMicrotone[channel] -= MICROTONE_STEPS;
+                            channelModNotePitch[channel]++;
+                        }
+                        while(channelMicrotone[channel] < 0) // wrap
+                        {
+                            channelMicrotone[channel] += MICROTONE_STEPS;
+                            channelModNotePitch[channel]--;
+                        }
+                        channelPitchSkipStepCounter[channel] = channelPitchSkipStep[channel]; // skip pulses for slower pitch slide
                     }
-
-                    while(channelMicrotone[channel] < 0) // wrap
-                    {
-                        channelMicrotone[channel] += MICROTONE_STEPS;
-                        channelModNotePitch[channel]--;
-                    }
-
-                    channelPitchSkipStepCounter[channel] = channelPitchSkipStep[channel]; // skip pulses for slower pitch slide
+                    channelPitchSkipStepCounter[channel]--;
                 }
-
-                channelPitchSkipStepCounter[channel]--;
-
                 // vibrato
-                channelFinalPitch[channel] = channelMicrotone[channel] + vibrato(channel);
-
+                if (channelVibratoDepth[channel] && channelVibratoSpeed[channel])
+                    channelFinalPitch[channel] = channelMicrotone[channel] + vibrato(channel);
+                else channelFinalPitch[channel] = channelMicrotone[channel];
+                // final pitch
                 if (channelFinalPitch[channel] >= MICROTONE_STEPS)
                 {
                     channelFinalPitch[channel] -= MICROTONE_STEPS;
@@ -979,20 +972,12 @@ static inline void DoEngine()
                     channelFinalPitch[channel] += MICROTONE_STEPS;
                     channelModNoteVibrato[channel] = -1;
                 }
-                else  channelModNoteVibrato[channel] = 0;
-
-                if (channelPitchSlideSpeed[channel] || channelVibratoDepth[channel] || channelVibratoSpeed[channel])
-                {
-                    //!also triggers note! need different function for set pitch
-                    if (channel < CHANNEL_PSG1) SetPitchFM(channel, channelArpNote[channel]); //!slow!
-                    else SetPitchPSG(channel, channelArpNote[channel]);
-                }
-                else
-                {
-                    channelFinalPitch[channel] = 0;
-                }
+                else channelModNoteVibrato[channel] = 0;
+                //!also triggers note! need different function for set pitch
+                if (channel < CHANNEL_PSG1) SetPitchFM(channel, channelArpNote[channel]);
+                else SetPitchPSG(channel, channelArpNote[channel]);
             }
-
+            else channelFinalPitch[channel] = 0;
             // cut
             if (channelNoteCut[channel] > 1) channelNoteCut[channel]--;
             else if (channelNoteCut[channel] == 1)
