@@ -59,8 +59,8 @@ struct Preset_FM
 };
 typedef struct Preset_FM Preset_FM;
 
-const Preset_FM* M_BANK_0[128];
-const char* presetName[128];
+const Preset_FM* M_BANK_0[256];
+const char* presetName[256];
 
 void InitPresets();
 

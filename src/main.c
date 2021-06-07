@@ -3020,11 +3020,11 @@ static void ChangeInstrumentParameter(s8 modifier)
         break;
     case GUI_INST_PARAM_COPY: // tool, not saved to sram
         value = instCopyTo + modifier;
-        if (value < 0x01) instCopyTo = 0xFF; else if (value > 0xFF) instCopyTo = 0x01; else instCopyTo = value; // guard, wrap
+        if (value < 1) instCopyTo = 0xFF; else if (value > 0xFF) instCopyTo = 1; else instCopyTo = value; // guard, wrap
         break;
     case GUI_INST_PARAM_PRESET: // tool, not saved to sram
         value = midiPreset + modifier;
-        if (value < 0) midiPreset = 127; else if (value > 127) midiPreset = 0; else midiPreset = value; // guard, wrap
+        if (value < 0) midiPreset = 0xFF; else if (value > 0xFF) midiPreset = 0; else midiPreset = value; // guard, wrap
         break;
     }
     CacheIstrumentToRAM(selectedInstrumentID); // update RAM struct
@@ -3893,8 +3893,8 @@ static inline void StopAllSound()
         }*/
     }
     // bb: Mode, ResetB ResetA, EnableB EnableA, LoadB LoadA
-    FM_CH3_Mode = CH3_NORMAL;
-    YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00010000);
+    //FM_CH3_Mode = CH3_NORMAL;
+    YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, FM_CH3_Mode | 0b00010000);
 }
 
 static void SetGlobalLFO(u8 freq)

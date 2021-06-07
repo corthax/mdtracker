@@ -3,6 +3,7 @@
 
 // based on https://github.com/rhargreaves/mega-drive-midi-interface
 
+//{ instruments
 static const Preset_FM M_BANK_0_INST_0_GRANDPIANO = { 2, 0, 3, 0, 0,
 1, 4, 26, 1, 7, 0, 7, 4, 1, 39, 0,
 2, 7, 31, 3, 23, 0, 9, 15, 1, 4, 0,
@@ -770,6 +771,1042 @@ static const Preset_FM M_BANK_0_INST_127_GUNSHOT = { 5, 7, 3, 0, 5,
 1, 4, 31, 0, 15, 0, 15, 31, 8, 0, 0,
 1, 4, 31, 0, 20, 0, 15, 20, 8, 0, 0,
 1, 4, 31, 0, 15, 0, 15, 16, 11, 0, 0 };
+//}
+
+//{ percussion
+static const Preset_FM P_BANK_0_INST_0 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_1 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_2 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_3 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_4 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_5 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_6  = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_7 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_8 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_9 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_10 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_11 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_12 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_13 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_14 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_15 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_16 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_17 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_18 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_19 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_20 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_21 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_22 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_23 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_24 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_25 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_26 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_27 = { 4, 1, 3, 0, 0,
+0, 4, 18, 0, 0, 0, 0, 29, 12, 0, 0,
+1, 4, 31, 1, 0, 0, 0, 16, 9, 0, 0,
+0, 4, 18, 0, 0, 0, 0, 29, 12, 0, 0,
+1, 4, 31, 1, 0, 0, 0, 16, 9, 1, 0 };
+
+static const Preset_FM P_BANK_0_INST_28 = { 5, 7, 3, 0, 5,
+3, 3, 31, 3, 6, 0, 15, 16, 3, 4, 0,
+1, 4, 31, 2, 16, 0, 15, 31, 8, 0, 0,
+1, 4, 31, 3, 18, 0, 15, 14, 9, 0, 0,
+1, 4, 31, 2, 16, 0, 7, 14, 6, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_29 = { 4, 7, 3, 3, 7,
+0, 4, 31, 0, 11, 0, 0, 10, 6, 8, 0,
+0, 4, 15, 0, 14, 1, 1, 16, 8, 0, 0,
+0, 4, 0, 0, 0, 1, 0, 0, 0, 127, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0 };
+
+static const Preset_FM P_BANK_0_INST_30_CASTANETS = { 4, 3, 3, 0, 0,
+9, 4, 31, 0, 11, 0, 15, 0, 15, 23, 0,
+4, 4, 31, 2, 20, 0, 15, 0, 15, 13, 0,
+1, 4, 31, 0, 19, 0, 15, 0, 15, 15, 0,
+2, 4, 31, 2, 20, 0, 15, 0, 15, 13, 0 };
+
+static const Preset_FM P_BANK_0_INST_31_STICKS = { 0, 3, 3, 0, 0,
+2, 4, 31, 0, 20, 0, 15, 0, 15, 10, 0,
+2, 4, 31, 2, 20, 0, 15, 0, 15, 42, 0,
+2, 4, 31, 0, 18, 0, 15, 0, 15, 23, 0,
+1, 4, 31, 0, 21, 0, 15, 0, 15, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_32_SQUARE_CLICK = { 7, 3, 3, 0, 0,
+1, 4, 31, 0, 23, 0, 15, 0, 15, 39, 0,
+1, 4, 31, 2, 23, 0, 15, 0, 15, 39, 0,
+1, 4, 31, 0, 22, 0, 15, 0, 15, 0, 0,
+1, 4, 18, 0, 24, 0, 15, 0, 15, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_33_METRONOMECLICK = { 0, 3, 3, 0, 0,
+2, 4, 31, 0, 18, 0, 15, 0, 15, 6, 0,
+2, 4, 31, 2, 22, 0, 15, 0, 15, 33, 0,
+1, 4, 31, 0, 19, 0, 15, 0, 15, 5, 0,
+1, 4, 31, 0, 21, 0, 15, 0, 15, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_34 = { 5, 7, 3, 0, 5,
+3, 3, 31, 3, 6, 0, 15, 16, 3, 4, 0,
+1, 4, 31, 2, 16, 0, 15, 31, 8, 0, 0,
+1, 4, 31, 3, 18, 0, 15, 14, 9, 0, 0,
+1, 4, 31, 2, 16, 0, 7, 15, 8, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_35_BASSDRUM_ = { 2, 4, 3, 0, 0,
+0, 4, 27, 0, 0, 0, 0, 20, 7, 0, 0,
+6, 4, 0, 0, 15, 0, 15, 12, 6, 127, 0,
+5, 4, 0, 0, 11, 0, 15, 15, 5, 127, 0,
+1, 4, 31, 1, 0, 0, 0, 14, 7, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_36_BASSDRUM_ = { 2, 3, 3, 0, 0,
+0, 4, 26, 0, 0, 0, 0, 20, 7, 0, 0,
+6, 4, 0, 0, 15, 0, 15, 13, 6, 127, 0,
+5, 4, 0, 0, 11, 0, 15, 15, 4, 127, 0,
+1, 4, 31, 1, 0, 0, 0, 12, 7, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_37_STICKSIDE = { 0, 3, 3, 0, 0,
+2, 4, 31, 0, 19, 0, 15, 0, 15, 21, 0,
+2, 4, 31, 2, 20, 0, 15, 0, 15, 33, 0,
+1, 4, 31, 0, 19, 0, 15, 0, 15, 14, 0,
+1, 4, 31, 0, 20, 0, 15, 0, 15, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_38_ACUSTICSNARE_ACTION52 = { 5, 6, 3, 0, 5,
+3, 3, 31, 3, 6, 0, 15, 16, 3, 4, 0,
+1, 4, 31, 2, 16, 0, 15, 31, 8, 0, 0,
+1, 4, 31, 3, 18, 0, 15, 14, 9, 0, 0,
+1, 4, 31, 2, 16, 0, 7, 13, 6, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_39_HANDCLAP_OPL3 = { 4, 7, 3, 0, 0,
+15, 4, 31, 2, 0, 0, 0, 0, 5, 13, 0,
+15, 4, 31, 0, 17, 0, 2, 15, 7, 27, 0,
+0, 4, 31, 0, 20, 0, 0, 16, 8, 3, 0,
+1, 4, 31, 0, 3, 0, 0, 18, 9, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_40_ACUSTICSNARE_ACTION52 = { 5, 6, 3, 0, 5,
+3, 3, 31, 3, 5, 0, 15, 15, 3, 4, 0,
+1, 4, 31, 2, 16, 0, 15, 31, 7, 0, 0,
+1, 4, 31, 3, 20, 0, 15, 14, 9, 0, 0,
+1, 4, 31, 2, 16, 0, 7, 12, 6, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_41_LOW_FLOOR_TOM = { 5, 7, 3, 0, 0,
+1, 3, 30, 0, 26, 0, 15, 3, 6, 21, 0,
+0, 7, 30, 0, 17, 0, 15, 3, 6, 0, 0,
+3, 1, 30, 1, 12, 0, 15, 1, 6, 3, 0,
+0, 1, 30, 0, 17, 0, 15, 3, 6, 3, 0 };
+
+static const Preset_FM P_BANK_0_INST_42_CLOSED_HAT = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_43_HIGH_FLOOR_TOM = { 5, 7, 3, 0, 0,
+1, 3, 30, 0, 26, 0, 15, 3, 6, 22, 0,
+0, 7, 30, 0, 17, 0, 15, 14, 6, 0, 0,
+4, 1, 30, 1, 12, 0, 15, 1, 6, 3, 0,
+0, 1, 30, 0, 17, 0, 15, 9, 6, 3, 0 };
+
+static const Preset_FM P_BANK_0_INST_44_PEDALHIHAT = { 0, 7, 3, 0, 0,
+12, 3, 7, 1, 10, 0, 11, 28, 4, 0, 0,
+10, 7, 3, 3, 10, 1, 11, 16, 7, 0, 0,
+3, 1, 31, 3, 0, 0, 0, 0, 4, 0, 0,
+5, 7, 4, 3, 13, 0, 5, 29, 9, 7, 0 };
+
+static const Preset_FM P_BANK_0_INST_45_LOW_TOM = { 5, 7, 3, 0, 0,
+1, 3, 30, 0, 26, 0, 15, 3, 6, 22, 0,
+0, 7, 30, 0, 17, 0, 15, 3, 6, 0, 0,
+4, 1, 30, 1, 12, 0, 15, 1, 6, 3, 0,
+0, 1, 30, 0, 17, 0, 15, 3, 6, 3, 0 };
+
+static const Preset_FM P_BANK_0_INST_46_OPENHIHAT = { 4, 5, 3, 0, 0,
+9, 4, 31, 0, 14, 0, 1, 0, 0, 0, 0,
+2, 4, 31, 0, 23, 0, 4, 8, 4, 8, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0 };
+
+static const Preset_FM P_BANK_0_INST_47_LOWMED_TOM = { 5, 7, 3, 0, 0,
+0, 3, 30, 0, 26, 0, 15, 3, 6, 22, 0,
+0, 7, 30, 0, 17, 0, 15, 3, 6, 0, 0,
+4, 1, 30, 1, 12, 0, 15, 1, 6, 3, 0,
+0, 1, 30, 0, 17, 0, 15, 3, 6, 3, 0 };
+
+static const Preset_FM P_BANK_0_INST_48_HIGHMED_TOM = { 5, 7, 3, 0, 0,
+0, 3, 30, 0, 24, 0, 15, 19, 6, 22, 0,
+0, 7, 30, 0, 17, 0, 15, 3, 6, 0, 0,
+4, 1, 30, 1, 12, 0, 15, 1, 6, 3, 0,
+0, 1, 30, 0, 17, 0, 15, 3, 6, 3, 0 };
+
+static const Preset_FM P_BANK_0_INST_49_CRASH_ANIMATICS = { 4, 7, 3, 1, 0,
+15, 7, 31, 0, 11, 0, 4, 0, 0, 0, 0,
+3, 1, 31, 0, 11, 1, 15, 0, 6, 0, 0,
+1, 7, 31, 0, 22, 0, 3, 7, 4, 0, 0,
+7, 4, 31, 2, 27, 0, 10, 7, 6, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_50_HIGH_TOM_ = { 5, 7, 3, 0, 0,
+1, 3, 30, 0, 26, 0, 15, 3, 6, 22, 0,
+0, 7, 30, 0, 17, 0, 15, 3, 6, 0, 0,
+4, 1, 30, 1, 12, 0, 15, 1, 6, 3, 0,
+0, 1, 30, 0, 17, 0, 15, 3, 6, 3, 0 };
+
+static const Preset_FM P_BANK_0_INST_51_RIDECYMBELL1 = { 4, 5, 3, 0, 0,
+12, 4, 31, 0, 13, 0, 1, 0, 0, 0, 0,
+3, 4, 24, 0, 21, 0, 4, 7, 4, 12, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0 };
+
+static const Preset_FM P_BANK_0_INST_52_CHINESE_CRASH_ANIMATICS = { 4, 5, 3, 0, 0,
+15, 7, 31, 0, 7, 0, 5, 0, 2, 0, 0,
+3, 1, 31, 0, 12, 0, 8, 4, 4, 0, 0,
+1, 7, 31, 0, 21, 0, 3, 6, 3, 0, 0,
+7, 4, 31, 2, 25, 0, 10, 6, 3, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_53_RIDE_BELL = { 4, 3, 3, 0, 0,
+13, 4, 31, 0, 7, 0, 14, 7, 1, 0, 0,
+13, 4, 31, 0, 10, 0, 14, 18, 5, 17, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0 };
+
+static const Preset_FM P_BANK_0_INST_54_TAMBORINE = { 1, 7, 3, 3, 5,
+2, 2, 31, 1, 5, 0, 8, 2, 1, 6, 0,
+4, 4, 31, 2, 5, 0, 5, 2, 3, 1, 0,
+5, 7, 22, 2, 15, 0, 10, 12, 1, 0, 0,
+14, 3, 18, 2, 13, 0, 10, 13, 6, 8, 0 };
+
+static const Preset_FM P_BANK_0_INST_55_SPLASH_CRASH_ANIMATICS = { 4, 5, 3, 0, 0,
+15, 7, 31, 0, 5, 0, 5, 6, 0, 0, 0,
+3, 1, 31, 0, 11, 0, 8, 4, 5, 0, 0,
+1, 7, 31, 0, 21, 0, 3, 6, 3, 0, 0,
+7, 4, 31, 2, 26, 0, 10, 6, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_56_COWBELL = { 4, 0, 3, 0, 0,
+2, 4, 31, 0, 18, 0, 13, 17, 8, 16, 0,
+7, 4, 31, 0, 16, 0, 7, 16, 5, 0, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0 };
+
+static const Preset_FM P_BANK_0_INST_57_CRASH_2_ANIMATICS = { 4, 5, 3, 0, 0,
+15, 7, 31, 0, 0, 0, 5, 0, 0, 0, 0,
+3, 1, 31, 0, 10, 0, 8, 4, 4, 0, 0,
+1, 7, 31, 0, 20, 0, 3, 6, 3, 0, 0,
+7, 4, 31, 2, 25, 0, 10, 6, 4, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_58_VIBESLAP = { 4, 6, 3, 0, 0,
+0, 4, 31, 0, 0, 0, 0, 0, 0, 8, 0,
+0, 4, 31, 0, 10, 0, 15, 0, 5, 0, 0,
+0, 4, 31, 0, 5, 0, 0, 0, 0, 0, 0,
+0, 4, 31, 0, 10, 0, 15, 0, 5, 21, 0 };
+
+static const Preset_FM P_BANK_0_INST_59_RIDECYMBELL2 = { 4, 5, 3, 0, 0,
+12, 4, 31, 0, 12, 0, 1, 0, 0, 0, 0,
+3, 4, 24, 0, 20, 0, 4, 8, 4, 11, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0 };
+
+static const Preset_FM P_BANK_0_INST_60_HIBO = { 6, 6, 3, 0, 0,
+1, 4, 28, 2, 15, 0, 15, 0, 9, 5, 0,
+0, 4, 28, 2, 20, 0, 15, 0, 9, 0, 0,
+2, 7, 23, 0, 18, 0, 15, 10, 9, 0, 0,
+3, 3, 18, 0, 18, 0, 15, 10, 9, 4, 0 };
+
+static const Preset_FM P_BANK_0_INST_61_LOBO = { 6, 6, 3, 0, 0,
+1, 4, 28, 2, 15, 0, 15, 0, 9, 5, 0,
+0, 4, 28, 2, 20, 0, 15, 0, 9, 0, 0,
+2, 7, 23, 0, 18, 0, 15, 10, 9, 0, 0,
+3, 3, 18, 0, 18, 0, 15, 10, 9, 4, 0 };
+
+static const Preset_FM P_BANK_0_INST_62_MUHICO = { 6, 6, 3, 0, 0,
+1, 4, 31, 2, 15, 0, 15, 0, 9, 7, 0,
+1, 4, 31, 2, 18, 0, 15, 0, 9, 0, 0,
+2, 7, 30, 0, 18, 0, 15, 10, 9, 0, 0,
+2, 1, 18, 0, 22, 0, 15, 10, 10, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_63_OPHICO = { 6, 6, 3, 0, 0,
+1, 4, 28, 2, 15, 0, 15, 0, 9, 5, 0,
+0, 4, 28, 2, 23, 0, 15, 0, 10, 0, 0,
+1, 7, 23, 0, 20, 0, 15, 12, 11, 0, 0,
+1, 1, 18, 0, 16, 0, 15, 12, 8, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_64_LOWCO = { 6, 6, 3, 0, 0,
+1, 4, 28, 2, 15, 0, 15, 0, 9, 5, 0,
+0, 4, 28, 2, 22, 0, 15, 0, 10, 0, 0,
+2, 7, 23, 0, 20, 0, 15, 10, 9, 13, 0,
+1, 3, 18, 0, 15, 0, 15, 10, 8, 6, 0 };
+
+static const Preset_FM P_BANK_0_INST_65_HIGHTIMBALE = { 2, 5, 3, 0, 5,
+3, 1, 31, 2, 25, 0, 12, 8, 6, 6, 0,
+6, 3, 31, 1, 25, 0, 10, 6, 6, 5, 0,
+0, 4, 31, 1, 19, 0, 11, 5, 12, 13, 0,
+2, 4, 31, 1, 15, 0, 8, 17, 6, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_66_LOWTIMBALE = { 2, 5, 3, 0, 5,
+3, 1, 31, 2, 25, 0, 12, 8, 10, 6, 0,
+6, 3, 31, 1, 25, 0, 10, 6, 12, 5, 0,
+0, 4, 31, 1, 19, 0, 11, 5, 12, 10, 0,
+2, 4, 31, 1, 15, 0, 8, 17, 12, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_67_HIAGOGO = { 4, 7, 3, 0, 0,
+3, 4, 31, 2, 16, 0, 8, 16, 6, 13, 0,
+12, 4, 31, 0, 12, 0, 10, 12, 6, 0, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0 };
+
+static const Preset_FM P_BANK_0_INST_68_LOAGOGO = { 4, 7, 3, 0, 0,
+3, 4, 31, 2, 16, 0, 8, 16, 6, 13, 0,
+12, 4, 31, 0, 12, 0, 10, 12, 6, 0, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0 };
+
+static const Preset_FM P_BANK_0_INST_69_CABASA = { 1, 6, 3, 3, 5,
+15, 2, 31, 1, 5, 0, 8, 2, 1, 6, 0,
+15, 4, 31, 2, 5, 0, 5, 2, 3, 1, 0,
+13, 7, 25, 2, 5, 0, 7, 2, 1, 2, 0,
+3, 3, 13, 2, 17, 0, 10, 11, 9, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_70_MARACAS = { 4, 7, 3, 0, 0,
+15, 4, 24, 1, 14, 0, 4, 24, 9, 0, 0,
+2, 4, 14, 2, 22, 0, 8, 25, 13, 0, 0,
+15, 4, 24, 3, 16, 0, 4, 18, 9, 0, 0,
+15, 4, 18, 0, 18, 0, 6, 18, 9, 31, 0 };
+
+static const Preset_FM P_BANK_0_INST_71_SHORTWHISTLE = { 4, 0, 3, 0, 0,
+0, 4, 18, 0, 10, 0, 0, 0, 11, 37, 0,
+14, 4, 18, 0, 11, 0, 2, 22, 11, 0, 0,
+0, 4, 0, 0, 0, 0, 15, 0, 0, 127, 0,
+0, 4, 0, 0, 0, 0, 15, 0, 0, 127, 0 };
+
+static const Preset_FM P_BANK_0_INST_72_LONGWHISTLE = { 4, 0, 3, 0, 0,
+0, 4, 18, 0, 10, 0, 0, 0, 11, 37, 0,
+14, 4, 18, 0, 8, 0, 2, 22, 11, 0, 0,
+0, 4, 0, 0, 0, 0, 15, 0, 0, 127, 0,
+0, 4, 0, 0, 0, 0, 15, 0, 0, 127, 0 };
+
+static const Preset_FM P_BANK_0_INST_73_SHORT_GUIRO = { 4, 7, 3, 0, 0,
+0, 4, 31, 0, 11, 0, 0, 10, 6, 0, 0,
+0, 4, 15, 0, 14, 0, 1, 16, 8, 2, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0 };
+
+static const Preset_FM P_BANK_0_INST_74_LONG_GUIRO = { 4, 7, 3, 0, 0,
+0, 4, 31, 0, 9, 0, 0, 9, 6, 0, 0,
+0, 4, 12, 0, 14, 0, 1, 16, 8, 7, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0 };
+
+static const Preset_FM P_BANK_0_INST_75_WOODBLOCK = { 4, 7, 3, 0, 0,
+7, 1, 31, 0, 22, 0, 12, 22, 8, 20, 0,
+5, 1, 31, 0, 18, 0, 11, 28, 8, 0, 0,
+14, 1, 31, 3, 25, 0, 14, 12, 8, 10, 0,
+9, 1, 31, 3, 20, 0, 1, 13, 8, 5, 0 };
+
+static const Preset_FM P_BANK_0_INST_76_WOODBLOCK = { 4, 7, 3, 0, 0,
+7, 1, 31, 0, 22, 0, 12, 22, 8, 20, 0,
+5, 1, 31, 0, 18, 0, 11, 28, 8, 0, 0,
+14, 1, 31, 3, 25, 0, 14, 12, 8, 10, 0,
+9, 1, 31, 3, 20, 0, 1, 13, 8, 6, 0 };
+
+static const Preset_FM P_BANK_0_INST_77_WOODBLOCK = { 4, 7, 3, 0, 0,
+7, 1, 31, 0, 22, 0, 12, 22, 8, 20, 0,
+5, 1, 31, 0, 18, 0, 11, 28, 8, 0, 0,
+14, 1, 31, 3, 25, 0, 14, 12, 8, 10, 0,
+9, 1, 31, 3, 20, 0, 1, 13, 8, 6, 0 };
+
+static const Preset_FM P_BANK_0_INST_78_MUTE_CUIKA = { 4, 7, 3, 0, 0,
+2, 7, 12, 0, 15, 0, 0, 15, 7, 39, 0,
+8, 7, 14, 1, 6, 0, 0, 17, 6, 0, 0,
+1, 4, 12, 0, 15, 0, 0, 15, 7, 27, 0,
+8, 4, 14, 2, 6, 0, 0, 17, 6, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_79_OPEN_CUIKA = { 4, 7, 3, 0, 0,
+1, 4, 12, 0, 15, 0, 0, 15, 7, 38, 0,
+4, 4, 14, 0, 6, 0, 0, 17, 6, 0, 0,
+1, 4, 12, 0, 0, 0, 0, 0, 7, 30, 0,
+1, 4, 14, 0, 15, 0, 11, 14, 6, 23, 0 };
+
+static const Preset_FM P_BANK_0_INST_80_MUTETRIANGLE = { 4, 4, 3, 0, 0,
+3, 4, 31, 0, 0, 0, 8, 0, 0, 26, 0,
+2, 4, 31, 0, 15, 0, 8, 13, 11, 0, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0 };
+
+static const Preset_FM P_BANK_0_INST_81_OPENTRIANGLE = { 4, 4, 3, 0, 0,
+3, 4, 31, 0, 0, 0, 8, 0, 0, 26, 0,
+2, 4, 31, 0, 8, 0, 8, 8, 5, 0, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0,
+0, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0 };
+
+static const Preset_FM P_BANK_0_INST_82_SHAKER = { 4, 7, 3, 0, 0,
+15, 4, 24, 1, 14, 0, 4, 24, 9, 0, 0,
+2, 4, 12, 2, 22, 0, 8, 25, 13, 14, 0,
+15, 4, 24, 3, 16, 0, 4, 18, 9, 0, 0,
+15, 4, 18, 0, 18, 0, 6, 18, 9, 18, 0 };
+
+static const Preset_FM P_BANK_0_INST_83_JINGLEBELLS = { 4, 7, 3, 0, 0,
+5, 4, 31, 0, 4, 0, 15, 15, 4, 24, 0,
+4, 4, 17, 1, 11, 0, 10, 7, 6, 9, 0,
+5, 4, 31, 0, 9, 0, 15, 16, 0, 28, 0,
+4, 4, 17, 1, 11, 0, 10, 7, 5, 14, 0 };
+
+static const Preset_FM P_BANK_0_INST_84_BELLTREE = { 4, 5, 3, 0, 0,
+5, 4, 20, 0, 13, 0, 1, 0, 0, 9, 0,
+9, 4, 20, 0, 21, 0, 4, 8, 4, 0, 0,
+5, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0,
+8, 4, 0, 0, 0, 0, 0, 0, 0, 127, 0 };
+
+static const Preset_FM P_BANK_0_INST_85_CASTANETS = { 4, 3, 3, 0, 0,
+9, 4, 31, 0, 11, 0, 15, 0, 15, 23, 0,
+4, 4, 31, 2, 20, 0, 15, 0, 15, 13, 0,
+1, 4, 31, 0, 19, 0, 15, 0, 15, 15, 0,
+2, 4, 31, 2, 20, 0, 15, 0, 15, 13, 0 };
+
+static const Preset_FM P_BANK_0_INST_86_MUTESURDO = { 6, 6, 3, 0, 0,
+1, 4, 28, 2, 15, 0, 15, 0, 15, 5, 0,
+0, 4, 19, 3, 20, 0, 15, 0, 15, 0, 0,
+1, 7, 16, 0, 18, 0, 15, 10, 15, 0, 0,
+1, 3, 14, 0, 14, 0, 15, 10, 7, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_87_OPENSURDO = { 6, 6, 3, 0, 0,
+1, 4, 28, 2, 15, 0, 15, 0, 15, 5, 0,
+0, 4, 19, 3, 20, 0, 15, 0, 15, 0, 0,
+1, 7, 16, 0, 18, 0, 15, 10, 15, 0, 0,
+1, 3, 14, 0, 11, 0, 15, 8, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_88 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_89 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_90 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_91 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_92 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_93 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_94 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_95 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_96 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_97 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_98 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_99 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_100 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_101 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_102 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_103 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_104 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_105 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_106 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_107 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_108 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_109 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_110 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_111 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_112 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_113 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_114 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_115 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_116 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_117 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_118 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_119 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_120 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_121 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_122 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_123 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_124 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_125 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_126 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+
+static const Preset_FM P_BANK_0_INST_127 = { 2, 7, 3, 3, 3,
+15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
+15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
+3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
+1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+//}
+
+const Preset_FM* M_BANK_0[256] =
+{
+//{ instruments
+    &M_BANK_0_INST_0_GRANDPIANO,
+    &M_BANK_0_INST_1_BRIGHTPIANO,
+    &M_BANK_0_INST_2_ELECTRICPIANO_ANIMATICS,
+    &M_BANK_0_INST_3_HONKYTONK_SONICMODDED,
+    &M_BANK_0_INST_4_RHODESPIANO,
+    &M_BANK_0_INST_5_CHORUSPIANOTINITOON,
+    &M_BANK_0_INST_6_HARPSICHORD_ADAMS,
+    &M_BANK_0_INST_7_CLAVINET,
+    &M_BANK_0_INST_8_CELESTA,
+    &M_BANK_0_INST_9_GLOCKENSPIEL,
+    &M_BANK_0_INST_10_MUSICBOX,
+    &M_BANK_0_INST_11_VIBRAPHONE_NINEKO,
+    &M_BANK_0_INST_12_MARIMBA_ALADDIN,
+    &M_BANK_0_INST_13_XYLAPHONE_ALADDIN,
+    &M_BANK_0_INST_14_TUBULARBELLS_ANIMATICS,
+    &M_BANK_0_INST_15_DULCIMER,
+    &M_BANK_0_INST_16_HAMMOND_NINEKO,
+    &M_BANK_0_INST_17_PERCUSIVEORGAIN_ACTION52,
+    &M_BANK_0_INST_18_ROCKORGAN,
+    &M_BANK_0_INST_19_CHURCHORGAN,
+    &M_BANK_0_INST_20_REEDORGAN,
+    &M_BANK_0_INST_21_ACCORDEON,
+    &M_BANK_0_INST_22_HARMONICA_SONIC,
+    &M_BANK_0_INST_23_TANGO_ACCORDION,
+    &M_BANK_0_INST_24_NYLONGUITARHELLROLL,
+    &M_BANK_0_INST_25_STEELGUITARHELLROLL,
+    &M_BANK_0_INST_26_JAZZGUITAR,
+    &M_BANK_0_INST_27_CLEANGUITAR_COLUMNS_III,
+    &M_BANK_0_INST_28_MUTEDGUITAR_ALADDIN,
+    &M_BANK_0_INST_29_OVERDRIVE_OPL3,
+    &M_BANK_0_INST_30_DISTORTION_OPL3,
+    &M_BANK_0_INST_31_GUITAR_HARMONICSHELLFIRE,
+    &M_BANK_0_INST_32_ACOUSTICBASS_SONIC,
+    &M_BANK_0_INST_33_FINGERBASS_SONIC,
+    &M_BANK_0_INST_34_PICKBASS,
+    &M_BANK_0_INST_35_FRETLESSBASSALADDIN,
+    &M_BANK_0_INST_36_SLAPBASS1,
+    &M_BANK_0_INST_37_SLAPBASS2,
+    &M_BANK_0_INST_38_SYNBASS1_DYNABROS,
+    &M_BANK_0_INST_39_SYNBASS2_NINEKO,
+    &M_BANK_0_INST_40_VIOLIN,
+    &M_BANK_0_INST_41_VIOLA,
+    &M_BANK_0_INST_42_CELLO,
+    &M_BANK_0_INST_43_CONTROLBASS,
+    &M_BANK_0_INST_44_TREMOLOSTRINGS,
+    &M_BANK_0_INST_45_PIZZIKATOSTRINGS,
+    &M_BANK_0_INST_46_ORCHESTRALHARP,
+    &M_BANK_0_INST_47_TIMPANY,
+    &M_BANK_0_INST_48_STRINGESSEMBLE1,
+    &M_BANK_0_INST_49_STRINGESSEMBLE2,
+    &M_BANK_0_INST_50_SYNSTRINGS_1,
+    &M_BANK_0_INST_51_SYNSTRING2_ALADDIN,
+    &M_BANK_0_INST_52_CHOIR_AAHS,
+    &M_BANK_0_INST_53_VOICE,
+    &M_BANK_0_INST_54_SYNTHVOICE,
+    &M_BANK_0_INST_55_ORCHESTRAHIT,
+    &M_BANK_0_INST_56_TRUMPET_SONIC,
+    &M_BANK_0_INST_57_TROMBONE_ALADDIN,
+    &M_BANK_0_INST_58_TUBA_ALADDIN,
+    &M_BANK_0_INST_59_MUTEDTRUMPET_SONIC,
+    &M_BANK_0_INST_60_FRENCHHORN,
+    &M_BANK_0_INST_61_BRASSSECTION_GREENDOG,
+    &M_BANK_0_INST_62_SYNBRASS1,
+    &M_BANK_0_INST_63_SYNBRASS2,
+    &M_BANK_0_INST_64_SOPRANOSAX,
+    &M_BANK_0_INST_65_ALTOSAX,
+    &M_BANK_0_INST_66_TENORSAX,
+    &M_BANK_0_INST_67_BARITONESAX,
+    &M_BANK_0_INST_68_OBOE_ALADDIN,
+    &M_BANK_0_INST_69_ENGLISHHORN,
+    &M_BANK_0_INST_70_BASSOON_ALADDIN,
+    &M_BANK_0_INST_71_CLARINET_ALADDIN,
+    &M_BANK_0_INST_72_PICCOLO_ALADDIN,
+    &M_BANK_0_INST_73_FLUTE,
+    &M_BANK_0_INST_74_RECORDER,
+    &M_BANK_0_INST_75_PANFLUTE,
+    &M_BANK_0_INST_76_BOTTLEBLOW,
+    &M_BANK_0_INST_77_SHAKUHACHI_ALISIA_DRAGOON,
+    &M_BANK_0_INST_78_WHISTLE_ALADDIN,
+    &M_BANK_0_INST_79_OCARINA,
+    &M_BANK_0_INST_80_LEADSQUARE,
+    &M_BANK_0_INST_81_LEADSAW,
+    &M_BANK_0_INST_82_LEADCALLIOPE,
+    &M_BANK_0_INST_83_LEAD4CHIF_SONIC,
+    &M_BANK_0_INST_84_LEAD5CHAR_NINEKO,
+    &M_BANK_0_INST_85_LEADVOICE,
+    &M_BANK_0_INST_86_LEAD7FIFTS_ANIMATICS,
+    &M_BANK_0_INST_87_LEAD8BASS_GEMS_ANALOG_SOLO,
+    &M_BANK_0_INST_88_PAD1NEWAGE,
+    &M_BANK_0_INST_89_PAD_WARM_PORTED_FROM_DMX,
+    &M_BANK_0_INST_90_POLYSYNTH,
+    &M_BANK_0_INST_91_PADCHOIR,
+    &M_BANK_0_INST_92_BOWED,
+    &M_BANK_0_INST_93_METALLIC,
+    &M_BANK_0_INST_94_PADHALO,
+    &M_BANK_0_INST_95_SWEEP,
+    &M_BANK_0_INST_96_FX_RAIN,
+    &M_BANK_0_INST_97_FXSNDTRACK_THUNDERFORCE_IV,
+    &M_BANK_0_INST_98_FXCRYSTAL_ALISIA_DRAGOON,
+    &M_BANK_0_INST_99_ATMOSPHERE_ALISIA_DRAGOON,
+    &M_BANK_0_INST_100_BRIGHTNESS,
+    &M_BANK_0_INST_101_GOBLINS,
+    &M_BANK_0_INST_102_ECHOS,
+    &M_BANK_0_INST_103_SCIFI,
+    &M_BANK_0_INST_104_SITAR,
+    &M_BANK_0_INST_105_BANJO,
+    &M_BANK_0_INST_106_SHAMISEN,
+    &M_BANK_0_INST_107_KOTO,
+    &M_BANK_0_INST_108_KALIMBA,
+    &M_BANK_0_INST_109_BAGPIPE,
+    &M_BANK_0_INST_110_FIDDLE,
+    &M_BANK_0_INST_111_SHANAI_ALADDIN,
+    &M_BANK_0_INST_112_TINKLEBELL,
+    &M_BANK_0_INST_113_AGOGO,
+    &M_BANK_0_INST_114_STEELDRUMS,
+    &M_BANK_0_INST_115_WOODBLOCK,
+    &M_BANK_0_INST_116_TAIKO_DRUM,
+    &M_BANK_0_INST_117_MELODIC_TOM,
+    &M_BANK_0_INST_118_SYNDRUM_ALISIA_DRAGOON,
+    &M_BANK_0_INST_119_REVERSE_CYMBELL,
+    &M_BANK_0_INST_120_GUITAR_FRET_NOISE,
+    &M_BANK_0_INST_121_BREATH_NOISE,
+    &M_BANK_0_INST_122_SEASHORE,
+    &M_BANK_0_INST_123_BIRDTWEET,
+    &M_BANK_0_INST_124_TELEPHONE,
+    &M_BANK_0_INST_125_HELICOPTER,
+    &M_BANK_0_INST_126_APPLAUSE,
+    &M_BANK_0_INST_127_GUNSHOT,
+//}
+
+//{ percussion
+    &P_BANK_0_INST_0,
+    &P_BANK_0_INST_1,
+    &P_BANK_0_INST_2,
+    &P_BANK_0_INST_3,
+    &P_BANK_0_INST_4,
+    &P_BANK_0_INST_5,
+    &P_BANK_0_INST_6,
+    &P_BANK_0_INST_7,
+    &P_BANK_0_INST_8,
+    &P_BANK_0_INST_9,
+    &P_BANK_0_INST_10,
+    &P_BANK_0_INST_11,
+    &P_BANK_0_INST_12,
+    &P_BANK_0_INST_13,
+    &P_BANK_0_INST_14,
+    &P_BANK_0_INST_15,
+    &P_BANK_0_INST_16,
+    &P_BANK_0_INST_17,
+    &P_BANK_0_INST_18,
+    &P_BANK_0_INST_19,
+    &P_BANK_0_INST_20,
+    &P_BANK_0_INST_21,
+    &P_BANK_0_INST_22,
+    &P_BANK_0_INST_23,
+    &P_BANK_0_INST_24,
+    &P_BANK_0_INST_25,
+    &P_BANK_0_INST_26,
+    &P_BANK_0_INST_27,
+    &P_BANK_0_INST_28,
+    &P_BANK_0_INST_29,
+    &P_BANK_0_INST_30_CASTANETS,
+    &P_BANK_0_INST_31_STICKS,
+    &P_BANK_0_INST_32_SQUARE_CLICK,
+    &P_BANK_0_INST_33_METRONOMECLICK,
+    &P_BANK_0_INST_34,
+    &P_BANK_0_INST_35_BASSDRUM_,
+    &P_BANK_0_INST_36_BASSDRUM_,
+    &P_BANK_0_INST_37_STICKSIDE,
+    &P_BANK_0_INST_38_ACUSTICSNARE_ACTION52,
+    &P_BANK_0_INST_39_HANDCLAP_OPL3,
+    &P_BANK_0_INST_40_ACUSTICSNARE_ACTION52,
+    &P_BANK_0_INST_41_LOW_FLOOR_TOM,
+    &P_BANK_0_INST_42_CLOSED_HAT,
+    &P_BANK_0_INST_43_HIGH_FLOOR_TOM,
+    &P_BANK_0_INST_44_PEDALHIHAT,
+    &P_BANK_0_INST_45_LOW_TOM,
+    &P_BANK_0_INST_46_OPENHIHAT,
+    &P_BANK_0_INST_47_LOWMED_TOM,
+    &P_BANK_0_INST_48_HIGHMED_TOM,
+    &P_BANK_0_INST_49_CRASH_ANIMATICS,
+    &P_BANK_0_INST_50_HIGH_TOM_,
+    &P_BANK_0_INST_51_RIDECYMBELL1,
+    &P_BANK_0_INST_52_CHINESE_CRASH_ANIMATICS,
+    &P_BANK_0_INST_53_RIDE_BELL,
+    &P_BANK_0_INST_54_TAMBORINE,
+    &P_BANK_0_INST_55_SPLASH_CRASH_ANIMATICS,
+    &P_BANK_0_INST_56_COWBELL,
+    &P_BANK_0_INST_57_CRASH_2_ANIMATICS,
+    &P_BANK_0_INST_58_VIBESLAP,
+    &P_BANK_0_INST_59_RIDECYMBELL2,
+    &P_BANK_0_INST_60_HIBO,
+    &P_BANK_0_INST_61_LOBO,
+    &P_BANK_0_INST_62_MUHICO,
+    &P_BANK_0_INST_63_OPHICO,
+    &P_BANK_0_INST_64_LOWCO,
+    &P_BANK_0_INST_65_HIGHTIMBALE,
+    &P_BANK_0_INST_66_LOWTIMBALE,
+    &P_BANK_0_INST_67_HIAGOGO,
+    &P_BANK_0_INST_68_LOAGOGO,
+    &P_BANK_0_INST_69_CABASA,
+    &P_BANK_0_INST_70_MARACAS,
+    &P_BANK_0_INST_71_SHORTWHISTLE,
+    &P_BANK_0_INST_72_LONGWHISTLE,
+    &P_BANK_0_INST_73_SHORT_GUIRO,
+    &P_BANK_0_INST_74_LONG_GUIRO,
+    &P_BANK_0_INST_75_WOODBLOCK,
+    &P_BANK_0_INST_76_WOODBLOCK,
+    &P_BANK_0_INST_77_WOODBLOCK,
+    &P_BANK_0_INST_78_MUTE_CUIKA,
+    &P_BANK_0_INST_79_OPEN_CUIKA,
+    &P_BANK_0_INST_80_MUTETRIANGLE,
+    &P_BANK_0_INST_81_OPENTRIANGLE,
+    &P_BANK_0_INST_82_SHAKER,
+    &P_BANK_0_INST_83_JINGLEBELLS,
+    &P_BANK_0_INST_84_BELLTREE,
+    &P_BANK_0_INST_85_CASTANETS,
+    &P_BANK_0_INST_86_MUTESURDO,
+    &P_BANK_0_INST_87_OPENSURDO,
+    &P_BANK_0_INST_88,
+    &P_BANK_0_INST_89,
+    &P_BANK_0_INST_90,
+    &P_BANK_0_INST_91,
+    &P_BANK_0_INST_92,
+    &P_BANK_0_INST_93,
+    &P_BANK_0_INST_94,
+    &P_BANK_0_INST_95,
+    &P_BANK_0_INST_96,
+    &P_BANK_0_INST_97,
+    &P_BANK_0_INST_98,
+    &P_BANK_0_INST_99,
+    &P_BANK_0_INST_100,
+    &P_BANK_0_INST_101,
+    &P_BANK_0_INST_102,
+    &P_BANK_0_INST_103,
+    &P_BANK_0_INST_104,
+    &P_BANK_0_INST_105,
+    &P_BANK_0_INST_106,
+    &P_BANK_0_INST_107,
+    &P_BANK_0_INST_108,
+    &P_BANK_0_INST_109,
+    &P_BANK_0_INST_110,
+    &P_BANK_0_INST_111,
+    &P_BANK_0_INST_112,
+    &P_BANK_0_INST_113,
+    &P_BANK_0_INST_114,
+    &P_BANK_0_INST_115,
+    &P_BANK_0_INST_116,
+    &P_BANK_0_INST_117,
+    &P_BANK_0_INST_118,
+    &P_BANK_0_INST_119,
+    &P_BANK_0_INST_120,
+    &P_BANK_0_INST_121,
+    &P_BANK_0_INST_122,
+    &P_BANK_0_INST_123,
+    &P_BANK_0_INST_124,
+    &P_BANK_0_INST_125,
+    &P_BANK_0_INST_126,
+    &P_BANK_0_INST_127
+//}
+};
 
 // for blastem
 void InitPresets()
@@ -903,6 +1940,135 @@ void InitPresets()
     M_BANK_0[126] = &M_BANK_0_INST_126_APPLAUSE;
     M_BANK_0[127] = &M_BANK_0_INST_127_GUNSHOT;
 
+    M_BANK_0[128] = &P_BANK_0_INST_0;
+    M_BANK_0[129] = &P_BANK_0_INST_1;
+    M_BANK_0[130] = &P_BANK_0_INST_2;
+    M_BANK_0[131] = &P_BANK_0_INST_3;
+    M_BANK_0[132] = &P_BANK_0_INST_4;
+    M_BANK_0[133] = &P_BANK_0_INST_5;
+    M_BANK_0[134] = &P_BANK_0_INST_6;
+    M_BANK_0[135] = &P_BANK_0_INST_7;
+    M_BANK_0[136] = &P_BANK_0_INST_8;
+    M_BANK_0[137] = &P_BANK_0_INST_9;
+    M_BANK_0[138] = &P_BANK_0_INST_10;
+    M_BANK_0[139] = &P_BANK_0_INST_11;
+    M_BANK_0[140] = &P_BANK_0_INST_12;
+    M_BANK_0[141] = &P_BANK_0_INST_13;
+    M_BANK_0[142] = &P_BANK_0_INST_14;
+    M_BANK_0[143] = &P_BANK_0_INST_15;
+    M_BANK_0[144] = &P_BANK_0_INST_16;
+    M_BANK_0[145] = &P_BANK_0_INST_17;
+    M_BANK_0[146] = &P_BANK_0_INST_18;
+    M_BANK_0[147] = &P_BANK_0_INST_19;
+    M_BANK_0[148] = &P_BANK_0_INST_20;
+    M_BANK_0[149] = &P_BANK_0_INST_21;
+    M_BANK_0[150] = &P_BANK_0_INST_22;
+    M_BANK_0[151] = &P_BANK_0_INST_23;
+    M_BANK_0[152] = &P_BANK_0_INST_24;
+    M_BANK_0[153] = &P_BANK_0_INST_25;
+    M_BANK_0[154] = &P_BANK_0_INST_26;
+    M_BANK_0[155] = &P_BANK_0_INST_27;
+    M_BANK_0[156] = &P_BANK_0_INST_28;
+    M_BANK_0[157] = &P_BANK_0_INST_29;
+    M_BANK_0[158] = &P_BANK_0_INST_30_CASTANETS;
+    M_BANK_0[159] = &P_BANK_0_INST_31_STICKS;
+    M_BANK_0[160] = &P_BANK_0_INST_32_SQUARE_CLICK;
+    M_BANK_0[161] = &P_BANK_0_INST_33_METRONOMECLICK;
+    M_BANK_0[162] = &P_BANK_0_INST_34;
+    M_BANK_0[163] = &P_BANK_0_INST_35_BASSDRUM_;
+    M_BANK_0[164] = &P_BANK_0_INST_36_BASSDRUM_;
+    M_BANK_0[165] = &P_BANK_0_INST_37_STICKSIDE;
+    M_BANK_0[166] = &P_BANK_0_INST_38_ACUSTICSNARE_ACTION52;
+    M_BANK_0[167] = &P_BANK_0_INST_39_HANDCLAP_OPL3;
+    M_BANK_0[168] = &P_BANK_0_INST_40_ACUSTICSNARE_ACTION52;
+    M_BANK_0[169] = &P_BANK_0_INST_41_LOW_FLOOR_TOM;
+    M_BANK_0[170] = &P_BANK_0_INST_42_CLOSED_HAT;
+    M_BANK_0[171] = &P_BANK_0_INST_43_HIGH_FLOOR_TOM;
+    M_BANK_0[172] = &P_BANK_0_INST_44_PEDALHIHAT;
+    M_BANK_0[173] = &P_BANK_0_INST_45_LOW_TOM;
+    M_BANK_0[174] = &P_BANK_0_INST_46_OPENHIHAT;
+    M_BANK_0[175] = &P_BANK_0_INST_47_LOWMED_TOM;
+    M_BANK_0[176] = &P_BANK_0_INST_48_HIGHMED_TOM;
+    M_BANK_0[177] = &P_BANK_0_INST_49_CRASH_ANIMATICS;
+    M_BANK_0[178] = &P_BANK_0_INST_50_HIGH_TOM_;
+    M_BANK_0[179] = &P_BANK_0_INST_51_RIDECYMBELL1;
+    M_BANK_0[180] = &P_BANK_0_INST_52_CHINESE_CRASH_ANIMATICS;
+    M_BANK_0[181] = &P_BANK_0_INST_53_RIDE_BELL;
+    M_BANK_0[182] = &P_BANK_0_INST_54_TAMBORINE;
+    M_BANK_0[183] = &P_BANK_0_INST_55_SPLASH_CRASH_ANIMATICS;
+    M_BANK_0[184] = &P_BANK_0_INST_56_COWBELL;
+    M_BANK_0[185] = &P_BANK_0_INST_57_CRASH_2_ANIMATICS;
+    M_BANK_0[186] = &P_BANK_0_INST_58_VIBESLAP;
+    M_BANK_0[187] = &P_BANK_0_INST_59_RIDECYMBELL2;
+    M_BANK_0[188] = &P_BANK_0_INST_60_HIBO;
+    M_BANK_0[189] = &P_BANK_0_INST_61_LOBO;
+    M_BANK_0[190] = &P_BANK_0_INST_62_MUHICO;
+    M_BANK_0[191] = &P_BANK_0_INST_63_OPHICO;
+    M_BANK_0[192] = &P_BANK_0_INST_64_LOWCO;
+    M_BANK_0[193] = &P_BANK_0_INST_65_HIGHTIMBALE;
+    M_BANK_0[194] = &P_BANK_0_INST_66_LOWTIMBALE;
+    M_BANK_0[195] = &P_BANK_0_INST_67_HIAGOGO;
+    M_BANK_0[196] = &P_BANK_0_INST_68_LOAGOGO;
+    M_BANK_0[197] = &P_BANK_0_INST_69_CABASA;
+    M_BANK_0[198] = &P_BANK_0_INST_70_MARACAS;
+    M_BANK_0[199] = &P_BANK_0_INST_71_SHORTWHISTLE;
+    M_BANK_0[200] = &P_BANK_0_INST_72_LONGWHISTLE;
+    M_BANK_0[201] = &P_BANK_0_INST_73_SHORT_GUIRO;
+    M_BANK_0[202] = &P_BANK_0_INST_74_LONG_GUIRO;
+    M_BANK_0[203] = &P_BANK_0_INST_75_WOODBLOCK;
+    M_BANK_0[204] = &P_BANK_0_INST_76_WOODBLOCK;
+    M_BANK_0[205] = &P_BANK_0_INST_77_WOODBLOCK;
+    M_BANK_0[206] = &P_BANK_0_INST_78_MUTE_CUIKA;
+    M_BANK_0[207] = &P_BANK_0_INST_79_OPEN_CUIKA;
+    M_BANK_0[208] = &P_BANK_0_INST_80_MUTETRIANGLE;
+    M_BANK_0[209] = &P_BANK_0_INST_81_OPENTRIANGLE;
+    M_BANK_0[210] = &P_BANK_0_INST_82_SHAKER;
+    M_BANK_0[211] = &P_BANK_0_INST_83_JINGLEBELLS;
+    M_BANK_0[212] = &P_BANK_0_INST_84_BELLTREE;
+    M_BANK_0[213] = &P_BANK_0_INST_85_CASTANETS;
+    M_BANK_0[214] = &P_BANK_0_INST_86_MUTESURDO;
+    M_BANK_0[215] = &P_BANK_0_INST_87_OPENSURDO;
+    M_BANK_0[216] = &P_BANK_0_INST_88;
+    M_BANK_0[217] = &P_BANK_0_INST_89;
+    M_BANK_0[218] = &P_BANK_0_INST_90;
+    M_BANK_0[219] = &P_BANK_0_INST_91;
+    M_BANK_0[220] = &P_BANK_0_INST_92;
+    M_BANK_0[221] = &P_BANK_0_INST_93;
+    M_BANK_0[222] = &P_BANK_0_INST_94;
+    M_BANK_0[223] = &P_BANK_0_INST_95;
+    M_BANK_0[224] = &P_BANK_0_INST_96;
+    M_BANK_0[225] = &P_BANK_0_INST_97;
+    M_BANK_0[226] = &P_BANK_0_INST_98;
+    M_BANK_0[227] = &P_BANK_0_INST_99;
+    M_BANK_0[228] = &P_BANK_0_INST_100;
+    M_BANK_0[229] = &P_BANK_0_INST_101;
+    M_BANK_0[230] = &P_BANK_0_INST_102;
+    M_BANK_0[231] = &P_BANK_0_INST_103;
+    M_BANK_0[232] = &P_BANK_0_INST_104;
+    M_BANK_0[233] = &P_BANK_0_INST_105;
+    M_BANK_0[234] = &P_BANK_0_INST_106;
+    M_BANK_0[235] = &P_BANK_0_INST_107;
+    M_BANK_0[236] = &P_BANK_0_INST_108;
+    M_BANK_0[237] = &P_BANK_0_INST_109;
+    M_BANK_0[238] = &P_BANK_0_INST_110;
+    M_BANK_0[239] = &P_BANK_0_INST_111;
+    M_BANK_0[240] = &P_BANK_0_INST_112;
+    M_BANK_0[241] = &P_BANK_0_INST_113;
+    M_BANK_0[242] = &P_BANK_0_INST_114;
+    M_BANK_0[243] = &P_BANK_0_INST_115;
+    M_BANK_0[244] = &P_BANK_0_INST_116;
+    M_BANK_0[245] = &P_BANK_0_INST_117;
+    M_BANK_0[246] = &P_BANK_0_INST_118;
+    M_BANK_0[247] = &P_BANK_0_INST_119;
+    M_BANK_0[248] = &P_BANK_0_INST_120;
+    M_BANK_0[249] = &P_BANK_0_INST_121;
+    M_BANK_0[250] = &P_BANK_0_INST_122;
+    M_BANK_0[251] = &P_BANK_0_INST_123;
+    M_BANK_0[252] = &P_BANK_0_INST_124;
+    M_BANK_0[253] = &P_BANK_0_INST_125;
+    M_BANK_0[254] = &P_BANK_0_INST_126;
+    M_BANK_0[255] = &P_BANK_0_INST_127;
+
     //{ presets
     presetName[0x00] = "PIANO GRAND  ";
     presetName[0x01] = "PIANO BRIGHT ";
@@ -1032,1210 +2198,134 @@ void InitPresets()
     presetName[0x7D] = "HELICOPTER   ";
     presetName[0x7E] = "APPLAUSE     ";
     presetName[0x7F] = "GUNSHOT      ";
+
+    presetName[0x80] = "DEFAULT      ";
+    presetName[0x81] = "DEFAULT      ";
+    presetName[0x82] = "DEFAULT      ";
+    presetName[0x83] = "DEFAULT      ";
+    presetName[0x84] = "DEFAULT      ";
+    presetName[0x85] = "DEFAULT      ";
+    presetName[0x86] = "DEFAULT      ";
+    presetName[0x87] = "DEFAULT      ";
+    presetName[0x88] = "DEFAULT      ";
+    presetName[0x89] = "DEFAULT      ";
+    presetName[0x8A] = "DEFAULT      ";
+    presetName[0x8B] = "DEFAULT      ";
+    presetName[0x8C] = "DEFAULT      ";
+    presetName[0x8D] = "DEFAULT      ";
+    presetName[0x8E] = "DEFAULT      ";
+    presetName[0x8F] = "DEFAULT      ";
+    presetName[0x90] = "DEFAULT      ";
+    presetName[0x91] = "DEFAULT      ";
+    presetName[0x92] = "DEFAULT      ";
+    presetName[0x93] = "DEFAULT      ";
+    presetName[0x94] = "DEFAULT      ";
+    presetName[0x95] = "DEFAULT      ";
+    presetName[0x96] = "DEFAULT      ";
+    presetName[0x97] = "DEFAULT      ";
+    presetName[0x98] = "DEFAULT      ";
+    presetName[0x99] = "DEFAULT      ";
+    presetName[0x9A] = "DEFAULT      ";
+    presetName[0x9B] = "HIGH Q       ";
+    presetName[0x9C] = "SLAP         ";
+    presetName[0x9D] = "SCRATCH PUSH ";
+    presetName[0x9E] = "SCRATCH PULL ";
+    presetName[0x9F] = "STICKS       ";
+    presetName[0xA0] = "SQUARE CLICK ";
+    presetName[0xA1] = "METRON CLICK ";
+    presetName[0xA2] = "METRON BELL  ";
+    presetName[0xA3] = "BASSDRUM ACC.";
+    presetName[0xA4] = "BASSDRUM EL. ";
+    presetName[0xA5] = "SIDESTICK    ";
+    presetName[0xA6] = "SNARE ACC.   ";
+    presetName[0xA7] = "HANDCLAP     ";
+    presetName[0xA8] = "SNARE EL.    ";
+    presetName[0xA9] = "FLOOR TOM L. ";
+    presetName[0xAA] = "HI-HAT CLOSED";
+    presetName[0xAB] = "FLOOR TOM H. ";
+    presetName[0xAC] = "HI-HAT PEDAL ";
+    presetName[0xAD] = "TOM LOW      ";
+    presetName[0xAE] = "HI-HAT OPEN  ";
+    presetName[0xAF] = "TOM MID-LOW  ";
+    presetName[0xB0] = "TOM MID-HIGH ";
+    presetName[0xB1] = "CRASH 1      ";
+    presetName[0xB2] = "TOM HIGH     ";
+    presetName[0xB3] = "RIDE 1       ";
+    presetName[0xB4] = "CHINESE      ";
+    presetName[0xB5] = "RIDE BELL    ";
+    presetName[0xB6] = "TAMBOURINE   ";
+    presetName[0xB7] = "SPLASH       ";
+    presetName[0xB8] = "COWBELL      ";
+    presetName[0xB9] = "CRASH 2      ";
+    presetName[0xBA] = "VIBRASLAP    ";
+    presetName[0xBB] = "RIDE 2       ";
+    presetName[0xBC] = "BONGO H.     ";
+    presetName[0xBD] = "BONGO L.     ";
+    presetName[0xBE] = "CONGA H. MUTE";
+    presetName[0xBF] = "CONGA H. OPEN";
+    presetName[0xC0] = "CONGA L.     ";
+    presetName[0xC1] = "TIMBALE H.   ";
+    presetName[0xC2] = "TIMBALE L.   ";
+    presetName[0xC3] = "AGOGO H.     ";
+    presetName[0xC4] = "AGOGO L.     ";
+    presetName[0xC5] = "CABASA       ";
+    presetName[0xC6] = "MARACAS      ";
+    presetName[0xC7] = "WHISTLE SHORT";
+    presetName[0xC8] = "WHISTLE LONG ";
+    presetName[0xC9] = "GUIRO SHORT  ";
+    presetName[0xCA] = "GUIRO LONG   ";
+    presetName[0xCB] = "CLAVES       ";
+    presetName[0xCC] = "WOODBLOCK H. ";
+    presetName[0xCD] = "WOODBLOCK L. ";
+    presetName[0xCE] = "CUIKA MUTE   ";
+    presetName[0xCF] = "CUIKA OPEN   ";
+    presetName[0xD0] = "TRIANGLE MUTE";
+    presetName[0xD1] = "TRIANGLE OPEN";
+    presetName[0xD2] = "SHAKER       ";
+    presetName[0xD3] = "BELL JINGLE  ";
+    presetName[0xD4] = "BELL TREE    ";
+    presetName[0xD5] = "CASTANETS    ";
+    presetName[0xD6] = "SURDO MUTE   ";
+    presetName[0xD7] = "SURDO OPEN   ";
+    presetName[0xD8] = "DEFAULT      ";
+    presetName[0xD9] = "DEFAULT      ";
+    presetName[0xDA] = "DEFAULT      ";
+    presetName[0xDB] = "DEFAULT      ";
+    presetName[0xDC] = "DEFAULT      ";
+    presetName[0xDD] = "DEFAULT      ";
+    presetName[0xDE] = "DEFAULT      ";
+    presetName[0xDF] = "DEFAULT      ";
+    presetName[0xE0] = "DEFAULT      ";
+    presetName[0xE1] = "DEFAULT      ";
+    presetName[0xE2] = "DEFAULT      ";
+    presetName[0xE3] = "DEFAULT      ";
+    presetName[0xE4] = "DEFAULT      ";
+    presetName[0xE5] = "DEFAULT      ";
+    presetName[0xE6] = "DEFAULT      ";
+    presetName[0xE7] = "DEFAULT      ";
+    presetName[0xE8] = "DEFAULT      ";
+    presetName[0xE9] = "DEFAULT      ";
+    presetName[0xEA] = "DEFAULT      ";
+    presetName[0xEB] = "DEFAULT      ";
+    presetName[0xEC] = "DEFAULT      ";
+    presetName[0xED] = "DEFAULT      ";
+    presetName[0xEE] = "DEFAULT      ";
+    presetName[0xEF] = "DEFAULT      ";
+    presetName[0xF0] = "DEFAULT      ";
+    presetName[0xF1] = "DEFAULT      ";
+    presetName[0xF2] = "DEFAULT      ";
+    presetName[0xF3] = "DEFAULT      ";
+    presetName[0xF4] = "DEFAULT      ";
+    presetName[0xF5] = "DEFAULT      ";
+    presetName[0xF6] = "DEFAULT      ";
+    presetName[0xF7] = "DEFAULT      ";
+    presetName[0xF8] = "DEFAULT      ";
+    presetName[0xF9] = "DEFAULT      ";
+    presetName[0xFA] = "DEFAULT      ";
+    presetName[0xFB] = "DEFAULT      ";
+    presetName[0xFC] = "DEFAULT      ";
+    presetName[0xFD] = "DEFAULT      ";
+    presetName[0xFE] = "DEFAULT      ";
+    presetName[0xFF] = "DEFAULT      ";
     //}
 }
-
-const Preset_FM* M_BANK_0[128] =
-{
-    &M_BANK_0_INST_0_GRANDPIANO,
-    &M_BANK_0_INST_1_BRIGHTPIANO,
-    &M_BANK_0_INST_2_ELECTRICPIANO_ANIMATICS,
-    &M_BANK_0_INST_3_HONKYTONK_SONICMODDED,
-    &M_BANK_0_INST_4_RHODESPIANO,
-    &M_BANK_0_INST_5_CHORUSPIANOTINITOON,
-    &M_BANK_0_INST_6_HARPSICHORD_ADAMS,
-    &M_BANK_0_INST_7_CLAVINET,
-    &M_BANK_0_INST_8_CELESTA,
-    &M_BANK_0_INST_9_GLOCKENSPIEL,
-    &M_BANK_0_INST_10_MUSICBOX,
-    &M_BANK_0_INST_11_VIBRAPHONE_NINEKO,
-    &M_BANK_0_INST_12_MARIMBA_ALADDIN,
-    &M_BANK_0_INST_13_XYLAPHONE_ALADDIN,
-    &M_BANK_0_INST_14_TUBULARBELLS_ANIMATICS,
-    &M_BANK_0_INST_15_DULCIMER,
-    &M_BANK_0_INST_16_HAMMOND_NINEKO,
-    &M_BANK_0_INST_17_PERCUSIVEORGAIN_ACTION52,
-    &M_BANK_0_INST_18_ROCKORGAN,
-    &M_BANK_0_INST_19_CHURCHORGAN,
-    &M_BANK_0_INST_20_REEDORGAN,
-    &M_BANK_0_INST_21_ACCORDEON,
-    &M_BANK_0_INST_22_HARMONICA_SONIC,
-    &M_BANK_0_INST_23_TANGO_ACCORDION,
-    &M_BANK_0_INST_24_NYLONGUITARHELLROLL,
-    &M_BANK_0_INST_25_STEELGUITARHELLROLL,
-    &M_BANK_0_INST_26_JAZZGUITAR,
-    &M_BANK_0_INST_27_CLEANGUITAR_COLUMNS_III,
-    &M_BANK_0_INST_28_MUTEDGUITAR_ALADDIN,
-    &M_BANK_0_INST_29_OVERDRIVE_OPL3,
-    &M_BANK_0_INST_30_DISTORTION_OPL3,
-    &M_BANK_0_INST_31_GUITAR_HARMONICSHELLFIRE,
-    &M_BANK_0_INST_32_ACOUSTICBASS_SONIC,
-    &M_BANK_0_INST_33_FINGERBASS_SONIC,
-    &M_BANK_0_INST_34_PICKBASS,
-    &M_BANK_0_INST_35_FRETLESSBASSALADDIN,
-    &M_BANK_0_INST_36_SLAPBASS1,
-    &M_BANK_0_INST_37_SLAPBASS2,
-    &M_BANK_0_INST_38_SYNBASS1_DYNABROS,
-    &M_BANK_0_INST_39_SYNBASS2_NINEKO,
-    &M_BANK_0_INST_40_VIOLIN,
-    &M_BANK_0_INST_41_VIOLA,
-    &M_BANK_0_INST_42_CELLO,
-    &M_BANK_0_INST_43_CONTROLBASS,
-    &M_BANK_0_INST_44_TREMOLOSTRINGS,
-    &M_BANK_0_INST_45_PIZZIKATOSTRINGS,
-    &M_BANK_0_INST_46_ORCHESTRALHARP,
-    &M_BANK_0_INST_47_TIMPANY,
-    &M_BANK_0_INST_48_STRINGESSEMBLE1,
-    &M_BANK_0_INST_49_STRINGESSEMBLE2,
-    &M_BANK_0_INST_50_SYNSTRINGS_1,
-    &M_BANK_0_INST_51_SYNSTRING2_ALADDIN,
-    &M_BANK_0_INST_52_CHOIR_AAHS,
-    &M_BANK_0_INST_53_VOICE,
-    &M_BANK_0_INST_54_SYNTHVOICE,
-    &M_BANK_0_INST_55_ORCHESTRAHIT,
-    &M_BANK_0_INST_56_TRUMPET_SONIC,
-    &M_BANK_0_INST_57_TROMBONE_ALADDIN,
-    &M_BANK_0_INST_58_TUBA_ALADDIN,
-    &M_BANK_0_INST_59_MUTEDTRUMPET_SONIC,
-    &M_BANK_0_INST_60_FRENCHHORN,
-    &M_BANK_0_INST_61_BRASSSECTION_GREENDOG,
-    &M_BANK_0_INST_62_SYNBRASS1,
-    &M_BANK_0_INST_63_SYNBRASS2,
-    &M_BANK_0_INST_64_SOPRANOSAX,
-    &M_BANK_0_INST_65_ALTOSAX,
-    &M_BANK_0_INST_66_TENORSAX,
-    &M_BANK_0_INST_67_BARITONESAX,
-    &M_BANK_0_INST_68_OBOE_ALADDIN,
-    &M_BANK_0_INST_69_ENGLISHHORN,
-    &M_BANK_0_INST_70_BASSOON_ALADDIN,
-    &M_BANK_0_INST_71_CLARINET_ALADDIN,
-    &M_BANK_0_INST_72_PICCOLO_ALADDIN,
-    &M_BANK_0_INST_73_FLUTE,
-    &M_BANK_0_INST_74_RECORDER,
-    &M_BANK_0_INST_75_PANFLUTE,
-    &M_BANK_0_INST_76_BOTTLEBLOW,
-    &M_BANK_0_INST_77_SHAKUHACHI_ALISIA_DRAGOON,
-    &M_BANK_0_INST_78_WHISTLE_ALADDIN,
-    &M_BANK_0_INST_79_OCARINA,
-    &M_BANK_0_INST_80_LEADSQUARE,
-    &M_BANK_0_INST_81_LEADSAW,
-    &M_BANK_0_INST_82_LEADCALLIOPE,
-    &M_BANK_0_INST_83_LEAD4CHIF_SONIC,
-    &M_BANK_0_INST_84_LEAD5CHAR_NINEKO,
-    &M_BANK_0_INST_85_LEADVOICE,
-    &M_BANK_0_INST_86_LEAD7FIFTS_ANIMATICS,
-    &M_BANK_0_INST_87_LEAD8BASS_GEMS_ANALOG_SOLO,
-    &M_BANK_0_INST_88_PAD1NEWAGE,
-    &M_BANK_0_INST_89_PAD_WARM_PORTED_FROM_DMX,
-    &M_BANK_0_INST_90_POLYSYNTH,
-    &M_BANK_0_INST_91_PADCHOIR,
-    &M_BANK_0_INST_92_BOWED,
-    &M_BANK_0_INST_93_METALLIC,
-    &M_BANK_0_INST_94_PADHALO,
-    &M_BANK_0_INST_95_SWEEP,
-    &M_BANK_0_INST_96_FX_RAIN,
-    &M_BANK_0_INST_97_FXSNDTRACK_THUNDERFORCE_IV,
-    &M_BANK_0_INST_98_FXCRYSTAL_ALISIA_DRAGOON,
-    &M_BANK_0_INST_99_ATMOSPHERE_ALISIA_DRAGOON,
-    &M_BANK_0_INST_100_BRIGHTNESS,
-    &M_BANK_0_INST_101_GOBLINS,
-    &M_BANK_0_INST_102_ECHOS,
-    &M_BANK_0_INST_103_SCIFI,
-    &M_BANK_0_INST_104_SITAR,
-    &M_BANK_0_INST_105_BANJO,
-    &M_BANK_0_INST_106_SHAMISEN,
-    &M_BANK_0_INST_107_KOTO,
-    &M_BANK_0_INST_108_KALIMBA,
-    &M_BANK_0_INST_109_BAGPIPE,
-    &M_BANK_0_INST_110_FIDDLE,
-    &M_BANK_0_INST_111_SHANAI_ALADDIN,
-    &M_BANK_0_INST_112_TINKLEBELL,
-    &M_BANK_0_INST_113_AGOGO,
-    &M_BANK_0_INST_114_STEELDRUMS,
-    &M_BANK_0_INST_115_WOODBLOCK,
-    &M_BANK_0_INST_116_TAIKO_DRUM,
-    &M_BANK_0_INST_117_MELODIC_TOM,
-    &M_BANK_0_INST_118_SYNDRUM_ALISIA_DRAGOON,
-    &M_BANK_0_INST_119_REVERSE_CYMBELL,
-    &M_BANK_0_INST_120_GUITAR_FRET_NOISE,
-    &M_BANK_0_INST_121_BREATH_NOISE,
-    &M_BANK_0_INST_122_SEASHORE,
-    &M_BANK_0_INST_123_BIRDTWEET,
-    &M_BANK_0_INST_124_TELEPHONE,
-    &M_BANK_0_INST_125_HELICOPTER,
-    &M_BANK_0_INST_126_APPLAUSE,
-    &M_BANK_0_INST_127_GUNSHOT
-};
-
-/*static const PercussionPreset P_BANK_0_INST_0
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_1
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_2
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_3
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_4
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_5
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_6
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_7
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_8
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_9
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_10
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_11
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_12
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_13
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_14
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_15
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_16
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_17
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_18
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_19
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_20
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_21
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_22
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_23
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_24
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_25
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_26
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_27
-    = { { 4, 1, 3, 0, 0, 0, 0,
-  0, 0, 18, 0, 0, 0, 0, 29, 12, 0, 0,
-  1, 0, 31, 1, 0, 0, 0, 16, 9, 0, 0,
-  0, 0, 18, 0, 0, 0, 0, 29, 12, 0, 0,
-  1, 0, 31, 1, 0, 0, 0, 16, 9, 1, 0 } },
-    30 };
-
-static const PercussionPreset P_BANK_0_INST_28
-    = { { 5, 7, 3, 0, 5, 0, 0,
-  3, 3, 31, 3, 6, 0, 15, 16, 3, 4, 0,
-  1, 0, 31, 2, 16, 0, 15, 31, 8, 0, 0,
-  1, 0, 31, 3, 18, 0, 15, 14, 9, 0, 0,
-  1, 0, 31, 2, 16, 0, 7, 14, 6, 0, 0 } },
-    49 };
-
-static const PercussionPreset P_BANK_0_INST_29
-    = { { 4, 7, 3, 3, 7, 0, 0,
-  0, 0, 31, 0, 11, 0, 0, 10, 6, 8, 0,
-  0, 0, 15, 0, 14, 1, 1, 16, 8, 0, 0,
-  0, 0, 0, 0, 0, 1, 0, 0, 0, 127, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0 } },
-    59 };
-
-static const PercussionPreset P_BANK_0_INST_30_CASTANETS
-    = { { 4, 3, 3, 0, 0, 0, 0,
-  9, 0, 31, 0, 11, 0, 15, 0, 15, 23, 0,
-  4, 0, 31, 2, 20, 0, 15, 0, 15, 13, 0,
-  1, 0, 31, 0, 19, 0, 15, 0, 15, 15, 0,
-  2, 0, 31, 2, 20, 0, 15, 0, 15, 13, 0 } },
-    62 };
-
-static const PercussionPreset P_BANK_0_INST_31_STICKS
-    = { { 0, 3, 3, 0, 0, 0, 0,
-  2, 0, 31, 0, 20, 0, 15, 0, 15, 10, 0,
-  2, 0, 31, 2, 20, 0, 15, 0, 15, 42, 0,
-  2, 0, 31, 0, 18, 0, 15, 0, 15, 23, 0,
-  1, 0, 31, 0, 21, 0, 15, 0, 15, 0, 0 } },
-    54 };
-
-static const PercussionPreset P_BANK_0_INST_32_SQUARE_CLICK
-    = { { 7, 3, 3, 0, 0, 0, 0,
-  1, 0, 31, 0, 23, 0, 15, 0, 15, 39, 0,
-  1, 0, 31, 2, 23, 0, 15, 0, 15, 39, 0,
-  1, 0, 31, 0, 22, 0, 15, 0, 15, 0, 0,
-  1, 0, 18, 0, 24, 0, 15, 0, 15, 0, 0 } },
-    75 };
-
-static const PercussionPreset P_BANK_0_INST_33_METRONOMECLICK
-    = { { 0, 3, 3, 0, 0, 0, 0,
-  2, 0, 31, 0, 18, 0, 15, 0, 15, 6, 0,
-  2, 0, 31, 2, 22, 0, 15, 0, 15, 33, 0,
-  1, 0, 31, 0, 19, 0, 15, 0, 15, 5, 0,
-  1, 0, 31, 0, 21, 0, 15, 0, 15, 0, 0 } },
-    43 };
-
-static const PercussionPreset P_BANK_0_INST_34
-    = { { 5, 7, 3, 0, 5, 0, 0,
-  3, 3, 31, 3, 6, 0, 15, 16, 3, 4, 0,
-  1, 0, 31, 2, 16, 0, 15, 31, 8, 0, 0,
-  1, 0, 31, 3, 18, 0, 15, 14, 9, 0, 0,
-  1, 0, 31, 2, 16, 0, 7, 15, 8, 0, 0 } },
-    46 };
-
-static const PercussionPreset P_BANK_0_INST_35_BASSDRUM_
-    = { { 2, 4, 3, 0, 0, 0, 0,
-  0, 0, 27, 0, 0, 0, 0, 20, 7, 0, 0,
-  6, 0, 0, 0, 15, 0, 15, 12, 6, 127, 0,
-  5, 0, 0, 0, 11, 0, 15, 15, 5, 127, 0,
-  1, 0, 31, 1, 0, 0, 0, 14, 7, 0, 0 } },
-    35 };
-
-static const PercussionPreset P_BANK_0_INST_36_BASSDRUM_
-    = { { 2, 3, 3, 0, 0, 0, 0,
-  0, 0, 26, 0, 0, 0, 0, 20, 7, 0, 0,
-  6, 0, 0, 0, 15, 0, 15, 13, 6, 127, 0,
-  5, 0, 0, 0, 11, 0, 15, 15, 4, 127, 0,
-  1, 0, 31, 1, 0, 0, 0, 12, 7, 0, 0 } },
-    35 };
-
-static const PercussionPreset P_BANK_0_INST_37_STICKSIDE
-    = { { 0, 3, 3, 0, 0, 0, 0,
-  2, 0, 31, 0, 19, 0, 15, 0, 15, 21, 0,
-  2, 0, 31, 2, 20, 0, 15, 0, 15, 33, 0,
-  1, 0, 31, 0, 19, 0, 15, 0, 15, 14, 0,
-  1, 0, 31, 0, 20, 0, 15, 0, 15, 0, 0 } },
-    44 };
-
-static const PercussionPreset P_BANK_0_INST_38_ACUSTICSNARE_ACTION52
-    = { { 5, 6, 3, 0, 5, 0, 0,
-  3, 3, 31, 3, 6, 0, 15, 16, 3, 4, 0,
-  1, 0, 31, 2, 16, 0, 15, 31, 8, 0, 0,
-  1, 0, 31, 3, 18, 0, 15, 14, 9, 0, 0,
-  1, 0, 31, 2, 16, 0, 7, 13, 6, 0, 0 } },
-    39 };
-
-static const PercussionPreset P_BANK_0_INST_39_HANDCLAP_OPL3
-    = { { 4, 7, 3, 0, 0, 0, 0,
-  15, 0, 31, 2, 0, 0, 0, 0, 5, 13, 0,
-  15, 0, 31, 0, 17, 0, 2, 15, 7, 27, 0,
-  0, 0, 31, 0, 20, 0, 0, 16, 8, 3, 0,
-  1, 0, 31, 0, 3, 0, 0, 18, 9, 0, 0 } },
-    58 };
-
-static const PercussionPreset P_BANK_0_INST_40_ACUSTICSNARE_ACTION52
-    = { { 5, 6, 3, 0, 5, 0, 0,
-  3, 3, 31, 3, 5, 0, 15, 15, 3, 4, 0,
-  1, 0, 31, 2, 16, 0, 15, 31, 7, 0, 0,
-  1, 0, 31, 3, 20, 0, 15, 14, 9, 0, 0,
-  1, 0, 31, 2, 16, 0, 7, 12, 6, 0, 0 } },
-    39 };
-
-static const PercussionPreset P_BANK_0_INST_41_LOW_FLOOR_TOM
-    = { { 5, 7, 3, 0, 0, 0, 0,
-  1, 3, 30, 0, 26, 0, 15, 3, 6, 21, 0,
-  0, 7, 30, 0, 17, 0, 15, 3, 6, 0, 0,
-  3, 1, 30, 1, 12, 0, 15, 1, 6, 3, 0,
-  0, 1, 30, 0, 17, 0, 15, 3, 6, 3, 0 } },
-    20 };
-
-static const PercussionPreset P_BANK_0_INST_42_CLOSED_HAT
-    = { { 2, 7, 3, 3, 3, 0, 0,
-  15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
-  15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
-  3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
-  1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 } },
-    70 };
-
-static const PercussionPreset P_BANK_0_INST_43_HIGH_FLOOR_TOM
-    = { { 5, 7, 3, 0, 0, 0, 0,
-  1, 3, 30, 0, 26, 0, 15, 3, 6, 22, 0,
-  0, 7, 30, 0, 17, 0, 15, 14, 6, 0, 0,
-  4, 1, 30, 1, 12, 0, 15, 1, 6, 3, 0,
-  0, 1, 30, 0, 17, 0, 15, 9, 6, 3, 0 } },
-    20 };
-
-static const PercussionPreset P_BANK_0_INST_44_PEDALHIHAT
-    = { { 0, 7, 3, 0, 0, 0, 0,
-  12, 3, 7, 1, 10, 0, 11, 28, 4, 0, 0,
-  10, 7, 3, 3, 10, 1, 11, 16, 7, 0, 0,
-  3, 1, 31, 3, 0, 0, 0, 0, 4, 0, 0,
-  5, 7, 4, 3, 13, 0, 5, 29, 9, 7, 0 } },
-    100 };
-
-static const PercussionPreset P_BANK_0_INST_45_LOW_TOM
-    = { { 5, 7, 3, 0, 0, 0, 0,
-  1, 3, 30, 0, 26, 0, 15, 3, 6, 22, 0,
-  0, 7, 30, 0, 17, 0, 15, 3, 6, 0, 0,
-  4, 1, 30, 1, 12, 0, 15, 1, 6, 3, 0,
-  0, 1, 30, 0, 17, 0, 15, 3, 6, 3, 0 } },
-    24 };
-
-static const PercussionPreset P_BANK_0_INST_46_OPENHIHAT
-    = { { 4, 5, 3, 0, 0, 0, 0,
-  9, 0, 31, 0, 14, 0, 1, 0, 0, 0, 0,
-  2, 0, 31, 0, 23, 0, 4, 8, 4, 8, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0 } },
-    69 };
-
-static const PercussionPreset P_BANK_0_INST_47_LOWMED_TOM
-    = { { 5, 7, 3, 0, 0, 0, 0,
-  0, 3, 30, 0, 26, 0, 15, 3, 6, 22, 0,
-  0, 7, 30, 0, 17, 0, 15, 3, 6, 0, 0,
-  4, 1, 30, 1, 12, 0, 15, 1, 6, 3, 0,
-  0, 1, 30, 0, 17, 0, 15, 3, 6, 3, 0 } },
-    29 };
-
-static const PercussionPreset P_BANK_0_INST_48_HIGHMED_TOM
-    = { { 5, 7, 3, 0, 0, 0, 0,
-  0, 3, 30, 0, 24, 0, 15, 19, 6, 22, 0,
-  0, 7, 30, 0, 17, 0, 15, 3, 6, 0, 0,
-  4, 1, 30, 1, 12, 0, 15, 1, 6, 3, 0,
-  0, 1, 30, 0, 17, 0, 15, 3, 6, 3, 0 } },
-    33 };
-
-static const PercussionPreset P_BANK_0_INST_49_CRASH_ANIMATICS
-    = { { 4, 7, 3, 1, 0, 0, 0,
-  15, 7, 31, 0, 11, 0, 4, 0, 0, 0, 0,
-  3, 1, 31, 0, 11, 1, 15, 0, 6, 0, 0,
-  1, 7, 31, 0, 22, 0, 3, 7, 4, 0, 0,
-  7, 0, 31, 2, 27, 0, 10, 7, 6, 0, 0 } },
-    68 };
-
-static const PercussionPreset P_BANK_0_INST_50_HIGH_TOM_
-    = { { 5, 7, 3, 0, 0, 0, 0,
-  1, 3, 30, 0, 26, 0, 15, 3, 6, 22, 0,
-  0, 7, 30, 0, 17, 0, 15, 3, 6, 0, 0,
-  4, 1, 30, 1, 12, 0, 15, 1, 6, 3, 0,
-  0, 1, 30, 0, 17, 0, 15, 3, 6, 3, 0 } },
-    36 };
-
-static const PercussionPreset P_BANK_0_INST_51_RIDECYMBELL1
-    = { { 4, 5, 3, 0, 0, 0, 0,
-  12, 0, 31, 0, 13, 0, 1, 0, 0, 0, 0,
-  3, 0, 24, 0, 21, 0, 4, 7, 4, 12, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0 } },
-    76 };
-
-static const PercussionPreset P_BANK_0_INST_52_CHINESE_CRASH_ANIMATICS
-    = { { 4, 5, 3, 0, 0, 0, 0,
-  15, 7, 31, 0, 7, 0, 5, 0, 2, 0, 0,
-  3, 1, 31, 0, 12, 0, 8, 4, 4, 0, 0,
-  1, 7, 31, 0, 21, 0, 3, 6, 3, 0, 0,
-  7, 0, 31, 2, 25, 0, 10, 6, 3, 0, 0 } },
-    65 };
-
-static const PercussionPreset P_BANK_0_INST_53_RIDE_BELL
-    = { { 4, 3, 3, 0, 0, 0, 0,
-  13, 0, 31, 0, 7, 0, 14, 7, 1, 0, 0,
-  13, 0, 31, 0, 10, 0, 14, 18, 5, 17, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0 } },
-    76 };
-
-static const PercussionPreset P_BANK_0_INST_54_TAMBORINE
-    = { { 1, 7, 3, 3, 5, 0, 0,
-  2, 2, 31, 1, 5, 0, 8, 2, 1, 6, 0,
-  4, 0, 31, 2, 5, 0, 5, 2, 3, 1, 0,
-  5, 7, 22, 2, 15, 0, 10, 12, 1, 0, 0,
-  14, 3, 18, 2, 13, 0, 10, 13, 6, 8, 0 } },
-    61 };
-
-static const PercussionPreset P_BANK_0_INST_55_SPLASH_CRASH_ANIMATICS
-    = { { 4, 5, 3, 0, 0, 0, 0,
-  15, 7, 31, 0, 5, 0, 5, 6, 0, 0, 0,
-  3, 1, 31, 0, 11, 0, 8, 4, 5, 0, 0,
-  1, 7, 31, 0, 21, 0, 3, 6, 3, 0, 0,
-  7, 0, 31, 2, 26, 0, 10, 6, 5, 0, 0 } },
-    84 };
-
-static const PercussionPreset P_BANK_0_INST_56_COWBELL
-    = { { 4, 0, 3, 0, 0, 0, 0,
-  2, 0, 31, 0, 18, 0, 13, 17, 8, 16, 0,
-  7, 0, 31, 0, 16, 0, 7, 16, 5, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0 } },
-    64 };
-
-static const PercussionPreset P_BANK_0_INST_57_CRASH_2_ANIMATICS
-    = { { 4, 5, 3, 0, 0, 0, 0,
-  15, 7, 31, 0, 0, 0, 5, 0, 0, 0, 0,
-  3, 1, 31, 0, 10, 0, 8, 4, 4, 0, 0,
-  1, 7, 31, 0, 20, 0, 3, 6, 3, 0, 0,
-  7, 0, 31, 2, 25, 0, 10, 6, 4, 0, 0 } },
-    70 };
-
-static const PercussionPreset P_BANK_0_INST_58_VIBESLAP
-    = { { 4, 6, 3, 0, 0, 0, 0,
-  0, 0, 31, 0, 0, 0, 0, 0, 0, 8, 0,
-  0, 0, 31, 0, 10, 0, 15, 0, 5, 0, 0,
-  0, 0, 31, 0, 5, 0, 0, 0, 0, 0, 0,
-  0, 0, 31, 0, 10, 0, 15, 0, 5, 21, 0 } },
-    28 };
-
-static const PercussionPreset P_BANK_0_INST_59_RIDECYMBELL2
-    = { { 4, 5, 3, 0, 0, 0, 0,
-  12, 0, 31, 0, 12, 0, 1, 0, 0, 0, 0,
-  3, 0, 24, 0, 20, 0, 4, 8, 4, 11, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0 } },
-    81 };
-
-static const PercussionPreset P_BANK_0_INST_60_HIBO
-    = { { 6, 6, 3, 0, 0, 0, 0,
-  1, 0, 28, 2, 15, 0, 15, 0, 9, 5, 0,
-  0, 0, 28, 2, 20, 0, 15, 0, 9, 0, 0,
-  2, 7, 23, 0, 18, 0, 15, 10, 9, 0, 0,
-  3, 3, 18, 0, 18, 0, 15, 10, 9, 4, 0 } },
-    65 };
-
-static const PercussionPreset P_BANK_0_INST_61_LOBO
-    = { { 6, 6, 3, 0, 0, 0, 0,
-  1, 0, 28, 2, 15, 0, 15, 0, 9, 5, 0,
-  0, 0, 28, 2, 20, 0, 15, 0, 9, 0, 0,
-  2, 7, 23, 0, 18, 0, 15, 10, 9, 0, 0,
-  3, 3, 18, 0, 18, 0, 15, 10, 9, 4, 0 } },
-    60 };
-
-static const PercussionPreset P_BANK_0_INST_62_MUHICO
-    = { { 6, 6, 3, 0, 0, 0, 0,
-  1, 0, 31, 2, 15, 0, 15, 0, 9, 7, 0,
-  1, 0, 31, 2, 18, 0, 15, 0, 9, 0, 0,
-  2, 7, 30, 0, 18, 0, 15, 10, 9, 0, 0,
-  2, 1, 18, 0, 22, 0, 15, 10, 10, 0, 0 } },
-    44 };
-
-static const PercussionPreset P_BANK_0_INST_63_OPHICO
-    = { { 6, 6, 3, 0, 0, 0, 0,
-  1, 0, 28, 2, 15, 0, 15, 0, 9, 5, 0,
-  0, 0, 28, 2, 23, 0, 15, 0, 10, 0, 0,
-  1, 7, 23, 0, 20, 0, 15, 12, 11, 0, 0,
-  1, 1, 18, 0, 16, 0, 15, 12, 8, 0, 0 } },
-    62 };
-
-static const PercussionPreset P_BANK_0_INST_64_LOWCO
-    = { { 6, 6, 3, 0, 0, 0, 0,
-  1, 0, 28, 2, 15, 0, 15, 0, 9, 5, 0,
-  0, 0, 28, 2, 22, 0, 15, 0, 10, 0, 0,
-  2, 7, 23, 0, 20, 0, 15, 10, 9, 13, 0,
-  1, 3, 18, 0, 15, 0, 15, 10, 8, 6, 0 } },
-    56 };
-
-static const PercussionPreset P_BANK_0_INST_65_HIGHTIMBALE
-    = { { 2, 5, 3, 0, 5, 0, 0,
-  3, 1, 31, 2, 25, 0, 12, 8, 6, 6, 0,
-  6, 3, 31, 1, 25, 0, 10, 6, 6, 5, 0,
-  0, 0, 31, 1, 19, 0, 11, 5, 12, 13, 0,
-  2, 0, 31, 1, 15, 0, 8, 17, 6, 0, 0 } },
-    67 };
-
-static const PercussionPreset P_BANK_0_INST_66_LOWTIMBALE
-    = { { 2, 5, 3, 0, 5, 0, 0,
-  3, 1, 31, 2, 25, 0, 12, 8, 10, 6, 0,
-  6, 3, 31, 1, 25, 0, 10, 6, 12, 5, 0,
-  0, 0, 31, 1, 19, 0, 11, 5, 12, 10, 0,
-  2, 0, 31, 1, 15, 0, 8, 17, 12, 0, 0 } },
-    60 };
-
-static const PercussionPreset P_BANK_0_INST_67_HIAGOGO
-    = { { 4, 7, 3, 0, 0, 0, 0,
-  3, 0, 31, 2, 16, 0, 8, 16, 6, 13, 0,
-  12, 0, 31, 0, 12, 0, 10, 12, 6, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0 } },
-    58 };
-
-static const PercussionPreset P_BANK_0_INST_68_LOAGOGO
-    = { { 4, 7, 3, 0, 0, 0, 0,
-  3, 0, 31, 2, 16, 0, 8, 16, 6, 13, 0,
-  12, 0, 31, 0, 12, 0, 10, 12, 6, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0 } },
-    53 };
-
-static const PercussionPreset P_BANK_0_INST_69_CABASA
-    = { { 1, 6, 3, 3, 5, 0, 0,
-  15, 2, 31, 1, 5, 0, 8, 2, 1, 6, 0,
-  15, 0, 31, 2, 5, 0, 5, 2, 3, 1, 0,
-  13, 7, 25, 2, 5, 0, 7, 2, 1, 2, 0,
-  3, 3, 13, 2, 17, 0, 10, 11, 9, 0, 0 } },
-    67 };
-
-static const PercussionPreset P_BANK_0_INST_70_MARACAS
-    = { { 4, 7, 3, 0, 0, 0, 0,
-  15, 0, 24, 1, 14, 0, 4, 24, 9, 0, 0,
-  2, 0, 14, 2, 22, 0, 8, 25, 13, 0, 0,
-  15, 0, 24, 3, 16, 0, 4, 18, 9, 0, 0,
-  15, 0, 18, 0, 18, 0, 6, 18, 9, 31, 0 } },
-    71 };
-
-static const PercussionPreset P_BANK_0_INST_71_SHORTWHISTLE
-    = { { 4, 0, 3, 0, 0, 0, 0,
-  0, 0, 18, 0, 10, 0, 0, 0, 11, 37, 0,
-  14, 0, 18, 0, 11, 0, 2, 22, 11, 0, 0,
-  0, 0, 0, 0, 0, 0, 15, 0, 0, 127, 0,
-  0, 0, 0, 0, 0, 0, 15, 0, 0, 127, 0 } },
-    55 };
-
-static const PercussionPreset P_BANK_0_INST_72_LONGWHISTLE
-    = { { 4, 0, 3, 0, 0, 0, 0,
-  0, 0, 18, 0, 10, 0, 0, 0, 11, 37, 0,
-  14, 0, 18, 0, 8, 0, 2, 22, 11, 0, 0,
-  0, 0, 0, 0, 0, 0, 15, 0, 0, 127, 0,
-  0, 0, 0, 0, 0, 0, 15, 0, 0, 127, 0 } },
-    51 };
-
-static const PercussionPreset P_BANK_0_INST_73_SHORT_GUIRO
-    = { { 4, 7, 3, 0, 0, 0, 0,
-  0, 0, 31, 0, 11, 0, 0, 10, 6, 0, 0,
-  0, 0, 15, 0, 14, 0, 1, 16, 8, 2, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0 } },
-    62 };
-
-static const PercussionPreset P_BANK_0_INST_74_LONG_GUIRO
-    = { { 4, 7, 3, 0, 0, 0, 0,
-  0, 0, 31, 0, 9, 0, 0, 9, 6, 0, 0,
-  0, 0, 12, 0, 14, 0, 1, 16, 8, 7, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0 } },
-    62 };
-
-static const PercussionPreset P_BANK_0_INST_75_WOODBLOCK
-    = { { 4, 7, 3, 0, 0, 0, 0,
-  7, 1, 31, 0, 22, 0, 12, 22, 8, 20, 0,
-  5, 1, 31, 0, 18, 0, 11, 28, 8, 0, 0,
-  14, 1, 31, 3, 25, 0, 14, 12, 8, 10, 0,
-  9, 1, 31, 3, 20, 0, 1, 13, 8, 5, 0 } },
-    69 };
-
-static const PercussionPreset P_BANK_0_INST_76_WOODBLOCK
-    = { { 4, 7, 3, 0, 0, 0, 0,
-  7, 1, 31, 0, 22, 0, 12, 22, 8, 20, 0,
-  5, 1, 31, 0, 18, 0, 11, 28, 8, 0, 0,
-  14, 1, 31, 3, 25, 0, 14, 12, 8, 10, 0,
-  9, 1, 31, 3, 20, 0, 1, 13, 8, 6, 0 } },
-    59 };
-
-static const PercussionPreset P_BANK_0_INST_77_WOODBLOCK
-    = { { 4, 7, 3, 0, 0, 0, 0,
-  7, 1, 31, 0, 22, 0, 12, 22, 8, 20, 0,
-  5, 1, 31, 0, 18, 0, 11, 28, 8, 0, 0,
-  14, 1, 31, 3, 25, 0, 14, 12, 8, 10, 0,
-  9, 1, 31, 3, 20, 0, 1, 13, 8, 6, 0 } },
-    53 };
-
-static const PercussionPreset P_BANK_0_INST_78_MUTE_CUIKA
-    = { { 4, 7, 3, 0, 0, 0, 0,
-  2, 7, 12, 0, 15, 0, 0, 15, 7, 39, 0,
-  8, 7, 14, 1, 6, 0, 0, 17, 6, 0, 0,
-  1, 0, 12, 0, 15, 0, 0, 15, 7, 27, 0,
-  8, 0, 14, 2, 6, 0, 0, 17, 6, 0, 0 } },
-    45 };
-
-static const PercussionPreset P_BANK_0_INST_79_OPEN_CUIKA
-    = { { 4, 7, 3, 0, 0, 0, 0,
-  1, 0, 12, 0, 15, 0, 0, 15, 7, 38, 0,
-  4, 0, 14, 0, 6, 0, 0, 17, 6, 0, 0,
-  1, 0, 12, 0, 0, 0, 0, 0, 7, 30, 0,
-  1, 0, 14, 0, 15, 0, 11, 14, 6, 23, 0 } },
-    39 };
-
-static const PercussionPreset P_BANK_0_INST_80_MUTETRIANGLE
-    = { { 4, 4, 3, 0, 0, 0, 0,
-  3, 0, 31, 0, 0, 0, 8, 0, 0, 26, 0,
-  2, 0, 31, 0, 15, 0, 8, 13, 11, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0 } },
-    99 };
-
-static const PercussionPreset P_BANK_0_INST_81_OPENTRIANGLE
-    = { { 4, 4, 3, 0, 0, 0, 0,
-  3, 0, 31, 0, 0, 0, 8, 0, 0, 26, 0,
-  2, 0, 31, 0, 8, 0, 8, 8, 5, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0 } },
-    99 };
-
-static const PercussionPreset P_BANK_0_INST_82_SHAKER
-    = { { 4, 7, 3, 0, 0, 0, 0,
-  15, 0, 24, 1, 14, 0, 4, 24, 9, 0, 0,
-  2, 0, 12, 2, 22, 0, 8, 25, 13, 14, 0,
-  15, 0, 24, 3, 16, 0, 4, 18, 9, 0, 0,
-  15, 0, 18, 0, 18, 0, 6, 18, 9, 18, 0 } },
-    71 };
-
-static const PercussionPreset P_BANK_0_INST_83_JINGLEBELLS
-    = { { 4, 7, 3, 0, 0, 0, 0,
-  5, 0, 31, 0, 4, 0, 15, 15, 4, 24, 0,
-  4, 0, 17, 1, 11, 0, 10, 7, 6, 9, 0,
-  5, 0, 31, 0, 9, 0, 15, 16, 0, 28, 0,
-  4, 0, 17, 1, 11, 0, 10, 7, 5, 14, 0 } },
-    79 };
-
-static const PercussionPreset P_BANK_0_INST_84_BELLTREE
-    = { { 4, 5, 3, 0, 0, 0, 0,
-  5, 0, 20, 0, 13, 0, 1, 0, 0, 9, 0,
-  9, 0, 20, 0, 21, 0, 4, 8, 4, 0, 0,
-  5, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0,
-  8, 0, 0, 0, 0, 0, 0, 0, 0, 127, 0 } },
-    83 };
-
-static const PercussionPreset P_BANK_0_INST_85_CASTANETS
-    = { { 4, 3, 3, 0, 0, 0, 0,
-  9, 0, 31, 0, 11, 0, 15, 0, 15, 23, 0,
-  4, 0, 31, 2, 20, 0, 15, 0, 15, 13, 0,
-  1, 0, 31, 0, 19, 0, 15, 0, 15, 15, 0,
-  2, 0, 31, 2, 20, 0, 15, 0, 15, 13, 0 } },
-    62 };
-
-static const PercussionPreset P_BANK_0_INST_86_MUTESURDO
-    = { { 6, 6, 3, 0, 0, 0, 0,
-  1, 0, 28, 2, 15, 0, 15, 0, 15, 5, 0,
-  0, 0, 19, 3, 20, 0, 15, 0, 15, 0, 0,
-  1, 7, 16, 0, 18, 0, 15, 10, 15, 0, 0,
-  1, 3, 14, 0, 14, 0, 15, 10, 7, 0, 0 } },
-    48 };
-
-static const PercussionPreset P_BANK_0_INST_87_OPENSURDO
-    = { { 6, 6, 3, 0, 0, 0, 0,
-  1, 0, 28, 2, 15, 0, 15, 0, 15, 5, 0,
-  0, 0, 19, 3, 20, 0, 15, 0, 15, 0, 0,
-  1, 7, 16, 0, 18, 0, 15, 10, 15, 0, 0,
-  1, 3, 14, 0, 11, 0, 15, 8, 5, 0, 0 } },
-    41 };
-
-static const PercussionPreset P_BANK_0_INST_88
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_89
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_90
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_91
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_92
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_93
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_94
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_95
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_96
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_97
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_98
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_99
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_100
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_101
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_102
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_103
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_104
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_105
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_106
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_107
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_108
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_109
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_110
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_111
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_112
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_113
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_114
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_115
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_116
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_117
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_118
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_119
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_120
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_121
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_122
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_123
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_124
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_125
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_126
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-static const PercussionPreset P_BANK_0_INST_127
-    = { { 0, 0, 3, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    0 };
-
-const PercussionPreset* P_BANK_0[] = { &P_BANK_0_INST_0, &P_BANK_0_INST_1,
-    &P_BANK_0_INST_2, &P_BANK_0_INST_3, &P_BANK_0_INST_4, &P_BANK_0_INST_5,
-    &P_BANK_0_INST_6, &P_BANK_0_INST_7, &P_BANK_0_INST_8, &P_BANK_0_INST_9,
-    &P_BANK_0_INST_10, &P_BANK_0_INST_11, &P_BANK_0_INST_12, &P_BANK_0_INST_13,
-    &P_BANK_0_INST_14, &P_BANK_0_INST_15, &P_BANK_0_INST_16, &P_BANK_0_INST_17,
-    &P_BANK_0_INST_18, &P_BANK_0_INST_19, &P_BANK_0_INST_20, &P_BANK_0_INST_21,
-    &P_BANK_0_INST_22, &P_BANK_0_INST_23, &P_BANK_0_INST_24, &P_BANK_0_INST_25,
-    &P_BANK_0_INST_26, &P_BANK_0_INST_27, &P_BANK_0_INST_28, &P_BANK_0_INST_29,
-    &P_BANK_0_INST_30_CASTANETS, &P_BANK_0_INST_31_STICKS,
-    &P_BANK_0_INST_32_SQUARE_CLICK, &P_BANK_0_INST_33_METRONOMECLICK,
-    &P_BANK_0_INST_34, &P_BANK_0_INST_35_BASSDRUM_, &P_BANK_0_INST_36_BASSDRUM_,
-    &P_BANK_0_INST_37_STICKSIDE, &P_BANK_0_INST_38_ACUSTICSNARE_ACTION52,
-    &P_BANK_0_INST_39_HANDCLAP_OPL3, &P_BANK_0_INST_40_ACUSTICSNARE_ACTION52,
-    &P_BANK_0_INST_41_LOW_FLOOR_TOM, &P_BANK_0_INST_42_CLOSED_HAT,
-    &P_BANK_0_INST_43_HIGH_FLOOR_TOM, &P_BANK_0_INST_44_PEDALHIHAT,
-    &P_BANK_0_INST_45_LOW_TOM, &P_BANK_0_INST_46_OPENHIHAT,
-    &P_BANK_0_INST_47_LOWMED_TOM, &P_BANK_0_INST_48_HIGHMED_TOM,
-    &P_BANK_0_INST_49_CRASH_ANIMATICS, &P_BANK_0_INST_50_HIGH_TOM_,
-    &P_BANK_0_INST_51_RIDECYMBELL1, &P_BANK_0_INST_52_CHINESE_CRASH_ANIMATICS,
-    &P_BANK_0_INST_53_RIDE_BELL, &P_BANK_0_INST_54_TAMBORINE,
-    &P_BANK_0_INST_55_SPLASH_CRASH_ANIMATICS, &P_BANK_0_INST_56_COWBELL,
-    &P_BANK_0_INST_57_CRASH_2_ANIMATICS, &P_BANK_0_INST_58_VIBESLAP,
-    &P_BANK_0_INST_59_RIDECYMBELL2, &P_BANK_0_INST_60_HIBO,
-    &P_BANK_0_INST_61_LOBO, &P_BANK_0_INST_62_MUHICO, &P_BANK_0_INST_63_OPHICO,
-    &P_BANK_0_INST_64_LOWCO, &P_BANK_0_INST_65_HIGHTIMBALE,
-    &P_BANK_0_INST_66_LOWTIMBALE, &P_BANK_0_INST_67_HIAGOGO,
-    &P_BANK_0_INST_68_LOAGOGO, &P_BANK_0_INST_69_CABASA,
-    &P_BANK_0_INST_70_MARACAS, &P_BANK_0_INST_71_SHORTWHISTLE,
-    &P_BANK_0_INST_72_LONGWHISTLE, &P_BANK_0_INST_73_SHORT_GUIRO,
-    &P_BANK_0_INST_74_LONG_GUIRO, &P_BANK_0_INST_75_WOODBLOCK,
-    &P_BANK_0_INST_76_WOODBLOCK, &P_BANK_0_INST_77_WOODBLOCK,
-    &P_BANK_0_INST_78_MUTE_CUIKA, &P_BANK_0_INST_79_OPEN_CUIKA,
-    &P_BANK_0_INST_80_MUTETRIANGLE, &P_BANK_0_INST_81_OPENTRIANGLE,
-    &P_BANK_0_INST_82_SHAKER, &P_BANK_0_INST_83_JINGLEBELLS,
-    &P_BANK_0_INST_84_BELLTREE, &P_BANK_0_INST_85_CASTANETS,
-    &P_BANK_0_INST_86_MUTESURDO, &P_BANK_0_INST_87_OPENSURDO, &P_BANK_0_INST_88,
-    &P_BANK_0_INST_89, &P_BANK_0_INST_90, &P_BANK_0_INST_91, &P_BANK_0_INST_92,
-    &P_BANK_0_INST_93, &P_BANK_0_INST_94, &P_BANK_0_INST_95, &P_BANK_0_INST_96,
-    &P_BANK_0_INST_97, &P_BANK_0_INST_98, &P_BANK_0_INST_99, &P_BANK_0_INST_100,
-    &P_BANK_0_INST_101, &P_BANK_0_INST_102, &P_BANK_0_INST_103,
-    &P_BANK_0_INST_104, &P_BANK_0_INST_105, &P_BANK_0_INST_106,
-    &P_BANK_0_INST_107, &P_BANK_0_INST_108, &P_BANK_0_INST_109,
-    &P_BANK_0_INST_110, &P_BANK_0_INST_111, &P_BANK_0_INST_112,
-    &P_BANK_0_INST_113, &P_BANK_0_INST_114, &P_BANK_0_INST_115,
-    &P_BANK_0_INST_116, &P_BANK_0_INST_117, &P_BANK_0_INST_118,
-    &P_BANK_0_INST_119, &P_BANK_0_INST_120, &P_BANK_0_INST_121,
-    &P_BANK_0_INST_122, &P_BANK_0_INST_123, &P_BANK_0_INST_124,
-    &P_BANK_0_INST_125, &P_BANK_0_INST_126, &P_BANK_0_INST_127 };*/
