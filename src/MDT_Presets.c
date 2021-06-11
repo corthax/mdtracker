@@ -3,7 +3,7 @@
 
 // based on https://github.com/rhargreaves/mega-drive-midi-interface
 
-//{ instruments
+//{ midi instruments
 static const Preset_FM M_BANK_0_INST_0_GRANDPIANO = { 2, 0, 3, 0, 0,
 1, 4, 26, 1, 7, 0, 7, 4, 1, 39, 0,
 2, 7, 31, 3, 23, 0, 9, 15, 1, 4, 0,
@@ -773,12 +773,12 @@ static const Preset_FM M_BANK_0_INST_127_GUNSHOT = { 5, 7, 3, 0, 5,
 1, 4, 31, 0, 15, 0, 15, 16, 11, 0, 0 };
 //}
 
-//{ percussion
-static const Preset_FM P_BANK_0_INST_0 = { 2, 7, 3, 3, 3,
-15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
-15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
-3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
-1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+//{ midi percussion / custom presets
+static const Preset_FM P_BANK_0_INST_0_BASSGUITAR01 = { 5, 3, 3, 0, 0,
+0, 4, 0x14, 1, 0x09, 0, 0x04, 0x05, 0x0E, 0x20, 0,
+2, 1, 0x1D, 1, 0x0D, 0, 0x06, 0x0D, 0x0E, 0x1E, 0,
+1, 7, 0x1C, 0, 0x04, 0, 0x0E, 0x0D, 0x0F, 0x0F, 0,
+1, 4, 0x1C, 0, 0x05, 0, 0x0E, 0x0E, 0x0F, 0x0F, 0 };
 
 static const Preset_FM P_BANK_0_INST_1 = { 2, 7, 3, 3, 3,
 15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
@@ -1545,7 +1545,7 @@ static const Preset_FM P_BANK_0_INST_127 = { 2, 7, 3, 3, 3,
 
 const Preset_FM* M_BANK_0[256] =
 {
-//{ instruments
+//{ midi instruments
     &M_BANK_0_INST_0_GRANDPIANO,
     &M_BANK_0_INST_1_BRIGHTPIANO,
     &M_BANK_0_INST_2_ELECTRICPIANO_ANIMATICS,
@@ -1676,8 +1676,8 @@ const Preset_FM* M_BANK_0[256] =
     &M_BANK_0_INST_127_GUNSHOT,
 //}
 
-//{ percussion
-    &P_BANK_0_INST_0,
+//{ midi percussion / custom presets
+    &P_BANK_0_INST_0_BASSGUITAR01,
     &P_BANK_0_INST_1,
     &P_BANK_0_INST_2,
     &P_BANK_0_INST_3,
@@ -1940,7 +1940,7 @@ void InitPresets()
     M_BANK_0[126] = &M_BANK_0_INST_126_APPLAUSE;
     M_BANK_0[127] = &M_BANK_0_INST_127_GUNSHOT;
 
-    M_BANK_0[128] = &P_BANK_0_INST_0;
+    M_BANK_0[128] = &P_BANK_0_INST_0_BASSGUITAR01;
     M_BANK_0[129] = &P_BANK_0_INST_1;
     M_BANK_0[130] = &P_BANK_0_INST_2;
     M_BANK_0[131] = &P_BANK_0_INST_3;
@@ -2199,7 +2199,7 @@ void InitPresets()
     presetName[0x7E] = "APPLAUSE     ";
     presetName[0x7F] = "GUNSHOT      ";
 
-    presetName[0x80] = "DEFAULT      ";
+    presetName[0x80] = "BASSGUITAR 01";
     presetName[0x81] = "DEFAULT      ";
     presetName[0x82] = "DEFAULT      ";
     presetName[0x83] = "DEFAULT      ";

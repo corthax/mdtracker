@@ -279,7 +279,7 @@ void InitInfo()
     infoDescriptions[0x0E] = "11=C, 10=L, 01=R, FF=MUTE, --=DEFAULT";
     infoDescriptions[0x0F] = "";
     infoDescriptions[0x10] = "01..08, --=RESET                     ";
-    infoDescriptions[0x11] = "01=ON, --=OFF                        ";
+    infoDescriptions[0x11] = "01=DAC ON, --=DAC OFF                ";
     infoDescriptions[0x12] = "01=SPECIAL, 02=CSM, --=NORMAL        ";
     infoDescriptions[0x13] = "[H-INT SKIPS] 01..FF, --=RESET       ";
     infoDescriptions[0x14] = "X[ODD] 1..F; Y[EVEN] 1..F            ";

@@ -350,7 +350,7 @@ static inline void hIntCallback()
 static inline void vIntCallback()
 {
     static u32 _fps; // redraw only if FPS changes
-    if (_fps != FPS) { _fps = FPS; uintToStr(FPS, str, 3); DrawNum(BG_A, PAL1, str, 9, 27); }
+    if (_fps != FPS) { _fps = FPS; uintToStr(FPS, str, 3); DrawNum(BG_A, PAL1, str, 9, 27); DrawNum(BG_A, PAL1, str, 49, 27); }
 
     SYS_doVBlankProcessEx(IMMEDIATELY);
     // fast navigation
@@ -879,14 +879,14 @@ static inline void DoEngine()
 
     auto inline void do_effects(u8 channel)
     {
-        if (channelFlags[channel])
+        if (channelFlags[channel] && channelPreviousNote[channel] < NOTE_TOTAL)
         {
             // exclude OFF
-            if (channelPreviousNote[channel] < NOTE_TOTAL)
-            {
+            //if (channelPreviousNote[channel] < NOTE_TOTAL)
+            //{
                 seq_vol(channel);
                 seq_arp(channel);
-            }
+            //}
             //! re-trigger (not work with seq)
             if (channelNoteRetrigger[channel])
             {
@@ -2588,7 +2588,6 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
         }
 
         // print info: instrument name
-        VDP_clearTextArea(GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y + 1, 28, 3);
         for (u8 i = 0; i < 8; i++)
         {
             VDP_setTileMapXY(BG_A,
@@ -3887,6 +3886,15 @@ static inline void StopAllSound()
         channelArpSeqID[ch] = 0;
         channelVolSeqID[ch] = 0;
 
+        channelCurrentRowNote[ch] = NOTE_EMPTY;
+
+        channelPreviousEffectType[ch][0] =
+        channelPreviousEffectType[ch][1] =
+        channelPreviousEffectType[ch][2] =
+        channelPreviousEffectType[ch][3] =
+        channelPreviousEffectType[ch][4] =
+        channelPreviousEffectType[ch][5] = NULL;
+
         /*for (u8 row = 0; row < 32; row++)
         {
             channelRowShift[ch][row] = 0;
@@ -4234,15 +4242,16 @@ static inline void WriteYM2612(u8 mtxCh, u8 fmCh)
 void DrawPP()
 {
     // BPM
-    if (BPM < 1000) { uintToStr(BPM, str, 3); DrawNum(BG_A, PAL0, str, 3, 27); }
-    else { VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "OUT", 3, 27); }
+    if (BPM < 1000) { uintToStr(BPM, str, 3); DrawNum(BG_A, PAL0, str, 3, 27); DrawNum(BG_A, PAL1, str, 43, 27); }
+    else { VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "OUT", 3, 27); VDP_drawTextBG(BG_A, "OUT", 43, 27); }
 
     // PPS
-    if (PPS < 1000) { uintToStr(PPS, str, 3); DrawNum(BG_A, PAL1, str, 15, 27); }
-    else { VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "OUT", 15, 27); }
+    if (PPS < 1000) { uintToStr(PPS, str, 3); DrawNum(BG_A, PAL1, str, 15, 27); DrawNum(BG_A, PAL1, str, 55, 27); }
+    else { VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "OUT", 15, 27); VDP_drawTextBG(BG_A, "OUT", 55, 27); }
 
     // PPL
     DrawHex(PAL1, ppl_1, 21, 27); DrawHex(PAL1, ppl_2, 23, 27);
+    DrawHex(PAL1, ppl_1, 61, 27); DrawHex(PAL1, ppl_2, 63, 27);
 }
 
 static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
@@ -5603,6 +5612,7 @@ void InitTracker()
     }
 
     DrawStaticHeaders();
+    VDP_waitDMACompletion();
 
     SYS_enableInts();
 }
@@ -5676,6 +5686,16 @@ void DrawStaticHeaders()
         VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPL + 1), 20, 27);
         VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SLASH), 22, 27);
     DrawNum(BG_A, PAL1, "999", 9, 27); // default FPS
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_BPM), 41, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_BPM + 1), 42, 27);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_FPS), 47, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_FPS + 1), 48, 27);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPS), 53, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPS + 1), 54, 27);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPL), 59, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPL + 1), 60, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SLASH), 62, 27);
+    DrawNum(BG_A, PAL1, "999", 49, 27); // default FPS
 
     //! for (u8 y=2; y<27; y++) VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 27, y); // fm/psg
 
