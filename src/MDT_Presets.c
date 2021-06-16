@@ -774,17 +774,17 @@ static const Preset_FM M_BANK_0_INST_127_GUNSHOT = { 5, 7, 3, 0, 5,
 //}
 
 //{ midi percussion / custom presets
-static const Preset_FM P_BANK_0_INST_0_BASSGUITAR01 = { 5, 3, 3, 0, 0,
-0, 4, 0x14, 1, 0x09, 0, 0x04, 0x05, 0x0E, 0x20, 0,
-2, 1, 0x1D, 1, 0x0D, 0, 0x06, 0x0D, 0x0E, 0x1E, 0,
-1, 7, 0x1C, 0, 0x04, 0, 0x0E, 0x0D, 0x0F, 0x0F, 0,
-1, 4, 0x1C, 0, 0x05, 0, 0x0E, 0x0E, 0x0F, 0x0F, 0 };
+static const Preset_FM P_BANK_0_INST_0_BASSGUITAR01 = { 5, 3, 3, 0, 0, // alg, fb, pan, ams, fms
+0, 4, 0x14, 1, 0x09, 0, 0x04, 0x05, 0x0E, 0x20, 0,      // op1, mult, det, ar, rs, dr1, am, sus, dr2, rr, tl, ssg-eg
+2, 1, 0x1D, 1, 0x0D, 0, 0x06, 0x0D, 0x0E, 0x1E, 0,      // op3, adsr
+1, 7, 0x1C, 0, 0x04, 0, 0x0E, 0x0D, 0x0F, 0x0F, 0,      // op2, 0x7F - tl
+1, 4, 0x1C, 0, 0x05, 0, 0x0E, 0x0E, 0x0F, 0x0F, 0 };    // op4, det
 
-static const Preset_FM P_BANK_0_INST_1 = { 2, 7, 3, 3, 3,
-15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
-15, 7, 31, 0, 14, 1, 9, 13, 4, 20, 0,
-3, 3, 31, 1, 10, 0, 6, 8, 4, 0, 0,
-1, 7, 31, 3, 9, 0, 2, 9, 5, 0, 0 };
+static const Preset_FM P_BANK_0_INST_1_HURDYGURDY01 = { 0, 5, 3, 3, 2,
+0, 4, 0x0E, 0, 0x0E, 1, 1, 2, 5, 0x0B, 0,
+1, 6, 8, 0, 0, 1, 0, 1, 3, 0x2E, 0,
+0, 1, 0x15, 1, 2, 0, 3, 0, 2, 0x1A, 0,
+4, 4, 0x18, 1, 0, 0, 2, 0, 7, 0x1C, 0 };
 
 static const Preset_FM P_BANK_0_INST_2 = { 2, 7, 3, 3, 3,
 15, 3, 31, 0, 14, 1, 8, 13, 4, 25, 0,
@@ -1678,7 +1678,7 @@ const Preset_FM* M_BANK_0[256] =
 
 //{ midi percussion / custom presets
     &P_BANK_0_INST_0_BASSGUITAR01,
-    &P_BANK_0_INST_1,
+    &P_BANK_0_INST_1_HURDYGURDY01,
     &P_BANK_0_INST_2,
     &P_BANK_0_INST_3,
     &P_BANK_0_INST_4,
@@ -1941,7 +1941,7 @@ void InitPresets()
     M_BANK_0[127] = &M_BANK_0_INST_127_GUNSHOT;
 
     M_BANK_0[128] = &P_BANK_0_INST_0_BASSGUITAR01;
-    M_BANK_0[129] = &P_BANK_0_INST_1;
+    M_BANK_0[129] = &P_BANK_0_INST_1_HURDYGURDY01;
     M_BANK_0[130] = &P_BANK_0_INST_2;
     M_BANK_0[131] = &P_BANK_0_INST_3;
     M_BANK_0[132] = &P_BANK_0_INST_4;
@@ -2200,7 +2200,7 @@ void InitPresets()
     presetName[0x7F] = "GUNSHOT      ";
 
     presetName[0x80] = "BASSGUITAR 01";
-    presetName[0x81] = "DEFAULT      ";
+    presetName[0x81] = "HURDYGURDY 01";
     presetName[0x82] = "DEFAULT      ";
     presetName[0x83] = "DEFAULT      ";
     presetName[0x84] = "DEFAULT      ";

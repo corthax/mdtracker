@@ -316,7 +316,7 @@ ROW PPL Resolution (Pulse Per Line) [!!! May impact framerate !!!]
 	14xy 
 x: 0 .. F; Odd lines.
 y: 0 .. F; Even lines.
---: default 4;
+--: set to default 4;
 
 ************************************************
 N4 Channel Mode
@@ -327,14 +327,7 @@ y: 0 = tonal, SQ3 muted; 1 = tonal, SQ3 not muted; 2, 3, 4 = fixed clock /2, /4,
 ************************************************
 PCM Sample ranges bank select
 	16xx
-xx: 01 .. 04; Each bank contains 96 sample region definitions, 1 per note.
---: nothing.
-
-************************************************
-PSG "PWM" mode [NOT IMPLEMENTED]
-	17xx
-xx:
---: disable.
+xx: 00 .. 03; Each bank contains 96 sample region definitions, 1 per note.
 
 ************************************************
 Matrix Jump	(Ignored while Pattern or Instrument editor is active)
@@ -352,7 +345,6 @@ xx: 01 .. 1F; Row in the next pattern jump to.
 Global Matrix Row Size 
 	60xx
 xx: 01 .. 1F; 01 to 32 pattern rows.
---: nothing.
 
 ************************************************
 Global Pattern Row Shift (left side)
@@ -388,7 +380,6 @@ xx: 01 .. FF; Enable
 Note Cut (tip: cut the bass notes end to avoid clicks)
 	50xx	
 xx: 01 .. FF; Kill note after xx ticks. [new note does not disable it]
---: no effect.
 
 ************************************************
 Note Retrigger (Will override commands [54] [61] [62])
@@ -400,13 +391,11 @@ xx: 01 .. FF; Retrigger note after xx ticks.
 Note Delay
 	54xx	
 xx: 01 .. FF; Delays note by xx ticks.
---: no effect.
 
 ************************************************
 CSM OP Base Note (For "lowpass filtering" effect)
 	55xx	
 xx: 09 .. 5F; A-0 .. B-7, can be altered with pitch modifying commands.
---: no effect.
 
 ------------------------------------------------
 + FM Instrument General
@@ -415,26 +404,22 @@ xx: 09 .. 5F; A-0 .. B-7, can be altered with pitch modifying commands.
 ************************************************
 ALGORITHM
 	0Axx
-xx: 01 .. 08
---: to reset.
+xx: 00 .. 07; >07 reset
 
 ************************************************
 OP1 FEEDBACK
 	0Bxx	
-xx: 01 .. 08
---: to reset.
+xx: 00 .. 07; >07 reset
 
 ************************************************
 AMPLITUDE MODULATION SCALE
 	0Cxx
-xx:	01 .. 07, 0F = off
---: to reset.
+xx:	00 .. 07; >07 reset
 
 ************************************************
 FREQUENCY MODULATION SCALE
 	0Dxx
-xx:	01 .. 03, 0F = off
---: to reset.
+xx:	00 .. 03; >03 reset
 
 ************************************************
 PAN
@@ -452,43 +437,42 @@ TOTAL LEVEL
 	02xx 	TL2	
 	03xx 	TL3
 	04xx 	TL4
-xx: TL 01 .. 80
---: to reset.
+xx: TL 00 .. 7F; >7F reset
 
 ************************************************
 RATE SCALE
 	05xy
 x: OP 1 .. 4, 5 to set all operators.
-y: RS 1 .. 4, 0 to reset selected OP.
---: or 50 to reset all.
+y: RS 0 .. 3
+--: to reset all, 01 .. 04 to reset OP.
 
 ************************************************
 FREQUENCY MULTIPLIER
 	06xy
-x: OP 1 .. 4
+x: OP 1 .. 4, 5 to set all operators.
 y: MULT 0 .. F
 --: to reset all, 01 .. 04 to reset OP.
 
 ************************************************
 DETUNE
 	07xy	
-x: OP 1 .. 4
-y: DT 1 .. 8, 0 to reset selected OP.
---: to reset all.
+x: OP 1 .. 4, 5 to set all operators.
+y: DT 0 .. 7 (-3 .. +3)
+--: to reset all, 01 .. 04 to reset OP. 
 
 ************************************************
 AMPLITUDE MODULATION
 	08xy
 x: OP 1 .. 4, 5 to set all operators.
-y: AM 0 = reset, 1 = enable, 2 = disable.
---: to reset all.
+y: AM 0 = off, 1 = on
+--: to reset all, 01 .. 04 to reset OP. 
 
 ************************************************
 SSG-EG
 	09xy
 x: OP 1 .. 4, 5 to set all operators.
-y: SSG-EG 0 = reset, 1 = disable, 2 .. 9 = select mode.
---: to reset all.
+y: SSG-EG 0 == off; 1 .. 8 = select mode.
+--: to reset all, 01 .. 04 to reset OP. 
 
 ------------------------------------------------
 + FM ADSR Envelope (Changes applied only when new note is triggered)
@@ -500,8 +484,7 @@ ATTACK RATE
 	A2xx
 	A3xx
 	A4xx
-xx: 01 .. 20
---: to reset.
+xx: 00 .. 1F; >1F reset
 
 ************************************************
 DECAY RATE 1
@@ -509,8 +492,7 @@ DECAY RATE 1
 	B2xx
 	B3xx
 	B4xx
-xx: 01 .. 20
---: to reset.
+xx: 00 .. 1F; >1F reset
 
 ************************************************
 SUSTAIN
@@ -518,8 +500,7 @@ SUSTAIN
 	C2xx
 	C3xx
 	C4xx
-xx: 01 .. 10
---: to reset.
+xx: 00 .. 0F; >0F reset
 
 ************************************************
 DECAY RATE 2
@@ -527,8 +508,7 @@ DECAY RATE 2
 	D2xx
 	D3xx
 	D4xx
-xx: 01 .. 20
---: to reset.
+xx: 00 .. 1F; >1F reset
 
 ************************************************
 RELEASE RATE
@@ -536,8 +516,7 @@ RELEASE RATE
 	E2xx
 	E3xx
 	E4xx
-xx: 01 .. 10
---: to reset.
+xx: 00 .. 0F; >0F reset
 
 ------------------------------------------------
 + Pitch effects
@@ -606,20 +585,6 @@ Pitch Slide Skip Ticks
 	37xx
 xx: ticks to skip. allow slower effect.
 --: no skip.
-
-************************************************
-Portamento to Semitones UP (Turned off when new note is triggered before portamento reaches target pitch.) [NOT IMPLEMENTED]
-	38xy
-x: Amount of rows it takes.
-y: Target shift in semitones.
---: reset.
-
-************************************************
-Portamento to Semitones DOWN (Turned off when new note is triggered before portamento reaches target pitch.) [NOT IMPLEMENTED]
-	39xx
-x: Amount of rows it takes.
-y: Target shift in semitones.
---: reset.
 
 ------------------------------------------------	
 + Volume effects (!!! Channel volume effects works like post-fader automation - it will not reset on instrument change or note OFF, do it manually !!!)

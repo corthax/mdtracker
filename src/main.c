@@ -1940,6 +1940,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                     inc = 0;
                     if (patternCopyRangeStart != NOTHING) { selection_clear(); }
                     patternCopyRangeStart = patternCopyRangeEnd = NOTHING;
+                    VDP_setTextPalette(PAL1); VDP_drawText("---", 65, 0);
                     break;
                 // select all
                 case BUTTON_UP:
@@ -1954,6 +1955,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                             VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 44, y);
                             VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 64, y);
                         }
+                        intToHex(selectedPatternID, str, 3); VDP_setTextPalette(PAL1); VDP_drawText(str, 65, 0);
                     }
                     break;
                 // set selection
@@ -1967,6 +1969,8 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                         if (patternCopyRangeEnd < 16)
                             VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 44, patternCopyRangeStart+4);
                         else VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 64, patternCopyRangeStart-12);
+
+                        intToHex(selectedPatternID, str, 3); VDP_setTextPalette(PAL1); VDP_drawText(str, 65, 0);
                     }
                     else
                     {
@@ -2692,7 +2696,6 @@ inline void DisplayPatternEditor()
     if (bRefreshScreen)
     {
         static u8 note = 0;
-        static u8 noteFreqID = 0;
         static u8 value = 0;
         static u8 side = 0; // left 0 or right 1
         static u8 shiftX = 0;
@@ -2717,8 +2720,6 @@ inline void DisplayPatternEditor()
 
         // display pattern lines
         note = SRAM_ReadPattern(selectedPatternID, line, DATA_NOTE); // notes
-        noteFreqID = note;
-        while (noteFreqID > 11) noteFreqID -= 12;
 
         // calculate offsets for the right pattern columns display
         side = (line > 15) ? 1 : 0;
@@ -2762,9 +2763,9 @@ inline void DisplayPatternEditor()
         // note name
         if (note < NOTE_EMPTY)
         {
-            VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(palx, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_NOTE_NAMES[0][noteFreqID]), 41 + shiftX, lineShiftY);
-            VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(palx, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_NOTE_NAMES[1][noteFreqID]), 42 + shiftX, lineShiftY);
-            VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(palx, 1, FALSE, FALSE, bgBaseTileIndex[1] + (note / 12)), 43 + shiftX, lineShiftY); // octave number
+            VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(palx, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_NOTE_NAMES[0][noteFreqID[note]]), 41 + shiftX, lineShiftY);
+            VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(palx, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_NOTE_NAMES[1][noteFreqID[note]]), 42 + shiftX, lineShiftY);
+            VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(palx, 1, FALSE, FALSE, bgBaseTileIndex[1] + (noteOctave[note])), 43 + shiftX, lineShiftY); // octave number
         }
         else if (note == NOTE_OFF) // 97 is OFF
         {
@@ -3126,12 +3127,12 @@ inline void DisplayInstrumentEditor()
             break;
         case GUI_INST_PARAM_FMS: case 254:
             value = SRAM_ReadInstrument(selectedInstrumentID, INST_FMS);
-            if (value == 0) FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_MINUS, 2, 87, 3);
+            if (!value) FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_MINUS, 2, 87, 3);
             else DrawHex2(PAL0, value, 87, 3);
             break;
         case GUI_INST_PARAM_AMS: case 253:
             value = SRAM_ReadInstrument(selectedInstrumentID, INST_AMS);
-            if (value == 0) FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_MINUS, 2, 87, 4);
+            if (!value) FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_MINUS, 2, 87, 4);
             else DrawHex2(PAL0, value, 87, 4);
             break;
         case GUI_INST_PARAM_PAN: case 252:
@@ -3151,10 +3152,12 @@ inline void DisplayInstrumentEditor()
             }
             break;
         case GUI_INST_PARAM_FB: case 251:
-            DrawHex2(PAL0, SRAM_ReadInstrument(selectedInstrumentID, INST_FB), 87, 6);
+            value = SRAM_ReadInstrument(selectedInstrumentID, INST_FB);
+            if (!value) FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_MINUS, 2, 87, 6);
+            else DrawHex2(PAL0, value, 87, 6);
             break;
         case GUI_INST_PARAM_TL: case 250:
-            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 0x80 - SRAM_ReadInstrument(selectedInstrumentID, INST_TL1 + i), 94 + i*3, 9);
+            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 0x7F - SRAM_ReadInstrument(selectedInstrumentID, INST_TL1 + i), 94 + i*3, 9);
             break;
         case GUI_INST_PARAM_RS: case 249:
             for (u8 i=0; i<4; i++)
@@ -3178,23 +3181,23 @@ inline void DisplayInstrumentEditor()
             }
             break;
         case GUI_INST_PARAM_AR: case 246:
-            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ SRAM_ReadInstrument(selectedInstrumentID, INST_AR1 + i), 94 + i*3, 14);
+            for (u8 i=0; i<4; i++) DrawHex2(PAL0, SRAM_ReadInstrument(selectedInstrumentID, INST_AR1 + i), 94 + i*3, 14);
             break;
         case GUI_INST_PARAM_D1R: case 245:
-            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ SRAM_ReadInstrument(selectedInstrumentID, INST_D1R1 + i), 94 + i*3, 15);
+            for (u8 i=0; i<4; i++) DrawHex2(PAL0, SRAM_ReadInstrument(selectedInstrumentID, INST_D1R1 + i), 94 + i*3, 15);
             break;
         case GUI_INST_PARAM_D1L: case 244:
-            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ SRAM_ReadInstrument(selectedInstrumentID, INST_D1L1 + i), 94 + i*3, 16);
+            for (u8 i=0; i<4; i++) DrawHex2(PAL0, SRAM_ReadInstrument(selectedInstrumentID, INST_D1L1 + i), 94 + i*3, 16);
             break;
         case GUI_INST_PARAM_D2R: case 243:
-            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ SRAM_ReadInstrument(selectedInstrumentID, INST_D2R1 + i), 94 + i*3, 17);
+            for (u8 i=0; i<4; i++) DrawHex2(PAL0, SRAM_ReadInstrument(selectedInstrumentID, INST_D2R1 + i), 94 + i*3, 17);
             break;
         case GUI_INST_PARAM_RR: case 242:
-            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 1+ SRAM_ReadInstrument(selectedInstrumentID, INST_RR1 + i), 94 + i*3, 18);
+            for (u8 i=0; i<4; i++) DrawHex2(PAL0, SRAM_ReadInstrument(selectedInstrumentID, INST_RR1 + i), 94 + i*3, 18);
             break;
         case GUI_INST_PARAM_AM: case 241:
             for (u8 i=0; i<4; i++)
-                if (SRAM_ReadInstrument(selectedInstrumentID, INST_AM1 + i) == 1) DrawText(BG_A, PAL0, "ON", 94 + i*3, 20);
+                if (SRAM_ReadInstrument(selectedInstrumentID, INST_AM1 + i)) DrawText(BG_A, PAL0, "ON", 94 + i*3, 20);
                 else FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_BIGDOT, 2, 94 + i*3, 20);
             break;
         case GUI_INST_PARAM_SSGEG: case 240:
@@ -3512,7 +3515,6 @@ static inline void SetChannelVolume(u8 mtxCh)
 
 static inline void RequestZ80()
 {
-    //bBusTaken = Z80_isBusTaken();
     if (!Z80_isBusTaken()) Z80_requestBus(TRUE);
 }
 
@@ -3577,11 +3579,11 @@ static inline void SetPitchPSG(u8 mtxCh, u8 note)
 // DAC is also here
 static inline void SetPitchFM(u8 mtxCh, u8 note)
 {
-    static u8 part1 = 0, part2 = 0, noteFreqID = 0, pan = SOUND_PAN_CENTER;
+    static u8 part1 = 0, part2 = 0, pan = SOUND_PAN_CENTER;
     static s8 key = 0;
 
     // CSM
-    if ((mtxCh == CHANNEL_FM3_OP4) && (FM_CH3_Mode == CH3_SPECIAL_CSM/* || FM_CH3_Mode == CH3_SPECIAL_CSM_OFF*/))
+    if ((mtxCh == CHANNEL_FM3_OP4) && (FM_CH3_Mode == CH3_SPECIAL_CSM))
     {
        key = FM_CH3_OpFreq[0] + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh];
     }
@@ -3593,11 +3595,8 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
 
     if ((key > -1) && (key < NOTE_TOTAL))
     {
-        noteFreqID = key;
-        while (noteFreqID > 11) noteFreqID -= 12;
-
-        part1 = ((key / 12) << 3) | (noteMicrotone[noteFreqID][(u8)channelFinalPitch[mtxCh]] >> 8);
-        part2 = 0b0000000011111111 & noteMicrotone[noteFreqID][(u8)channelFinalPitch[mtxCh]];
+        part1 = ((noteOctave[(u8)key]) << 3) | (noteMicrotone[noteFreqID[(u8)key]][(u8)channelFinalPitch[mtxCh]] >> 8);
+        part2 = 0b0000000011111111 & noteMicrotone[noteFreqID[(u8)key]][(u8)channelFinalPitch[mtxCh]];
 
         switch (mtxCh)
         {
@@ -3624,7 +3623,7 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
                 BIT_SET(FM_CH3_OpNoteStatus, 7); // 0b1???0010
                 YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, FM_CH3_OpNoteStatus);// 2
                 break;
-            case CH3_SPECIAL_CSM: /*case CH3_SPECIAL_CSM_OFF:*/
+            case CH3_SPECIAL_CSM:
                 // Timer A to note pitch
                 YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_A_MSB, csmMicrotone[note] >> 2);
                 YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_A_LSB, csmMicrotone[note] & 0b0000000000000011);
@@ -4502,7 +4501,7 @@ static inline void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
     case 0x16:
         if (fxValue < 4) activeSampleBank = fxValue;
         break;
-#if (MDT_VERSION == 0)
+
     // MSU MD CD audio PLAY ONCE
     case 0x20:
         if (fxValue == 0)
@@ -4546,7 +4545,7 @@ static inline void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
             *mcd_cmd_ck = *mcd_cmd_ck + 1;
         }
         break;
-#endif
+
     default: break;
     }
 }
@@ -4781,105 +4780,101 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
     {
     // TOTAL LEVEL
     case 0x01:
-        if (!fxValue) chInst[fmCh].TL1 = tmpInst[id].TL1;
-        else if (fxValue < 0x81) chInst[fmCh].TL1 = 0x80 - fxValue;
-        else return;
+        if (fxValue > 0x7F) chInst[fmCh].TL1 = tmpInst[id].TL1;
+        else chInst[fmCh].TL1 = 0x7F - fxValue;
         write_tl1();
         break;
     case 0x02:
-        if (!fxValue)chInst[fmCh].TL2 = tmpInst[id].TL2;
-        else if (fxValue < 0x81) chInst[fmCh].TL2 = 0x80 - fxValue;
-        else return;
+        if (fxValue > 0x7F)chInst[fmCh].TL2 = tmpInst[id].TL2;
+        else chInst[fmCh].TL2 = 0x7F - fxValue;
         write_tl2();
         break;
     case 0x03:
-        if (!fxValue) chInst[fmCh].TL3 = tmpInst[id].TL3;
-        else if (fxValue < 0x81) chInst[fmCh].TL3 = 0x80 - fxValue;
-        else return;
+        if (fxValue > 0x7F) chInst[fmCh].TL3 = tmpInst[id].TL3;
+        else chInst[fmCh].TL3 = 0x7F - fxValue;
         write_tl3();
         break;
     case 0x04:
-        if (!fxValue) chInst[fmCh].TL4 = tmpInst[id].TL4;
-        else if (fxValue < 0x81) chInst[fmCh].TL4 = 0x80 - fxValue;
-        else return;
+        if (fxValue > 0x7F) chInst[fmCh].TL4 = tmpInst[id].TL4;
+        else chInst[fmCh].TL4 = 0x7F - fxValue;
         write_tl4();
         break;
 
     // RATE SCALE
     case 0x05:
-        if (fxValue == 0x10) { chInst[fmCh].RS1 = tmpInst[id].RS1; write_rs1_ar1(); }
-        else if ((fxValue >= 0x11) && (fxValue <= 0x14)) { chInst[fmCh].RS1 = fxValue - 0x11; write_rs1_ar1(); }
-
-        else if (fxValue == 0x20) { chInst[fmCh].RS2 = tmpInst[id].RS2; write_rs2_ar2(); }
-        else if ((fxValue >= 0x21) && (fxValue <= 0x24)) { chInst[fmCh].RS2 = fxValue - 0x21; write_rs2_ar2(); }
-
-        else if (fxValue == 0x30) { chInst[fmCh].RS3 = tmpInst[id].RS3; write_rs3_ar3(); }
-        else if ((fxValue >= 0x31) && (fxValue <= 0x34)) { chInst[fmCh].RS3 = fxValue - 0x31; write_rs3_ar3(); }
-
-        else if (fxValue == 0x40) { chInst[fmCh].RS4 = tmpInst[id].RS4; write_rs4_ar4(); }
-        else if ((fxValue >= 0x41) && (fxValue <= 0x44)) { chInst[fmCh].RS4 = fxValue - 0x41; write_rs4_ar4(); }
-
-        else if (!fxValue || fxValue == 0x50) // reset all
+        switch (fxValue)
         {
-            chInst[fmCh].RS1 = tmpInst[id].RS1;
-            chInst[fmCh].RS2 = tmpInst[id].RS2;
-            chInst[fmCh].RS3 = tmpInst[id].RS3;
-            chInst[fmCh].RS4 = tmpInst[id].RS4;
+        case 0x01: chInst[fmCh].RS1 = tmpInst[id].RS1; write_rs1_ar1(); break;
+        case 0x02: chInst[fmCh].RS2 = tmpInst[id].RS2; write_rs2_ar2(); break;
+        case 0x03: chInst[fmCh].RS3 = tmpInst[id].RS3; write_rs3_ar3(); break;
+        case 0x04: chInst[fmCh].RS4 = tmpInst[id].RS4; write_rs4_ar4(); break;
+        case 0x00:
+            chInst[fmCh].RS1 = tmpInst[id].RS1; chInst[fmCh].RS2 = tmpInst[id].RS2; chInst[fmCh].RS3 = tmpInst[id].RS3; chInst[fmCh].RS4 = tmpInst[id].RS4;
             write_rs1_ar1(); write_rs2_ar2(); write_rs3_ar3(); write_rs4_ar4();
-        }
-        else if ((fxValue >= 0x51) && (fxValue <= 0x54))
-        {
-            chInst[fmCh].RS1 = chInst[fmCh].RS2 = chInst[fmCh].RS3 = chInst[fmCh].RS4 = fxValue - 0x51;
-            write_rs1_ar1(); write_rs2_ar2(); write_rs3_ar3(); write_rs4_ar4();
+            break;
+        default:
+                 if ((fxValue > 0x0F) && (fxValue < 0x14)) { chInst[fmCh].RS1 = fxValue - 0x10; write_rs1_ar1(); }
+            else if ((fxValue > 0x1F) && (fxValue < 0x24)) { chInst[fmCh].RS2 = fxValue - 0x20; write_rs2_ar2(); }
+            else if ((fxValue > 0x2F) && (fxValue < 0x34)) { chInst[fmCh].RS3 = fxValue - 0x30; write_rs3_ar3(); }
+            else if ((fxValue > 0x3F) && (fxValue < 0x44)) { chInst[fmCh].RS4 = fxValue - 0x40; write_rs4_ar4(); }
+            else if ((fxValue > 0x4F) && (fxValue < 0x54)) {
+                chInst[fmCh].RS1 = chInst[fmCh].RS2 = chInst[fmCh].RS3 = chInst[fmCh].RS4 = fxValue - 0x50;
+                write_rs1_ar1(); write_rs2_ar2(); write_rs3_ar3(); write_rs4_ar4(); }
+            break;
         }
         break;
 
     // MULTIPLIER
     case 0x06:
-        if (fxValue == 0x01) { chInst[fmCh].MUL1 = tmpInst[id].MUL1; write_dt1_mul1(); }
-        else if ((fxValue >= 0x10) && (fxValue < 0x20)) { chInst[fmCh].MUL1 = fxValue - 0x10; write_dt1_mul1(chInst[fmCh].MUL1); }
-
-        else if (fxValue == 0x02) { chInst[fmCh].MUL2 = tmpInst[id].MUL2; write_dt2_mul2(); }
-        else if ((fxValue >= 0x20) && (fxValue < 0x30)) { chInst[fmCh].MUL2 = fxValue - 0x20; write_dt2_mul2(chInst[fmCh].MUL2); }
-
-        else if (fxValue == 0x03) { chInst[fmCh].MUL3 = tmpInst[id].MUL3; write_dt3_mul3(); }
-        else if ((fxValue >= 0x30) && (fxValue < 0x40)) { chInst[fmCh].MUL3 = fxValue - 0x30; write_dt3_mul3(chInst[fmCh].MUL3); }
-
-        else if (fxValue == 0x04) { chInst[fmCh].MUL4 = tmpInst[id].MUL4; write_dt4_mul4(); }
-        else if ((fxValue >= 0x40) && (fxValue < 0x50)) { chInst[fmCh].MUL4 = fxValue - 0x40; write_dt4_mul4(chInst[fmCh].MUL4); }
-
-
-        else if (!fxValue) // reset all
+        switch (fxValue)
         {
+        case 0x01: chInst[fmCh].MUL1 = tmpInst[id].MUL1; write_dt1_mul1(); break;
+        case 0x02: chInst[fmCh].MUL2 = tmpInst[id].MUL1; write_dt2_mul2(); break;
+        case 0x03: chInst[fmCh].MUL3 = tmpInst[id].MUL1; write_dt3_mul3(); break;
+        case 0x04: chInst[fmCh].MUL4 = tmpInst[id].MUL1; write_dt4_mul4(); break;
+        case 0x00:
             chInst[fmCh].MUL1 = tmpInst[id].MUL1;
             chInst[fmCh].MUL2 = tmpInst[id].MUL2;
             chInst[fmCh].MUL3 = tmpInst[id].MUL3;
             chInst[fmCh].MUL4 = tmpInst[id].MUL4;
             write_dt1_mul1(); write_dt2_mul2(); write_dt3_mul3(); write_dt4_mul4();
+            break;
+        default:
+                 if ((fxValue > 0x0F) && (fxValue < 0x20)) { chInst[fmCh].MUL1 = fxValue - 0x10; write_dt1_mul1(chInst[fmCh].MUL1); }
+            else if ((fxValue > 0x1F) && (fxValue < 0x30)) { chInst[fmCh].MUL2 = fxValue - 0x20; write_dt2_mul2(chInst[fmCh].MUL2); }
+            else if ((fxValue > 0x2F) && (fxValue < 0x40)) { chInst[fmCh].MUL3 = fxValue - 0x30; write_dt3_mul3(chInst[fmCh].MUL3); }
+            else if ((fxValue > 0x3F) && (fxValue < 0x50)) { chInst[fmCh].MUL4 = fxValue - 0x40; write_dt4_mul4(chInst[fmCh].MUL4); }
+            else if ((fxValue > 0x4F) && (fxValue < 0x60)) {
+                chInst[fmCh].MUL1 = chInst[fmCh].MUL2 = chInst[fmCh].MUL3 = chInst[fmCh].MUL4 = fxValue - 0x50;
+                write_dt1_mul1(); write_dt2_mul2(); write_dt3_mul3(); write_dt4_mul4(); }
+            break;
         }
         break;
 
     // DETUNE
     case 0x07:
-        if (fxValue == 0x10) { chInst[fmCh].DT1 = tmpInst[id].DT1; write_dt1_mul1(); }
-        else if ((fxValue >= 0x11) && (fxValue <= 0x18)) { chInst[fmCh].DT1 = fxValue - 0x11; write_dt1_mul1(chInst[fmCh].DT1); }
-
-        else if (fxValue == 0x20) { chInst[fmCh].DT2 = tmpInst[id].DT2; write_dt2_mul2(); }
-        else if ((fxValue >= 0x21) && (fxValue <= 0x28)) { chInst[fmCh].DT2 = fxValue - 0x21; write_dt2_mul2(chInst[fmCh].DT2); }
-
-        else if (fxValue == 0x30) { chInst[fmCh].DT3 = tmpInst[id].DT3; write_dt3_mul3(); }
-        else if ((fxValue >= 0x31) && (fxValue <= 0x38)) { chInst[fmCh].DT3 = fxValue - 0x31; write_dt3_mul3(chInst[fmCh].DT3); }
-
-        else if (fxValue == 0x40) { chInst[fmCh].DT4 = tmpInst[id].DT4; write_dt4_mul4(); }
-        else if ((fxValue >= 0x41) && (fxValue <= 0x48)) { chInst[fmCh].DT4 = fxValue - 0x41; write_dt4_mul4(chInst[fmCh].DT4); }
-
-        else if (!fxValue) // reset all
+        switch (fxValue)
         {
+        case 0x01: chInst[fmCh].DT1 = tmpInst[id].DT1; write_dt1_mul1(); break;
+        case 0x02: chInst[fmCh].DT2 = tmpInst[id].DT2; write_dt2_mul2(); break;
+        case 0x03: chInst[fmCh].DT3 = tmpInst[id].DT3; write_dt3_mul3(); break;
+        case 0x04: chInst[fmCh].DT4 = tmpInst[id].DT4; write_dt4_mul4(); break;
+        case 0x00:
             chInst[fmCh].DT1 = tmpInst[id].DT1;
             chInst[fmCh].DT2 = tmpInst[id].DT2;
             chInst[fmCh].DT3 = tmpInst[id].DT3;
             chInst[fmCh].DT4 = tmpInst[id].DT4;
             write_dt1_mul1(); write_dt2_mul2(); write_dt3_mul3(); write_dt4_mul4();
+            break;
+        default:
+                 if ((fxValue > 0x0F) && (fxValue < 0x18)) { chInst[fmCh].DT1 = fxValue - 0x10; write_dt1_mul1(chInst[fmCh].DT1); }
+            else if ((fxValue > 0x1F) && (fxValue < 0x28)) { chInst[fmCh].DT2 = fxValue - 0x20; write_dt2_mul2(chInst[fmCh].DT2); }
+            else if ((fxValue > 0x2F) && (fxValue < 0x38)) { chInst[fmCh].DT3 = fxValue - 0x30; write_dt3_mul3(chInst[fmCh].DT3); }
+            else if ((fxValue > 0x3F) && (fxValue < 0x48)) { chInst[fmCh].DT4 = fxValue - 0x40; write_dt4_mul4(chInst[fmCh].DT4); }
+            else if ((fxValue > 0x4F) && (fxValue < 0x58)) {
+                chInst[fmCh].DT1 = chInst[fmCh].DT2 = chInst[fmCh].DT3 = chInst[fmCh].DT4 = fxValue - 0x50;
+                write_dt1_mul1(); write_dt2_mul2(); write_dt3_mul3(); write_dt4_mul4(); }
+            break;
         }
         break;
 
@@ -4890,131 +4885,111 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
 
     // ATTACK
     case 0xA1:
-        if (!fxValue) chInst[fmCh].AR1 = tmpInst[id].AR1;
-        else if (fxValue <= 0x20) chInst[fmCh].AR1 = fxValue - 1;
-        else return;
+        if (fxValue > 0x1F) chInst[fmCh].AR1 = tmpInst[id].AR1;
+        else chInst[fmCh].AR1 = fxValue;
         write_rs1_ar1();
         break;
     case 0xA2:
-        if (!fxValue) chInst[fmCh].AR2 = tmpInst[id].AR2;
-        else if (fxValue <= 0x20) chInst[fmCh].AR2 = fxValue - 1;
-        else return;
+        if (fxValue > 0x1F) chInst[fmCh].AR2 = tmpInst[id].AR2;
+        else chInst[fmCh].AR2 = fxValue;
         write_rs2_ar2();
         break;
     case 0xA3:
-        if (!fxValue) chInst[fmCh].AR3 = tmpInst[id].AR3;
-        else if (fxValue <= 0x20) chInst[fmCh].AR3 = fxValue - 1;
-        else return;
+        if (fxValue > 0x1F) chInst[fmCh].AR3 = tmpInst[id].AR3;
+        else chInst[fmCh].AR3 = fxValue;
         write_rs3_ar3();
         break;
     case 0xA4:
-        if (!fxValue) chInst[fmCh].AR4 = tmpInst[id].AR4;
-        else if (fxValue <= 0x20) chInst[fmCh].AR4 = fxValue - 1;
-        else return;
+        if (fxValue > 0x1F) chInst[fmCh].AR4 = tmpInst[id].AR4;
+        else chInst[fmCh].AR4 = fxValue;
         write_rs4_ar4();
         break;
 
     // DECAY 1
     case 0xB1:
-        if (!fxValue) chInst[fmCh].D1R1 = tmpInst[id].D1R1;
-        else if (fxValue <= 0x20) chInst[fmCh].D1R1 = fxValue - 1;
-        else return;
+        if (fxValue > 0x1F) chInst[fmCh].D1R1 = tmpInst[id].D1R1;
+        else chInst[fmCh].D1R1 = fxValue;
         write_am1_d1r1();
         break;
     case 0xB2:
-        if (!fxValue) chInst[fmCh].D1R2 = tmpInst[id].D1R2;
-        else if (fxValue <= 0x20) chInst[fmCh].D1R2 = fxValue - 1;
-        else return;
+        if (fxValue > 0x1F) chInst[fmCh].D1R2 = tmpInst[id].D1R2;
+        else chInst[fmCh].D1R2 = fxValue;
         write_am2_d1r2();
         break;
     case 0xB3:
-        if (!fxValue) chInst[fmCh].D1R3 = tmpInst[id].D1R3;
-        else if (fxValue <= 0x20) chInst[fmCh].D1R3 = fxValue - 1;
-        else return;
+        if (fxValue > 0x1F) chInst[fmCh].D1R3 = tmpInst[id].D1R3;
+        else chInst[fmCh].D1R3 = fxValue;
         write_am3_d1r3();
         break;
     case 0xB4:
-        if (!fxValue) chInst[fmCh].D1R4 = tmpInst[id].D1R4;
-        else if (fxValue <= 0x20) chInst[fmCh].D1R4 = fxValue - 1;
-        else return;
+        if (fxValue > 0x1F) chInst[fmCh].D1R4 = tmpInst[id].D1R4;
+        else chInst[fmCh].D1R4 = fxValue;
         write_am4_d1r4();
         break;
 
     // SUSTAIN
     case 0xC1:
-        if (!fxValue) chInst[fmCh].D1L1 = tmpInst[id].D1L1;
-        else if (fxValue <= 0x10) chInst[fmCh].D1L1 = fxValue - 1;
-        else return;
+        if (fxValue > 0x0F) chInst[fmCh].D1L1 = tmpInst[id].D1L1;
+        else chInst[fmCh].D1L1 = fxValue;
         write_d1l1_rr1();
         break;
     case 0xC2:
-        if (!fxValue) chInst[fmCh].D1L2 = tmpInst[id].D1L2;
-        else if (fxValue <= 0x10) chInst[fmCh].D1L2 = fxValue - 1;
-        else return;
+        if (fxValue > 0x0F) chInst[fmCh].D1L2 = tmpInst[id].D1L2;
+        else chInst[fmCh].D1L2 = fxValue;
         write_d1l2_rr2();
         break;
     case 0xC3:
-        if (!fxValue) chInst[fmCh].D1L3 = tmpInst[id].D1L3;
-        else if (fxValue <= 0x10) chInst[fmCh].D1L3 = fxValue - 1;
-        else return;
+        if (fxValue > 0x0F) chInst[fmCh].D1L3 = tmpInst[id].D1L3;
+        else chInst[fmCh].D1L3 = fxValue;
         write_d1l3_rr3();
         break;
     case 0xC4:
-        if (!fxValue) chInst[fmCh].D1L4 = tmpInst[id].D1L4;
-        else if (fxValue <= 0x10) chInst[fmCh].D1L4 = fxValue - 1;
-        else return;
+        if (fxValue > 0x0F) chInst[fmCh].D1L4 = tmpInst[id].D1L4;
+        else chInst[fmCh].D1L4 = fxValue;
         write_d1l4_rr4();
         break;
 
     // DECAY 2
     case 0xD1:
-        if (!fxValue) chInst[fmCh].D2R1 = tmpInst[id].D2R1;
-        else if (fxValue <= 0x20) chInst[fmCh].D2R1 = fxValue - 1;
-        else return;
+        if (fxValue > 0x1F) chInst[fmCh].D2R1 = tmpInst[id].D2R1;
+        else chInst[fmCh].D2R1 = fxValue;
         write_d2r1();
         break;
     case 0xD2:
-        if (!fxValue) chInst[fmCh].D2R2 = tmpInst[id].D2R2;
-        else if (fxValue <= 0x20) chInst[fmCh].D2R2 = fxValue - 1;
-        else return;
+        if (fxValue > 0x1F) chInst[fmCh].D2R2 = tmpInst[id].D2R2;
+        else chInst[fmCh].D2R2 = fxValue;
         write_d2r2();
         break;
     case 0xD3:
-        if (!fxValue) chInst[fmCh].D2R3 = tmpInst[id].D2R3;
-        else if (fxValue <= 0x20) chInst[fmCh].D2R3 = fxValue - 1;
-        else return;
+        if (fxValue > 0x1F) chInst[fmCh].D2R3 = tmpInst[id].D2R3;
+        else chInst[fmCh].D2R3 = fxValue;
         write_d2r3();
         break;
     case 0xD4:
-        if (!fxValue) chInst[fmCh].D2R4 = tmpInst[id].D2R4;
-        else if (fxValue <= 0x20) chInst[fmCh].D2R4 = fxValue - 1;
-        else return;
+        if (fxValue > 0x1F) chInst[fmCh].D2R4 = tmpInst[id].D2R4;
+        else chInst[fmCh].D2R4 = fxValue;
         write_d2r4();
         break;
 
     // RELEASE
     case 0xE1:
-        if (!fxValue) chInst[fmCh].RR1 = tmpInst[id].RR1;
-        else if (fxValue <= 0x10) chInst[fmCh].RR1 = fxValue - 1;
-        else return;
+        if (fxValue > 0x0F) chInst[fmCh].RR1 = tmpInst[id].RR1;
+        else chInst[fmCh].RR1 = fxValue;
         write_d1l1_rr1();
         break;
     case 0xE2:
-        if (!fxValue) chInst[fmCh].RR2 = tmpInst[id].RR2;
-        else if (fxValue <= 0x10) chInst[fmCh].RR2 = fxValue - 1;
-        else return;
+        if (fxValue > 0x0F) chInst[fmCh].RR2 = tmpInst[id].RR2;
+        else chInst[fmCh].RR2 = fxValue;
         write_d1l2_rr2();
         break;
     case 0xE3:
-        if (!fxValue) chInst[fmCh].RR3 = tmpInst[id].RR3;
-        else if (fxValue <= 0x10) chInst[fmCh].RR3 = fxValue - 1;
-        else return;
+        if (fxValue > 0x0F) chInst[fmCh].RR3 = tmpInst[id].RR3;
+        else chInst[fmCh].RR3 = fxValue;
         write_d1l3_rr3();
         break;
     case 0xE4:
-        if (!fxValue) chInst[fmCh].RR4 = tmpInst[id].RR4;
-        else if (fxValue <= 0x10) chInst[fmCh].RR4 = fxValue - 1;
-        else return;
+        if (fxValue > 0x0F) chInst[fmCh].RR4 = tmpInst[id].RR4;
+        else chInst[fmCh].RR4 = fxValue;
         write_d1l4_rr4();
         break;
 
@@ -5022,31 +4997,31 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
     case 0x08:
         switch(fxValue)
         {
-            case 0x10: { chInst[fmCh].AM1 = tmpInst[id].AM1; write_am1_d1r1(); }
+            case 0x01: { chInst[fmCh].AM1 = tmpInst[id].AM1; write_am1_d1r1(); }
                 break;
             case 0x11: { chInst[fmCh].AM1 = 1; write_am1_d1r1(); }
                 break;
-            case 0x12: { chInst[fmCh].AM1 = 0; write_am1_d1r1(); }
+            case 0x10: { chInst[fmCh].AM1 = 0; write_am1_d1r1(); }
                 break;
-            case 0x20: { chInst[fmCh].AM2 = tmpInst[id].AM2; write_am2_d1r2(); }
+            case 0x02: { chInst[fmCh].AM2 = tmpInst[id].AM2; write_am2_d1r2(); }
                 break;
             case 0x21: { chInst[fmCh].AM2 = 1; write_am2_d1r2(); }
                 break;
-            case 0x22: { chInst[fmCh].AM2 = 0; write_am2_d1r2(); }
+            case 0x20: { chInst[fmCh].AM2 = 0; write_am2_d1r2(); }
                 break;
-            case 0x30: { chInst[fmCh].AM3 = tmpInst[id].AM3; write_am3_d1r3(); }
+            case 0x03: { chInst[fmCh].AM3 = tmpInst[id].AM3; write_am3_d1r3(); }
                 break;
             case 0x31: { chInst[fmCh].AM3 = 1; write_am3_d1r3(); }
                 break;
-            case 0x32: { chInst[fmCh].AM3 = 0; write_am3_d1r3(); }
+            case 0x30: { chInst[fmCh].AM3 = 0; write_am3_d1r3(); }
                 break;
-            case 0x40: { chInst[fmCh].AM4 = tmpInst[id].AM4; write_am4_d1r4(); }
+            case 0x04: { chInst[fmCh].AM4 = tmpInst[id].AM4; write_am4_d1r4(); }
                 break;
             case 0x41: { chInst[fmCh].AM4 = 1; write_am4_d1r4(); }
                 break;
-            case 0x42: { chInst[fmCh].AM4 = 0; write_am4_d1r4(); }
+            case 0x40: { chInst[fmCh].AM4 = 0; write_am4_d1r4(); }
                 break;
-            case 0x00: case 0x50:
+            case 0x00:
                 chInst[fmCh].AM1 = tmpInst[id].AM1;
                 chInst[fmCh].AM2 = tmpInst[id].AM2;
                 chInst[fmCh].AM3 = tmpInst[id].AM3;
@@ -5057,7 +5032,7 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
                 chInst[fmCh].AM1 = chInst[fmCh].AM2 = chInst[fmCh].AM3 = chInst[fmCh].AM4 = 1;
                 write_am1_d1r1(); write_am2_d1r2(); write_am3_d1r3(); write_am4_d1r4();
                 break;
-            case 0x52:
+            case 0x50:
                 chInst[fmCh].AM1 = chInst[fmCh].AM2 = chInst[fmCh].AM3 = chInst[fmCh].AM4 = 0;
                 write_am1_d1r1(); write_am2_d1r2(); write_am3_d1r3(); write_am4_d1r4();
                 break;
@@ -5067,65 +5042,56 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
 
     // SSG-EG
     case 0x09:
-        if (fxValue == 0x10) { chInst[fmCh].SSGEG1 = tmpInst[id].SSGEG1; write_ssgeg1(); }
-        else if ((fxValue >= 0x11) && (fxValue <= 0x19)) { chInst[fmCh].SSGEG1 = fxValue - 0x0A; write_ssgeg1(); }
-
-        else if (fxValue == 0x20) { chInst[fmCh].SSGEG2 = tmpInst[id].SSGEG2; write_ssgeg2(); }
-        else if ((fxValue >= 0x21) && (fxValue <= 0x29)) { chInst[fmCh].SSGEG2 = fxValue - 0x1A; write_ssgeg2(); }
-
-        else if (fxValue == 0x30) { chInst[fmCh].SSGEG3 = tmpInst[id].SSGEG3; write_ssgeg3(); }
-        else if ((fxValue >= 0x31) && (fxValue <= 0x39)) { chInst[fmCh].SSGEG3 = fxValue - 0x2A; write_ssgeg3(); }
-
-        else if (fxValue == 0x40) { chInst[fmCh].SSGEG4 = tmpInst[id].SSGEG4; write_ssgeg4(); }
-        else if ((fxValue >= 0x41) && (fxValue <= 0x49)) { chInst[fmCh].SSGEG4 = fxValue - 0x3A; write_ssgeg4(); }
-
-        else if (!fxValue || fxValue == 0x50) // reset all
+        switch (fxValue)
         {
+        case 0x01: chInst[fmCh].SSGEG1 = tmpInst[id].SSGEG1; write_ssgeg1(); break;
+        case 0x02: chInst[fmCh].SSGEG2 = tmpInst[id].SSGEG2; write_ssgeg2(); break;
+        case 0x03: chInst[fmCh].SSGEG3 = tmpInst[id].SSGEG3; write_ssgeg3(); break;
+        case 0x04: chInst[fmCh].SSGEG4 = tmpInst[id].SSGEG4; write_ssgeg4(); break;
+        case 0x00:
             chInst[fmCh].SSGEG1 = tmpInst[id].SSGEG1;
             chInst[fmCh].SSGEG2 = tmpInst[id].SSGEG2;
             chInst[fmCh].SSGEG3 = tmpInst[id].SSGEG3;
             chInst[fmCh].SSGEG4 = tmpInst[id].SSGEG4;
             write_ssgeg1(); write_ssgeg2(); write_ssgeg3(); write_ssgeg4();
+            break;
+        default:
+                 if ((fxValue > 0x09) && (fxValue < 0x19)) { chInst[fmCh].SSGEG1 = fxValue - 0x09; write_ssgeg1(); }
+            else if ((fxValue > 0x1F) && (fxValue < 0x29)) { chInst[fmCh].SSGEG2 = fxValue - 0x19; write_ssgeg2(); }
+            else if ((fxValue > 0x2F) && (fxValue < 0x39)) { chInst[fmCh].SSGEG3 = fxValue - 0x29; write_ssgeg3(); }
+            else if ((fxValue > 0x3F) && (fxValue < 0x49)) { chInst[fmCh].SSGEG4 = fxValue - 0x39; write_ssgeg4(); }
+            else if ((fxValue > 0x4F) && (fxValue < 0x59)) {
+                chInst[fmCh].SSGEG1 = chInst[fmCh].SSGEG2 = chInst[fmCh].SSGEG3 = chInst[fmCh].SSGEG4 = fxValue - 0x49;
+                write_ssgeg1(); write_ssgeg2(); write_ssgeg3(); write_ssgeg4(); }
+            break;
         }
-        else if ((fxValue >= 0x51) && (fxValue <= 0x59))
-        {
-            chInst[fmCh].SSGEG1 = chInst[fmCh].SSGEG2 = chInst[fmCh].SSGEG3 = chInst[fmCh].SSGEG4 = fxValue - 0x4A;
-            write_ssgeg1(); write_ssgeg2(); write_ssgeg3(); write_ssgeg4();
-        }
-        else return;
         break;
 
     // ALGORITHM
     case 0x0A:
-        if (!fxValue) chInst[fmCh].ALG = tmpInst[id].ALG;
-        else if (fxValue < 9) chInst[fmCh].ALG = fxValue - 1;
-        else return;
+        if (fxValue > 7) chInst[fmCh].ALG = tmpInst[id].ALG;
+        else chInst[fmCh].ALG = fxValue;
         write_fb_alg();
         break;
 
     // OP1 FEEDBACK
     case 0x0B:
-        if (!fxValue) chInst[fmCh].FB = tmpInst[id].FB;
-        else if (fxValue < 9) chInst[fmCh].FB = fxValue - 1;
-        else return;
+        if (fxValue > 7) chInst[fmCh].FB = tmpInst[id].FB;
+        else chInst[fmCh].FB = fxValue;
         write_fb_alg();
         break;
 
     // AMS
     case 0x0C:
-        if (!fxValue) chInst[fmCh].AMS = tmpInst[id].FMS;
-        else if (fxValue < 8) chInst[fmCh].AMS = fxValue;
-        else if (fxValue == 0x0F) chInst[fmCh].AMS = 0;
-        else return;
+        if (fxValue > 7) chInst[fmCh].AMS = tmpInst[id].FMS;
+        else chInst[fmCh].AMS = fxValue;
         write_pan_ams_fms();
         break;
 
     // FMS
     case 0x0D:
-        if (!fxValue) chInst[fmCh].FMS = tmpInst[id].AMS;
-        else if (fxValue < 4) chInst[fmCh].FMS = fxValue;
-        else if (fxValue == 0x0F) chInst[fmCh].FMS = 0;
-        else return;
+        if (fxValue > 3) chInst[fmCh].FMS = tmpInst[id].AMS;
+        else chInst[fmCh].FMS = fxValue;
         write_pan_ams_fms();
         break;
 
@@ -5707,20 +5673,27 @@ void DrawStaticHeaders()
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SLASH_FAT), 70, 22);
     FillRowRight(BG_A, PAL3, FALSE, TRUE, GUI_LOWLINE, 9, 71, 22);
 
-    for (u8 y=4; y<20; y++) // pattern effects separator dots
+    for (u8 y=4; y<20; y++) // pattern effects separator dots, numbers
     {
+        u8 pal;
+        if (y%4) pal = PAL3; else pal = PAL0;
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(pal, 1, FALSE, FALSE, bgBaseTileIndex[0] + y-4), 44, y);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(pal, 1, FALSE, FALSE, bgBaseTileIndex[0] + y+12), 64, y);
+
         for (u8 x=49; x<59; x+=2)
         {
             VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SEPARATOR), x, y);
             VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SEPARATOR), x + 20, y);
         }
-    }
+    };
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_00), 44, 4); // 00
 
     FillRowRight(BG_B, PAL3, FALSE, TRUE, GUI_LOWLINE, 19, 41, 3); // pattern high lines
     FillRowRight(BG_B, PAL3, FALSE, FALSE, GUI_LOWLINE, 19, 61, 3);
 
-    //DrawText(BG_A, PAL3, "PT", 41, 0); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 43, 0);
-    VDP_setTextPalette(PAL3); VDP_drawText("PATTERN:", 41, 0);
+    VDP_setTextPalette(PAL3); VDP_drawText("PATTERN:", 41, 0); VDP_drawText("COPY FROM:", 54, 0);
+    VDP_setTextPalette(PAL1); VDP_drawText("---", 65, 0);
+
     DrawText(BG_A, PAL3, "KEY", 41, 2);
     DrawText(BG_A, PAL3, "IN", 45, 2);
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_FX_SYM), 48, 2);
