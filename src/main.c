@@ -3165,7 +3165,14 @@ inline void DisplayInstrumentEditor()
             break;
         case GUI_INST_PARAM_MUL: case 248:
             for (u8 i=0; i<4; i++)
-                VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + SRAM_ReadInstrument(selectedInstrumentID, INST_MUL1 + i)), 95 + i*3, 11);
+            {
+                u8 mul = SRAM_ReadInstrument(selectedInstrumentID, INST_MUL1 + i);
+                VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + mul), 95 + i*3, 11);
+                if (mul > 1)
+                    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[3] + mul + (GUI_MUL-2)), 93 + i*3, 11);
+                else
+                    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, NULL), 93 + i*3, 11);
+            }
             break;
         case GUI_INST_PARAM_DT: case 247:
             for (u8 i=0; i<4; i++)
@@ -3204,8 +3211,17 @@ inline void DisplayInstrumentEditor()
             for (u8 i=0; i<4; i++)
             {
                 value = SRAM_ReadInstrument(selectedInstrumentID, INST_SSGEG1 + i);
-                if (value > 7) DrawHex2(PAL0, value - 7, 94 + i*3, 21);
-                else FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_BIGDOT, 2, 94 + i*3, 21);
+                if (value > 7)
+                {
+                    value -= 7;
+                    DrawHex2(PAL0, value, 94 + i*3, 21);
+                    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[3] + value + (GUI_SSG-1)), 93 + i*3, 21);
+                }
+                else
+                {
+                    FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_BIGDOT, 2, 94 + i*3, 21);
+                    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, NULL), 93 + i*3, 21);
+                }
             }
         case GUI_INST_PARAM_LFO: case 239:
             value = SRAMW_readByte(GLOBAL_LFO);
@@ -3877,13 +3893,13 @@ static inline void StopAllSound()
         StopEffects(ch);
 
         // only at playback stop, so note OFF is not affected
-        channelAttenuation[ch] = 0;
+        //channelAttenuation[ch] = 0; // keep post-fader volume
         channelVolumeChangeSpeed[ch] = 0;
 
         channelSeqAttenuation[ch] = SEQ_VOL_MIN_ATT;
 
-        channelArpSeqID[ch] = 0;
-        channelVolSeqID[ch] = 0;
+        //channelArpSeqID[ch] = 0; // keep arp
+        //channelVolSeqID[ch] = 0; // keep arp
 
         channelCurrentRowNote[ch] = NOTE_EMPTY;
 

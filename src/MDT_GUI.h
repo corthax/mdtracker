@@ -157,8 +157,10 @@
 #define GUI_MATRIX_1XX              0
 #define GUI_MATRIX_2XX              1
 #define GUI_MATRIX_3XX              2
+#define GUI_SSG                     6
 #define GUI_TRANSPOSE               28
 #define GUI_00                      41
+#define GUI_MUL                     42
 #define GUI_BPM                     56
 #define GUI_FPS                     58
 #define GUI_PPS                     60
