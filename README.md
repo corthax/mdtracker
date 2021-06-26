@@ -9,7 +9,9 @@
 	
  Partially:
  
-	PicoDrive (RetroArch) - you may need to edit rom header with hex editor, replace "SEGA SSF" with any typical line, for ex. "SEGA MEGA DRIVE" or "SEGA GENESIS"
+	PicoDrive (RetroArch)
+	
+	- Replace "SEGA SSF" with "SEGA GENESIS" in rom header.
 	
 ---
 
