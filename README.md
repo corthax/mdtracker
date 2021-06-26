@@ -1,9 +1,14 @@
 # mdtracker
  Native music tracker for SEGA MEGA DRIVE / GENESIS / NOMAD
+ 
  Works on:
+ 
 	BlastEm (RetroArch)
+	
 	Mega Everdrive Pro
+	
  Partially:
+ 
 	PicoDrive (RetroArch) - you may need to edit rom header with hex editor, replace "SEGA SSF" with any typical line, for ex. "SEGA MEGA DRIVE" or "SEGA GENESIS"
 	
 ---
