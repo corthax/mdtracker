@@ -24,12 +24,11 @@ Emulators:
 		FM CH.3 Special+CSM mode not working.
 	BlastEm (RetroArch)
 		ISSUES:
-		No command help will be displayed.
 //////////////////
 Flashcarts: 
 	Mega Everdrive Pro (MEGAOS-V4.11)
 		ISSUES:
-		Replaced .srm file is not loaded. Remove *name*.cfg in \MEGA\sys\romcfg\
+		Replaced .srm file is not loaded. Remove *rom name*.cfg in \MEGA\sys\romcfg\
 		No mapper for SSF + MSU-MD Currently.
 //////////////////
 
@@ -277,18 +276,19 @@ WARNING
 	Speed of played sample may be affected if there are too many parameter changes at the same tick.
 //////////////////
 
-	Reserved space for DAC data in ROM (This range may change on next versions).
+	Reserved space for DAC data in ROM.
 	
-	DAC ROM Samples region: (do not overlap the end or rom will be corrupted)
-		START:	028600 [While WIP: See symbols.txt sample_bank_1]
-		END:	18AB00 [...]
+	DAC ROM Samples region: (do go beyond or rom will be corrupted)
+		START:	0002FA00
+		END:	0036DC00
 	
 	Sample format: RAW (header-less), Signed 8 bit PCM, 32000 hz
+	3400192 bytes range reserved for DAC samples (~1min 46sec)
 		
 	With any hex editor overwrite that range with your samples.
 	Then assign ranges to keys inside instrument editor SAMPLE section.
 	
-	Audacity can be used to figure out the exact samples start and end (sample number == adress, just convert to HEX).
+	Audacity can be used to figure out the exact samples start and end (sample number == adress, convert to HEX).
 
 ************************************************
 FM3 Channel Mode

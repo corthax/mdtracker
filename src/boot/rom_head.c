@@ -76,7 +76,7 @@ const struct
 //"D"	Download?
     "6               ",
     0x00000000, // ROM start
-    0x001FFFFF, // ROM end (2MB)
+    0x0037FFFF, // ROM end (2MB) 1FFFFF
     0x00FF0000, // BRAM start
     0x00FFFFFF, // BRAM end
     "RA",       // uses SRAM
@@ -89,8 +89,8 @@ const struct
 //F8	Yes	    8-bit (odd addresses)
 //"RA", 0xE840; EEPROM type
     0xE020,     // 16 bit SRAM mode
-    0x00200000, // SRAM start
-    0x0027FFFF, // SRAM end
+    0x00380000, // SRAM start 200000
+    0x003FFFFF, // SRAM end 27FFFF
     "            ",                             // modem
     "MUSIC TRACKER                           ", // memo
     "JUE             "                          // country

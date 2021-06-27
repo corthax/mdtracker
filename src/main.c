@@ -320,6 +320,8 @@ int main(bool hardReset)
 {
     if (!hardReset) SYS_hardReset(); // clear on soft reset
     ForceResetVariables();
+    InitPresets();
+    InitInfo();
     InitTracker();
 	while(1)
     {
@@ -5276,7 +5278,6 @@ static inline void YM2612_writeRegZ80(u16 part, u8 reg, u8 data)
 void InitTracker()
 {
     SYS_disableInts();
-    //ForceResetVariables();
     /*
     0 $A130F1 	SRAM access register
     1 $A130F3 	Bank register for address $80000-$FFFFF
@@ -5295,22 +5296,11 @@ void InitTracker()
         Backup ram mapped to the last 31th bank.
     */
 
-#if (MDT_VERSION == 0)
     ssf_init();
-    ssf_set_rom_bank(4, 31);
+    ssf_set_rom_bank(7, 31); // 4
     ssf_rom_wr_on();
-    msu_resp = msu_drv();
-#elif (MDT_VERSION == 1)
-    ssf_init();
-    ssf_set_rom_bank(4, 31);
-    ssf_rom_wr_on();
-    msu_resp = msu_drv();
-#else
-    ssf_init();
-    ssf_set_rom_bank(4, 31);
-    ssf_rom_wr_on();
-#endif
 
+    msu_resp = msu_drv();
     //if (msu_resp == 0) // Function will return 0 if driver loaded successfully or 1 if MCD hardware not detected.
     //{
         //while (*mcd_stat != 1); // Init driver ... 0-ready, 1-init, 2-cmd busy
@@ -5965,7 +5955,4 @@ void ForceResetVariables()
             channelRowShift[ch][row] = 0;
         }
     }
-
-    InitPresets();
-    InitInfo();
 }
