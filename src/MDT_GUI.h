@@ -158,6 +158,8 @@
 #define GUI_MATRIX_2XX              1
 #define GUI_MATRIX_3XX              2
 #define GUI_SSG                     6
+#define GUI_LOOP_START              14
+#define GUI_LOOP_END                15
 #define GUI_TRANSPOSE               28
 #define GUI_00                      41
 #define GUI_MUL                     42

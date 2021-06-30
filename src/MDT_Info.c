@@ -66,8 +66,8 @@ void InitInfo()
     infoCommands[0x3C] = "";
     infoCommands[0x3D] = "";
     infoCommands[0x3E] = "";
-    infoCommands[0x3F] = "VOL EQUENCE MACRO MODE          ";
-    infoCommands[0x40] = "VOL EQUENCE MACRO               ";
+    infoCommands[0x3F] = "VOL SEQUENCE MACRO MODE         ";
+    infoCommands[0x40] = "VOL SEQUENCE MACRO              ";
     infoCommands[0x41] = "CHANNEL VOLUME ATTENUATION      ";
     infoCommands[0x42] = "TREMOLO                         ";
     infoCommands[0x43] = "TREMOLO SPEED                   ";

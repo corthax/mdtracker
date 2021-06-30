@@ -31,6 +31,9 @@
 
 bool bWriteRegs = TRUE;
 
+u8 loopStart = OXFF; // matrix loop region
+u8 loopEnd = OXFF;
+
 u16 playingPatternID = 0;
 u8 playingMatrixRow = 0; // current played line
 u8 selectedMatrixScreenRow = 0; // selected matrix line on SCREEN
@@ -39,7 +42,7 @@ u8 selectedMatrixChannel = 0; // playback channel
 u8 updateCursor = 1; // playback cursor
 s8 currentPage = 0; // pattern matrix page
 
-u8 selectedPatternRow = 0;
+u8 selectedPatternRow = 0; // 0 .. 15 + patternColumnShift
 u8 selectedPatternColumn = 0;
 u16 selectedPatternID = 0;
 
@@ -60,7 +63,6 @@ u8 playingPatternRow = 0; // current played pattern row
 
 u8 channelPreviousInstrument[CHANNELS_TOTAL]; // 255 is used to write instrument when parameters changed
 u8 channelPreviousEffectType[CHANNELS_TOTAL][EFFECTS_TOTAL];
-//u8 channelPreviousEffectValue[CHANNELS_TOTAL][EFFECTS_TOTAL];
 u8 channelPreviousNote[CHANNELS_TOTAL];
 u8 channelArpSeqID[CHANNELS_TOTAL];
 u8 channelArpSeqMODE[CHANNELS_TOTAL];
@@ -135,7 +137,6 @@ bool bPsgIsPlayingNote[4];
 s16 matrixRowJumpTo = OXFF;
 u8 patternRowJumpTo = OXFF;
 u8 channelNoteDelayCounter[CHANNELS_TOTAL];
-//u8 channelNoteDelay[CHANNELS_TOTAL];
 
 u8 FM_CH3_OpFreq[4];
 
@@ -160,7 +161,7 @@ s8 patternCopyRangeEnd = NOTHING;
 
 u16 hIntToSkip = 0;
 u16 hIntCounter = 0;
-bool doPulse = FALSE;
+bool bDoPulse = FALSE;
 
 u16 bgBaseTileIndex[4];
 u16 asciiBaseLetters, asciiBaseNumbers;
@@ -169,11 +170,9 @@ u8 instCopyTo = 0x01; // instrument copy
 bool bBusTaken = FALSE;
 
 s8 buttonCounter = GUI_NAVIGATION_DELAY; // signed just in case of overflow
-bool doCount = FALSE;
+bool bDoCount = FALSE;
 u8 navigationDirection = BUTTON_RIGHT;
 
-//u8 psgPWM = FALSE;
-//u8 psgPulseCounter = 0;
 u8 FM_CH6_DAC_Pan = SOUND_PAN_CENTER;
 
 u32 FPS = 0;
@@ -187,16 +186,12 @@ Instrument chInst[6]; // to apply commands
 
 u8 midiPreset = 0;
 
-//#if (MDT_VERSION == 0)
 u16 msu_drv();
 vu16 *mcd_cmd = (vu16 *) 0xA12010;  // command
 vu32 *mcd_arg = (vu32 *) 0xA12012;  // argument
 vu8 *mcd_cmd_ck = (vu8 *) 0xA1201F; // increment for command execution
 vu8 *mcd_stat = (vu8 *) 0xA12020;   // Driver ready for commands processing when 0xA12020 sets to 0
 u16 msu_resp;
-//#endif
-
-// cant put in header. build error
 
 static const u8 GUI_PATTERNCOLORS[14] = { 42, 43, 44, 45, 46, 47, 56, 57, 58, 59, 60, 61, 62, 63 };
 
@@ -344,7 +339,7 @@ static inline void hIntCallback()
     hIntCounter--;
     if (!hIntCounter)
     {
-        doPulse = TRUE;
+        bDoPulse = TRUE;
         hIntCounter = hIntToSkip;
     }
 }
@@ -356,7 +351,7 @@ static inline void vIntCallback()
 
     SYS_doVBlankProcessEx(IMMEDIATELY);
     // fast navigation
-    if (doCount)
+    if (bDoCount)
     {
         buttonCounter--;
         if (buttonCounter < 1)
@@ -1078,16 +1073,16 @@ static inline void DoEngine()
 
             DrawMatrixPlaybackCursor(FALSE);
             hIntCounter = hIntToSkip; // reset h-int counter
-            doPulse = FALSE;
+            bDoPulse = FALSE;
 /*#if (MDT_VERSION == 0)
             ssf_led_on(); //! not work
 #endif*/
             SYS_enableInts();
         }
 
-        if (doPulse) // row sub-pulse
+        if (bDoPulse) // row sub-pulse
         {
-            doPulse = FALSE;
+            bDoPulse = FALSE;
             if (pulseCounter == -1) pulseCounter = 1; else pulseCounter++; // count row sub-pulses
             if (pulseCounter == maxPulse)
             {
@@ -1368,7 +1363,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
     static u8 patternColumnShift = 0;
     static s8 inc = 0; // paste increment
     static u8 row = 0; // paste row to
-    static u8 col = 0; // pattern color slot
+    static s8 col = 0; // pattern color slot
     static s8 transpose = 0; // matrix slot transpose
 
     u8 muted;
@@ -1419,7 +1414,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
             (selectedPatternColumn == DATA_INSTRUMENT + PATTERN_COLUMNS)
         )
         {
-            u8 value = SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_INSTRUMENT);
+            u8 value = SRAM_ReadPattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_INSTRUMENT);
             if (value != 0x00) selectedInstrumentID = value;
         }
     }
@@ -1474,7 +1469,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
 
         if (changed & BUTTON_DIR) // 1/2/4/8 (true) or 0 (false)
         {
-            doCount = changed; buttonCounter = GUI_NAVIGATION_DELAY; navigationDirection = state;
+            bDoCount = changed; buttonCounter = GUI_NAVIGATION_DELAY; navigationDirection = state;
         }
 
         // screens
@@ -1550,7 +1545,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                     if (selectedPatternID != NULL)
                     {
                         col = SRAM_ReadPatternColor(selectedPatternID)-1;
-                        if (col < 1) col = GUI_PATTERN_COLORS_MAX;
+                        if (col < 0) col = GUI_PATTERN_COLORS_MAX;
                         SRAM_WritePatternColor(selectedPatternID, col);
                         ReColorsAndTranspose();
                     }
@@ -1561,7 +1556,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                     if (selectedPatternID != NULL)
                     {
                         col = SRAM_ReadPatternColor(selectedPatternID)+1;
-                        if (col > GUI_PATTERN_COLORS_MAX) col = 1;
+                        if (col > GUI_PATTERN_COLORS_MAX) col = 0;
                         SRAM_WritePatternColor(selectedPatternID, col);
                         ReColorsAndTranspose();
                     }
@@ -1625,19 +1620,23 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                     break;
 
                 case BUTTON_UP:
-                    currentPage += 4;
-                    if (currentPage > MAX_MATRIX_PAGE) currentPage = MAX_MATRIX_PAGE;
+                    if (selectedMatrixRow == loopEnd) loopEnd = OXFF;
+                    loopStart = selectedMatrixRow;
                     bRefreshScreen = bInitScreen = TRUE;
                     matrixRowToRefresh = OXFFFF;
-                    ReColorsAndTranspose();
                     break;
 
                 case BUTTON_DOWN:
-                    currentPage -= 4;
-                    if (currentPage < 0) currentPage = 0;
+                    if (selectedMatrixRow == loopStart) loopStart = OXFF;
+                    loopEnd = selectedMatrixRow;
                     bRefreshScreen = bInitScreen = TRUE;
                     matrixRowToRefresh = OXFFFF;
-                    ReColorsAndTranspose();
+                    break;
+
+                case BUTTON_C:
+                    loopStart = loopEnd = OXFF;
+                    bRefreshScreen = bInitScreen = TRUE;
+                    matrixRowToRefresh = OXFFFF;
                     break;
                 }
                 break;
@@ -2529,7 +2528,14 @@ inline void DisplayPatternMatrix()
         {
             if (matrixRowToRefresh == OXFFFF) // redraw the whole matrix
             {
-                VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[0] + line + pageShift), 39, shiftY); // line number
+                u8 row;
+                row = line + pageShift;
+                VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[0] + row), 39, shiftY); // line number
+
+                if (row == loopStart) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[3] + GUI_LOOP_START), 39, shiftY);
+                else if (row == loopEnd) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[3] + GUI_LOOP_END), 39, shiftY);
+                else VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), 39, shiftY);
+
                 line++;
                 chan = 0;
                 if (line >= MATRIX_SCREEN_ROWS)
@@ -3557,9 +3563,13 @@ static inline void SetPitchPSG(u8 mtxCh, u8 note)
     {
         switch (mtxCh)
         {
-        case CHANNEL_PSG1: case CHANNEL_PSG2:
+        case CHANNEL_PSG1:
             SetChannelVolume(mtxCh);
-            PSG_setTone(mtxCh - 9, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]);
+            PSG_setTone(0, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh]>>1]); // write tone to PSG3 to supply PSG4 tonal noise
+            break;
+        case CHANNEL_PSG2:
+            SetChannelVolume(mtxCh);
+            PSG_setTone(1, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh]>>1]);
             break;
         case CHANNEL_PSG3:
             switch (PSG_NoiseMode)
@@ -3569,7 +3579,7 @@ static inline void SetPitchPSG(u8 mtxCh, u8 note)
                 break;
             case PSG_TONAL_CH3_NOT_MUTED: case PSG_FIXED:
                 SetChannelVolume(mtxCh);
-                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
+                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh]>>1]);
                 break;
             }
             break;
@@ -3579,13 +3589,13 @@ static inline void SetPitchPSG(u8 mtxCh, u8 note)
             case PSG_TONAL_CH3_MUTED:
                 SetChannelVolume(mtxCh);
                 PSG_setEnvelope(2, PSG_ENVELOPE_MIN); // mute PSG3 channel
-                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
+                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh]>>1]);
                 break;
             case PSG_TONAL_CH3_NOT_MUTED:
                 SetChannelVolume(mtxCh);
-                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
+                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh]>>1]);
                 break;
-             case PSG_FIXED:
+            case PSG_FIXED:
                 SetChannelVolume(mtxCh);
                 break;
             }
@@ -5756,7 +5766,7 @@ void DrawStaticHeaders()
 
     DrawText(BG_A, PAL3, "NAME", 91, 0); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 95, 0);
     DrawText(BG_A, PAL3, "COPY", 91, 1); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 95, 1);
-    DrawText(BG_A, PAL3, "OK", 97, 1);
+    DrawText(BG_A, PAL3, "OK", 97, 1); VDP_setTextPalette(PAL2); VDP_drawText("(B)", 99, 1);
 
     DrawText(BG_A, PAL3, "SAMPLE", 106, 0);
     //
@@ -5771,6 +5781,7 @@ void DrawStaticHeaders()
     VDP_setTextPalette(PAL3); VDP_drawText("PRESET", 106, 17);
     VDP_setTextPalette(PAL1); VDP_drawText(">", 113, 17); VDP_drawText("000", 114, 17);
     VDP_drawText(presetName[0], 106, 18);
+    VDP_setTextPalette(PAL2); VDP_drawText("(B)", 117, 17);
 
     DrawText(BG_A, PAL3, "STATE", 106, 20); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 111, 20);
     DrawText(BG_A, PAL0, "PLAY", 113, 20);
@@ -5853,10 +5864,10 @@ void ForceResetVariables()
     activeSampleBank=
     hIntToSkip=
     hIntCounter=
-    doPulse=
+    bDoPulse=
     asciiBaseLetters=
     asciiBaseNumbers=
-    doCount=
+    bDoCount=
     selectedMatrixChannel=0;
 
     lastEnteredEffect=
@@ -5875,11 +5886,13 @@ void ForceResetVariables()
     patternRowToRefresh=
     instrumentParameterToRefresh=
     matrixRowJumpTo=
+    loopStart=
+    loopEnd=
     patternRowJumpTo=OXFF;
 
     matrixRowToRefresh=OXFFFF;
 
-    lastEnteredNote = 45;
+    lastEnteredNote=45;
 
     FM_CH3_OpNoteStatus=0b00000010;
     ppl_1=ppl_2=maxPulse=4;
@@ -5952,7 +5965,7 @@ void ForceResetVariables()
 
         for (u8 row=0; row<32; row++)
         {
-            channelRowShift[ch][row] = 0;
+            channelRowShift[ch][row]=0;
         }
     }
 }
