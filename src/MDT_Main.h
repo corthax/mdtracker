@@ -28,21 +28,24 @@
 #define SEQ_VOL_MAX_ATT         0x7F
 #define PPL_DEFAULT             4
 
+#define PATTERN_ROWS            32
+#define PATTERN_ROW_LAST        0x1F    // index of max line; starts from 0
 #define PATTERN_LAST            0x380   // 896
-#define PATTERN_ROW_LAST        31      // index of max line; starts from 0
-#define PATTERN_JUMP_SIDE       0xFF
+#define PATTERN_JUMPSIDETRIGGER 0xFF
 
-#define MATRIX_ROWS_TOTAL           250
-#define LAST_MATRIX_SCREEN_ROW      24      // index of max line on SCREEN; starts from 0; 25 lines per page; 10 pages
-#define MATRIX_SCREEN_ROWS          25
-#define MAX_MATRIX_PAGE             9       // MAX_MATRIX_ROWS / (MAX_MATRIX_SCREEN_ROW + 1)) - 1
+#define MATRIX_ROWS             250
+#define MATRIX_ROWS_ONPAGE      25
+#define MATRIX_ROW_LAST         0xF9
+#define MATRIX_ROWS_ONPAGE_LAST 0x18    // index of max line on SCREEN; starts from 0; 25 lines per page; 10 pages
+#define MATRIX_PAGES            9        // MAX_MATRIX_ROWS / (MAX_MATRIX_SCREEN_ROW + 1)) - 1
 
 #define INST_SIZE               89
 #define INST_MUTE               1
 #define INST_PLAY               0
 #define INST_SOLO               2
 
-#define MAX_INSTRUMENT          0xFF
+#define INSTRUMENTS_TOTAL       256
+#define INSTRUMENTS_LAST        0xFF
 
 #define NOTE_EMPTY              0xFE
 #define NOTE_OFF                0xFF
@@ -72,6 +75,7 @@
 #define CHANNEL_PSG2            10
 #define CHANNEL_PSG3            11
 #define CHANNEL_PSG4_NOISE      12
+#define CHANNEL_LAST            12
 #define CHANNELS_TOTAL          13
 
 #define SCREEN_MATRIX           0
