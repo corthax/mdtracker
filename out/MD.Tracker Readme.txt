@@ -377,9 +377,15 @@ xx: 01 .. FF; Enable
 --: disable.
 
 ************************************************
-Note Cut (tip: cut the bass notes end to avoid clicks)
+Note Cut (tip: cut the bass notes ends to avoid clicks)
 	50xx	
 xx: 01 .. FF; Kill note after xx ticks. [new note does not disable it]
+
+************************************************
+Set Channel Note Auto Cut (a bit less efficient than setting Note Cut manually)
+	56xx	
+xx: 01 .. 0F; < PPL. Auto kill every note before next note.
+--: disable.
 
 ************************************************
 Note Retrigger (Will override commands [54] [61] [62])

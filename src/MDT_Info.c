@@ -89,7 +89,7 @@ void InitInfo()
     infoCommands[0x53] = "JUMP TO NEXT PATTERN            ";
     infoCommands[0x54] = "NOTE DELAY                      ";
     infoCommands[0x55] = "CSM BASE NOTE                   ";
-    infoCommands[0x56] = "";
+    infoCommands[0x56] = "NOTE AUTO CUT BEFORE NEXT NOTE  ";
     infoCommands[0x57] = "";
     infoCommands[0x58] = "";
     infoCommands[0x59] = "";
@@ -348,7 +348,7 @@ void InitInfo()
     infoDescriptions[0x53] = "01..1F PATTERN ROW TO JUMP, --=FIRST ";
     infoDescriptions[0x54] = "BY [XX] PULSES, --=NOTHING           ";
     infoDescriptions[0x55] = "09..5F 'FILTER' EFFECT, --=NOTHING   ";
-    infoDescriptions[0x56] = "";
+    infoDescriptions[0x56] = "01..0F TICKS<PPL, --=DISABLE         ";
     infoDescriptions[0x57] = "";
     infoDescriptions[0x58] = "";
     infoDescriptions[0x59] = "";

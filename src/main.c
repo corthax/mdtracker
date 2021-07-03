@@ -69,6 +69,7 @@ u8 channelArpSeqMODE[CHANNELS_TOTAL];
 u8 channelVolSeqID[CHANNELS_TOTAL];
 u8 channelVolSeqMODE[CHANNELS_TOTAL];
 u8 channelCurrentRowNote[CHANNELS_TOTAL];
+u8 channelNoteAutoCut[CHANNELS_TOTAL];
 
 u8 channelSEQCounter_VOL[CHANNELS_TOTAL];
 u8 channelSEQCounter_ARP[CHANNELS_TOTAL];
@@ -818,6 +819,25 @@ static inline void DoEngine()
             else
             {
                 channelCurrentRowNote[channel] = SRAM_ReadPattern(playingPatternID, playingPatternRow, DATA_NOTE);
+            }
+
+            // auto cut note before next note
+            if (channelNoteAutoCut[channel])
+            {
+                if (playingPatternRow == PATTERN_ROW_LAST)
+                {
+                    if (SRAM_ReadPattern(SRAM_ReadMatrix(channel, playingMatrixRow+1), 0, DATA_NOTE) < NOTE_TOTAL)
+                    {
+                        channelNoteCut[channel] = channelNoteAutoCut[channel];
+                    } else channelNoteCut[channel] = 0;
+                }
+                else
+                {
+                    if (SRAM_ReadPattern(playingPatternID, playingPatternRow+1, DATA_NOTE) < NOTE_TOTAL)
+                    {
+                        channelNoteCut[channel] = channelNoteAutoCut[channel];
+                    } else channelNoteCut[channel] = 0;
+                }
             }
 
             seq_vol(channel);
@@ -4473,6 +4493,11 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
         channelNoteDelayCounter[mtxCh] = fxValue;
         break;
 
+    // NOTE AUTO CUT
+    case 0x56:
+        channelNoteAutoCut[mtxCh] = fxValue;
+        break;
+
     // PATTERN SIZE
     case 0x60:
         if (fxValue > 0 && fxValue < 0x20) patternSize = fxValue;
@@ -5954,6 +5979,7 @@ void ForceResetVariables()
         channelNoteCut[ch]=
         channelNoteRetrigger[ch]=
         channelNoteDelayCounter[ch]=
+        channelNoteAutoCut[ch]=
         channelNoteRetriggerCounter[ch]=0;
 
         channelFlags[ch]=1;
