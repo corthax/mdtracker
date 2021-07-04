@@ -156,7 +156,11 @@ Current pattern is looped when pattern or instrument editor is active.
 	
 	C		Clear value.
 	C+B		Set note OFF on note column.
-	.
+	
+	[!!! Will squish all notes to octave 0 or 7 !!!] When note column is selected:
+	B+L     Whole pattern octave down.	 
+	B+R     Whole pattern octave up.
+	
 	Copy/Paste:
 
 	B+D		Select range, in current pattern, starting from selected row and below. Pressing B always clears selection range.

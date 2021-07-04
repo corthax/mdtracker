@@ -50,7 +50,7 @@
 #define NOTE_EMPTY              0xFE
 #define NOTE_OFF                0xFF
 #define NOTE_MAX                95
-#define NOTE_TOTAL              96
+#define NOTES              96
 #define OCTAVE_MAX              7
 
 #define CH3_SPECIAL             0b01000000

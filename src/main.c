@@ -612,7 +612,7 @@ static inline void DoEngine()
         // first pulse
         if (!pulseCounter)
         {
-            if (channelCurrentRowNote[channel] < NOTE_TOTAL)
+            if (channelCurrentRowNote[channel] < NOTES)
             {
                 // new note
                 channelSEQCounter_VOL[channel] = INST_VOL_TICK_01; // reset VOL SEQ to start
@@ -662,14 +662,14 @@ static inline void DoEngine()
         // first pulse
         if (!pulseCounter)
         {
-            if (channelCurrentRowNote[channel] < NOTE_TOTAL)
+            if (channelCurrentRowNote[channel] < NOTES)
             {
                 // new note
                 channelSEQCounter_ARP[channel] = INST_ARP_TICK_01; // reset ARP SEQ to start
                 _arpValue = SRAM_ReadInstrument(channelArpSeqID[channel], INST_ARP_TICK_01);
                 if (_arpValue != NOTE_EMPTY)
                 {
-                    if (channelCurrentRowNote[channel] < NOTE_TOTAL) // if there is note, modify it with ARP seq
+                    if (channelCurrentRowNote[channel] < NOTES) // if there is note, modify it with ARP seq
                     {
                         if (_arpValue > ARP_BASE) _key = channelCurrentRowNote[channel] + (_arpValue - ARP_BASE);
                         else if (_arpValue < ARP_BASE) _key = channelCurrentRowNote[channel] - (ARP_BASE - _arpValue);
@@ -826,14 +826,14 @@ static inline void DoEngine()
             {
                 if (playingPatternRow == PATTERN_ROW_LAST)
                 {
-                    if (SRAM_ReadPattern(SRAM_ReadMatrix(channel, playingMatrixRow+1), 0, DATA_NOTE) < NOTE_TOTAL)
+                    if (SRAM_ReadPattern(SRAM_ReadMatrix(channel, playingMatrixRow+1), 0, DATA_NOTE) < NOTES)
                     {
                         channelNoteCut[channel] = channelNoteAutoCut[channel];
                     } else channelNoteCut[channel] = 0;
                 }
                 else
                 {
-                    if (SRAM_ReadPattern(playingPatternID, playingPatternRow+1, DATA_NOTE) < NOTE_TOTAL)
+                    if (SRAM_ReadPattern(playingPatternID, playingPatternRow+1, DATA_NOTE) < NOTES)
                     {
                         channelNoteCut[channel] = channelNoteAutoCut[channel];
                     } else channelNoteCut[channel] = 0;
@@ -863,10 +863,10 @@ static inline void DoEngine()
             // --------- trigger note playback; check empty note later; pass note id: 0..95, 254, 255
             _key = channelCurrentRowNote[channel]; // note, off or empty
 
-            if (_key < NOTE_TOTAL) // only notes
+            if (_key < NOTES) // only notes
             {
                 _test = _key + _matrixTranspose;
-                if (_test < NOTE_TOTAL || _test > -1)
+                if (_test < NOTES || _test > -1)
                 {
                     _key = _test;
                     channelPreviousNote[channel] = channelArpNote[channel] = _key;
@@ -896,7 +896,7 @@ static inline void DoEngine()
 
     auto inline void do_effects(u8 channel)
     {
-        if (channelFlags[channel] && channelPreviousNote[channel] < NOTE_TOTAL)
+        if (channelFlags[channel] && channelPreviousNote[channel] < NOTES)
         {
             // exclude OFF
             //if (channelPreviousNote[channel] < NOTE_TOTAL)
@@ -1001,7 +1001,9 @@ static inline void DoEngine()
             {
                 if (FM_CH3_Mode == CH3_SPECIAL_CSM && channel == CHANNEL_FM3_OP4) FM_CH3_Mode = CH3_SPECIAL_CSM_OFF;
                 StopChannelSound(channel);
+                //StopEffects(channel);
                 channelNoteCut[channel] = 0;
+                channelPreviousNote[channel] = NOTE_OFF;
             }
         }
     }
@@ -2002,6 +2004,36 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                             else VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 64, patternCopyRangeEnd-12);
                             patternCopyRangeEnd++;
                         }
+                    }
+                    break;
+                // octave -
+                case BUTTON_LEFT:
+                    switch (selectedPatternColumn)
+                    {
+                    case DATA_NOTE: case (DATA_NOTE + PATTERN_COLUMNS):
+                        for (u8 row = 0; row < PATTERN_ROWS; row++)
+                        {
+                            u8 note = SRAM_ReadPattern(selectedPatternID, row, DATA_NOTE);
+                            if (note < NOTES && note > 11) note -= 12;
+                            SRAM_WritePattern(selectedPatternID, row, DATA_NOTE, note);
+                        }
+                        bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
+                        break;
+                    }
+                    break;
+                // octave +
+                case BUTTON_RIGHT:
+                    switch (selectedPatternColumn)
+                    {
+                    case DATA_NOTE: case (DATA_NOTE + PATTERN_COLUMNS):
+                        for (u8 row = 0; row < PATTERN_ROWS; row++)
+                        {
+                            u8 note = SRAM_ReadPattern(selectedPatternID, row, DATA_NOTE);
+                            if (note < NOTES && note < NOTES-11) note += 12;
+                            SRAM_WritePattern(selectedPatternID, row, DATA_NOTE, note);
+                        }
+                        bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
+                        break;
                     }
                     break;
                 }
@@ -3641,7 +3673,7 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
         key = note + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh];
     }
 
-    if ((key > -1) && (key < NOTE_TOTAL))
+    if ((key > -1) && (key < NOTES))
     {
         part1 = ((noteOctave[(u8)key]) << 3) | (noteMicrotone[noteFreqID[(u8)key]][(u8)channelFinalPitch[mtxCh]] >> 8);
         part2 = 0b0000000011111111 & noteMicrotone[noteFreqID[(u8)key]][(u8)channelFinalPitch[mtxCh]];
@@ -3764,7 +3796,7 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
 
 static inline void PlayNote(u8 note, u8 channel)
 {
-    if (note < NOTE_TOTAL)
+    if (note < NOTES)
     {
         channelVibratoPhase[channel] = 0; // neutral state
         channelTremoloPhase[channel] = 512; // neutral state
@@ -3799,16 +3831,17 @@ static void StopEffects(u8 channel)
     channelNoteDelayCounter[channel] = 0;
 
     channelTremoloSpeed[channel] = 0;
-        channelTremoloSpeedMult[channel] = 0x20;
+    channelTremoloSpeedMult[channel] = 0x20;
     channelTremoloDepth[channel] = 0;
     channelTremoloPhase[channel] = 512;
 
-    channelVibratoMode[channel] = 0;
-    channelVibratoSpeed[channel] = 0;
-        channelVibratoSpeedMult[channel] = 0x08;
     channelVibratoDepth[channel] = 0;
-        channelVibratoDepthMult[channel] = 0x02;
+    channelVibratoSpeed[channel] = 0;
     channelVibratoPhase[channel] = 0;
+    //channelVibratoSpeedMult[channel] = 0x08;
+    //channelVibratoMode[channel] = 0;
+    //channelVibratoDepthMult[channel] = 0x02;
+
     channelPitchSlideSpeed[channel] = 0;
     channelFinalPitch[channel] = 0;
 
@@ -4380,7 +4413,7 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
         channelModNoteVibrato[mtxCh] = 0;
         break;
 
-    // VIBRATO SPEED MULT
+    // SET VIBRATO SPEED MULT
     case 0x34:
         if (fxValue > 0)
         {
@@ -4393,7 +4426,7 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
         channelVibratoSpeed[mtxCh] = ((fxValue & 0b11110000) >> 4) * channelVibratoSpeedMult[mtxCh];
         break;
 
-    // VIBRATO DEPTH MULT
+    // SET VIBRATO DEPTH MULT
     case 0x35:
         if (fxValue > 0)
         {
@@ -4406,12 +4439,12 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
         channelVibratoDepth[mtxCh] = (fxValue & 0b00001111) * channelVibratoDepthMult[mtxCh];
         break;
 
-    // VIBRATO MODE
+    // SET VIBRATO MODE
     case 0x36:
         if (fxValue < 3) channelVibratoMode[mtxCh] = fxValue;
         break;
 
-    // PORTAMENTO SKIP TICKS
+    // SET PORTAMENTO SKIP TICKS
     case 0x37:
         channelPitchSkipStep[mtxCh] = fxValue;
         break;
@@ -5285,22 +5318,22 @@ void SRAM_WriteMatrixChannelEnabled(u8 channel, u8 state)
 // pcm
 static inline u32 SRAM_ReadSampleRegion(u8 bank, u8 note, u8 byteNum)
 {
-    return (u32)SRAMW_readByte((u32)SAMPLE_DATA + (bank * NOTE_TOTAL * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum);
+    return (u32)SRAMW_readByte((u32)SAMPLE_DATA + (bank * NOTES * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum);
 }
 
 void SRAM_WriteSampleRegion(u8 bank, u8 note, u8 byteNum, u8 data)
 {
-    SRAMW_writeByte((u32)SAMPLE_DATA + (bank * NOTE_TOTAL * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum, data);
+    SRAMW_writeByte((u32)SAMPLE_DATA + (bank * NOTES * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum, data);
 }
 
 static inline u8 SRAM_ReadSamplePan(u8 bank, u8 note)
 {
-    return SRAMW_readByte((u32)SAMPLE_PAN + (bank * NOTE_TOTAL) + note);
+    return SRAMW_readByte((u32)SAMPLE_PAN + (bank * NOTES) + note);
 }
 
 void SRAM_WriteSamplePan(u8 bank, u8 note, u8 data)
 {
-    SRAMW_writeByte((u32)SAMPLE_PAN + (bank * NOTE_TOTAL) + note, data);
+    SRAMW_writeByte((u32)SAMPLE_PAN + (bank * NOTES) + note, data);
 }
 
 static inline void YM2612_writeRegZ80(u16 part, u8 reg, u8 data)
@@ -5563,7 +5596,7 @@ void InitTracker()
         // dac default pan init
         for (u8 bank = 0; bank < 4; bank++)
         {
-            for (u8 note = 0; note < NOTE_TOTAL; note++)
+            for (u8 note = 0; note < NOTES; note++)
             {
                 SRAM_WriteSamplePan(bank, note, SOUND_PAN_CENTER);
             }
