@@ -125,6 +125,7 @@ static void DoEngine();
 static void SetPitchFM(u8 mtxCh, u8 note);
 static void SetPitchPSG(u8 mtxCh, u8 note);
 static void PlayNote(u8 note, u8 mtxCh);
+static void PlayNoteOff(u8 mtxCh);
 static void StopChannelSound(u8 mtxCh);
 static void StopAllSound();
 static void StopEffects(u8 mtxCh);

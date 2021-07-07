@@ -106,6 +106,42 @@
 #define INST_NAME_7 87
 #define INST_NAME_8 88
 //}
+// sizes (byte):
+// pattern data size
+// 32 * 14 * 896 = 401408
+// 32 * 14 * 512 = 229376
+// 32 *  8 * 896 = 229376
+
+// 32 * 10 * 512 = 163840; 199463; (62169 free) 704 patterns max
+// 32 * 12 * 512 = 196608; 205231; (56913 free) 660 patterns max
+// 32 *  8 * 768 = 196608
+// pattern color
+// 896
+
+// ------------------------
+// instruments size
+// 256 * 89 = 22784
+
+// matrix size
+// 13 * 250 * 2 = 6500
+
+// matrix channels mute
+// 13
+
+// matrix transpose
+// 13 * 250 = 3250
+
+// sample data size
+// 4 * 96 * 8 = 3072
+// ------------------------
+
+// tempo/checker
+// 4
+
+// 35623
+
+// 256K = 262144
+// 512K = 524288
 
 #define PATTERN_COLUMNS     14
 #define PATTERN_SIZE        448 // 32 (pattern rows) * PATTERN_COLUMNS bytes

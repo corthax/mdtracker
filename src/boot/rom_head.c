@@ -35,21 +35,9 @@ const struct
 //    "SEGA PICO       "	SEGA Pico console for kids
 //    "SEGA TERA68K    "	Tera Drive (boot from 68000 side)
 //    "SEGA TERA286    "	Tera Drive (boot from x86 side)
-#if (MDT_VERSION == 0)
     "SEGA SSF        ", // Mega Everdrive Pro
-#elif (MDT_VERSION == 1)
-    "SEGA SSF        ", // BlastEm
-#else
-    "SEGA GENESIS    ", // PicoDrive
-#endif
     "(C)Corthax 2021 ",
-#if (MDT_VERSION == 0)
     "MD.Tracker (1.0b) [MEGA EVERDRIVE PRO]          ",
-#elif (MDT_VERSION == 1)
-    "MD.Tracker (1.0b) [BLASTEM]                     ",
-#else
-    "MD.Tracker (1.0b) [PICODRIVE]                   ",
-#endif
     "MD.Tracker                                      ",
 //    "GM"	Game
 //    "AI"	Educational Aid
@@ -74,7 +62,7 @@ const struct
 //"C"	CD-ROM (Sega CD)
 //"F"	Floppy drive
 //"D"	Download?
-    "6               ",
+    "C6              ",
     0x00000000, // ROM start
     0x0037FFFF, // ROM end (2MB) 1FFFFF
     0x00FF0000, // BRAM start
