@@ -752,15 +752,15 @@ static inline void DoEngine()
                 channelPreviousInstrument[channel] = _inst;
                 if (channel > 2) fmCh = channel - 3; else fmCh = channel;
                 chInst[fmCh] = tmpInst[_inst]; // copy from cached preset
-                bWriteRegs = FALSE; // no duplicate write regs
+                bWriteRegs = FALSE; // no duplicate write regs, only change chInst
 
                 if (_inst != channelPreviousInstrument[channel]) StopChannelSound(channel);
                 apply_commands();
-                WriteYM2612(channel, fmCh); // will rewrite instrument from cached preset
+                WriteYM2612(channel, fmCh); // will rewrite instrument from chInst
             }
             else
             {
-                bWriteRegs = TRUE; // write regs
+                bWriteRegs = TRUE; // write commands regs
                 apply_commands();
             }
 
@@ -3968,7 +3968,7 @@ static inline void CacheIstrumentToRAM(u8 id)
 
     // calculate YM2612 combined registers from module data
     tmpInst[id].FB_ALG = (tmpInst[id].FB << 3) | tmpInst[id].ALG;
-    tmpInst[id].PAN_AMS_FMS = ((tmpInst[id].PAN << 6) | (tmpInst[id].AMS << 3)) | tmpInst[id].FMS;
+    tmpInst[id].PAN_AMS_FMS = (tmpInst[id].PAN << 6) | (tmpInst[id].AMS) | (tmpInst[id].FMS << 3);
 
     tmpInst[id].DT1_MUL1 = (tmpInst[id].DT1 << 4) | tmpInst[id].MUL1;
     tmpInst[id].DT2_MUL2 = (tmpInst[id].DT2 << 4) | tmpInst[id].MUL2;
@@ -3996,8 +3996,8 @@ inline void CalculateCombined(u8 fmCh, u8 reg)
     switch (reg)
     {
         case COMB_FB_ALG:        chInst[fmCh].FB_ALG = (chInst[fmCh].FB << 3) | chInst[fmCh].ALG; break;
-        // [L,R,A,A,0,F,F,F]
-        case COMB_PAN_AMS_FMS:   chInst[fmCh].PAN_AMS_FMS = ((chInst[fmCh].PAN << 6) | (chInst[fmCh].AMS << 4)) | chInst[fmCh].FMS; break;
+        //[L,R,F,F,F,0,A,A]
+        case COMB_PAN_AMS_FMS:   chInst[fmCh].PAN_AMS_FMS = (chInst[fmCh].PAN << 6) | (chInst[fmCh].AMS) | (chInst[fmCh].FMS << 3); break;
 
         case COMB_DT_MUL_1:      chInst[fmCh].DT1_MUL1 = (chInst[fmCh].DT1 << 4) | chInst[fmCh].MUL1; break;
         case COMB_DT_MUL_2:      chInst[fmCh].DT2_MUL2 = (chInst[fmCh].DT2 << 4) | chInst[fmCh].MUL2; break;
