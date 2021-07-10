@@ -3501,7 +3501,8 @@ static inline void RequestZ80()
 
 static inline void ReleaseZ80()
 {
-    if (bDAC_enable) YM2612_write(PORT_1, YM2612REG_DAC); // needed for DAC
+    //if (bDAC_enable)
+        YM2612_write(PORT_1, YM2612REG_DAC); // needed for DAC
     if (Z80_isBusTaken()) Z80_releaseBus();
 }
 
@@ -5459,7 +5460,7 @@ void InitTracker()
 
             for (u8 pulse = 0; pulse < 16; pulse++)
             {
-                if (!pulse)
+                if (!pulse && inst)
                 {
                     SRAM_WriteInstrument(inst, INST_VOL_TICK_01, SEQ_VOL_MIN_ATT); // no volume attenuation
                     SRAM_WriteInstrument(inst, INST_ARP_TICK_01, ARP_BASE); // base note
