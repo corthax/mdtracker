@@ -100,27 +100,31 @@ s16 pulseCounter = 0;
 
 // channel effects
 u8 channelFlags[CHANNELS_TOTAL] = {1,1,1,1,1,1,1,1,1,1,1,1,1};
-u8 channelPitchSlideSpeed[CHANNELS_TOTAL];
-s8 channelMicrotone[CHANNELS_TOTAL];
 s16 channelArp[CHANNELS_TOTAL];
 
+s8 channelMicrotone[CHANNELS_TOTAL];
+s8 channelPitchSlideSpeed[CHANNELS_TOTAL];
+s8 channelPitchSlideValue[CHANNELS_TOTAL];
 s8 channelPitchSkipStep[CHANNELS_TOTAL];
 s8 channelPitchSkipStepCounter[CHANNELS_TOTAL];
+s8 channelModNotePitch[CHANNELS_TOTAL];
+
+s8 channelVibrato[CHANNELS_TOTAL];
 u8 channelVibratoMode[CHANNELS_TOTAL];
-u16 channelVibratoDepth[CHANNELS_TOTAL];
+u16 channelVibratoDepth[CHANNELS_TOTAL]; // (u4) * channelVibratoDepthMult
 u8 channelVibratoDepthMult[CHANNELS_TOTAL];
-u16 channelVibratoSpeed[CHANNELS_TOTAL];
+u16 channelVibratoSpeed[CHANNELS_TOTAL]; // (u4) * channelVibratoSpeedMult
 u8 channelVibratoSpeedMult[CHANNELS_TOTAL];
 u16 channelVibratoPhase[CHANNELS_TOTAL];
 s8 channelFinalPitch[CHANNELS_TOTAL];
 s8 channelModNoteVibrato[CHANNELS_TOTAL];
-s8 channelModNotePitch[CHANNELS_TOTAL];
 
 u8 channelTremoloDepth[CHANNELS_TOTAL];
 u8 channelTremoloSpeed[CHANNELS_TOTAL];
 u8 channelTremoloSpeedMult[CHANNELS_TOTAL];
 u16 channelTremoloPhase[CHANNELS_TOTAL];
 u8 channelTremolo[CHANNELS_TOTAL];
+
 u8 channelBaseVolume[CHANNELS_TOTAL];
 u8 channelSeqAttenuation[CHANNELS_TOTAL];
 s16 channelAttenuation[CHANNELS_TOTAL];
@@ -861,10 +865,10 @@ static inline void DoEngine()
                 SetChannelVolume(channel);
             }
 
-            //!pitch effects
+            //pitch effects
             if (channelPitchSlideSpeed[channel] || (channelVibratoDepth[channel] && channelVibratoSpeed[channel]))
             {
-                // portamento
+                // pitch slide
                 if (channelPitchSlideSpeed[channel])
                 {
                     if (channelPitchSkipStepCounter[channel] < 1)
@@ -885,10 +889,11 @@ static inline void DoEngine()
                     channelPitchSkipStepCounter[channel]--;
                 }
                 // vibrato
-                if (channelVibratoDepth[channel] && channelVibratoSpeed[channel])
-                    channelFinalPitch[channel] = channelMicrotone[channel] + vibrato(channel);
-                else channelFinalPitch[channel] = channelMicrotone[channel];
-                // final pitch
+                if (channelVibratoDepth[channel] && channelVibratoSpeed[channel]) channelVibrato[channel] = vibrato(channel);
+                else channelVibrato[channel] = 0;
+
+                channelFinalPitch[channel] = channelMicrotone[channel] + channelVibrato[channel];
+                // final pitch check
                 if (channelFinalPitch[channel] >= MICROTONE_STEPS)
                 {
                     channelFinalPitch[channel] -= MICROTONE_STEPS;
@@ -905,6 +910,7 @@ static inline void DoEngine()
                 else SetPitchPSG(channel, channelArp[channel]);
             }
             else channelFinalPitch[channel] = 0;
+
             // cut
             if (channelNoteCut[channel] > 1) channelNoteCut[channel]--;
             else if (channelNoteCut[channel] == 1)
@@ -1074,7 +1080,7 @@ static inline void DoEngine()
             pulseCounter = -1; // to run this part only once when timer expires, not at every while loop tick.
         }
 
-        if (bDoPulse) // row second pulses;
+        if (bDoPulse)
         {
             do_effects(CHANNEL_FM1);
             do_effects(CHANNEL_FM2);
@@ -2843,7 +2849,7 @@ static void ChangeInstrumentParameter(s8 modifier)
     case GUI_INST_PARAM_TL:
         if (selectedInstrumentOperator < 4)
         {
-            value = SRAM_ReadInstrument(selectedInstrumentID, INST_TL1 + selectedInstrumentOperator) - modifier;
+            value = SRAM_ReadInstrument(selectedInstrumentID, INST_TL1 + selectedInstrumentOperator) + modifier;
             if (value < 0) value = 0x7F; else if (value > 0x7F) value = 0;
             SRAM_WriteInstrument(selectedInstrumentID, INST_TL1 + selectedInstrumentOperator, value);
         }
@@ -3122,7 +3128,7 @@ inline void DisplayInstrumentEditor()
             else DrawHex2(PAL0, value, 87, 6);
             break;
         case GUI_INST_PARAM_TL: case 250:
-            for (u8 i=0; i<4; i++) DrawHex2(PAL0, 0x7F - SRAM_ReadInstrument(selectedInstrumentID, INST_TL1 + i), 94 + i*3, 9);
+            for (u8 i=0; i<4; i++) DrawHex2(PAL0, /*0x7F - */SRAM_ReadInstrument(selectedInstrumentID, INST_TL1 + i), 94 + i*3, 9);
             break;
         case GUI_INST_PARAM_RS: case 249:
             for (u8 i=0; i<4; i++)
@@ -3907,8 +3913,8 @@ static void SetGlobalLFO(u8 freq)
 static inline void CacheIstrumentToRAM(u8 id)
 {
     tmpInst[id].ALG = SRAM_ReadInstrument(id, INST_ALG);
-    tmpInst[id].AMS = SRAM_ReadInstrument(id, INST_FMS);
-    tmpInst[id].FMS = SRAM_ReadInstrument(id, INST_AMS);
+    tmpInst[id].AMS = SRAM_ReadInstrument(id, INST_AMS);
+    tmpInst[id].FMS = SRAM_ReadInstrument(id, INST_FMS);
     tmpInst[id].PAN = SRAM_ReadInstrument(id, INST_PAN);
     tmpInst[id].FB = SRAM_ReadInstrument(id, INST_FB);
 
@@ -3969,7 +3975,7 @@ static inline void CacheIstrumentToRAM(u8 id)
 
     // calculate YM2612 combined registers from module data
     tmpInst[id].FB_ALG = (tmpInst[id].FB << 3) | tmpInst[id].ALG;
-    tmpInst[id].PAN_AMS_FMS = (tmpInst[id].PAN << 6) | (tmpInst[id].AMS) | (tmpInst[id].FMS << 3);
+    tmpInst[id].PAN_AMS_FMS = (tmpInst[id].PAN << 6) | (tmpInst[id].AMS << 4) | tmpInst[id].FMS;
 
     tmpInst[id].DT1_MUL1 = (tmpInst[id].DT1 << 4) | tmpInst[id].MUL1;
     tmpInst[id].DT2_MUL2 = (tmpInst[id].DT2 << 4) | tmpInst[id].MUL2;
@@ -3997,8 +4003,8 @@ inline void CalculateCombined(u8 fmCh, u8 reg)
     switch (reg)
     {
         case COMB_FB_ALG:        chInst[fmCh].FB_ALG = (chInst[fmCh].FB << 3) | chInst[fmCh].ALG; break;
-        //[L,R,F,F,F,0,A,A]
-        case COMB_PAN_AMS_FMS:   chInst[fmCh].PAN_AMS_FMS = (chInst[fmCh].PAN << 6) | (chInst[fmCh].AMS) | (chInst[fmCh].FMS << 3); break;
+        //[L,R,A,A,0,F,F,F]
+        case COMB_PAN_AMS_FMS:   chInst[fmCh].PAN_AMS_FMS = (chInst[fmCh].PAN << 6) | (chInst[fmCh].AMS << 4) | chInst[fmCh].FMS; break;
 
         case COMB_DT_MUL_1:      chInst[fmCh].DT1_MUL1 = (chInst[fmCh].DT1 << 4) | chInst[fmCh].MUL1; break;
         case COMB_DT_MUL_2:      chInst[fmCh].DT2_MUL2 = (chInst[fmCh].DT2 << 4) | chInst[fmCh].MUL2; break;
@@ -4287,11 +4293,12 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
                 channelPitchSlideSpeed[mtxCh] = 0;
                 break;
             case 0xFF: // reset
+                channelPitchSlideSpeed[mtxCh] = channelPitchSlideValue[mtxCh];
                 channelMicrotone[mtxCh] = 0;
                 channelModNotePitch[mtxCh] = 0;
                 break;
             default: // do portamento
-                if (fxValue < 0x80) channelPitchSlideSpeed[mtxCh] = fxValue;
+                if (fxValue < 0x80) channelPitchSlideSpeed[mtxCh] = channelPitchSlideValue[mtxCh] = (s8)fxValue;
                 break;
         }
         break;
@@ -4309,26 +4316,35 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
                 channelPitchSlideSpeed[mtxCh] = 0;
                 break;
             case 0xFF: // reset
+                channelPitchSlideSpeed[mtxCh] = channelPitchSlideValue[mtxCh];
                 channelMicrotone[mtxCh] = 0;
                 channelModNotePitch[mtxCh] = 0;
                 break;
             default: // do portamento
-                if (fxValue < 0x80) channelPitchSlideSpeed[mtxCh] = -fxValue;
+                if (fxValue < 0x80) channelPitchSlideSpeed[mtxCh] = channelPitchSlideValue[mtxCh] = (s8)-fxValue;
                 break;
         }
         break;
 
     // VIBRATO
     case 0x33:
-        channelVibratoSpeed[mtxCh] = ((fxValue & 0b11110000) >> 4) * channelVibratoSpeedMult[mtxCh];
-        channelVibratoDepth[mtxCh] = (fxValue & 0b00001111) * channelVibratoDepthMult[mtxCh];
+        if (fxValue)
+        {
+            channelVibratoSpeed[mtxCh] = ((fxValue & 0b11110000) >> 4) * channelVibratoSpeedMult[mtxCh];
+            channelVibratoDepth[mtxCh] = (fxValue & 0b00001111) * channelVibratoDepthMult[mtxCh];
+        }
+        else
+        {
+            channelVibratoSpeed[mtxCh] = channelVibratoDepth[mtxCh] = channelVibrato[mtxCh] = 0;
+            if (!channelPitchSlideSpeed[mtxCh]) channelMicrotone[mtxCh] = channelFinalPitch[mtxCh] = 0; //! bad fix
+        }
         channelVibratoPhase[mtxCh] = 0;
         channelModNoteVibrato[mtxCh] = 0;
         break;
 
     // SET VIBRATO SPEED MULT
     case 0x34:
-        if (fxValue > 0)
+        if (fxValue)
         {
             channelVibratoSpeedMult[mtxCh] = fxValue;
         }
@@ -4341,7 +4357,7 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
 
     // SET VIBRATO DEPTH MULT
     case 0x35:
-        if (fxValue > 0)
+        if (fxValue)
         {
             channelVibratoDepthMult[mtxCh] = fxValue;
         }
@@ -4780,22 +4796,22 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
     // TOTAL LEVEL
     case 0x01:
         if (fxValue > 0x7F) chInst[fmCh].TL1 = tmpInst[id].TL1;
-        else chInst[fmCh].TL1 = 0x7F - fxValue;
+        else chInst[fmCh].TL1 = /*0x7F - */fxValue;
         write_tl1();
         break;
     case 0x02:
         if (fxValue > 0x7F)chInst[fmCh].TL2 = tmpInst[id].TL2;
-        else chInst[fmCh].TL2 = 0x7F - fxValue;
+        else chInst[fmCh].TL2 = /*0x7F - */fxValue;
         write_tl2();
         break;
     case 0x03:
         if (fxValue > 0x7F) chInst[fmCh].TL3 = tmpInst[id].TL3;
-        else chInst[fmCh].TL3 = 0x7F - fxValue;
+        else chInst[fmCh].TL3 = /*0x7F - */fxValue;
         write_tl3();
         break;
     case 0x04:
         if (fxValue > 0x7F) chInst[fmCh].TL4 = tmpInst[id].TL4;
-        else chInst[fmCh].TL4 = 0x7F - fxValue;
+        else chInst[fmCh].TL4 = /*0x7F - */fxValue;
         write_tl4();
         break;
 
@@ -5902,6 +5918,7 @@ void ForceResetVariables()
         channelSEQCounter_VOL[ch]=
         channelSEQCounter_ARP[ch]=
         channelPitchSlideSpeed[ch]=
+        channelPitchSlideValue[ch]=
         channelMicrotone[ch]=
         channelArp[ch]=
         channelPitchSkipStep[ch]=
