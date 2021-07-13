@@ -149,7 +149,7 @@
 //{ SRAM data blocks (BYTESWAPPED!!!)
 #define INSTRUMENT_DATA     0x00002 // 89 * 256 bytes
 #define GLOBAL_LFO          0x05902 // INSTRUMENT_DATA +  5900h; 1 byte
-#define DEAD_INSTRUMENT     0x05903 // DEAD. To check if SRAM file exists; 2 bytes
+#define FILE_CHECKER        0x05903 // DEAD. To check if SRAM file exists; 2 bytes
 #define PATTERN_MATRIX      0x05905 // MAX_MATRIX_ROWS * 13 * 2 bytes
 #define TEMPO               0x07269 // PATTERN_MATRIX + 1964h; 2 bytes
 #define SAMPLE_DATA         0x0726B // 4 * 96 * 7 bytes (3byte start + 3byte end + 1byte loop)

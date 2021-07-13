@@ -587,74 +587,74 @@ static inline void DoEngine()
     static u8 fmCh;
 
     // vibrato tool
-    auto s8 vibrato(u8 channel) {
+    auto s8 vibrato(u8 mtxCh) {
         static s8 vib = 0;
 
-        switch (channelVibratoMode[channel])
+        switch (channelVibratoMode[mtxCh])
         {
         case 1:
-            vib = abs((s8)fix16ToRoundedInt(fix16Mul(FIX16(channelVibratoDepth[channel]), sinFix16(channelVibratoPhase[channel]))));
+            vib = abs((s8)fix16ToRoundedInt(fix16Mul(FIX16(channelVibratoDepth[mtxCh]), sinFix16(channelVibratoPhase[mtxCh]))));
             break;
         case 2:
-            vib = -abs((s8)fix16ToRoundedInt(fix16Mul(FIX16(channelVibratoDepth[channel]), sinFix16(channelVibratoPhase[channel]))));
+            vib = -abs((s8)fix16ToRoundedInt(fix16Mul(FIX16(channelVibratoDepth[mtxCh]), sinFix16(channelVibratoPhase[mtxCh]))));
             break;
         default:
-            vib = (s8)fix16ToRoundedInt(fix16Mul(FIX16(channelVibratoDepth[channel]), sinFix16(channelVibratoPhase[channel])));
+            vib = (s8)fix16ToRoundedInt(fix16Mul(FIX16(channelVibratoDepth[mtxCh]), sinFix16(channelVibratoPhase[mtxCh])));
             break;
         }
 
-        channelVibratoPhase[channel] += channelVibratoSpeed[channel];
-        if (channelVibratoPhase[channel] > 1023) channelVibratoPhase[channel] -= 1024;
+        channelVibratoPhase[mtxCh] += channelVibratoSpeed[mtxCh];
+        if (channelVibratoPhase[mtxCh] > 1023) channelVibratoPhase[mtxCh] -= 1024;
 
         return vib;
     }
 
-    auto inline void seq_vol(u8 channel) {
+    auto inline void seq_vol(u8 mtxCh) {
 
-        if (!channelVolSeqMODE[channel] || (channelVolSeqMODE[channel] && channelSEQCounter_VOL[channel] != INST_VOL_TICK_16))
+        if (!channelVolSeqMODE[mtxCh] || (channelVolSeqMODE[mtxCh] && channelSEQCounter_VOL[mtxCh] != INST_VOL_TICK_16))
         {
-            _seqValue = SRAM_ReadInstrument(channelVolSeqID[channel], ++channelSEQCounter_VOL[channel]);
+            _seqValue = SRAM_ReadInstrument(channelVolSeqID[mtxCh], ++channelSEQCounter_VOL[mtxCh]);
             if (_seqValue != SEQ_VOL_SKIP)
             {
-                channelSeqAttenuation[channel] = _seqValue;
-                SetChannelVolume(channel);
+                channelSeqAttenuation[mtxCh] = _seqValue;
+                SetChannelVolume(mtxCh);
             }
         }
 
-        if (!channelVolSeqMODE[channel] && channelSEQCounter_VOL[channel] == INST_VOL_TICK_16) channelSEQCounter_VOL[channel] = INST_VOL_TICK_01-1;
+        if (!channelVolSeqMODE[mtxCh] && channelSEQCounter_VOL[mtxCh] == INST_VOL_TICK_16) channelSEQCounter_VOL[mtxCh] = INST_VOL_TICK_01-1;
     }
 
-    auto inline void seq_arp(u8 channel) {
-        if (!channelArpSeqMODE[channel] || (channelArpSeqMODE[channel] && channelSEQCounter_ARP[channel] != INST_ARP_TICK_16))
+    auto inline void seq_arp(u8 mtxCh) {
+        if (!channelArpSeqMODE[mtxCh] || (channelArpSeqMODE[mtxCh] && channelSEQCounter_ARP[mtxCh] != INST_ARP_TICK_16))
         {
             if (!pulseCounter)
             {
-                _seqValue = SRAM_ReadInstrument(channelArpSeqID[channel], ++channelSEQCounter_ARP[channel]);
+                _seqValue = SRAM_ReadInstrument(channelArpSeqID[mtxCh], ++channelSEQCounter_ARP[mtxCh]);
                 if (_seqValue != NOTE_EMPTY)
                 {
-                    if (_seqValue > ARP_BASE) _key = channelCurrentRowNote[channel] + (_seqValue - ARP_BASE);
-                    else if (_seqValue < ARP_BASE) _key = channelCurrentRowNote[channel] - (ARP_BASE - _seqValue);
-                    if (_key < 0 || _key > NOTE_MAX || _seqValue == ARP_BASE) _key = channelCurrentRowNote[channel];
+                    if (_seqValue > ARP_BASE) _key = channelCurrentRowNote[mtxCh] + (_seqValue - ARP_BASE);
+                    else if (_seqValue < ARP_BASE) _key = channelCurrentRowNote[mtxCh] - (ARP_BASE - _seqValue);
+                    if (_key < 0 || _key > NOTE_MAX || _seqValue == ARP_BASE) _key = channelCurrentRowNote[mtxCh];
                 }
             }
             else
             {
-                _seqValue = SRAM_ReadInstrument(channelArpSeqID[channel], ++channelSEQCounter_ARP[channel]);
+                _seqValue = SRAM_ReadInstrument(channelArpSeqID[mtxCh], ++channelSEQCounter_ARP[mtxCh]);
                 if (_seqValue != NOTE_EMPTY)
                 {
-                    if (_seqValue > ARP_BASE) channelArp[channel] = channelPreviousNote[channel] + (_seqValue - ARP_BASE);
-                    else if (_seqValue < ARP_BASE) channelArp[channel] = channelPreviousNote[channel] - (ARP_BASE - _seqValue);
-                    if (channelArp[channel] < 0 || channelArp[channel] > NOTE_MAX || _seqValue == ARP_BASE) channelArp[channel] = channelPreviousNote[channel];
-                    PlayNote(channelArp[channel], channel);
+                    if (_seqValue > ARP_BASE) channelArp[mtxCh] = channelPreviousNote[mtxCh] + (_seqValue - ARP_BASE);
+                    else if (_seqValue < ARP_BASE) channelArp[mtxCh] = channelPreviousNote[mtxCh] - (ARP_BASE - _seqValue);
+                    if (channelArp[mtxCh] < 0 || channelArp[mtxCh] > NOTE_MAX || _seqValue == ARP_BASE) channelArp[mtxCh] = channelPreviousNote[mtxCh];
+                    PlayNote(channelArp[mtxCh], mtxCh);
                 }
             }
         }
 
-        if (!channelArpSeqMODE[channel] && channelSEQCounter_ARP[channel] == INST_ARP_TICK_16) channelSEQCounter_ARP[channel] = INST_ARP_TICK_01-1;
+        if (!channelArpSeqMODE[mtxCh] && channelSEQCounter_ARP[mtxCh] == INST_ARP_TICK_16) channelSEQCounter_ARP[mtxCh] = INST_ARP_TICK_01-1;
     }
 
-    auto inline void do_row(u8 channel) {
-        if (channelFlags[channel])
+    auto inline void do_row(u8 mtxCh) {
+        if (channelFlags[mtxCh])
         {
             auto inline void command(u8 type, u8 val, u8 effect) {
                 _fxType = SRAM_ReadPattern(playingPatternID, playingPatternRow, type);
@@ -662,48 +662,48 @@ static inline void DoEngine()
 
                 if (_fxType)
                 {
-                    channelPreviousEffectType[channel][effect] = _fxType;
-                    switch (channel)
+                    channelPreviousEffectType[mtxCh][effect] = _fxType;
+                    switch (mtxCh)
                     {
                     case CHANNEL_FM1: case CHANNEL_FM2: case CHANNEL_FM4: case CHANNEL_FM5:
-                        ApplyCommand_FM(channel, channelPreviousInstrument[channel], _fxType, _fxValue);
+                        ApplyCommand_FM(mtxCh, channelPreviousInstrument[mtxCh], _fxType, _fxValue);
                         break;
                     case CHANNEL_FM6_DAC:
                         ApplyCommand_DAC(_fxType, _fxValue);
                         if (!bDAC_enable) ApplyCommand_FM(CHANNEL_FM6_DAC, channelPreviousInstrument[CHANNEL_FM6_DAC], _fxType, _fxValue);
                         break;
                     case CHANNEL_FM3_OP1: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP3:
-                        ApplyCommand_FM3_SP(channel, _fxType, _fxValue);
+                        ApplyCommand_FM3_SP(mtxCh, _fxType, _fxValue);
                         break;
                     case CHANNEL_FM3_OP4:
-                        ApplyCommand_FM3_SP(channel, _fxType, _fxValue);
-                        ApplyCommand_FM(channel, channelPreviousInstrument[channel], _fxType, _fxValue);
+                        ApplyCommand_FM3_SP(mtxCh, _fxType, _fxValue);
+                        ApplyCommand_FM(mtxCh, channelPreviousInstrument[mtxCh], _fxType, _fxValue);
                         break;
                     default: ApplyCommand_PSG(_fxType, _fxValue); break;
                     }
-                    ApplyCommand_Common(channel, _fxType, _fxValue);
+                    ApplyCommand_Common(mtxCh, _fxType, _fxValue);
                 }
                 else if (_fxValue)
                 {
-                    switch (channel)
+                    switch (mtxCh)
                     {
                     case CHANNEL_FM1: case CHANNEL_FM2: case CHANNEL_FM4: case CHANNEL_FM5:
-                        ApplyCommand_FM(channel, channelPreviousInstrument[channel], channelPreviousEffectType[channel][effect], _fxValue);
+                        ApplyCommand_FM(mtxCh, channelPreviousInstrument[mtxCh], channelPreviousEffectType[mtxCh][effect], _fxValue);
                         break;
                     case CHANNEL_FM6_DAC:
                         ApplyCommand_DAC(channelPreviousEffectType[CHANNEL_FM6_DAC][effect], _fxValue);
                         if (!bDAC_enable) ApplyCommand_FM(CHANNEL_FM6_DAC, channelPreviousInstrument[CHANNEL_FM6_DAC], channelPreviousEffectType[CHANNEL_FM6_DAC][effect], _fxValue);
                         break;
                     case CHANNEL_FM3_OP1: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP3:
-                        ApplyCommand_FM3_SP(channel, channelPreviousEffectType[channel][effect], _fxValue);
+                        ApplyCommand_FM3_SP(mtxCh, channelPreviousEffectType[mtxCh][effect], _fxValue);
                         break;
                     case CHANNEL_FM3_OP4:
-                        ApplyCommand_FM3_SP(channel, channelPreviousEffectType[channel][effect], _fxValue);
-                        ApplyCommand_FM(channel, channelPreviousInstrument[channel], channelPreviousEffectType[channel][effect], _fxValue);
+                        ApplyCommand_FM3_SP(mtxCh, channelPreviousEffectType[mtxCh][effect], _fxValue);
+                        ApplyCommand_FM(mtxCh, channelPreviousInstrument[mtxCh], channelPreviousEffectType[mtxCh][effect], _fxValue);
                         break;
-                    default: ApplyCommand_PSG(channelPreviousEffectType[channel][effect], _fxValue); break;
+                    default: ApplyCommand_PSG(channelPreviousEffectType[mtxCh][effect], _fxValue); break;
                     }
-                    ApplyCommand_Common(channel, channelPreviousEffectType[channel][effect], _fxValue);
+                    ApplyCommand_Common(mtxCh, channelPreviousEffectType[mtxCh][effect], _fxValue);
                 }
             }
 
@@ -717,50 +717,55 @@ static inline void DoEngine()
                 command(DATA_FX6_TYPE, DATA_FX6_VALUE, 5);
             }
 
-            playingPatternID = SRAM_ReadMatrix(channel, playingMatrixRow); //! fix it! no need to read every row
-            _matrixTranspose = SRAM_ReadMatrixTranspose(channel, playingMatrixRow); //! fix it! no need to read every row
+            playingPatternID = SRAM_ReadMatrix(mtxCh, playingMatrixRow); //! fix it! no need to read every row
+            _matrixTranspose = SRAM_ReadMatrixTranspose(mtxCh, playingMatrixRow); //! fix it! no need to read every row
 
             _inst = SRAM_ReadPattern(playingPatternID, playingPatternRow, DATA_INSTRUMENT);
 
             if (instrumentIsMuted[_inst] == INST_MUTE) // check if instrument is muted. ignore writes, replace note with OFF if so
             {
-                _inst = NULL; channelCurrentRowNote[channel] = NOTE_OFF;
+                _inst = NULL; channelCurrentRowNote[mtxCh] = NOTE_OFF;
             }
             else
             {
-                channelCurrentRowNote[channel] = SRAM_ReadPattern(playingPatternID, playingPatternRow, DATA_NOTE);
+                channelCurrentRowNote[mtxCh] = SRAM_ReadPattern(playingPatternID, playingPatternRow, DATA_NOTE);
             }
 
             // auto cut note before next note
-            if (channelNoteAutoCut[channel])
+            if (channelNoteAutoCut[mtxCh])
             {
                 if (playingPatternRow == PATTERN_ROW_LAST)
                 {
-                    if (SRAM_ReadPattern(SRAM_ReadMatrix(channel, playingMatrixRow+1), 0, DATA_NOTE) < NOTES)
+                    if (SRAM_ReadPattern(SRAM_ReadMatrix(mtxCh, playingMatrixRow+1), 0, DATA_NOTE) < NOTES)
                     {
-                        channelNoteCut[channel] = channelNoteAutoCut[channel];
-                    } else channelNoteCut[channel] = 0;
+                        channelNoteCut[mtxCh] = channelNoteAutoCut[mtxCh];
+                    } else channelNoteCut[mtxCh] = 0;
                 }
                 else
                 {
                     if (SRAM_ReadPattern(playingPatternID, playingPatternRow+1, DATA_NOTE) < NOTES)
                     {
-                        channelNoteCut[channel] = channelNoteAutoCut[channel];
-                    } else channelNoteCut[channel] = 0;
+                        channelNoteCut[mtxCh] = channelNoteAutoCut[mtxCh];
+                    } else channelNoteCut[mtxCh] = 0;
                 }
             }
 
             // commands
-            if (_inst && channel < CHANNEL_PSG1) // ignore inst on PSG
+            if (_inst && mtxCh < CHANNEL_PSG1) // ignore inst on PSG
             {
-                channelPreviousInstrument[channel] = _inst;
-                if (channel > 2) fmCh = channel - 3; else fmCh = channel;
+                if (_inst != channelPreviousInstrument[mtxCh])
+                {
+                    StopChannelSound(mtxCh);
+                    channelPreviousInstrument[mtxCh] = _inst;
+                }
+                if (mtxCh > 2) fmCh = mtxCh - 3; else fmCh = mtxCh;
                 chInst[fmCh] = tmpInst[_inst]; // copy from cached preset
-                bWriteRegs = FALSE; // no duplicate write regs, only change chInst
+                bWriteRegs = FALSE; // disable registers write for effects
 
-                if (_inst != channelPreviousInstrument[channel]) StopChannelSound(channel);
-                apply_commands();
-                WriteYM2612(channel, fmCh); // will rewrite instrument from chInst
+                SetChannelBaseVolume_FM(mtxCh, fmCh); // remember preset base TL levels
+                apply_commands(); // only change chInst
+                if (!bWriteRegs) SetChannelVolume(mtxCh); // if not triggered from command, apply channel attenuation to new instrument
+                WriteYM2612(mtxCh, fmCh); // rewrite all registers from chInst
             }
             else
             {
@@ -769,157 +774,149 @@ static inline void DoEngine()
             }
 
             // --------- trigger note playback; check empty note later; pass note id: 0..95, 254, 255
-            //_key = channelCurrentRowNote[channel]; // modified by ARP or transpose later
-
-            if (channelCurrentRowNote[channel] == NOTE_OFF) // there is OFF
+            if (channelCurrentRowNote[mtxCh] == NOTE_OFF) // there is OFF
             {
-                channelPreviousNote[channel] = channelArp[channel] = NOTE_OFF;
-                if (channelNoteRetrigger[channel])
+                channelPreviousNote[mtxCh] = channelArp[mtxCh] = NOTE_OFF;
+                if (channelNoteRetrigger[mtxCh])
                 {
-                    channelNoteRetriggerCounter[channel] = channelNoteRetrigger[channel] = 0;
+                    channelNoteRetriggerCounter[mtxCh] = channelNoteRetrigger[mtxCh] = 0;
                 }
-                if (channelRowShift[channel][playingPatternRow]) channelNoteDelayCounter[channel] = channelRowShift[channel][playingPatternRow];
-                PlayNoteOff(channel);
+                if (channelRowShift[mtxCh][playingPatternRow]) channelNoteDelayCounter[mtxCh] = channelRowShift[mtxCh][playingPatternRow];
+                PlayNoteOff(mtxCh);
             }
-            else if (channelCurrentRowNote[channel] < NOTES) // there is a note on a row
+            else if (channelCurrentRowNote[mtxCh] < NOTES) // there is a note on a row
             {
                 if (_matrixTranspose)
                 {
-                    _test = channelCurrentRowNote[channel] + _matrixTranspose;
+                    _test = channelCurrentRowNote[mtxCh] + _matrixTranspose;
                     if (_test < NOTES || _test > -1)
                     {
-                        _key = channelPreviousNote[channel] = channelArp[channel] = _test;
+                        _key = channelPreviousNote[mtxCh] = channelArp[mtxCh] = _test;
                     }
-                } else _key = channelPreviousNote[channel] = channelArp[channel] = channelCurrentRowNote[channel];
+                } else _key = channelPreviousNote[mtxCh] = channelArp[mtxCh] = channelCurrentRowNote[mtxCh];
 
-                if (channelRowShift[channel][playingPatternRow]) channelNoteDelayCounter[channel] = channelRowShift[channel][playingPatternRow];
-                channelSEQCounter_ARP[channel] = INST_ARP_TICK_01-1;
-                seq_vol(channel); seq_arp(channel);
-                if (!channelNoteDelayCounter[channel] && !channelNoteRetrigger[channel]) // re-triggered from do_effects
+                if (channelRowShift[mtxCh][playingPatternRow]) channelNoteDelayCounter[mtxCh] = channelRowShift[mtxCh][playingPatternRow];
+                channelSEQCounter_ARP[mtxCh] = INST_ARP_TICK_01-1;
+                seq_vol(mtxCh); seq_arp(mtxCh);
+                if (!channelNoteDelayCounter[mtxCh] && !channelNoteRetrigger[mtxCh]) // re-triggered from do_effects
                 {
-                    channelVibratoPhase[channel] = 0; // neutral state
-                    channelTremoloPhase[channel] = 512; // neutral state
-                    PlayNote((u8)_key, channel);
+                    channelVibratoPhase[mtxCh] = 0; // neutral state
+                    channelTremoloPhase[mtxCh] = 512; // neutral state
+                    PlayNote((u8)_key, mtxCh);
                 }
             }
             else _key = NOTE_EMPTY; // empty row
-
-            /*if (!channelNoteDelayCounter[channel] && !channelNoteRetrigger[channel]) // re-triggered from do_effects
-            {
-                PlayNote((u8)_key, channel);
-            }*/
         }
     }
 
-    auto inline void do_effects(u8 channel) {
-        if (channelFlags[channel] && channelPreviousNote[channel] < NOTES)
+    auto inline void do_effects(u8 mtxCh) {
+        if (channelFlags[mtxCh] && channelPreviousNote[mtxCh] < NOTES)
         {
             if (pulseCounter) // only do at sub-pulses; first pulse is separate before PlayNote
             {
-                seq_vol(channel); seq_arp(channel);
+                seq_vol(mtxCh); seq_arp(mtxCh);
             }
             //! re-trigger (not work with seq)
-            if (channelNoteRetrigger[channel])
+            if (channelNoteRetrigger[mtxCh])
             {
-                channelNoteDelayCounter[channel] = 0; // disable delay
-                if (channelNoteRetriggerCounter[channel] == channelNoteRetrigger[channel])
+                channelNoteDelayCounter[mtxCh] = 0; // disable delay
+                if (channelNoteRetriggerCounter[mtxCh] == channelNoteRetrigger[mtxCh])
                 {
-                    PlayNote(channelPreviousNote[channel], channel);
-                    channelNoteRetriggerCounter[channel] = 0;
+                    PlayNote(channelPreviousNote[mtxCh], mtxCh);
+                    channelNoteRetriggerCounter[mtxCh] = 0;
                 }
-                channelNoteRetriggerCounter[channel]++;
+                channelNoteRetriggerCounter[mtxCh]++;
             }
             //! delay (not work with seq)
-            else if (channelNoteDelayCounter[channel])
+            else if (channelNoteDelayCounter[mtxCh])
             {
-                if (channelNoteDelayCounter[channel] == 1)
+                if (channelNoteDelayCounter[mtxCh] == 1)
                 {
-                    PlayNote(channelPreviousNote[channel], channel);
-                    channelNoteDelayCounter[channel] = 0;
-                } else channelNoteDelayCounter[channel]--;
+                    PlayNote(channelPreviousNote[mtxCh], mtxCh);
+                    channelNoteDelayCounter[mtxCh] = 0;
+                } else channelNoteDelayCounter[mtxCh]--;
             }
             //! volume effects
             //volume slide (set only by counter)
-            if (channelVolumeChangeSpeed[channel])
+            if (channelVolumeChangeSpeed[mtxCh])
             {
-                if (!channelVolumePulseCounter[channel])
+                if (!channelVolumePulseCounter[mtxCh])
                 {
-                    channelAttenuation[channel] += channelVolumeChangeSpeed[channel];
-                    if (channelAttenuation[channel] > 0x7F) { channelAttenuation[channel] = 0x7F; channelVolumeChangeSpeed[channel] = 0; }
-                    else if (channelAttenuation[channel] < 0) { channelAttenuation[channel] = 0; channelVolumeChangeSpeed[channel] = 0; }
-                    channelVolumePulseCounter[channel] = channelVolumePulseSkip[channel];
-                    if (!(channelTremoloDepth[channel] && channelTremoloSpeed[channel])) SetChannelVolume(channel); //! set later if tremolo
+                    channelAttenuation[mtxCh] += channelVolumeChangeSpeed[mtxCh];
+                    if (channelAttenuation[mtxCh] > 0x7F) { channelAttenuation[mtxCh] = 0x7F; channelVolumeChangeSpeed[mtxCh] = 0; }
+                    else if (channelAttenuation[mtxCh] < 0) { channelAttenuation[mtxCh] = 0; channelVolumeChangeSpeed[mtxCh] = 0; }
+                    channelVolumePulseCounter[mtxCh] = channelVolumePulseSkip[mtxCh];
+                    if (!(channelTremoloDepth[mtxCh] && channelTremoloSpeed[mtxCh])) SetChannelVolume(mtxCh); //! set later if tremolo
                 }
-                channelVolumePulseCounter[channel]--;
+                channelVolumePulseCounter[mtxCh]--;
             }
             //tremolo (set by every pulse)
-            if (channelTremoloDepth[channel] && channelTremoloSpeed[channel])
+            if (channelTremoloDepth[mtxCh] && channelTremoloSpeed[mtxCh])
             {
-                channelTremolo[channel] = (u8)fix16ToRoundedInt
+                channelTremolo[mtxCh] = (u8)fix16ToRoundedInt
                 (
-                    fix16Mul(FIX16(channelTremoloDepth[channel]), fix16Div(fix16Add(cosFix16(channelTremoloPhase[channel]), FIX16(1)), FIX16(2)))
+                    fix16Mul(FIX16(channelTremoloDepth[mtxCh]), fix16Div(fix16Add(cosFix16(channelTremoloPhase[mtxCh]), FIX16(1)), FIX16(2)))
                 );
 
-                channelTremoloPhase[channel] += channelTremoloSpeed[channel];
-                if (channelTremoloPhase[channel] > 1023) channelTremoloPhase[channel] -= 1024;
-                SetChannelVolume(channel);
+                channelTremoloPhase[mtxCh] += channelTremoloSpeed[mtxCh];
+                if (channelTremoloPhase[mtxCh] > 1023) channelTremoloPhase[mtxCh] -= 1024;
+                SetChannelVolume(mtxCh);
             }
 
             //pitch effects
-            if (channelPitchSlideSpeed[channel] || (channelVibratoDepth[channel] && channelVibratoSpeed[channel]))
+            if (channelPitchSlideSpeed[mtxCh] || (channelVibratoDepth[mtxCh] && channelVibratoSpeed[mtxCh]))
             {
                 // pitch slide
-                if (channelPitchSlideSpeed[channel])
+                if (channelPitchSlideSpeed[mtxCh])
                 {
-                    if (channelPitchSkipStepCounter[channel] < 1)
+                    if (channelPitchSkipStepCounter[mtxCh] < 1)
                     {
-                        channelMicrotone[channel] += channelPitchSlideSpeed[channel];
-                        while(channelMicrotone[channel] >= MICROTONE_STEPS) // wrap
+                        channelMicrotone[mtxCh] += channelPitchSlideSpeed[mtxCh];
+                        while(channelMicrotone[mtxCh] >= MICROTONE_STEPS) // wrap
                         {
-                            channelMicrotone[channel] -= MICROTONE_STEPS;
-                            channelModNotePitch[channel]++;
+                            channelMicrotone[mtxCh] -= MICROTONE_STEPS;
+                            channelModNotePitch[mtxCh]++;
                         }
-                        while(channelMicrotone[channel] < 0) // wrap
+                        while(channelMicrotone[mtxCh] < 0) // wrap
                         {
-                            channelMicrotone[channel] += MICROTONE_STEPS;
-                            channelModNotePitch[channel]--;
+                            channelMicrotone[mtxCh] += MICROTONE_STEPS;
+                            channelModNotePitch[mtxCh]--;
                         }
-                        channelPitchSkipStepCounter[channel] = channelPitchSkipStep[channel]; // skip pulses for slower pitch slide
+                        channelPitchSkipStepCounter[mtxCh] = channelPitchSkipStep[mtxCh]; // skip pulses for slower pitch slide
                     }
-                    channelPitchSkipStepCounter[channel]--;
+                    channelPitchSkipStepCounter[mtxCh]--;
                 }
                 // vibrato
-                if (channelVibratoDepth[channel] && channelVibratoSpeed[channel]) channelVibrato[channel] = vibrato(channel);
-                else channelVibrato[channel] = 0;
+                if (channelVibratoDepth[mtxCh] && channelVibratoSpeed[mtxCh]) channelVibrato[mtxCh] = vibrato(mtxCh);
+                else channelVibrato[mtxCh] = 0;
 
-                channelFinalPitch[channel] = channelMicrotone[channel] + channelVibrato[channel];
+                channelFinalPitch[mtxCh] = channelMicrotone[mtxCh] + channelVibrato[mtxCh];
                 // final pitch check
-                if (channelFinalPitch[channel] >= MICROTONE_STEPS)
+                if (channelFinalPitch[mtxCh] >= MICROTONE_STEPS)
                 {
-                    channelFinalPitch[channel] -= MICROTONE_STEPS;
-                    channelModNoteVibrato[channel] = 1;
+                    channelFinalPitch[mtxCh] -= MICROTONE_STEPS;
+                    channelModNoteVibrato[mtxCh] = 1;
                 }
-                else if (channelFinalPitch[channel] < 0)
+                else if (channelFinalPitch[mtxCh] < 0)
                 {
-                    channelFinalPitch[channel] += MICROTONE_STEPS;
-                    channelModNoteVibrato[channel] = -1;
+                    channelFinalPitch[mtxCh] += MICROTONE_STEPS;
+                    channelModNoteVibrato[mtxCh] = -1;
                 }
-                else channelModNoteVibrato[channel] = 0;
+                else channelModNoteVibrato[mtxCh] = 0;
                 //!also triggers note! need different function for set pitch
-                if (channel < CHANNEL_PSG1) SetPitchFM(channel, channelArp[channel]);
-                else SetPitchPSG(channel, channelArp[channel]);
+                if (mtxCh < CHANNEL_PSG1) SetPitchFM(mtxCh, channelArp[mtxCh]);
+                else SetPitchPSG(mtxCh, channelArp[mtxCh]);
             }
-            else channelFinalPitch[channel] = 0;
+            else channelFinalPitch[mtxCh] = 0;
 
             // cut
-            if (channelNoteCut[channel] > 1) channelNoteCut[channel]--;
-            else if (channelNoteCut[channel] == 1)
+            if (channelNoteCut[mtxCh] > 1) channelNoteCut[mtxCh]--;
+            else if (channelNoteCut[mtxCh] == 1)
             {
-                if (FM_CH3_Mode == CH3_SPECIAL_CSM && channel == CHANNEL_FM3_OP4) FM_CH3_Mode = CH3_SPECIAL_CSM_OFF;
-                StopChannelSound(channel);
-                //StopEffects(channel);
-                channelNoteCut[channel] = 0;
-                channelPreviousNote[channel] = NOTE_OFF;
+                if (FM_CH3_Mode == CH3_SPECIAL_CSM && mtxCh == CHANNEL_FM3_OP4) FM_CH3_Mode = CH3_SPECIAL_CSM_OFF;
+                StopChannelSound(mtxCh);
+                channelNoteCut[mtxCh] = 0;
+                channelPreviousNote[mtxCh] = NOTE_OFF;
             }
         }
     }
@@ -1130,8 +1127,8 @@ inline static s16 FindUnusedPattern()
 
     for (s16 pattern = 1; pattern <= PATTERN_LAST; pattern++) {
         used = FALSE;
-        for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++) {
-            for (u8 line = 0; line < MATRIX_ROWS; line++) { if (SRAM_ReadMatrix(channel, line) == pattern) { used = TRUE; break; } }
+        for (u8 mtxCh = 0; mtxCh < CHANNELS_TOTAL; mtxCh++) {
+            for (u8 line = 0; line < MATRIX_ROWS; line++) { if (SRAM_ReadMatrix(mtxCh, line) == pattern) { used = TRUE; break; } }
             if (used) break;
         }
         if (!used) return pattern;
@@ -1226,68 +1223,68 @@ static void ChangeMatrixValue(s16 mod)
     }
 }
 
-static inline void LoadPreset(u8 preset)
+static inline void LoadPreset(u8 id, u8 preset)
 {
-    SRAM_WriteInstrument(selectedInstrumentID, INST_MUL1, M_BANK_0[preset]->multiple_1);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_MUL2, M_BANK_0[preset]->multiple_3);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_MUL3, M_BANK_0[preset]->multiple_2);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_MUL4, M_BANK_0[preset]->multiple_4);
+    SRAM_WriteInstrument(id, INST_MUL1, M_BANK_0[preset]->multiple_1);
+    SRAM_WriteInstrument(id, INST_MUL2, M_BANK_0[preset]->multiple_3);
+    SRAM_WriteInstrument(id, INST_MUL3, M_BANK_0[preset]->multiple_2);
+    SRAM_WriteInstrument(id, INST_MUL4, M_BANK_0[preset]->multiple_4);
 
-    SRAM_WriteInstrument(selectedInstrumentID, INST_DT1, M_BANK_0[preset]->detune_1);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_DT2, M_BANK_0[preset]->detune_3);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_DT3, M_BANK_0[preset]->detune_2);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_DT4, M_BANK_0[preset]->detune_4);
+    SRAM_WriteInstrument(id, INST_DT1, M_BANK_0[preset]->detune_1);
+    SRAM_WriteInstrument(id, INST_DT2, M_BANK_0[preset]->detune_3);
+    SRAM_WriteInstrument(id, INST_DT3, M_BANK_0[preset]->detune_2);
+    SRAM_WriteInstrument(id, INST_DT4, M_BANK_0[preset]->detune_4);
 
-    SRAM_WriteInstrument(selectedInstrumentID, INST_TL1, M_BANK_0[preset]->totalLevel_1);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_TL2, M_BANK_0[preset]->totalLevel_3);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_TL3, M_BANK_0[preset]->totalLevel_2);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_TL4, M_BANK_0[preset]->totalLevel_4);
+    SRAM_WriteInstrument(id, INST_TL1, M_BANK_0[preset]->totalLevel_1);
+    SRAM_WriteInstrument(id, INST_TL2, M_BANK_0[preset]->totalLevel_3);
+    SRAM_WriteInstrument(id, INST_TL3, M_BANK_0[preset]->totalLevel_2);
+    SRAM_WriteInstrument(id, INST_TL4, M_BANK_0[preset]->totalLevel_4);
 
-    SRAM_WriteInstrument(selectedInstrumentID, INST_RS1, M_BANK_0[preset]->rateScaling_1);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_RS2, M_BANK_0[preset]->rateScaling_3);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_RS3, M_BANK_0[preset]->rateScaling_2);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_RS4, M_BANK_0[preset]->rateScaling_4);
+    SRAM_WriteInstrument(id, INST_RS1, M_BANK_0[preset]->rateScaling_1);
+    SRAM_WriteInstrument(id, INST_RS2, M_BANK_0[preset]->rateScaling_3);
+    SRAM_WriteInstrument(id, INST_RS3, M_BANK_0[preset]->rateScaling_2);
+    SRAM_WriteInstrument(id, INST_RS4, M_BANK_0[preset]->rateScaling_4);
 
-    SRAM_WriteInstrument(selectedInstrumentID, INST_AR1, M_BANK_0[preset]->attackRate_1);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_AR2, M_BANK_0[preset]->attackRate_3);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_AR3, M_BANK_0[preset]->attackRate_2);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_AR4, M_BANK_0[preset]->attackRate_4);
+    SRAM_WriteInstrument(id, INST_AR1, M_BANK_0[preset]->attackRate_1);
+    SRAM_WriteInstrument(id, INST_AR2, M_BANK_0[preset]->attackRate_3);
+    SRAM_WriteInstrument(id, INST_AR3, M_BANK_0[preset]->attackRate_2);
+    SRAM_WriteInstrument(id, INST_AR4, M_BANK_0[preset]->attackRate_4);
 
-    SRAM_WriteInstrument(selectedInstrumentID, INST_D1R1, M_BANK_0[preset]->firstDecayRate_1);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_D1R2, M_BANK_0[preset]->firstDecayRate_3);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_D1R3, M_BANK_0[preset]->firstDecayRate_2);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_D1R4, M_BANK_0[preset]->firstDecayRate_4);
+    SRAM_WriteInstrument(id, INST_D1R1, M_BANK_0[preset]->firstDecayRate_1);
+    SRAM_WriteInstrument(id, INST_D1R2, M_BANK_0[preset]->firstDecayRate_3);
+    SRAM_WriteInstrument(id, INST_D1R3, M_BANK_0[preset]->firstDecayRate_2);
+    SRAM_WriteInstrument(id, INST_D1R4, M_BANK_0[preset]->firstDecayRate_4);
 
-    SRAM_WriteInstrument(selectedInstrumentID, INST_D1L1, M_BANK_0[preset]->secondaryAmplitude_1);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_D1L2, M_BANK_0[preset]->secondaryAmplitude_3);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_D1L3, M_BANK_0[preset]->secondaryAmplitude_2);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_D1L4, M_BANK_0[preset]->secondaryAmplitude_4);
+    SRAM_WriteInstrument(id, INST_D1L1, M_BANK_0[preset]->secondaryAmplitude_1);
+    SRAM_WriteInstrument(id, INST_D1L2, M_BANK_0[preset]->secondaryAmplitude_3);
+    SRAM_WriteInstrument(id, INST_D1L3, M_BANK_0[preset]->secondaryAmplitude_2);
+    SRAM_WriteInstrument(id, INST_D1L4, M_BANK_0[preset]->secondaryAmplitude_4);
 
-    SRAM_WriteInstrument(selectedInstrumentID, INST_AM1, M_BANK_0[preset]->amplitudeModulation_1);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_AM2, M_BANK_0[preset]->amplitudeModulation_3);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_AM3, M_BANK_0[preset]->amplitudeModulation_2);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_AM4, M_BANK_0[preset]->amplitudeModulation_4);
+    SRAM_WriteInstrument(id, INST_AM1, M_BANK_0[preset]->amplitudeModulation_1);
+    SRAM_WriteInstrument(id, INST_AM2, M_BANK_0[preset]->amplitudeModulation_3);
+    SRAM_WriteInstrument(id, INST_AM3, M_BANK_0[preset]->amplitudeModulation_2);
+    SRAM_WriteInstrument(id, INST_AM4, M_BANK_0[preset]->amplitudeModulation_4);
 
-    SRAM_WriteInstrument(selectedInstrumentID, INST_D2R1, M_BANK_0[preset]->secondaryDecayRate_1);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_D2R2, M_BANK_0[preset]->secondaryDecayRate_3);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_D2R3, M_BANK_0[preset]->secondaryDecayRate_2);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_D2R4, M_BANK_0[preset]->secondaryDecayRate_4);
+    SRAM_WriteInstrument(id, INST_D2R1, M_BANK_0[preset]->secondaryDecayRate_1);
+    SRAM_WriteInstrument(id, INST_D2R2, M_BANK_0[preset]->secondaryDecayRate_3);
+    SRAM_WriteInstrument(id, INST_D2R3, M_BANK_0[preset]->secondaryDecayRate_2);
+    SRAM_WriteInstrument(id, INST_D2R4, M_BANK_0[preset]->secondaryDecayRate_4);
 
-    SRAM_WriteInstrument(selectedInstrumentID, INST_RR1, M_BANK_0[preset]->releaseRate_1);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_RR2, M_BANK_0[preset]->releaseRate_3);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_RR3, M_BANK_0[preset]->releaseRate_2);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_RR4, M_BANK_0[preset]->releaseRate_4);
+    SRAM_WriteInstrument(id, INST_RR1, M_BANK_0[preset]->releaseRate_1);
+    SRAM_WriteInstrument(id, INST_RR2, M_BANK_0[preset]->releaseRate_3);
+    SRAM_WriteInstrument(id, INST_RR3, M_BANK_0[preset]->releaseRate_2);
+    SRAM_WriteInstrument(id, INST_RR4, M_BANK_0[preset]->releaseRate_4);
 
-    SRAM_WriteInstrument(selectedInstrumentID, INST_SSGEG1, M_BANK_0[preset]->ssgEg_1);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_SSGEG2, M_BANK_0[preset]->ssgEg_3);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_SSGEG3, M_BANK_0[preset]->ssgEg_2);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_SSGEG4, M_BANK_0[preset]->ssgEg_4);
+    SRAM_WriteInstrument(id, INST_SSGEG1, M_BANK_0[preset]->ssgEg_1);
+    SRAM_WriteInstrument(id, INST_SSGEG2, M_BANK_0[preset]->ssgEg_3);
+    SRAM_WriteInstrument(id, INST_SSGEG3, M_BANK_0[preset]->ssgEg_2);
+    SRAM_WriteInstrument(id, INST_SSGEG4, M_BANK_0[preset]->ssgEg_4);
 
-    SRAM_WriteInstrument(selectedInstrumentID, INST_FB, M_BANK_0[preset]->feedback);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_ALG, M_BANK_0[preset]->algorithm);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_PAN, M_BANK_0[preset]->stereo);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_FMS, M_BANK_0[preset]->fms);
-    SRAM_WriteInstrument(selectedInstrumentID, INST_AMS, M_BANK_0[preset]->ams);
+    SRAM_WriteInstrument(id, INST_FB, M_BANK_0[preset]->feedback);
+    SRAM_WriteInstrument(id, INST_ALG, M_BANK_0[preset]->algorithm);
+    SRAM_WriteInstrument(id, INST_PAN, M_BANK_0[preset]->stereo);
+    SRAM_WriteInstrument(id, INST_FMS, M_BANK_0[preset]->fms);
+    SRAM_WriteInstrument(id, INST_AMS, M_BANK_0[preset]->ams);
 }
 
 // gamepad interrupts handler
@@ -1429,42 +1426,42 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                     for (u8 ch = 0; ch < CHANNELS_TOTAL; ch++) muted += channelFlags[ch];
                     if (!muted) // all channels muted
                     {
-                        for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
+                        for (u8 mtxCh = 0; mtxCh < CHANNELS_TOTAL; mtxCh++)
                         {
-                            channelFlags[channel] = TRUE; // un-mute all
-                            SRAM_WriteMatrixChannelEnabled(channel, TRUE);
-                            VDP_fillTileMapRect(BG_B, NULL, (channel * 3) + 1, 1, 2, 1); // clear all marks
+                            channelFlags[mtxCh] = TRUE; // un-mute all
+                            SRAM_WriteMatrixChannelEnabled(mtxCh, TRUE);
+                            DrawMute(mtxCh);
                         }
                     }
                     else
                     {
                         SRAM_WriteMatrixChannelEnabled(selectedMatrixChannel, FALSE);
-                        FillRowRight(BG_B, PAL1, FALSE, FALSE, GUI_MUTE, 2,(selectedMatrixChannel * 3) + 1, 1 ); // set mark
+                        DrawMute(selectedMatrixChannel);
                     }
                     break;
 
                 case BUTTON_DOWN: // un-mute/solo
-                    for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++) { muted += channelFlags[channel]; }
+                    for (u8 mtxCh = 0; mtxCh < CHANNELS_TOTAL; mtxCh++) { muted += channelFlags[mtxCh]; }
                     if (muted == CHANNELS_TOTAL) // all channels unmuted
                     {
-                        for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
+                        for (u8 mtxCh = 0; mtxCh < CHANNELS_TOTAL; mtxCh++)
                         {
-                            if (channel != selectedMatrixChannel) FillRowRight(BG_B, PAL1, FALSE, FALSE, GUI_MUTE, 2,(channel * 3) + 1, 1 ); // set all marks (except selected)
-                            channelFlags[channel] = FALSE; // mute all
-                            SRAM_WriteMatrixChannelEnabled(channel, FALSE);
+                            channelFlags[mtxCh] = FALSE; // mute all
+                            if (mtxCh != selectedMatrixChannel) DrawMute(mtxCh); // set all marks (except selected)
+                            SRAM_WriteMatrixChannelEnabled(mtxCh, FALSE);
                         }
                     }
                     channelFlags[selectedMatrixChannel] = TRUE; // un-mute selected
                     SRAM_WriteMatrixChannelEnabled(selectedMatrixChannel, TRUE);
-                    VDP_fillTileMapRect(BG_B, NULL, (selectedMatrixChannel * 3) + 1, 1, 2, 1); // clear mark
+                    DrawMute(selectedMatrixChannel);
                     break;
 
                 case BUTTON_Y: // un-mute all
-                    for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
+                    for (u8 mtxCh = 0; mtxCh < CHANNELS_TOTAL; mtxCh++)
                     {
-                        channelFlags[channel] = TRUE; // un-mute all
-                        SRAM_WriteMatrixChannelEnabled(channel, TRUE);
-                        VDP_fillTileMapRect(BG_B, NULL, (channel * 3) + 1, 1, 2, 1); // clear all marks
+                        channelFlags[mtxCh] = TRUE; // un-mute all
+                        SRAM_WriteMatrixChannelEnabled(mtxCh, TRUE);
+                        DrawMute(mtxCh); // clear all marks
                     }
                     break;
                 }
@@ -2172,7 +2169,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                     }
                     break;
                 case GUI_INST_PARAM_PRESET:
-                    LoadPreset(midiPreset);
+                    LoadPreset(selectedInstrumentID, midiPreset);
                     bRefreshScreen = TRUE; instrumentParameterToRefresh = OXFF;
                     break;
                 }
@@ -3321,29 +3318,28 @@ inline void DisplayInstrumentEditor()
 // only attenuate, not increase
 static inline void SetChannelVolume(u8 mtxCh)
 {
-    static s16 volT = 0, volT1 = 0, volT2 = 0, volT3 = 0, volT4 = 0; // volume, tremolo
-    static u8 port = 0, fmChannel = 0;
+    static s16 volT1 = 0, volT2 = 0, volT3 = 0, volT4 = 0; // volume, tremolo
+    static u8 port = 0, ymCh = 0, fmCh = 0;
 
     if (mtxCh > CHANNEL_FM6_DAC) // PSG
     {
         if (bPsgIsPlayingNote[mtxCh - CHANNEL_PSG1] == TRUE)
         {
-            volT =// channelBaseVolume[mtxCh] +
-            channelAttenuation[mtxCh] / 8 +
-            channelSeqAttenuation[mtxCh] / 8 +
-            channelTremolo[mtxCh];
+            volT1 =
+                (channelAttenuation[mtxCh] << 3) +
+                (channelSeqAttenuation[mtxCh] << 3) +
+                channelTremolo[mtxCh];
 
-            if (volT > PSG_ENVELOPE_MIN) volT = PSG_ENVELOPE_MIN;
-            //else if (volT < PSG_ENVELOPE_MAX) volT = PSG_ENVELOPE_MAX;
+            if (volT1 > PSG_ENVELOPE_MIN) volT1 = PSG_ENVELOPE_MIN;
 
-            PSG_setEnvelope(mtxCh - CHANNEL_PSG1, (u8)volT);
+            PSG_setEnvelope(mtxCh - CHANNEL_PSG1, (u8)volT1);
         }
     }
     else // FM
     {
         auto inline void set_normal_channel_vol()
         {
-            switch (tmpInst[channelPreviousInstrument[mtxCh]].ALG)
+            switch (chInst[channelPreviousInstrument[mtxCh]].ALG)
             {
             case 0: case 1: case 2: case 3:
                 volT4 =
@@ -3352,7 +3348,12 @@ static inline void SetChannelVolume(u8 mtxCh)
                     channelSeqAttenuation[mtxCh] +
                     channelTremolo[mtxCh];
                 if (volT4 > 0x7F) volT4 = 0x7F;
-                YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
+
+                if (bWriteRegs)
+                {
+                    YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)volT4);
+                }
+                chInst[fmCh].TL4 = (u8)volT4;
                 break;
             case 4:
                 volT3 =
@@ -3368,8 +3369,14 @@ static inline void SetChannelVolume(u8 mtxCh)
                     channelSeqAttenuation[mtxCh] +
                     channelTremolo[mtxCh];
                 if (volT4 > 0x7F) volT4 = 0x7F;
-                YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + fmChannel, (u8)volT3);
-                YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
+
+                if (bWriteRegs)
+                {
+                    YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, (u8)volT3);
+                    YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)volT4);
+                }
+                chInst[fmCh].TL3 = (u8)volT3;
+                chInst[fmCh].TL4 = (u8)volT4;
                 break;
             case 5: case 6:
                 volT2 =
@@ -3393,9 +3400,15 @@ static inline void SetChannelVolume(u8 mtxCh)
                     channelTremolo[mtxCh];
                 if (volT4 > 0x7F) volT4 = 0x7F;
 
-                YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + fmChannel, (u8)volT2);
-                YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + fmChannel, (u8)volT3);
-                YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
+                if (bWriteRegs)
+                {
+                    YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + ymCh, (u8)volT2);
+                    YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, (u8)volT3);
+                    YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)volT4);
+                }
+                chInst[fmCh].TL2 = (u8)volT2;
+                chInst[fmCh].TL3 = (u8)volT3;
+                chInst[fmCh].TL4 = (u8)volT4;
                 break;
             case 7:
                 volT1 =
@@ -3426,10 +3439,17 @@ static inline void SetChannelVolume(u8 mtxCh)
                     channelTremolo[mtxCh];
                 if (volT4 > 0x7F) volT4 = 0x7F;
 
-                YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + fmChannel, (u8)volT1);
-                YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + fmChannel, (u8)volT2);
-                YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + fmChannel, (u8)volT3);
-                YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
+                if (bWriteRegs)
+                {
+                    YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + ymCh, (u8)volT1);
+                    YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + ymCh, (u8)volT2);
+                    YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, (u8)volT3);
+                    YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)volT4);
+                }
+                chInst[fmCh].TL1 = (u8)volT1;
+                chInst[fmCh].TL2 = (u8)volT2;
+                chInst[fmCh].TL3 = (u8)volT3;
+                chInst[fmCh].TL4 = (u8)volT4;
                 break;
             }
         }
@@ -3445,7 +3465,9 @@ static inline void SetChannelVolume(u8 mtxCh)
                     channelSeqAttenuation[CHANNEL_FM3_OP4] +
                     channelTremolo[CHANNEL_FM3_OP4];
                 if (volT4 > 0x7F) volT4 = 0x7F;
-                YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + fmChannel, (u8)volT4);
+
+                if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)volT4);
+                chInst[fmCh].TL4 = (u8)volT4;
                 break;
             case CHANNEL_FM3_OP3:
                 volT3 =
@@ -3454,7 +3476,9 @@ static inline void SetChannelVolume(u8 mtxCh)
                     channelSeqAttenuation[CHANNEL_FM3_OP3] +
                     channelTremolo[CHANNEL_FM3_OP3];
                 if (volT3 > 0x7F) volT3 = 0x7F;
-                YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + fmChannel, (u8)volT3);
+
+                if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, (u8)volT3);
+                chInst[fmCh].TL3 = (u8)volT3;
                 break;
             case CHANNEL_FM3_OP2:
                 volT2 =
@@ -3463,7 +3487,9 @@ static inline void SetChannelVolume(u8 mtxCh)
                     channelSeqAttenuation[CHANNEL_FM3_OP2] +
                     channelTremolo[CHANNEL_FM3_OP2];
                 if (volT2 > 0x7F) volT2 = 0x7F;
-                YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + fmChannel, (u8)volT2);
+
+                if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + ymCh, (u8)volT2);
+                chInst[fmCh].TL2 = (u8)volT2;
                 break;
             case CHANNEL_FM3_OP1:
                 volT1 =
@@ -3472,7 +3498,9 @@ static inline void SetChannelVolume(u8 mtxCh)
                     channelSeqAttenuation[CHANNEL_FM3_OP1] +
                     channelTremolo[CHANNEL_FM3_OP1];
                 if (volT1 > 0x7F) volT1 = 0x7F;
-                YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + fmChannel, (u8)volT1);
+
+                if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + ymCh, (u8)volT1);
+                chInst[fmCh].TL1 = (u8)volT1;
                 break;
             }
         }
@@ -3480,23 +3508,24 @@ static inline void SetChannelVolume(u8 mtxCh)
         switch (mtxCh)
         {
         case CHANNEL_FM1: case CHANNEL_FM2:
-            port = PORT_1; fmChannel = mtxCh;
+            port = PORT_1; ymCh = fmCh = mtxCh;
             set_normal_channel_vol();
             break;
         case CHANNEL_FM3_OP4:
-            port = PORT_1; fmChannel = 2;
+            port = PORT_1; ymCh = fmCh = 2;
             if (FM_CH3_Mode == CH3_NORMAL) { set_normal_channel_vol(); }
             else { set_special_channel_vol(); }
             break;
         case CHANNEL_FM3_OP3: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP1:
-            if (FM_CH3_Mode == CH3_SPECIAL) { port = PORT_1; fmChannel = 2; set_special_channel_vol(); }
+            if (FM_CH3_Mode == CH3_SPECIAL) { port = PORT_1; ymCh = fmCh = 2; set_special_channel_vol(); }
             break;
         case CHANNEL_FM4: case CHANNEL_FM5: case CHANNEL_FM6_DAC:
-            port = PORT_2; fmChannel = mtxCh - 6;
+            port = PORT_2; ymCh = mtxCh - 6; fmCh = mtxCh - 3;
             set_normal_channel_vol();
             break;
         default: break;
         }
+        bWriteRegs = TRUE; // trigger
     }
 }
 
@@ -4037,56 +4066,32 @@ static inline void SetChannelBaseVolume_FM(u8 mtxCh, u8 fmCh)
         {
         case 0: case 1: case 2: case 3:
             channelSlotBaseLevel[mtxCh][3] = chInst[fmCh].TL4;
-            /*chInst[fmCh].TL4 += channelAttenuation[mtxCh];
-            if (chInst[fmCh].TL4 > 0x7F) chInst[fmCh].TL4 = 0x7F;*/
             break;
         case 4:
             channelSlotBaseLevel[mtxCh][2] = chInst[fmCh].TL3;
             channelSlotBaseLevel[mtxCh][3] = chInst[fmCh].TL4;
-            /*chInst[fmCh].TL3 += channelAttenuation[mtxCh];
-            chInst[fmCh].TL4 += channelAttenuation[mtxCh];
-            if (chInst[fmCh].TL3 > 0x7F) chInst[fmCh].TL3 = 0x7F;
-            if (chInst[fmCh].TL4 > 0x7F) chInst[fmCh].TL4 = 0x7F;*/
             break;
         case 5: case 6:
             channelSlotBaseLevel[mtxCh][1] = chInst[fmCh].TL2;
             channelSlotBaseLevel[mtxCh][2] = chInst[fmCh].TL3;
             channelSlotBaseLevel[mtxCh][3] = chInst[fmCh].TL4;
-            /*chInst[fmCh].TL2 += channelAttenuation[mtxCh];
-            chInst[fmCh].TL3 += channelAttenuation[mtxCh];
-            chInst[fmCh].TL4 += channelAttenuation[mtxCh];
-            if (chInst[fmCh].TL2 > 0x7F) chInst[fmCh].TL2 = 0x7F;
-            if (chInst[fmCh].TL3 > 0x7F) chInst[fmCh].TL3 = 0x7F;
-            if (chInst[fmCh].TL4 > 0x7F) chInst[fmCh].TL4 = 0x7F;*/
             break;
         case 7:
             channelSlotBaseLevel[mtxCh][0] = chInst[fmCh].TL1;
             channelSlotBaseLevel[mtxCh][1] = chInst[fmCh].TL2;
             channelSlotBaseLevel[mtxCh][2] = chInst[fmCh].TL3;
             channelSlotBaseLevel[mtxCh][3] = chInst[fmCh].TL4;
-            /*chInst[fmCh].TL1 += channelAttenuation[mtxCh];
-            chInst[fmCh].TL2 += channelAttenuation[mtxCh];
-            chInst[fmCh].TL3 += channelAttenuation[mtxCh];
-            chInst[fmCh].TL4 += channelAttenuation[mtxCh];
-            if (chInst[fmCh].TL1 > 0x7F) chInst[fmCh].TL1 = 0x7F;
-            if (chInst[fmCh].TL2 > 0x7F) chInst[fmCh].TL2 = 0x7F;
-            if (chInst[fmCh].TL3 > 0x7F) chInst[fmCh].TL3 = 0x7F;
-            if (chInst[fmCh].TL4 > 0x7F) chInst[fmCh].TL4 = 0x7F;*/
             break;
         default: break;
         }
     }
 
-    if (mtxCh == CHANNEL_FM3_OP4)
+    if (mtxCh == CHANNEL_FM3_OP4 && FM_CH3_Mode != CH3_NORMAL)
     {
-        if (FM_CH3_Mode == CH3_NORMAL) set_normal_slots();
-        else
-        {
-            channelSlotBaseLevel[CHANNEL_FM3_OP4][0] = chInst[fmCh].TL1;
-            channelSlotBaseLevel[CHANNEL_FM3_OP4][1] = chInst[fmCh].TL2;
-            channelSlotBaseLevel[CHANNEL_FM3_OP4][2] = chInst[fmCh].TL3;
-            channelSlotBaseLevel[CHANNEL_FM3_OP4][3] = chInst[fmCh].TL4;
-        }
+        channelSlotBaseLevel[CHANNEL_FM3_OP4][0] = chInst[fmCh].TL1;
+        channelSlotBaseLevel[CHANNEL_FM3_OP4][1] = chInst[fmCh].TL2;
+        channelSlotBaseLevel[CHANNEL_FM3_OP4][2] = chInst[fmCh].TL3;
+        channelSlotBaseLevel[CHANNEL_FM3_OP4][3] = chInst[fmCh].TL4;
     } else set_normal_slots();
 }
 
@@ -4094,27 +4099,20 @@ static inline void SetChannelBaseVolume_FM(u8 mtxCh, u8 fmCh)
 static inline void WriteYM2612(u8 mtxCh, u8 fmCh)
 {
     static u16 port = 0;
-    static u8 ch = 0;       // chip channel
-    //static u8 fmCh = 0;     // matrix fm channel
+    static u8 ymCh = 0;
 
     switch (mtxCh)
     {
     case CHANNEL_FM1: case CHANNEL_FM2: case CHANNEL_FM3_OP4:
-        port = PORT_1; ch = /*fmCh = */mtxCh;
+        port = PORT_1; ymCh = mtxCh;
         break;
-    /*case CHANNEL_FM3_OP3: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP1:
-        port = PORT_1; ch = CHANNEL_FM3_OP4; // needed for volume
-        break;*/
     case CHANNEL_FM4: case CHANNEL_FM5: case CHANNEL_FM6_DAC:
-        port = PORT_2; ch = mtxCh - 6; //fmCh = mtxCh - 3;
+        port = PORT_2; ymCh = mtxCh - 6;
         break;
     default: return; break;
     }
 
-    SetChannelBaseVolume_FM(mtxCh, fmCh); // called only here
-    SetChannelVolume(mtxCh); // if there is vol command, resulting same values
-
-    switch (ch)
+    switch (ymCh)
     {
     case 0:
         YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH0, chInst[fmCh].FB_ALG);
@@ -4285,16 +4283,17 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
         switch (fxValue)
         {
             case 0x00: // stop and reset
-                channelPitchSlideSpeed[mtxCh] = 0;
-                channelMicrotone[mtxCh] = 0;
-                channelModNotePitch[mtxCh] = 0;
+                channelPitchSlideSpeed[mtxCh] =
+                channelMicrotone[mtxCh] =
+                channelModNotePitch[mtxCh] =
+                channelFinalPitch[mtxCh] = 0;
                 break;
-            case 0xFE: // stop
+            case 0xFE: // hold
                 channelPitchSlideSpeed[mtxCh] = 0;
                 break;
             case 0xFF: // reset
                 channelPitchSlideSpeed[mtxCh] = channelPitchSlideValue[mtxCh];
-                channelMicrotone[mtxCh] = 0;
+                channelMicrotone[mtxCh] =
                 channelModNotePitch[mtxCh] = 0;
                 break;
             default: // do portamento
@@ -4308,16 +4307,17 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
         switch (fxValue)
         {
             case 0x00: // stop and reset
-                channelPitchSlideSpeed[mtxCh] = 0;
-                channelMicrotone[mtxCh] = 0;
-                channelModNotePitch[mtxCh] = 0;
+                channelPitchSlideSpeed[mtxCh] =
+                channelMicrotone[mtxCh] =
+                channelModNotePitch[mtxCh] =
+                channelFinalPitch[mtxCh] = 0;
                 break;
-            case 0xFE: // stop
+            case 0xFE: // hold
                 channelPitchSlideSpeed[mtxCh] = 0;
                 break;
             case 0xFF: // reset
                 channelPitchSlideSpeed[mtxCh] = channelPitchSlideValue[mtxCh];
-                channelMicrotone[mtxCh] = 0;
+                channelMicrotone[mtxCh] =
                 channelModNotePitch[mtxCh] = 0;
                 break;
             default: // do portamento
@@ -4335,10 +4335,12 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
         }
         else
         {
-            channelVibratoSpeed[mtxCh] = channelVibratoDepth[mtxCh] = channelVibrato[mtxCh] = 0;
+            channelVibratoSpeed[mtxCh] =
+            channelVibratoDepth[mtxCh] =
+            channelVibrato[mtxCh] = 0;
             if (!channelPitchSlideSpeed[mtxCh]) channelMicrotone[mtxCh] = channelFinalPitch[mtxCh] = 0; //! bad fix
         }
-        channelVibratoPhase[mtxCh] = 0;
+        channelVibratoPhase[mtxCh] =
         channelModNoteVibrato[mtxCh] = 0;
         break;
 
@@ -5272,6 +5274,12 @@ static inline void YM2612_writeRegZ80(u16 part, u8 reg, u8 data)
     ReleaseZ80();
 }
 
+void DrawMute(u8 mtxCh)
+{
+    if (channelFlags[mtxCh]) VDP_fillTileMapRect(BG_B, NULL, (mtxCh * 3) + 1, 1, 2, 1);
+    else VDP_fillTileMapRect(BG_B, bgBaseTileIndex[2] + GUI_MUTE, (mtxCh * 3) + 1, 1, 2, 1);
+}
+
 void InitTracker()
 {
     SYS_disableInts();
@@ -5368,111 +5376,35 @@ void InitTracker()
     ReColorsAndTranspose(); // need SRAM
 
     // init
-    for (u8 channel = CHANNEL_FM1; channel < CHANNELS_TOTAL; channel++)
+    for (u8 mtxCh = CHANNEL_FM1; mtxCh < CHANNELS_TOTAL; mtxCh++)
     {
-        channelPreviousInstrument[channel] = NULL;
-        channelPreviousEffectType[channel][0] = NULL;
-        channelPreviousEffectType[channel][1] = NULL;
-        channelPreviousEffectType[channel][2] = NULL;
-        channelPreviousNote[channel] = NOTE_OFF;
-        channelArpSeqID[channel] = NULL;
-        channelVolSeqID[channel] = NULL;
+        channelPreviousInstrument[mtxCh] =
+        channelPreviousEffectType[mtxCh][0] =
+        channelPreviousEffectType[mtxCh][1] =
+        channelPreviousEffectType[mtxCh][2] =
+        channelArpSeqID[mtxCh] =
+        channelVibratoMode[mtxCh] =
+        channelVolSeqID[mtxCh] =
+        channelNoteCut[mtxCh] = 0;
 
-        channelTremoloSpeedMult[channel] = 0x20;
-        channelVibratoSpeedMult[channel] = 0x08;
-        channelVibratoDepthMult[channel] = 0x02;
-        channelVibratoMode[channel] = 0;
+        channelPreviousNote[mtxCh] = NOTE_OFF;
 
-        channelNoteCut[channel]  = 0;
+        channelTremoloSpeedMult[mtxCh] = 0x20;
+        channelVibratoSpeedMult[mtxCh] = 0x08;
+        channelVibratoDepthMult[mtxCh] = 0x02;
 
-        channelFlags[channel] = SRAM_ReadMatrixChannelEnabled(channel);
-        if (channelFlags[channel]) { VDP_fillTileMapRect(BG_B, NULL, (channel * 3) + 1, 1, 2, 1); }
-        else
-        {
-            VDP_fillTileMapRect(BG_B, bgBaseTileIndex[2] + GUI_MUTE, (channel * 3) + 1, 1, 2, 1);
-            //VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_MUTE), (channel * 3) + 1, 1);
-            //VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, TRUE, bgBaseTileIndex[2] + GUI_MUTE), (channel * 3) + 2, 1);
-        }
+        channelFlags[mtxCh] = SRAM_ReadMatrixChannelEnabled(mtxCh);
+        DrawMute(mtxCh);
     }
 
     // if there is no SRAM file, needs fresh init.
-    if (SRAMW_readWord(DEAD_INSTRUMENT) != 0xDEAD)
+    if (SRAMW_readWord(FILE_CHECKER) != MDT_CHECKER)
     {
         SetBPM(DEFAULT_TEMPO);
-        // init with default instrument; 49 non-global parameters (5 for whole channel, 11*4 per operator)
-        DrawText(BG_A, PAL0, "GENERATING", 3, 3); DrawText(BG_A, PAL0, "MODULE", 14, 3); DrawText(BG_A, PAL0, "DATA", 21, 3);
+        VDP_setTextPalette(PAL0); VDP_drawText("GENERATING MODULE DATA", 3, 3);
         for (u16 inst = 0; inst <= INSTRUMENTS_LAST; inst++)
         {
-            // create default instruments
-            SRAM_WriteInstrument(inst, INST_MUL1, 1);
-            SRAM_WriteInstrument(inst, INST_MUL2, 4);
-            SRAM_WriteInstrument(inst, INST_MUL3, 2);
-            SRAM_WriteInstrument(inst, INST_MUL4, 1);
-            //{
-            //0 	0 	0 	No change
-            //0 	0 	1 	*(1+e)
-            //0 	1 	0 	*(1+2e)
-            //0 	1 	1 	*(1+3e)
-            //1 	0 	0 	No change
-            //1 	0 	1 	*(1-e)
-            //1 	1 	0 	*(1-2e)
-            //1 	1 	1 	*(1-3e)
-            //}
-            SRAM_WriteInstrument(inst, INST_DT1, 4);
-            SRAM_WriteInstrument(inst, INST_DT2, 4);
-            SRAM_WriteInstrument(inst, INST_DT3, 4);
-            SRAM_WriteInstrument(inst, INST_DT4, 4);
-
-            SRAM_WriteInstrument(inst, INST_TL1, 0x20);
-            SRAM_WriteInstrument(inst, INST_TL2, 0x10);
-            SRAM_WriteInstrument(inst, INST_TL3, 0x09);
-            SRAM_WriteInstrument(inst, INST_TL4, 0x03);
-
-            SRAM_WriteInstrument(inst, INST_RS1, 1);
-            SRAM_WriteInstrument(inst, INST_RS2, 2);
-            SRAM_WriteInstrument(inst, INST_RS3, 1);
-            SRAM_WriteInstrument(inst, INST_RS4, 1);
-
-            SRAM_WriteInstrument(inst, INST_AR1, 31);
-            SRAM_WriteInstrument(inst, INST_AR2, 28);
-            SRAM_WriteInstrument(inst, INST_AR3, 25);
-            SRAM_WriteInstrument(inst, INST_AR4, 31);
-
-            SRAM_WriteInstrument(inst, INST_D1R1, 5);
-            SRAM_WriteInstrument(inst, INST_D1R2, 5);
-            SRAM_WriteInstrument(inst, INST_D1R3, 5);
-            SRAM_WriteInstrument(inst, INST_D1R4, 7);
-
-            SRAM_WriteInstrument(inst, INST_D1L1, 2);
-            SRAM_WriteInstrument(inst, INST_D1L2, 3);
-            SRAM_WriteInstrument(inst, INST_D1L3, 2);
-            SRAM_WriteInstrument(inst, INST_D1L4, 10);
-
-            SRAM_WriteInstrument(inst, INST_AM1, 0);
-            SRAM_WriteInstrument(inst, INST_AM2, 0);
-            SRAM_WriteInstrument(inst, INST_AM3, 0);
-            SRAM_WriteInstrument(inst, INST_AM4, 0);
-
-            SRAM_WriteInstrument(inst, INST_D2R1, 2);
-            SRAM_WriteInstrument(inst, INST_D2R2, 3);
-            SRAM_WriteInstrument(inst, INST_D2R3, 2);
-            SRAM_WriteInstrument(inst, INST_D2R4, 4);
-
-            SRAM_WriteInstrument(inst, INST_RR1, 15);
-            SRAM_WriteInstrument(inst, INST_RR2, 15);
-            SRAM_WriteInstrument(inst, INST_RR3, 15);
-            SRAM_WriteInstrument(inst, INST_RR4, 15);
-
-            SRAM_WriteInstrument(inst, INST_SSGEG1, 7); // 4 bit (off + 8 values)
-            SRAM_WriteInstrument(inst, INST_SSGEG2, 7);
-            SRAM_WriteInstrument(inst, INST_SSGEG3, 7);
-            SRAM_WriteInstrument(inst, INST_SSGEG4, 7);
-
-            SRAM_WriteInstrument(inst, INST_FB, 3);
-            SRAM_WriteInstrument(inst, INST_ALG, 3);
-            SRAM_WriteInstrument(inst, INST_PAN, 3);
-            SRAM_WriteInstrument(inst, INST_FMS, 0);
-            SRAM_WriteInstrument(inst, INST_AMS, 0);
+            LoadPreset(inst, 0);
 
             for (u8 pulse = 0; pulse < 16; pulse++)
             {
@@ -5492,7 +5424,7 @@ void InitTracker()
         }
 
         SRAMW_writeByte(GLOBAL_LFO, 7);
-        SRAMW_writeWord(DEAD_INSTRUMENT, 0xDEAD); // checker
+        SRAMW_writeWord(FILE_CHECKER, MDT_CHECKER);
 
         // init matrix
         for (u8 channel = CHANNEL_FM1; channel < CHANNELS_TOTAL; channel++)

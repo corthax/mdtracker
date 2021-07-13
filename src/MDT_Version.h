@@ -9,5 +9,6 @@
 */
 
 #define MDT_VERSION 0
+#define MDT_CHECKER 0xDEAD
 
 #endif

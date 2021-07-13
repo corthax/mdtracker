@@ -327,7 +327,7 @@ void InitInfo()
     infoDescriptions[0x3E] = "";
     infoDescriptions[0x3F] = "--: LOOP, 01=ONCE                    ";
     infoDescriptions[0x40] = "--: DISABLE                          ";
-    infoDescriptions[0x41] = "[FM] 01..7F; [PSG] / 8; --: DEFAULT  ";
+    infoDescriptions[0x41] = "[FM] 00..7F; [PSG]/8; --: RESET      ";
     infoDescriptions[0x42] = "X SPEED, Y DEPTH, --: OFF            ";
     infoDescriptions[0x43] = "--: RESET [Default 20]               ";
     infoDescriptions[0x44] = "X=SPEED, Y=AMOUNT, --: STOP          ";
