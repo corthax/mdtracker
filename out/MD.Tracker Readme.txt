@@ -320,7 +320,7 @@ ROW PPL Resolution (Pulse Per Line) [!!! May impact framerate !!!]
 	14xy 
 x: 0 .. F; Odd lines.
 y: 0 .. F; Even lines.
---: set to default 4;
+00: set to default 4;
 
 ************************************************
 N4 Channel Mode
@@ -336,14 +336,12 @@ xx: 00 .. 03; Each bank contains 96 sample region definitions, 1 per note.
 ************************************************
 Matrix Jump	(Ignored while Pattern or Instrument editor is active)
 	52xx	
-xx: 01 .. FA; Jump to xx matrix row after current pattern row finished playing.
---: jump to next.
+xx: 00 .. FA; Jump to xx matrix row after current pattern row finished playing.
 
 ************************************************
 Pattern Jump (Ignored while Pattern or Instrument editor is active)
 	53xx	
-xx: 01 .. 1F; Row in the next pattern jump to.
---: jump to beginning.
+xx: 00 .. 1F; Row in the next pattern jump to.
 
 ************************************************
 Global Matrix Row Size 
@@ -366,19 +364,19 @@ y: 0 .. F; Shift in pulses.
 MSU MD: CD Audio - Play Once [NOT WORKING]
 	20xx	
 xx: 01 .. 63; Track number in .wav + .cue (99 tracks max)
---: stop.
+00: stop.
 
 ************************************************
 MSU MD: CD Audio - Play Loop [NOT WORKING]
 	21xx	
 xx: 01 .. 63; Track number in .wav + .cue (99 tracks max)
---: stop.
+00: stop.
 
 ************************************************
 MSU MD: CD Audio - Seek Time [NOT WORKING]
 	22xx	
 xx: 01 .. FF; Enable
---: disable.
+00: disable.
 
 ************************************************
 Note Cut (tip: cut the bass notes ends to avoid clicks)
@@ -389,13 +387,13 @@ xx: 01 .. FF; Kill note after xx ticks. [new note does not disable it]
 Set Channel Note Auto Cut (a bit less efficient than setting Note Cut manually)
 	56xx	
 xx: 01 .. 0F; < PPL. Auto kill every note before next note.
---: disable.
+00: disable.
 
 ************************************************
 Note Retrigger (Will override commands [54] [61] [62])
 	51xx	
 xx: 01 .. FF; Retrigger note after xx ticks.
---: disable.
+00: disable.
 
 ************************************************
 Note Delay
@@ -435,7 +433,7 @@ xx:	00 .. 03; >03 reset
 PAN
 	0Exx	FM channels only
 xx: 11 = center, 10 = left, 01 = right, enything else = mute sound (FM, not DAC).
---: to reset.
+00: to reset.
 
 ------------------------------------------------
 + FM Operators
@@ -454,35 +452,35 @@ RATE SCALE
 	05xy
 x: OP 1 .. 4, 5 to set all operators.
 y: RS 0 .. 3
---: to reset all, 01 .. 04 to reset OP.
+00: to reset all, 01 .. 04 to reset OP.
 
 ************************************************
 FREQUENCY MULTIPLIER
 	06xy
 x: OP 1 .. 4, 5 to set all operators.
 y: MULT 0 .. F
---: to reset all, 01 .. 04 to reset OP.
+00: to reset all, 01 .. 04 to reset OP.
 
 ************************************************
 DETUNE
 	07xy	
 x: OP 1 .. 4, 5 to set all operators.
 y: DT 0 .. 7 (-3 .. +3)
---: to reset all, 01 .. 04 to reset OP. 
+00: to reset all, 01 .. 04 to reset OP. 
 
 ************************************************
 AMPLITUDE MODULATION
 	08xy
 x: OP 1 .. 4, 5 to set all operators.
 y: AM 0 = off, 1 = on
---: to reset all, 01 .. 04 to reset OP. 
+00: to reset all, 01 .. 04 to reset OP. 
 
 ************************************************
 SSG-EG
 	09xy
 x: OP 1 .. 4, 5 to set all operators.
 y: SSG-EG 0 == off; 1 .. 8 = select mode.
---: to reset all, 01 .. 04 to reset OP. 
+00: to reset all, 01 .. 04 to reset OP. 
 
 ------------------------------------------------
 + FM ADSR Envelope (Changes applied only when new note is triggered)
@@ -536,65 +534,65 @@ xx: 00 .. 0F; >0F reset
 Arpeggiator Sequence MODE
 	2Fxx
 xx: 01 = Play once for each new note.
---: Loop sequence.
+00: Loop sequence.
 
 ************************************************
 Arpegiator Sequence
 	30xx
 xx: 01 .. FF, instrument id sequence is taken from.
---: disable sequence.
+00: disable sequence.
 
 ************************************************
-Pitch UP [!!! Very heavy on CPU !!!]
+Pitch UP [!!! Heavy on CPU !!!]
 	31xx
 xx: 01 .. 7F; Speed * 1/32 semitone per tick, linear.
 Does not restart sliding when new note is triggered, only if new effect value is set.
 Note OFF to reset the effect.
---: stop and reset.
-FE: stop.
+00: disable.
+FE: hold.
 FF: reset.
 
 ************************************************
-Pitch DOWN [!!! Very heavy on CPU !!!]
+Pitch DOWN [!!! Heavy on CPU !!!]
 	32xx
 xx: 01 .. 7F; Speed * 1/32 semitone per tick, linear.
 Does not restart sliding when new note is triggered, only if new effect value is set.
 Note OFF to reset the effect.
---: stop and reset.
+00: stop and reset.
 FE: stop.
 FF: reset.
 
 ************************************************
-Vibrato [!!! Very heavy on CPU, use FM native instead when possible !!!]
+Vibrato [FM FMS is recommended instead]
 	33xy	
 x: 1 .. F; Total Speed = (Speed * Speed Multiplier) per tick. Phase += Total Speed. Phase is 0 .. 1024 of sin cycle.
 y: 1 .. F; Depth * Depth Multiplier * 1/32 semitone.
---: disable, stays on last pitch if no any pitch modifying applied. (x || y) > 0 triggers pitch process, use to reset note pitch.
-Note OFF disable effect. 
+00: disable, stays on last pitch if no any pitch modifying applied. (x || y) > 0 triggers pitch process, use to reset note pitch.
+Note OFF will disable effect. 
 
 ************************************************
-Vibrato Speed Multiplier (!!!Put it at left from Vibrato command so it's apllies first to work properly!!!)
+Vibrato Speed Multiplier (Put it before Vibrato command)
 	34xx	
 xx: 01 .. 1A; Speed multiplier. Default is 0x08.
---: reset to default.
+00: reset to default.
 
 ************************************************
-Vibrato Depth Multiplier (!!!Put it at left from Vibrato command so it's apllied first to work properly!!!)
+Vibrato Depth Multiplier (Put it before Vibrato command)
 	35xx	
 xx: 01 .. FF; Depth multiplier. Default is 0x02, higher values will glitch out :V
---: reset to default.
+00: reset to default.
 
 ************************************************
 Vibrato Mode
 	36xx	
 xx: 01 .. 02; 01 = up only /\/\/\, 02 = down only \/\/\/. Speed of these is twice as fast as normal up/down vibrato, it's just abs or -abs of sin values.
---: up/down ~~~.
+00: up/down ~~~.
 
 ************************************************
 Pitch Slide Skip Ticks
 	37xx
 xx: ticks to skip. allow slower effect.
---: no skip.
+00: no skip.
 
 ------------------------------------------------	
 + Volume effects (!!! Channel volume effects works like post-fader automation - it will not reset on instrument change or note OFF, do it manually !!!)
@@ -604,52 +602,52 @@ xx: ticks to skip. allow slower effect.
 Volume Attenuation Sequence MODE
 	3Fxx
 xx: 01 = Play once for each new note.
---: Loop sequence.
+00: Loop sequence.
 
 ************************************************
 Volume attenuation sequence
 	40xx
 xx: 01 .. FF; Instrument id sequence is taken from.
---: disable sequence, stays on the last applied volume till next note is triggered, then returns to channel volume.
+00: disable sequence, stays on the last applied volume till next note is triggered, then returns to channel volume.
 
 ************************************************
 Channel volume attenuation (Less = louder)
 	41xx
 xx: 01 .. 7F; Divided by 8 for PSG.
---: no attenuation.
+00: no attenuation.
 
 ************************************************
-Tremolo [!!! Very heavy on CPU, use FM native instead when possible !!!]
+Tremolo [FM AMS is recommended instead]
 	42xy	
 x: 1 .. F; Speed, full cycle ticks.
 y: 1 .. F; Depth.
---: disable.
+00: disable.
 
 ************************************************
 Tremolo speed multiplier
 	43xx	
 xx: 01 .. FF; Speed multiplier * 1/1024 of sin frequency per row pulse. Default is 0x20.
---: reset.
+00: reset.
 
 ************************************************
-Channel volume decrease [!!! Very heavy on CPU !!!]
+Channel volume decrease
 	44xy	
 x: 1 .. F; Pulse to skip.
 y: 1 .. F; Volume decrease amount per pulse;
---: stop effect.
+00: stop effect.
 
 ************************************************
-Channel volume increase [!!! Very heavy on CPU !!!]
+Channel volume increase
 	45xy	
 x: 1 .. F; Pulse to skip.
 y: 1 .. F; Volume increase amount per pulse;
---: stop effect.
+00: stop effect.
 
 ************************************************
 Volume discrete modulation
 	46xx
 xx: 01 .. 60; pitch (hBlank based frequency). xx > 60 = same as key.
---: disable
+00: disable
 
 ------------------------------------------------	
 + EOF

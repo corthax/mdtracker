@@ -589,7 +589,6 @@ static inline void DoEngine()
     // vibrato tool
     auto s8 vibrato(u8 mtxCh) {
         static s8 vib = 0;
-
         switch (channelVibratoMode[mtxCh])
         {
         case 1:
@@ -610,7 +609,6 @@ static inline void DoEngine()
     }
 
     auto inline void seq_vol(u8 mtxCh) {
-
         if (!channelVolSeqMODE[mtxCh] || (channelVolSeqMODE[mtxCh] && channelSEQCounter_VOL[mtxCh] != INST_VOL_TICK_16))
         {
             _seqValue = SRAM_ReadInstrument(channelVolSeqID[mtxCh], ++channelSEQCounter_VOL[mtxCh]);
@@ -707,7 +705,6 @@ static inline void DoEngine()
                 }
             }
 
-            // apply commands to temp RAM instrument
             auto inline void apply_commands() {
                 command(DATA_FX1_TYPE, DATA_FX1_VALUE, 0);
                 command(DATA_FX2_TYPE, DATA_FX2_VALUE, 1);
@@ -1009,6 +1006,7 @@ static inline void DoEngine()
             hIntCounter = hIntToSkip; // reset h-int counter
             bDoPulse = FALSE;
             pulseCounter = 0;
+            //! read id transpose here once
             SYS_enableInts();
         }
 
@@ -1041,7 +1039,6 @@ static inline void DoEngine()
             {
                 DrawMatrixPlaybackCursor(TRUE); // erase
 
-                // endless cycle pattern if not in matrix editor
                 if (currentScreen == SCREEN_MATRIX)
                 {
                     if (matrixRowJumpTo != OXFF)
@@ -1062,8 +1059,10 @@ static inline void DoEngine()
                     {
                         playingMatrixRow = 0;
                     }
+
+                    //!read id transpose here once
                 }
-                else if (playingPatternRow > patternSize)
+                else if (playingPatternRow > patternSize) // endless cycle pattern if not in matrix editor
                 {
                     playingPatternRow = 0;
                     matrixRowJumpTo = OXFF;
@@ -2545,7 +2544,7 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
     {
         row = selectedPatternRow + 16 * column;
         value = SRAM_ReadPattern(selectedPatternID, row, DATA_INSTRUMENT);
-        if (value == 0)
+        if (!value)
         {
             SRAM_WritePattern(selectedPatternID, row, DATA_INSTRUMENT, lastEnteredInstrumentID);
             patternRowToRefresh = row;
@@ -2572,7 +2571,7 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
     {
         row = selectedPatternRow + 16 * column;
         value = SRAM_ReadPattern(selectedPatternID, row, id);
-        if (value == 0)
+        if (!value)
         {
             SRAM_WritePattern(selectedPatternID, row, id, lastEnteredEffect);
             patternRowToRefresh = row;
@@ -2587,7 +2586,6 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
         }
 
         // print info: last entered effect description
-//#if (MDT_VERSION != 1) //! const char array access resulting unmapped area in blastem
         if (!strcmp(infoCommands[lastEnteredEffect], STRING_EMPTY))
         {
             VDP_clearTextArea(GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y, 39, 2);
@@ -2597,14 +2595,13 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
             VDP_setTextPalette(PAL0); VDP_drawText(infoCommands[lastEnteredEffect], GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y);
             VDP_setTextPalette(PAL1); VDP_drawText(infoDescriptions[lastEnteredEffect], GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y + 1);
         }
-//#endif
     }
 
     auto void write_fx_value(u8 id, u8 column)
     {
         row = selectedPatternRow + 16 * column;
         value = SRAM_ReadPattern(selectedPatternID, row, id);
-        if (value == 0)
+        if (!value)
         {
             SRAM_WritePattern(selectedPatternID, row, id, lastEnteredEffectValue);
             patternRowToRefresh = row;
@@ -2696,38 +2693,23 @@ inline void DisplayPatternEditor()
         palx = (line % 4 == 0) ? PAL0 : PAL1;
         lineShiftY = line + shiftY;
 
-        auto void display_fx_type(u8 id, u8 shift)
-        {
-            value = SRAM_ReadPattern(selectedPatternID, line, id);
-            u8 xPos = GUI_FX_TYPE_START + shiftX + shift;
+        auto void display_fx(u8 id_type, u8 id_value, u8 shift) {
+            u8 _fx_t = SRAM_ReadPattern(selectedPatternID, line, id_type);
+            u8 _fx_v = SRAM_ReadPattern(selectedPatternID, line, id_value);
+            u8 xPos_t = GUI_FX_TYPE_START + shiftX + shift;
+            u8 xPos_v = GUI_FX_VALUE_START + shiftX + shift;
+            u16 _tile;
+            u8 _pal;
 
-            if (value == 0)
-            {
-                if (palx == PAL0) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[0]), xPos, lineShiftY);
-                else VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[0]), xPos, lineShiftY);
-            }
-            else
-            {
-                VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, value + bgBaseTileIndex[0]), xPos, lineShiftY);
-            }
+            if (!_fx_t) { _pal = PAL1; _tile = bgBaseTileIndex[0]; }
+            else { _pal = PAL0; _tile = bgBaseTileIndex[0] + _fx_t; }
+            VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(_pal, 1, FALSE, FALSE, _tile), xPos_t, lineShiftY);
+
+            if (!_fx_v && !_fx_t) { _pal = PAL1; _tile = bgBaseTileIndex[0]; }
+            else if (!_fx_v && _fx_t) { _pal = PAL1; _tile = bgBaseTileIndex[3] + GUI_00; }
+            else { _pal = PAL1; _tile = bgBaseTileIndex[0] + _fx_v; }
+            VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(_pal, 1, FALSE, FALSE, _tile), xPos_v, lineShiftY);
         }
-
-        auto void display_fx_value(u8 id, u8 shift)
-        {
-            value = SRAM_ReadPattern(selectedPatternID, line, id);
-            u8 xPos = GUI_FX_VALUE_START + shiftX + shift;
-
-            if (value == 0)
-            {
-                if (palx == PAL0) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[0]), xPos, lineShiftY);
-                else VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[0]), xPos, lineShiftY);
-            }
-            else
-            {
-                VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, value + bgBaseTileIndex[0]), xPos, lineShiftY);
-            }
-        }
-
         // note name
         if (note < NOTE_EMPTY)
         {
@@ -2759,18 +2741,12 @@ inline void DisplayPatternEditor()
         }
         else DrawHex2(palx, value, 45 + shiftX, lineShiftY);
 
-        display_fx_type(DATA_FX1_TYPE, 0);
-        display_fx_value(DATA_FX1_VALUE, 0);
-        display_fx_type(DATA_FX2_TYPE, 2);
-        display_fx_value(DATA_FX2_VALUE, 2);
-        display_fx_type(DATA_FX3_TYPE, 4);
-        display_fx_value(DATA_FX3_VALUE, 4);
-        display_fx_type(DATA_FX4_TYPE, 6);
-        display_fx_value(DATA_FX4_VALUE, 6);
-        display_fx_type(DATA_FX5_TYPE, 8);
-        display_fx_value(DATA_FX5_VALUE, 8);
-        display_fx_type(DATA_FX6_TYPE, 10);
-        display_fx_value(DATA_FX6_VALUE, 10);
+        display_fx(DATA_FX1_TYPE, DATA_FX1_VALUE, 0);
+        display_fx(DATA_FX2_TYPE, DATA_FX2_VALUE, 2);
+        display_fx(DATA_FX3_TYPE, DATA_FX3_VALUE, 4);
+        display_fx(DATA_FX4_TYPE, DATA_FX4_VALUE, 6);
+        display_fx(DATA_FX5_TYPE, DATA_FX5_VALUE, 8);
+        display_fx(DATA_FX6_TYPE, DATA_FX6_VALUE, 10);
         // refresh all, line by frame; or only currently edited line;
         if (patternRowToRefresh == OXFF) // refresh all
         {
@@ -3743,29 +3719,18 @@ static inline void PlayNoteOff(u8 mtxCh)
 
 static inline void PlayNote(u8 note, u8 mtxCh)
 {
-    //if (note < NOTES)
-    //{
-        //channelVibratoPhase[mtxCh] = 0; // neutral state
-        //channelTremoloPhase[mtxCh] = 512; // neutral state
 
-        if (mtxCh < CHANNEL_PSG1) // FM
-        {
-            // S1>S3>S2>S4 for common registers and S4>S3>S1>S2 for CH3 frequencies
-            StopChannelSound(mtxCh); // need to stop current playing note to write new data
-            SetPitchFM(mtxCh, note); // set pitch (or dac), trigger note
-        }
-        else // PSG
-        {
-            bPsgIsPlayingNote[mtxCh - CHANNEL_PSG1] = TRUE;
-            SetPitchPSG(mtxCh, note);
-        }
-    //}
-    /*else if (note == NOTE_OFF)
+    if (mtxCh < CHANNEL_PSG1) // FM
     {
-        if (FM_CH3_Mode == CH3_SPECIAL_CSM && mtxCh == CHANNEL_FM3_OP4) FM_CH3_Mode = CH3_SPECIAL_CSM_OFF;
-        StopChannelSound(mtxCh);
-        StopEffects(mtxCh);
-    }*/
+        // S1>S3>S2>S4 for common registers and S4>S3>S1>S2 for CH3 frequencies
+        StopChannelSound(mtxCh); // need to stop current playing note to write new data
+        SetPitchFM(mtxCh, note); // set pitch (or dac), trigger note
+    }
+    else // PSG
+    {
+        bPsgIsPlayingNote[mtxCh - CHANNEL_PSG1] = TRUE;
+        SetPitchPSG(mtxCh, note);
+    }
 }
 
 static void StopEffects(u8 mtxCh)
@@ -3785,9 +3750,6 @@ static void StopEffects(u8 mtxCh)
     channelVibratoDepth[mtxCh] = 0;
     channelVibratoSpeed[mtxCh] = 0;
     channelVibratoPhase[mtxCh] = 0;
-    //channelVibratoSpeedMult[mtxCh] = 0x08;
-    //channelVibratoMode[mtxCh] = 0;
-    //channelVibratoDepthMult[mtxCh] = 0x02;
 
     channelPitchSlideSpeed[mtxCh] = 0;
     channelFinalPitch[mtxCh] = 0;
@@ -4285,8 +4247,8 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
             case 0x00: // stop and reset
                 channelPitchSlideSpeed[mtxCh] =
                 channelMicrotone[mtxCh] =
-                channelModNotePitch[mtxCh] =
-                channelFinalPitch[mtxCh] = 0;
+                channelModNotePitch[mtxCh] = 0;
+                if (!channelVibratoSpeed[mtxCh] && !channelVibratoDepth[mtxCh]) channelFinalPitch[mtxCh] = 0; //! breaks vibrato
                 break;
             case 0xFE: // hold
                 channelPitchSlideSpeed[mtxCh] = 0;
@@ -4309,8 +4271,8 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
             case 0x00: // stop and reset
                 channelPitchSlideSpeed[mtxCh] =
                 channelMicrotone[mtxCh] =
-                channelModNotePitch[mtxCh] =
-                channelFinalPitch[mtxCh] = 0;
+                channelModNotePitch[mtxCh] = 0;
+                if (!channelVibratoSpeed[mtxCh] && !channelVibratoDepth[mtxCh]) channelFinalPitch[mtxCh] = 0; //! breaks vibrato
                 break;
             case 0xFE: // hold
                 channelPitchSlideSpeed[mtxCh] = 0;
@@ -4338,7 +4300,7 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
             channelVibratoSpeed[mtxCh] =
             channelVibratoDepth[mtxCh] =
             channelVibrato[mtxCh] = 0;
-            if (!channelPitchSlideSpeed[mtxCh]) channelMicrotone[mtxCh] = channelFinalPitch[mtxCh] = 0; //! bad fix
+            if (!channelPitchSlideSpeed[mtxCh]) channelMicrotone[mtxCh] = channelFinalPitch[mtxCh] = 0; //! break portamento
         }
         channelVibratoPhase[mtxCh] =
         channelModNoteVibrato[mtxCh] = 0;
