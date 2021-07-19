@@ -245,6 +245,9 @@ Arp range is +- 24 semitones, if resulting note is not in C-0 .. B-7 range, then
 	B 		Set --: to skip step.
 
 	C 		Enable step.
+------
+Instrument column on PSG channels will set VOl and ARP sequence for this channel. Overriden by [30] and [40] commands.
+------
 
 NAME: 	8 symbols.
 COPY: 	B to copy current FM instrument into selected instrument.

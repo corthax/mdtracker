@@ -748,21 +748,29 @@ static inline void DoEngine()
             }
 
             // commands
-            if (_inst && mtxCh < CHANNEL_PSG1) // ignore inst on PSG
+            if (_inst)
             {
-                if (_inst != channelPreviousInstrument[mtxCh])
+                if (mtxCh < CHANNEL_PSG1) // FM
                 {
-                    StopChannelSound(mtxCh);
-                    channelPreviousInstrument[mtxCh] = _inst;
-                }
-                if (mtxCh > 2) fmCh = mtxCh - 3; else fmCh = mtxCh;
-                chInst[fmCh] = tmpInst[_inst]; // copy from cached preset
-                bWriteRegs = FALSE; // disable registers write for effects
+                    if (_inst != channelPreviousInstrument[mtxCh])
+                    {
+                        StopChannelSound(mtxCh);
+                        channelPreviousInstrument[mtxCh] = _inst;
+                    }
+                    if (mtxCh > 2) fmCh = mtxCh - 3; else fmCh = mtxCh;
+                    chInst[fmCh] = tmpInst[_inst]; // copy from cached preset
+                    bWriteRegs = FALSE; // disable registers write for effects
 
-                SetChannelBaseVolume_FM(mtxCh, fmCh); // remember preset base TL levels
-                apply_commands(); // only change chInst
-                if (!bWriteRegs) SetChannelVolume(mtxCh); // if not triggered from command, apply channel attenuation to new instrument
-                WriteYM2612(mtxCh, fmCh); // rewrite all registers from chInst
+                    SetChannelBaseVolume_FM(mtxCh, fmCh); // remember preset base TL levels
+                    apply_commands(); // only change chInst
+                    if (!bWriteRegs) SetChannelVolume(mtxCh); // if not triggered from command, apply channel attenuation to new instrument
+                    WriteYM2612(mtxCh, fmCh); // rewrite all registers from chInst
+                }
+                else // PSG
+                {
+                    channelArpSeqID[mtxCh] = channelVolSeqID[mtxCh] = _inst; // set seq for PSG as instrument
+                    apply_commands(); // will override PSG seq
+                }
             }
             else
             {
@@ -794,6 +802,7 @@ static inline void DoEngine()
 
                 if (channelRowShift[mtxCh][playingPatternRow]) channelNoteDelayCounter[mtxCh] = channelRowShift[mtxCh][playingPatternRow];
                 channelSEQCounter_ARP[mtxCh] = INST_ARP_TICK_01-1;
+                channelSEQCounter_VOL[mtxCh] = INST_VOL_TICK_01-1;
                 seq_vol(mtxCh); seq_arp(mtxCh);
                 if (!channelNoteDelayCounter[mtxCh] && !channelNoteRetrigger[mtxCh]) // re-triggered from do_effects
                 {
@@ -3295,214 +3304,210 @@ inline void DisplayInstrumentEditor()
 static inline void SetChannelVolume(u8 mtxCh)
 {
     static s16 volT1 = 0, volT2 = 0, volT3 = 0, volT4 = 0; // volume, tremolo
-    static u8 port = 0, ymCh = 0, fmCh = 0;
+    static u8 port = 0, ymCh = 0, fmCh = 0, psgCh = 0;
 
-    if (mtxCh > CHANNEL_FM6_DAC) // PSG
-    {
-        if (bPsgIsPlayingNote[mtxCh - CHANNEL_PSG1] == TRUE)
+    auto inline void set_normal_channel_vol() {
+        switch (chInst[channelPreviousInstrument[mtxCh]].ALG)
         {
-            volT1 =
-                (channelAttenuation[mtxCh] << 3) +
-                (channelSeqAttenuation[mtxCh] << 3) +
+        case 0: case 1: case 2: case 3:
+            volT4 =
+                channelSlotBaseLevel[mtxCh][3] +
+                channelAttenuation[mtxCh] +
+                channelSeqAttenuation[mtxCh] +
                 channelTremolo[mtxCh];
+            if (volT4 > 0x7F) volT4 = 0x7F;
 
-            if (volT1 > PSG_ENVELOPE_MIN) volT1 = PSG_ENVELOPE_MIN;
+            if (bWriteRegs)
+            {
+                YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)volT4);
+            }
+            chInst[fmCh].TL4 = (u8)volT4;
+            break;
+        case 4:
+            volT3 =
+                channelSlotBaseLevel[mtxCh][2] +
+                channelAttenuation[mtxCh] +
+                channelSeqAttenuation[mtxCh] +
+                channelTremolo[mtxCh];
+            if (volT3 > 0x7F) volT3 = 0x7F;
 
-            PSG_setEnvelope(mtxCh - CHANNEL_PSG1, (u8)volT1);
+            volT4 =
+                channelSlotBaseLevel[mtxCh][3] +
+                channelAttenuation[mtxCh] +
+                channelSeqAttenuation[mtxCh] +
+                channelTremolo[mtxCh];
+            if (volT4 > 0x7F) volT4 = 0x7F;
+
+            if (bWriteRegs)
+            {
+                YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, (u8)volT3);
+                YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)volT4);
+            }
+            chInst[fmCh].TL3 = (u8)volT3;
+            chInst[fmCh].TL4 = (u8)volT4;
+            break;
+        case 5: case 6:
+            volT2 =
+                channelSlotBaseLevel[mtxCh][1] +
+                channelAttenuation[mtxCh] +
+                channelSeqAttenuation[mtxCh] +
+                channelTremolo[mtxCh];
+            if (volT2 > 0x7F) volT2 = 0x7F;
+
+            volT3 =
+                channelSlotBaseLevel[mtxCh][2] +
+                channelAttenuation[mtxCh] +
+                channelSeqAttenuation[mtxCh] +
+                channelTremolo[mtxCh];
+            if (volT3 > 0x7F) volT3 = 0x7F;
+
+            volT4 =
+                channelSlotBaseLevel[mtxCh][3] +
+                channelAttenuation[mtxCh] +
+                channelSeqAttenuation[mtxCh] +
+                channelTremolo[mtxCh];
+            if (volT4 > 0x7F) volT4 = 0x7F;
+
+            if (bWriteRegs)
+            {
+                YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + ymCh, (u8)volT2);
+                YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, (u8)volT3);
+                YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)volT4);
+            }
+            chInst[fmCh].TL2 = (u8)volT2;
+            chInst[fmCh].TL3 = (u8)volT3;
+            chInst[fmCh].TL4 = (u8)volT4;
+            break;
+        case 7:
+            volT1 =
+                channelSlotBaseLevel[mtxCh][0] +
+                channelAttenuation[mtxCh] +
+                channelSeqAttenuation[mtxCh] +
+                channelTremolo[mtxCh];
+            if (volT1 > 0x7F) volT1 = 0x7F;
+
+            volT2 =
+                channelSlotBaseLevel[mtxCh][1] +
+                channelAttenuation[mtxCh] +
+                channelSeqAttenuation[mtxCh] +
+                channelTremolo[mtxCh];
+            if (volT2 > 0x7F) volT2 = 0x7F;
+
+            volT3 =
+                channelSlotBaseLevel[mtxCh][2] +
+                channelAttenuation[mtxCh] +
+                channelSeqAttenuation[mtxCh] +
+                channelTremolo[mtxCh];
+            if (volT3 > 0x7F) volT3 = 0x7F;
+
+            volT4 =
+                channelSlotBaseLevel[mtxCh][3] +
+                channelAttenuation[mtxCh] +
+                channelSeqAttenuation[mtxCh] +
+                channelTremolo[mtxCh];
+            if (volT4 > 0x7F) volT4 = 0x7F;
+
+            if (bWriteRegs)
+            {
+                YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + ymCh, (u8)volT1);
+                YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + ymCh, (u8)volT2);
+                YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, (u8)volT3);
+                YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)volT4);
+            }
+            chInst[fmCh].TL1 = (u8)volT1;
+            chInst[fmCh].TL2 = (u8)volT2;
+            chInst[fmCh].TL3 = (u8)volT3;
+            chInst[fmCh].TL4 = (u8)volT4;
+            break;
         }
     }
-    else // FM
-    {
-        auto inline void set_normal_channel_vol()
-        {
-            switch (chInst[channelPreviousInstrument[mtxCh]].ALG)
-            {
-            case 0: case 1: case 2: case 3:
-                volT4 =
-                    channelSlotBaseLevel[mtxCh][3] +
-                    channelAttenuation[mtxCh] +
-                    channelSeqAttenuation[mtxCh] +
-                    channelTremolo[mtxCh];
-                if (volT4 > 0x7F) volT4 = 0x7F;
 
-                if (bWriteRegs)
-                {
-                    YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)volT4);
-                }
-                chInst[fmCh].TL4 = (u8)volT4;
-                break;
-            case 4:
-                volT3 =
-                    channelSlotBaseLevel[mtxCh][2] +
-                    channelAttenuation[mtxCh] +
-                    channelSeqAttenuation[mtxCh] +
-                    channelTremolo[mtxCh];
-                if (volT3 > 0x7F) volT3 = 0x7F;
-
-                volT4 =
-                    channelSlotBaseLevel[mtxCh][3] +
-                    channelAttenuation[mtxCh] +
-                    channelSeqAttenuation[mtxCh] +
-                    channelTremolo[mtxCh];
-                if (volT4 > 0x7F) volT4 = 0x7F;
-
-                if (bWriteRegs)
-                {
-                    YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, (u8)volT3);
-                    YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)volT4);
-                }
-                chInst[fmCh].TL3 = (u8)volT3;
-                chInst[fmCh].TL4 = (u8)volT4;
-                break;
-            case 5: case 6:
-                volT2 =
-                    channelSlotBaseLevel[mtxCh][1] +
-                    channelAttenuation[mtxCh] +
-                    channelSeqAttenuation[mtxCh] +
-                    channelTremolo[mtxCh];
-                if (volT2 > 0x7F) volT2 = 0x7F;
-
-                volT3 =
-                    channelSlotBaseLevel[mtxCh][2] +
-                    channelAttenuation[mtxCh] +
-                    channelSeqAttenuation[mtxCh] +
-                    channelTremolo[mtxCh];
-                if (volT3 > 0x7F) volT3 = 0x7F;
-
-                volT4 =
-                    channelSlotBaseLevel[mtxCh][3] +
-                    channelAttenuation[mtxCh] +
-                    channelSeqAttenuation[mtxCh] +
-                    channelTremolo[mtxCh];
-                if (volT4 > 0x7F) volT4 = 0x7F;
-
-                if (bWriteRegs)
-                {
-                    YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + ymCh, (u8)volT2);
-                    YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, (u8)volT3);
-                    YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)volT4);
-                }
-                chInst[fmCh].TL2 = (u8)volT2;
-                chInst[fmCh].TL3 = (u8)volT3;
-                chInst[fmCh].TL4 = (u8)volT4;
-                break;
-            case 7:
-                volT1 =
-                    channelSlotBaseLevel[mtxCh][0] +
-                    channelAttenuation[mtxCh] +
-                    channelSeqAttenuation[mtxCh] +
-                    channelTremolo[mtxCh];
-                if (volT1 > 0x7F) volT1 = 0x7F;
-
-                volT2 =
-                    channelSlotBaseLevel[mtxCh][1] +
-                    channelAttenuation[mtxCh] +
-                    channelSeqAttenuation[mtxCh] +
-                    channelTremolo[mtxCh];
-                if (volT2 > 0x7F) volT2 = 0x7F;
-
-                volT3 =
-                    channelSlotBaseLevel[mtxCh][2] +
-                    channelAttenuation[mtxCh] +
-                    channelSeqAttenuation[mtxCh] +
-                    channelTremolo[mtxCh];
-                if (volT3 > 0x7F) volT3 = 0x7F;
-
-                volT4 =
-                    channelSlotBaseLevel[mtxCh][3] +
-                    channelAttenuation[mtxCh] +
-                    channelSeqAttenuation[mtxCh] +
-                    channelTremolo[mtxCh];
-                if (volT4 > 0x7F) volT4 = 0x7F;
-
-                if (bWriteRegs)
-                {
-                    YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + ymCh, (u8)volT1);
-                    YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + ymCh, (u8)volT2);
-                    YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, (u8)volT3);
-                    YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)volT4);
-                }
-                chInst[fmCh].TL1 = (u8)volT1;
-                chInst[fmCh].TL2 = (u8)volT2;
-                chInst[fmCh].TL3 = (u8)volT3;
-                chInst[fmCh].TL4 = (u8)volT4;
-                break;
-            }
-        }
-
-        auto inline void set_special_channel_vol()
-        {
-            switch (mtxCh)
-            {
-            case CHANNEL_FM3_OP4:
-                volT4 =
-                    channelSlotBaseLevel[CHANNEL_FM3_OP4][3] +
-                    channelAttenuation[CHANNEL_FM3_OP4] +
-                    channelSeqAttenuation[CHANNEL_FM3_OP4] +
-                    channelTremolo[CHANNEL_FM3_OP4];
-                if (volT4 > 0x7F) volT4 = 0x7F;
-
-                if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)volT4);
-                chInst[fmCh].TL4 = (u8)volT4;
-                break;
-            case CHANNEL_FM3_OP3:
-                volT3 =
-                    channelSlotBaseLevel[CHANNEL_FM3_OP4][2] +
-                    channelAttenuation[CHANNEL_FM3_OP3] +
-                    channelSeqAttenuation[CHANNEL_FM3_OP3] +
-                    channelTremolo[CHANNEL_FM3_OP3];
-                if (volT3 > 0x7F) volT3 = 0x7F;
-
-                if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, (u8)volT3);
-                chInst[fmCh].TL3 = (u8)volT3;
-                break;
-            case CHANNEL_FM3_OP2:
-                volT2 =
-                    channelSlotBaseLevel[CHANNEL_FM3_OP4][1] +
-                    channelAttenuation[CHANNEL_FM3_OP2] +
-                    channelSeqAttenuation[CHANNEL_FM3_OP2] +
-                    channelTremolo[CHANNEL_FM3_OP2];
-                if (volT2 > 0x7F) volT2 = 0x7F;
-
-                if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + ymCh, (u8)volT2);
-                chInst[fmCh].TL2 = (u8)volT2;
-                break;
-            case CHANNEL_FM3_OP1:
-                volT1 =
-                    channelSlotBaseLevel[CHANNEL_FM3_OP4][0] +
-                    channelAttenuation[CHANNEL_FM3_OP1] +
-                    channelSeqAttenuation[CHANNEL_FM3_OP1] +
-                    channelTremolo[CHANNEL_FM3_OP1];
-                if (volT1 > 0x7F) volT1 = 0x7F;
-
-                if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + ymCh, (u8)volT1);
-                chInst[fmCh].TL1 = (u8)volT1;
-                break;
-            }
-        }
-
+    auto inline void set_special_channel_vol() {
         switch (mtxCh)
         {
-        case CHANNEL_FM1: case CHANNEL_FM2:
-            port = PORT_1; ymCh = fmCh = mtxCh;
-            set_normal_channel_vol();
-            break;
         case CHANNEL_FM3_OP4:
-            port = PORT_1; ymCh = fmCh = 2;
-            if (FM_CH3_Mode == CH3_NORMAL) { set_normal_channel_vol(); }
-            else { set_special_channel_vol(); }
+            volT4 =
+                channelSlotBaseLevel[CHANNEL_FM3_OP4][3] +
+                channelAttenuation[CHANNEL_FM3_OP4] +
+                channelSeqAttenuation[CHANNEL_FM3_OP4] +
+                channelTremolo[CHANNEL_FM3_OP4];
+            if (volT4 > 0x7F) volT4 = 0x7F;
+
+            if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)volT4);
+            chInst[fmCh].TL4 = (u8)volT4;
             break;
-        case CHANNEL_FM3_OP3: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP1:
-            if (FM_CH3_Mode == CH3_SPECIAL) { port = PORT_1; ymCh = fmCh = 2; set_special_channel_vol(); }
+        case CHANNEL_FM3_OP3:
+            volT3 =
+                channelSlotBaseLevel[CHANNEL_FM3_OP4][2] +
+                channelAttenuation[CHANNEL_FM3_OP3] +
+                channelSeqAttenuation[CHANNEL_FM3_OP3] +
+                channelTremolo[CHANNEL_FM3_OP3];
+            if (volT3 > 0x7F) volT3 = 0x7F;
+
+            if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, (u8)volT3);
+            chInst[fmCh].TL3 = (u8)volT3;
             break;
-        case CHANNEL_FM4: case CHANNEL_FM5: case CHANNEL_FM6_DAC:
-            port = PORT_2; ymCh = mtxCh - 6; fmCh = mtxCh - 3;
-            set_normal_channel_vol();
+        case CHANNEL_FM3_OP2:
+            volT2 =
+                channelSlotBaseLevel[CHANNEL_FM3_OP4][1] +
+                channelAttenuation[CHANNEL_FM3_OP2] +
+                channelSeqAttenuation[CHANNEL_FM3_OP2] +
+                channelTremolo[CHANNEL_FM3_OP2];
+            if (volT2 > 0x7F) volT2 = 0x7F;
+
+            if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + ymCh, (u8)volT2);
+            chInst[fmCh].TL2 = (u8)volT2;
             break;
-        default: break;
+        case CHANNEL_FM3_OP1:
+            volT1 =
+                channelSlotBaseLevel[CHANNEL_FM3_OP4][0] +
+                channelAttenuation[CHANNEL_FM3_OP1] +
+                channelSeqAttenuation[CHANNEL_FM3_OP1] +
+                channelTremolo[CHANNEL_FM3_OP1];
+            if (volT1 > 0x7F) volT1 = 0x7F;
+
+            if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + ymCh, (u8)volT1);
+            chInst[fmCh].TL1 = (u8)volT1;
+            break;
         }
-        bWriteRegs = TRUE; // trigger
     }
+
+    switch (mtxCh)
+    {
+    case CHANNEL_FM1: case CHANNEL_FM2:
+        port = PORT_1; ymCh = fmCh = mtxCh;
+        set_normal_channel_vol();
+        break;
+
+    case CHANNEL_FM3_OP4:
+        port = PORT_1; ymCh = fmCh = 2;
+        if (FM_CH3_Mode == CH3_NORMAL) { set_normal_channel_vol(); }
+        else { set_special_channel_vol(); }
+        break;
+
+    case CHANNEL_FM3_OP3: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP1:
+        if (FM_CH3_Mode == CH3_SPECIAL) { port = PORT_1; ymCh = fmCh = 2; set_special_channel_vol(); }
+        break;
+
+    case CHANNEL_FM4: case CHANNEL_FM5: case CHANNEL_FM6_DAC:
+        port = PORT_2; ymCh = mtxCh - 6; fmCh = mtxCh - 3;
+        set_normal_channel_vol();
+        break;
+
+    default: // PSG
+        psgCh = mtxCh - CHANNEL_PSG1;
+        volT1 =
+        (
+            channelAttenuation[mtxCh] +
+            channelSeqAttenuation[mtxCh] +
+            channelTremolo[mtxCh]
+        ) / 8;
+
+        if (volT1 > PSG_ENVELOPE_MIN) volT1 = PSG_ENVELOPE_MIN;
+        if (bPsgIsPlayingNote[psgCh]) PSG_setEnvelope(psgCh, (u8)volT1);
+    break;
+    }
+    bWriteRegs = TRUE; // trigger
 }
 
 static inline void RequestZ80()
@@ -3534,11 +3539,11 @@ static inline void SetPitchPSG(u8 mtxCh, u8 note)
         {
         case CHANNEL_PSG1:
             SetChannelVolume(mtxCh);
-            PSG_setTone(0, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh]>>1]); // write tone to PSG3 to supply PSG4 tonal noise
+            PSG_setTone(0, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
             break;
         case CHANNEL_PSG2:
             SetChannelVolume(mtxCh);
-            PSG_setTone(1, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh]>>1]);
+            PSG_setTone(1, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]);
             break;
         case CHANNEL_PSG3:
             switch (PSG_NoiseMode)
@@ -3548,7 +3553,7 @@ static inline void SetPitchPSG(u8 mtxCh, u8 note)
                 break;
             case PSG_TONAL_CH3_NOT_MUTED: case PSG_FIXED:
                 SetChannelVolume(mtxCh);
-                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh]>>1]);
+                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]);
                 break;
             }
             break;
@@ -3558,11 +3563,11 @@ static inline void SetPitchPSG(u8 mtxCh, u8 note)
             case PSG_TONAL_CH3_MUTED:
                 SetChannelVolume(mtxCh);
                 PSG_setEnvelope(2, PSG_ENVELOPE_MIN); // mute PSG3 channel
-                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh]>>1]);
+                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]);
                 break;
             case PSG_TONAL_CH3_NOT_MUTED:
                 SetChannelVolume(mtxCh);
-                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh]>>1]);
+                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]);
                 break;
             case PSG_FIXED:
                 SetChannelVolume(mtxCh);
@@ -4350,8 +4355,8 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
     // VOLUME SEQUENCE
     case 0x40:
         channelVolSeqID[mtxCh] = fxValue;
-        if (!fxValue) channelSeqAttenuation[mtxCh] = 0;
-        channelVolumeChangeSpeed[mtxCh] = 0;
+        //if (!fxValue) channelSeqAttenuation[mtxCh] = 0;
+        //channelVolumeChangeSpeed[mtxCh] = 0;
         break;
 
     // VOLUME ATTENUATION
