@@ -50,7 +50,7 @@
 #define NOTE_EMPTY              0xFE
 #define NOTE_OFF                0xFF
 #define NOTE_MAX                95
-#define NOTES              96
+#define NOTES                   96
 #define OCTAVE_MAX              7
 
 #define CH3_SPECIAL             0b01000000
@@ -113,6 +113,8 @@
 #define MSU_PLAYOF 	    0x1A00 // #1 = decimal no. of track (1-99) #2 = offset in sectors from the start of the track to apply when looping; play cdda track and loop from specified sector offset
 
 #define DEFAULT_TEMPO   0xB3   // 140 BPM NTSC if 16/16
+#define VIBRATO_PHASE   0
+#define TREMOLO_PHASE   512
 
 void InitTracker();
 void DrawText(u8 plane, u8 pal, const char *str, u8 x, u8 y);
@@ -152,6 +154,7 @@ static void YM2612_writeRegZ80(u16 part, u8 reg, u8 data);
 static s16 FindUnusedPattern();
 void CalculateCombined(u8 fmCh, u8 reg);
 void ForceResetVariables();
+static void ReadMatrixRow();
 
 // temporal instrument storage
 struct Instrument

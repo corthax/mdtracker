@@ -34,7 +34,6 @@ bool bWriteRegs = TRUE;
 u8 loopStart = OXFF; // matrix loop region
 u8 loopEnd = OXFF;
 
-u16 playingPatternID = 0;
 u8 playingMatrixRow = 0; // current played line
 u8 selectedMatrixScreenRow = 0; // selected matrix line on SCREEN
 u8 selectedMatrixRow = 0; // selected pattern matrix index according to page
@@ -60,6 +59,9 @@ u8 line = 0; // redraw screen data line counter
 u8 chan = 0; // draw only one cell per VBlank to avoid slowdown?
 
 u8 playingPatternRow = 0; // current played pattern row
+
+u16 channelPlayingPatternID[CHANNELS_TOTAL];
+s8 channelMatrixTranspose[CHANNELS_TOTAL];
 
 u8 channelPreviousInstrument[CHANNELS_TOTAL]; // 255 is used to write instrument when parameters changed
 u8 channelPreviousEffectType[CHANNELS_TOTAL][EFFECTS_TOTAL];
@@ -579,12 +581,11 @@ static inline void DoEngine()
     static u8 _seqValue = 0;
     static u8 _fxType = 0;
     static u8 _fxValue = 0;
-    static u8 _beginPlay = TRUE;
+    static bool _bBeginPlay = TRUE;
     static u8 _inst = 0;
     static s16 _key = 0;
-    static s8 _matrixTranspose = 0;
-    static s8 _test;
-    static u8 fmCh;
+    static s8 _test = 0;
+    static u8 fmCh = 0;
 
     // vibrato tool
     auto s8 vibrato(u8 mtxCh) {
@@ -655,8 +656,8 @@ static inline void DoEngine()
         if (channelFlags[mtxCh])
         {
             auto inline void command(u8 type, u8 val, u8 effect) {
-                _fxType = SRAM_ReadPattern(playingPatternID, playingPatternRow, type);
-                _fxValue = SRAM_ReadPattern(playingPatternID, playingPatternRow, val);
+                _fxType = SRAM_ReadPattern(channelPlayingPatternID[mtxCh], playingPatternRow, type);
+                _fxValue = SRAM_ReadPattern(channelPlayingPatternID[mtxCh], playingPatternRow, val);
 
                 if (_fxType)
                 {
@@ -714,10 +715,7 @@ static inline void DoEngine()
                 command(DATA_FX6_TYPE, DATA_FX6_VALUE, 5);
             }
 
-            playingPatternID = SRAM_ReadMatrix(mtxCh, playingMatrixRow); //! fix it! no need to read every row
-            _matrixTranspose = SRAM_ReadMatrixTranspose(mtxCh, playingMatrixRow); //! fix it! no need to read every row
-
-            _inst = SRAM_ReadPattern(playingPatternID, playingPatternRow, DATA_INSTRUMENT);
+            _inst = SRAM_ReadPattern(channelPlayingPatternID[mtxCh], playingPatternRow, DATA_INSTRUMENT);
 
             if (instrumentIsMuted[_inst] == INST_MUTE) // check if instrument is muted. ignore writes, replace note with OFF if so
             {
@@ -725,7 +723,7 @@ static inline void DoEngine()
             }
             else
             {
-                channelCurrentRowNote[mtxCh] = SRAM_ReadPattern(playingPatternID, playingPatternRow, DATA_NOTE);
+                channelCurrentRowNote[mtxCh] = SRAM_ReadPattern(channelPlayingPatternID[mtxCh], playingPatternRow, DATA_NOTE);
             }
 
             // auto cut note before next note
@@ -740,7 +738,7 @@ static inline void DoEngine()
                 }
                 else
                 {
-                    if (SRAM_ReadPattern(playingPatternID, playingPatternRow+1, DATA_NOTE) < NOTES)
+                    if (SRAM_ReadPattern(channelPlayingPatternID[mtxCh], playingPatternRow+1, DATA_NOTE) < NOTES)
                     {
                         channelNoteCut[mtxCh] = channelNoteAutoCut[mtxCh];
                     } else channelNoteCut[mtxCh] = 0;
@@ -748,15 +746,16 @@ static inline void DoEngine()
             }
 
             // commands
-            if (_inst)
+            if (_inst && _inst != channelPreviousInstrument[mtxCh])
             {
+                channelPreviousInstrument[mtxCh] = _inst;
                 if (mtxCh < CHANNEL_PSG1) // FM
                 {
-                    if (_inst != channelPreviousInstrument[mtxCh])
-                    {
+                    //if (_inst != channelPreviousInstrument[mtxCh])
+                    //{
                         StopChannelSound(mtxCh);
-                        channelPreviousInstrument[mtxCh] = _inst;
-                    }
+                        //channelPreviousInstrument[mtxCh] = _inst;
+                    //}
                     if (mtxCh > 2) fmCh = mtxCh - 3; else fmCh = mtxCh;
                     chInst[fmCh] = tmpInst[_inst]; // copy from cached preset
                     bWriteRegs = FALSE; // disable registers write for effects
@@ -791,23 +790,22 @@ static inline void DoEngine()
             }
             else if (channelCurrentRowNote[mtxCh] < NOTES) // there is a note on a row
             {
-                if (_matrixTranspose)
+                if (channelMatrixTranspose[mtxCh])
                 {
-                    _test = channelCurrentRowNote[mtxCh] + _matrixTranspose;
+                    _test = channelCurrentRowNote[mtxCh] + channelMatrixTranspose[mtxCh]; // check if out of notes range
                     if (_test < NOTES || _test > -1)
                     {
                         _key = channelPreviousNote[mtxCh] = channelArp[mtxCh] = _test;
                     }
                 } else _key = channelPreviousNote[mtxCh] = channelArp[mtxCh] = channelCurrentRowNote[mtxCh];
 
-                if (channelRowShift[mtxCh][playingPatternRow]) channelNoteDelayCounter[mtxCh] = channelRowShift[mtxCh][playingPatternRow];
-                channelSEQCounter_ARP[mtxCh] = INST_ARP_TICK_01-1;
-                channelSEQCounter_VOL[mtxCh] = INST_VOL_TICK_01-1;
+                if (channelRowShift[mtxCh][playingPatternRow]) channelNoteDelayCounter[mtxCh] = channelRowShift[mtxCh][playingPatternRow]; // global shift
+
+                channelSEQCounter_VOL[mtxCh] = INST_VOL_TICK_01-1; channelSEQCounter_ARP[mtxCh] = INST_ARP_TICK_01-1;
                 seq_vol(mtxCh); seq_arp(mtxCh);
+
                 if (!channelNoteDelayCounter[mtxCh] && !channelNoteRetrigger[mtxCh]) // re-triggered from do_effects
                 {
-                    channelVibratoPhase[mtxCh] = 0; // neutral state
-                    channelTremoloPhase[mtxCh] = 512; // neutral state
                     PlayNote((u8)_key, mtxCh);
                 }
             }
@@ -866,6 +864,7 @@ static inline void DoEngine()
 
                 channelTremoloPhase[mtxCh] += channelTremoloSpeed[mtxCh];
                 if (channelTremoloPhase[mtxCh] > 1023) channelTremoloPhase[mtxCh] -= 1024;
+                if (!pulseCounter && channelCurrentRowNote[mtxCh] != NOTE_EMPTY) channelTremoloPhase[mtxCh] = TREMOLO_PHASE;
                 SetChannelVolume(mtxCh);
             }
 
@@ -893,7 +892,11 @@ static inline void DoEngine()
                     channelPitchSkipStepCounter[mtxCh]--;
                 }
                 // vibrato
-                if (channelVibratoDepth[mtxCh] && channelVibratoSpeed[mtxCh]) channelVibrato[mtxCh] = vibrato(mtxCh);
+                if (channelVibratoDepth[mtxCh] && channelVibratoSpeed[mtxCh])
+                {
+                    if (!pulseCounter && channelCurrentRowNote[mtxCh] != NOTE_EMPTY) channelVibratoPhase[mtxCh] = VIBRATO_PHASE;
+                    channelVibrato[mtxCh] = vibrato(mtxCh);
+                }
                 else channelVibrato[mtxCh] = 0;
 
                 channelFinalPitch[mtxCh] = channelMicrotone[mtxCh] + channelVibrato[mtxCh];
@@ -929,10 +932,11 @@ static inline void DoEngine()
 
     if (bPlayback)
     {
-        if (_beginPlay)
+        if (_bBeginPlay)
         {
             SYS_disableInts();
-            _beginPlay = FALSE;
+            _bBeginPlay = FALSE;
+            ReadMatrixRow();
 
             for (u16 inst = 0; inst <= INSTRUMENTS_LAST; inst++) { CacheIstrumentToRAM(inst); }
 
@@ -1015,7 +1019,7 @@ static inline void DoEngine()
             hIntCounter = hIntToSkip; // reset h-int counter
             bDoPulse = FALSE;
             pulseCounter = 0;
-            //! read id transpose here once
+
             SYS_enableInts();
         }
 
@@ -1039,7 +1043,7 @@ static inline void DoEngine()
 
             if (matrixRowJumpTo != OXFF && currentScreen == SCREEN_MATRIX)
             {
-                playingPatternRow = patternSize+1; // exceed to trigger next condition
+                playingPatternRow = 0x20; // exceed to trigger next condition
             }
             else playingPatternRow++; // next line is..
 
@@ -1052,7 +1056,7 @@ static inline void DoEngine()
                 {
                     if (matrixRowJumpTo != OXFF)
                     {
-                        playingMatrixRow = matrixRowJumpTo - 1; // set to before, then increment
+                        playingMatrixRow = matrixRowJumpTo-1; // set to before, then increment
                         matrixRowJumpTo = OXFF;
                     }
                     playingMatrixRow++; // next patterns in matrix is..
@@ -1069,7 +1073,7 @@ static inline void DoEngine()
                         playingMatrixRow = 0;
                     }
 
-                    //!read id transpose here once
+                    ReadMatrixRow(); // fill patterns ID, transpose values
                 }
                 else if (playingPatternRow > patternSize) // endless cycle pattern if not in matrix editor
                 {
@@ -1111,16 +1115,25 @@ static inline void DoEngine()
             bDoPulse = FALSE;
         }
     }
-    else if (!_beginPlay) // need to run only once at playback stopped
+    else if (!_bBeginPlay) // need to run only once at playback stopped
     {
         SYS_disableInts();
-        _beginPlay = TRUE;
+        _bBeginPlay = TRUE;
         // bb: Mode, ResetB ResetA, EnableB EnableA, LoadB LoadA
         //YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00000000);
         StopAllSound();
         ClearPatternPlaybackCursor();
         DrawMatrixPlaybackCursor(TRUE);
         SYS_enableInts();
+    }
+}
+
+inline static void ReadMatrixRow()
+{
+    for (u8 mtxCh = CHANNEL_FM1; mtxCh < CHANNELS_TOTAL; mtxCh++)
+    {
+        channelMatrixTranspose[mtxCh] = SRAM_ReadMatrixTranspose(mtxCh, playingMatrixRow);
+        channelPlayingPatternID[mtxCh] = SRAM_ReadMatrix(mtxCh, playingMatrixRow);
     }
 }
 
@@ -3750,11 +3763,11 @@ static void StopEffects(u8 mtxCh)
     channelTremoloSpeed[mtxCh] = 0;
     channelTremoloSpeedMult[mtxCh] = 0x20;
     channelTremoloDepth[mtxCh] = 0;
-    channelTremoloPhase[mtxCh] = 512;
+    channelTremoloPhase[mtxCh] = TREMOLO_PHASE;
 
     channelVibratoDepth[mtxCh] = 0;
     channelVibratoSpeed[mtxCh] = 0;
-    channelVibratoPhase[mtxCh] = 0;
+    channelVibratoPhase[mtxCh] = VIBRATO_PHASE;
 
     channelPitchSlideSpeed[mtxCh] = 0;
     channelFinalPitch[mtxCh] = 0;
@@ -5723,7 +5736,6 @@ void DrawStaticHeaders()
 
 void ForceResetVariables()
 {
-    playingPatternID=
     playingMatrixRow=
     selectedMatrixScreenRow=
     selectedMatrixRow=
@@ -5850,6 +5862,8 @@ void ForceResetVariables()
         channelNoteRetrigger[ch]=
         channelNoteDelayCounter[ch]=
         channelNoteAutoCut[ch]=
+        channelMatrixTranspose[ch]=
+        channelPlayingPatternID[ch]=
         channelNoteRetriggerCounter[ch]=0;
 
         channelFlags[ch]=1;
