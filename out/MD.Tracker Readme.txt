@@ -285,9 +285,9 @@ WARNING
 
 	Reserved space for DAC data in ROM.
 	
-	DAC ROM Samples region: (do go beyond or rom will be corrupted)
-		START:	0002FA00
-		END:	0036DC00
+	DAC ROM Samples region:
+		START:	0002FB00
+		END:	0036DD00
 	
 	Sample format: RAW (header-less), Signed 8 bit PCM, 32000 hz
 	3400192 bytes range reserved for DAC samples (~1min 46sec)
@@ -295,7 +295,7 @@ WARNING
 	With any hex editor overwrite that range with your samples.
 	Then assign ranges to keys inside instrument editor SAMPLE section.
 	
-	Audacity can be used to figure out the exact samples start and end (sample number == adress, convert to HEX).
+	Audacity can be used to figure out exact samples start and end (sample number == adress, convert to HEX).
 
 ************************************************
 FM3 Channel Mode
