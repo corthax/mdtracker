@@ -745,26 +745,35 @@ static inline void DoEngine()
             }
 
             // commands
-            if (_inst && (_inst != channelPreviousInstrument[mtxCh] || currentScreen != SCREEN_MATRIX))
+            if (_inst)
             {
-                channelPreviousInstrument[mtxCh] = _inst;
                 if (mtxCh < CHANNEL_PSG1) // FM
                 {
-                    chInst[mtxCh] = tmpInst[_inst]; // copy from cached preset
-                    //StopChannelSound(mtxCh); //? declick
-                    SetChannelBaseVolume_FM(mtxCh); // remember preset base TL levels
-                    bWriteRegs = FALSE; // disable registers write for effects
-                    apply_commands(); // only change chInst
-                    if (!bWriteRegs) SetChannelVolume(mtxCh); // if not triggered from command, apply channel attenuation to new instrument
-                    WriteYM2612(mtxCh); // rewrite all registers from chInst
+                    if (_inst != channelPreviousInstrument[mtxCh] || currentScreen != SCREEN_MATRIX) // instrument changes or not on matrix screen
+                    {
+                        channelPreviousInstrument[mtxCh] = _inst;
+                        chInst[mtxCh] = tmpInst[_inst]; // copy from cached preset
+                        //StopChannelSound(mtxCh); //? declick
+                        SetChannelBaseVolume_FM(mtxCh); // remember preset base TL levels
+                        bWriteRegs = FALSE; // disable registers write for effects
+                        apply_commands(); // only change chInst
+                        if (!bWriteRegs) SetChannelVolume(mtxCh); // if not triggered from command, apply channel attenuation to new instrument
+                        WriteYM2612(mtxCh); // rewrite all registers from chInst
+                    }
+                    else // do effects
+                    {
+                        bWriteRegs = TRUE; // write commands regs
+                        apply_commands();
+                    }
                 }
                 else // PSG
                 {
+                    channelPreviousInstrument[mtxCh] = _inst;
                     channelArpSeqID[mtxCh] = channelVolSeqID[mtxCh] = _inst; // set seq for PSG as instrument
                     apply_commands(); // will override PSG seq
                 }
             }
-            else
+            else // do effects
             {
                 bWriteRegs = TRUE; // write commands regs
                 apply_commands();
@@ -933,7 +942,14 @@ static inline void DoEngine()
             ReadMatrixRow();
 
             for (u16 inst = 1; inst <= INSTRUMENTS_LAST; inst++) { CacheIstrumentToRAM(inst); }
-            for (u8 mtxCh = 0; mtxCh < CHANNELS_TOTAL; mtxCh++) { chInst[mtxCh] = tmpInst[channelPreviousInstrument[mtxCh]]; }
+            for (u8 mtxCh = 0; mtxCh < CHANNELS_TOTAL; mtxCh++)
+            {
+                if (mtxCh < CHANNEL_PSG1) chInst[mtxCh] = tmpInst[channelPreviousInstrument[mtxCh]];
+                else
+                {
+                    channelArpSeqID[mtxCh] = channelVolSeqID[mtxCh] = channelPreviousInstrument[mtxCh];
+                }
+            }
 
             //! check and apply first found data if playing not from beginning of song !!! too long delay at later rows
             /*if (playingMatrixRow) // not first
@@ -4365,7 +4381,7 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
     // VOLUME SEQUENCE
     case 0x40:
         channelVolSeqID[mtxCh] = fxValue;
-        //if (!fxValue) channelSeqAttenuation[mtxCh] = 0;
+        if (!fxValue) channelSeqAttenuation[mtxCh] = 0;
         //channelVolumeChangeSpeed[mtxCh] = 0;
         break;
 
@@ -5820,9 +5836,7 @@ void ForceResetVariables()
     {
         channelPreviousNote[ch]=
         channelArpSeqID[ch]=
-        channelArpSeqMODE[ch]=
         channelVolSeqID[ch]=
-        channelVolSeqMODE[ch]=
         channelCurrentRowNote[ch]=
         channelSEQCounter_VOL[ch]=
         channelSEQCounter_ARP[ch]=
@@ -5864,7 +5878,9 @@ void ForceResetVariables()
         channelPlayingPatternID[ch]=
         channelNoteRetriggerCounter[ch]=0;
 
-        channelFlags[ch]=1;
+        channelFlags[ch]=
+        channelArpSeqMODE[ch]=
+        channelVolSeqMODE[ch]=1;
 
         for (u8 ef=0; ef<EFFECTS_TOTAL; ef++)
         {
