@@ -800,8 +800,7 @@ static inline void DoEngine()
                         _key = channelPreviousNote[mtxCh] = channelArp[mtxCh] = _test;
                     }
                 } else _key = channelPreviousNote[mtxCh] = channelArp[mtxCh] = channelCurrentRowNote[mtxCh];
-
-                if (channelRowShift[mtxCh][playingPatternRow]) channelNoteDelayCounter[mtxCh] = channelRowShift[mtxCh][playingPatternRow]; // global shift
+                if (channelRowShift[mtxCh][playingPatternRow]) channelNoteDelayCounter[mtxCh] = channelRowShift[mtxCh][playingPatternRow];
 
                 channelSEQCounter_VOL[mtxCh] = INST_VOL_TICK_01-1; channelSEQCounter_ARP[mtxCh] = INST_ARP_TICK_01-1;
                 seq_vol(mtxCh); seq_arp(mtxCh);
@@ -1030,6 +1029,8 @@ static inline void DoEngine()
             hIntCounter = hIntToSkip; // reset h-int counter
             bDoPulse = FALSE;
             pulseCounter = 0;
+            matrixRowJumpTo = OXFF;
+            patternRowJumpTo = OXFF;
 
             SYS_enableInts();
         }
@@ -3801,9 +3802,6 @@ static void StopEffects(u8 mtxCh)
 
     channelSEQCounter_ARP[mtxCh] = INST_ARP_TICK_01;
     channelSEQCounter_VOL[mtxCh] = INST_VOL_TICK_01;
-
-    matrixRowJumpTo = OXFF;
-    patternRowJumpTo = OXFF;
 }
 
 // stopping sound on matrix channel
