@@ -580,8 +580,8 @@ u16  VDP_getPlaneHeight();
  *      Possible values are 32, 64 or 128.
  *  \param setupVram
  *      If set to TRUE then tilemaps and tables will be automatically remapped in VRAM depending
- *      the plane size.<br>
- *      If you don't know what that means then it's better to keep this value to TRUE :p
+ *      the plane size. If you don't know what that means then it's better to keep this value to TRUE :p<br>
+ *      Be careful to redraw your backgrounds, also the sprite engine may need to re-allocate its VRAM region if location changed.
  */
 void VDP_setPlaneSize(u16 w, u16 h, bool setupVram);
 /**
@@ -766,12 +766,12 @@ void VDP_setBGAAddress(u16 value);
 void VDP_setBGBAddress(u16 value);
 /**
  *  \deprecated
- *      Use #VDP_setWindowAddress(..) instead.
+ *      Use #VDP_setBGAAddress(..) instead.
  */
 void VDP_setAPlanAddress(u16 value);
 /**
  *  \deprecated
- *      Use #VDP_setWindowAddress(..) instead.
+ *      Use #VDP_setBGBAddress(..) instead.
  */
 void VDP_setBPlanAddress(u16 value);
 /**

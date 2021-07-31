@@ -134,7 +134,11 @@ extern const fix16 sqrttab16[0x10000];
  *      WARNING: result can easily overflow so its recommended to stick with fix16 type for mul and div operations.
  */
 #define fix32Div(val1, val2)        (((val1) << (FIX32_FRAC_BITS / 2)) / ((val2) >> (FIX32_FRAC_BITS / 2)))
-
+/**
+ *  \brief
+ *      Compute and return the result of the average of val1 by val2 (fix32).
+ */
+#define fix32Avg(val1, val2)        (((val1) + (val2)) >> 1)
 
 #define FIX16_INT_BITS              10
 #define FIX16_FRAC_BITS             (16 - FIX16_INT_BITS)
@@ -207,13 +211,17 @@ extern const fix16 sqrttab16[0x10000];
  *  \brief
  *      Compute and return the result of the multiplication of val1 and val2 (fix16).
  */
-#define fix16Mul(val1, val2)        (((val1) * (val2)) >> FIX16_FRAC_BITS)
+#define fix16Mul(val1, val2)        (muls(val1, val2) >> FIX16_FRAC_BITS)
 /**
  *  \brief
  *      Compute and return the result of the division of val1 by val2 (fix16).
  */
-#define fix16Div(val1, val2)        (((val1) << FIX16_FRAC_BITS) / (val2))
-
+#define fix16Div(val1, val2)        (divs(val1 << FIX16_FRAC_BITS, val2))
+/**
+ *  \brief
+ *      Compute and return the result of the average of val1 by val2 (fix16).
+ */
+#define fix16Avg(val1, val2)        (((val1) + (val2)) >> 1)
 
 /**
  *  \brief
@@ -586,6 +594,103 @@ typedef Mat4D_f16 M4f16;
  *  \brief alias for Mat4D_f32
  */
 typedef Mat4D_f32 M4f32;
+
+
+/**
+ *  \brief
+ *      16x16=32 unsigned multiplication. Force GCC to use proper 68000 <i>mulu</i> instruction.
+ *
+ *  \param op1
+ *      first operand
+ *  \param op2
+ *      second operand
+ *  \return 32 bit (unsigned) result of multiply
+ */
+u32 mulu(u16 op1, u16 op2);
+/**
+ *  \brief
+ *      16x16=32 signed multiplication. Force GCC to use proper 68000 <i>muls</i> instruction.
+ *
+ *  \param op1
+ *      first operand
+ *  \param op2
+ *      second operand
+ *  \return 32 bit (signed) result of multiply
+ */
+s32 muls(s16 op1, s16 op2);
+/**
+ *  \brief
+ *      Direct divu instruction (unsigned 32/16=16:16) access using inline assembly
+ *      to process op1/op2 operation.
+ *
+ *  \param op1
+ *      first operand - dividende (32 bit)
+ *  \param op2
+ *      second operand - divisor (16 bit)
+ *  \return 16 bit (unsigned) result of the division
+ */
+u16 divu(u32 op1, u16 op2);
+/**
+ *  \brief
+ *      Direct divs instruction (signed 32/16=16:16) access using inline assembly
+ *      to process op1/op2 operation.
+ *
+ *  \param op1
+ *      first operand (32 bit)
+ *  \param op2
+ *      second operand (16 bit)
+ *  \return 16 bit (signed) result of the division
+ */
+s16 divs(s32 op1, s16 op2);
+/**
+ *  \brief
+ *      Direct divu instruction (unsigned 32/16=16:16) access using inline assembly
+ *
+ *  \param op1
+ *      first operand (32 bit)
+ *  \param op2
+ *      second operand (16 bit)
+ *  \return 16 bit (unsigned) modulo result of the division
+ */
+u16 modu(u32 op1, u16 op2);
+/**
+ *  \brief
+ *      Direct divs instruction (signed 32/16=16:16) access using inline assembly
+ *
+ *  \param op1
+ *      first operand (32 bit)
+ *  \param op2
+ *      second operand (16 bit)
+ *  \return 16 bit (signed) modulo result of the division
+ */
+s16 mods(s32 op1, s16 op2);
+
+/**
+ *  \brief
+ *      Direct divu instruction (unsigned 32/16=16:16) access using inline assembly
+ *      to process op1/op2 operation and op1%op2 at same time.
+ *
+ *  \param op1
+ *      first operand - dividende (32 bit)
+ *  \param op2
+ *      second operand - divisor (16 bit)
+ *  \return 16 bit (unsigned) result of the division in low 16 bit (0-15) and
+ *      16 bit (unsigned) result of the modulo operation in high 16 bit (16-31)
+ */
+u32 divmodu(u32 op1, u16 op2);
+/**
+ *  \brief
+ *      Direct divs instruction (signed 32/16=16:16) access using inline assembly
+ *      to process op1/op2 operation and op1%op2 at same time.
+ *
+ *  \param op1
+ *      first operand - dividende (32 bit)
+ *  \param op2
+ *      second operand - divisor (16 bit)
+ *  \return 16 bit (signed) result of the division in low 16 bit (0-15) and
+ *      16 bit (signed) result of the modulo operation in high 16 bit (16-31)
+ */
+s32 divmods(s32 op1, s16 op2);
 
 /**
  *  \brief

@@ -70,7 +70,7 @@ u8 channelArpSeqID[CHANNELS_TOTAL];
 u8 channelArpSeqMODE[CHANNELS_TOTAL];
 u8 channelVolSeqID[CHANNELS_TOTAL];
 u8 channelVolSeqMODE[CHANNELS_TOTAL];
-u8 channelCurrentRowNote[CHANNELS_TOTAL];
+u8 channelCurrentRowNote[CHANNELS_TOTAL]; // affected by channelMatrixTranspose
 u8 channelNoteAutoCut[CHANNELS_TOTAL];
 
 u8 channelSEQCounter_VOL[CHANNELS_TOTAL];
@@ -797,7 +797,7 @@ static inline void DoEngine()
                     _test = channelCurrentRowNote[mtxCh] + channelMatrixTranspose[mtxCh]; // check if out of notes range
                     if (_test < NOTES || _test > -1)
                     {
-                        _key = channelPreviousNote[mtxCh] = channelArp[mtxCh] = _test;
+                        _key = channelPreviousNote[mtxCh] = channelArp[mtxCh] = channelCurrentRowNote[mtxCh] = _test;
                     }
                 } else _key = channelPreviousNote[mtxCh] = channelArp[mtxCh] = channelCurrentRowNote[mtxCh];
                 if (channelRowShift[mtxCh][playingPatternRow]) channelNoteDelayCounter[mtxCh] = channelRowShift[mtxCh][playingPatternRow];
@@ -1051,7 +1051,7 @@ static inline void DoEngine()
             do_row(CHANNEL_PSG3);
             do_row(CHANNEL_PSG4_NOISE);
 
-            ClearPatternPlaybackCursor();
+            if (currentScreen == SCREEN_PATTERN) ClearPatternPlaybackCursor();
 
             if (matrixRowJumpTo != OXFF && currentScreen == SCREEN_MATRIX)
             {
@@ -1097,7 +1097,8 @@ static inline void DoEngine()
                 DrawMatrixPlaybackCursor(FALSE);
             }
 
-            DrawPatternPlaybackCursor();
+            if (currentScreen == SCREEN_PATTERN) DrawPatternPlaybackCursor();
+
             pulseCounter = -1; // to run this part only once when timer expires, not at every while loop tick.
         }
 
@@ -1693,10 +1694,12 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                 {
                 // X+L/R - switch screen
                 case BUTTON_RIGHT:
+                    ClearPatternPlaybackCursor();
                     switch_to_instrument_editor();
                     break;
 
                 case BUTTON_LEFT:
+                    ClearPatternPlaybackCursor();
                     switch_to_matrix_editor();
                     break;
                 }
@@ -2946,7 +2949,9 @@ static void ChangeInstrumentParameter(s8 modifier)
         SRAMW_writeByte(GLOBAL_LFO, value); SetGlobalLFO(value);
         break;
     case GUI_INST_PARAM_VOLSEQ:
-        value = SRAM_ReadInstrument(selectedInstrumentID, INST_VOL_TICK_01 + selectedInstrumentOperator) - modifier;
+        value = SRAM_ReadInstrument(selectedInstrumentID, INST_VOL_TICK_01 + selectedInstrumentOperator);
+        if (value == SEQ_VOL_MIN_ATT) { if (modifier < 0) modifier += 1; else modifier -= 1; } // align step by 8
+        value -= modifier;
         if (value < SEQ_VOL_MIN_ATT) value = SEQ_VOL_MAX_ATT; else if (value > SEQ_VOL_MAX_ATT) value = SEQ_VOL_MIN_ATT;
         SRAM_WriteInstrument(selectedInstrumentID, INST_VOL_TICK_01 + selectedInstrumentOperator, value);
         break;

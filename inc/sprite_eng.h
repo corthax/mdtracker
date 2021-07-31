@@ -346,7 +346,7 @@ typedef struct Sprite
     u16 VDPSpriteIndex;
     VDPSprite* lastVDPSprite;
     u16 lastNumSprite;
-    u16 spriteToHide;
+    s16 spriteToHide;
     u32 data;
     struct Sprite* prev;
     struct Sprite* next;
@@ -366,18 +366,22 @@ typedef struct Sprite
 typedef void FrameChangeCallback(Sprite* sprite);
 
 /**
+ * Sprites bank for the sprite engine
+ */
+extern Sprite* spritesBank;
+/**
  * First allocated sprite (NULL if no sprite allocated)
  */
-Sprite* firstSprite;
+extern Sprite* firstSprite;
 /**
  * Last allocated sprite (NULL if no sprite allocated)
  */
-Sprite* lastSprite;
-
+extern Sprite* lastSprite;
 /**
  * Allocated VRAM (in tile) for Sprite Engine
  */
 extern u16 spriteVramSize;
+
 
 /**
  *  \brief
@@ -451,11 +455,6 @@ void SPR_reset();
  *      #SPR_FLAG_FAST_AUTO_VISIBILITY = Enable fast computation for the automatic visibility calculation (disabled by default)<br>
  *          If you set this flag the automatic visibility calculation will be done globally for the (meta) sprite and not per internal
  *          hardware sprite. This result in faster visibility computation at the expense of some waste of hardware sprite.
- *          You can set the automatic visibility computation by using SPR_setVisibility(..) method.<br>
- *      #SPR_FLAG_FULL_AUTO_VISIBILITY = Enable full visibility computation for the automatic visibility calculation (disabled by default)<br>
- *          If you set this flag the automatic visibility calculation will also consider the Y position, otherwise only X position is used for
- *          the visibility calculation as only X position mind to optimize scanline sprite usage. Enabling this flag result in slower visibility
- *          computation but it can be useful if you need to use SPR_isVisible() to know if the sprite is visible on screen or not.
  *          You can set the automatic visibility computation by using SPR_setVisibility(..) method.<br>
  *      #SPR_FLAG_AUTO_VRAM_ALLOC = Enable automatic VRAM allocation (enabled by default)<br>
  *          If you don't set this flag you will have to manually define VRAM tile index position for this sprite with the <i>attribut</i> parameter or by using the #SPR_setVRAMTileIndex(..) method<br>
@@ -707,6 +706,11 @@ void SPR_setPalette(Sprite* sprite, u16 value);
  *  \param value
  *      The priority attribut value (TRUE or FALSE)
  */
+void SPR_setPriority(Sprite* sprite, u16 value);
+/**
+ *  \deprecated
+ *      Use #SPR_setPriority(..) instead
+ */
 void SPR_setPriorityAttribut(Sprite* sprite, u16 value);
 /**
  *  \brief
@@ -869,7 +873,7 @@ SpriteVisibility SPR_getVisibility(Sprite* sprite);
  *      Return the visible state for this sprite (meaningful only if AUTO visibility is enabled, see #SPR_setVisibility(..) method).<br>
  *
  *  \param sprite
- *      Sprite to return visible </i> state
+ *      Sprite to return <i>visible</i> state
  *  \param recompute
  *      Force visibility computation.<br>
  *      Only required if SPR_update() wasn't called since last sprite position change (note that can force the frame update processing).

@@ -25,23 +25,23 @@
  *  \brief
  *      Define start of ROM region
  */
-#define ROM      0x000000
+#define ROM      0x00000000
 /**
  *  \brief
  *      Define start of RAM region
  */
-#define RAM      0xFF0000
+#define RAM      0xE0FF0000
 
 /**
  *  \brief
- *      Define memory allocated for stack (default = 0xC00)
+ *      Define memory allocated for stack (default = 0xA00)
  */
 #define STACK_SIZE      0x0A00
 /**
  *  \brief
  *      Define the memory high address limit for dynamic allocation
  */
-#define MEMORY_HIGH     (0x01000000 - STACK_SIZE)
+#define MEMORY_HIGH     (0xE1000000 - STACK_SIZE)
 
 
 /**

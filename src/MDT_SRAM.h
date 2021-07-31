@@ -1,6 +1,8 @@
 #ifndef MDT_SRAM_H_INCLUDED
 #define MDT_SRAM_H_INCLUDED
 
+//! change SRAM_BASE to 0x380000
+
 void SRAMW_writeWord(u32 offset, u16 val);
 void SRAMW_writeByte(u32 offset, u8 val);
 u16 SRAMW_readWord(u32 offset);
