@@ -809,6 +809,7 @@ static inline void DoEngine()
                 {
                     PlayNote((u8)_key, mtxCh);
                 }
+                channelNoteCut[mtxCh] = 0;
             }
             else _key = NOTE_EMPTY; // empty row
         }
@@ -1066,9 +1067,13 @@ static inline void DoEngine()
 
                 if (currentScreen == SCREEN_MATRIX)
                 {
-                    if (matrixRowJumpTo != OXFF)
+                    if (loopStart != OXFF && loopEnd != OXFF)
                     {
-                        playingMatrixRow = matrixRowJumpTo-1; // set to before, then increment
+                        if (playingMatrixRow == loopEnd) playingMatrixRow = loopStart-1;
+                    }
+                    else if (matrixRowJumpTo != OXFF)
+                    {
+                        playingMatrixRow = matrixRowJumpTo-1; // set to row before, then increment
                         matrixRowJumpTo = OXFF;
                     }
                     playingMatrixRow++; // next patterns in matrix is..
@@ -1227,10 +1232,10 @@ static void ChangeMatrixValue(s16 mod)
 
     if (selectedMatrixScreenRow < MATRIX_ROWS_ONPAGE) // matrix
     {
-        if (mod != 0)
+        if (mod)
         {
             value = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow);
-            if (value == NULL && lastEnteredPattern != NULL) value = lastEnteredPattern;
+            if (!value && lastEnteredPattern) value = lastEnteredPattern;
             else
             {
                 value += mod;
@@ -1242,12 +1247,14 @@ static void ChangeMatrixValue(s16 mod)
         }
         else
         {
+            value = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow);
+            if (value) lastEnteredPattern = value; // accidential delete
             SRAM_WriteMatrix(selectedMatrixChannel, selectedMatrixRow, 0); bRefreshScreen = TRUE; matrixRowToRefresh = selectedMatrixRow;
         }
     }
     else // tempo
     {
-        if (mod != 0)
+        if (mod)
         {
             value = SRAMW_readWord(TEMPO) - mod;
             if (value < TICK_SKIP_MIN) value = TICK_SKIP_MIN;
