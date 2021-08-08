@@ -290,12 +290,14 @@ WARNING
 		END:	0036DD00
 	
 	Sample format: RAW (header-less), Signed 8 bit PCM, 32000 hz
+		(!!! Audacity may add noise at silence parts. The one way to remove it is to replace all FF with 00 using hex editor.)
 	3400192 bytes range reserved for DAC samples (~1min 46sec)
 		
 	With any hex editor overwrite that range with your samples.
 	Then assign ranges to keys inside instrument editor SAMPLE section.
 	
 	Audacity can be used to figure out exact samples start and end (sample number == adress, convert to HEX).
+
 
 ************************************************
 FM3 Channel Mode

@@ -2957,9 +2957,21 @@ static void ChangeInstrumentParameter(s8 modifier)
         break;
     case GUI_INST_PARAM_VOLSEQ:
         value = SRAM_ReadInstrument(selectedInstrumentID, INST_VOL_TICK_01 + selectedInstrumentOperator);
-        if (value == SEQ_VOL_MIN_ATT) { if (modifier < 0) modifier += 1; else modifier -= 1; } // align step by 8
+        // align step by 8
+        if (value == SEQ_VOL_MIN_ATT)
+        {
+            if (modifier == -8) modifier = -7;
+            else if (modifier == 8) modifier = 7;
+        }
         value -= modifier;
-        if (value < SEQ_VOL_MIN_ATT) value = SEQ_VOL_MAX_ATT; else if (value > SEQ_VOL_MAX_ATT) value = SEQ_VOL_MIN_ATT;
+        if (value < SEQ_VOL_MIN_ATT)
+        {
+            if (modifier > 1 ) value = SEQ_VOL_MIN_ATT; else value = SEQ_VOL_MAX_ATT;
+        }
+        else if (value > SEQ_VOL_MAX_ATT)
+        {
+            if (modifier < -1) value = SEQ_VOL_MAX_ATT; else value = SEQ_VOL_MIN_ATT;
+        }
         SRAM_WriteInstrument(selectedInstrumentID, INST_VOL_TICK_01 + selectedInstrumentOperator, value);
         break;
     case GUI_INST_PARAM_ARPSEQ:
