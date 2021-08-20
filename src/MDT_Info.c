@@ -18,7 +18,7 @@ void InitInfo()
     infoCommands[0x0C] = "FM AMPLITUDE MODULATION SCALE   ";
     infoCommands[0x0D] = "FM FREQUENCY MODULATION SCALE   ";
     infoCommands[0x0E] = "FM/DAC PAN                      ";
-    infoCommands[0x0F] = "";
+    infoCommands[0x0F] = "SET H-INT SKIP (TEMPO DIVIDER)  ";
     infoCommands[0x10] = "GLOBAL LFO                      ";
     infoCommands[0x11] = "FM CH.6                         ";
     infoCommands[0x12] = "FM CH.3                         ";
@@ -277,7 +277,7 @@ void InitInfo()
     infoDescriptions[0x0C] = "00..03; >03: RESET                   ";
     infoDescriptions[0x0D] = "00..07; >07: RESET                   ";
     infoDescriptions[0x0E] = "11=C, 10=L, 01=R, FF=MUTE; 00: RESET ";
-    infoDescriptions[0x0F] = "";
+    infoDescriptions[0x0F] = "01..FF, 00: RESET         [DEFAULT 2]";
     infoDescriptions[0x10] = "01..08, 00: RESET                    ";
     infoDescriptions[0x11] = ">00 DAC ON, 00: DAC OFF              ";
     infoDescriptions[0x12] = "01=SPECIAL, 02=CSM, 00: NORMAL       ";

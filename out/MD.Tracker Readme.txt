@@ -29,7 +29,7 @@ Flashcarts:
 	Mega Everdrive Pro (MEGAOS-V4.11)
 		ISSUES:
 		Replaced .srm file is not loaded. Remove *rom name*.cfg in \MEGA\sys\romcfg\
-		No mapper for SSF + MSU-MD Currently.
+		No mapper for SSF + MSU-MD.
 //////////////////
 
 If there is no song data, default empty is generated.
@@ -315,10 +315,11 @@ SPECIAL+CSM:
 --: set to NORMAL.
 
 ************************************************
-TEMPO (H-INT counter skip, more skipped = slower BPM)
+TEMPO (H-INT counter skip, more skipped = slower BPM) 
 	13xx	
 xx: 01 .. FF
 --: reset to default project tempo.
+!!! Resulting BPM is not precise. Use only as basic guide if want to sync tracker with something else !!!
 
 ************************************************
 ROW PPL Resolution (Pulse Per Line) [!!! May impact framerate !!!]
