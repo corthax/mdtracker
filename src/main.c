@@ -161,6 +161,12 @@ u8 selectedSampleNote = 0;
 u32 sampleBankSize = 0;
 u8 activeSampleBank = 0;
 
+const u8* sampleStart[4][NOTES];
+u32 sampleLength[4][NOTES];
+u8 sampleRate[4][NOTES];
+u8 samplePan[4][NOTES];
+bool sampleLoop[4][NOTES];
+
 bool bDAC_enable = TRUE; // global, 0xF0 to enable. 0 to disable
 
 // copy/paste
@@ -357,9 +363,11 @@ static inline void hIntCallback()
 static inline void vIntCallback()
 {
     static u32 _fps; // redraw only if FPS changes
+
+    SYS_doVBlankProcessEx(ON_VBLANK);
+
     if (_fps != FPS) { _fps = FPS; uintToStr(FPS, str, 3); DrawNum(BG_A, PAL1, str, 15, 27); DrawNum(BG_A, PAL1, str, 55, 27); }
 
-    SYS_doVBlankProcessEx(IMMEDIATELY);
     // fast navigation
     if (bDoCount)
     {
@@ -951,6 +959,30 @@ static inline void DoEngine()
                 else
                 {
                     channelArpSeqID[mtxCh] = channelVolSeqID[mtxCh] = channelPreviousInstrument[mtxCh];
+                }
+            }
+
+            // cache sample addresses
+            for (u8 bank = 0; bank < 4; bank++)
+            {
+                for (u8 note = 0; note < NOTES; note++)
+                {
+                    u32 start, end = 0;
+                    start =
+                        (SRAM_ReadSampleRegion(bank, note, SAMPLE_START_1) << 16) |
+                        (SRAM_ReadSampleRegion(bank, note, SAMPLE_START_2) << 8) |
+                         SRAM_ReadSampleRegion(bank, note, SAMPLE_START_3);
+
+                    end =
+                        (SRAM_ReadSampleRegion(bank, note, SAMPLE_END_1) << 16) |
+                        (SRAM_ReadSampleRegion(bank, note, SAMPLE_END_2) << 8) |
+                         SRAM_ReadSampleRegion(bank, note, SAMPLE_END_3);
+
+                    sampleStart[bank][note] = sample_bank_1 + start;
+                    sampleLength[bank][note] = (sampleBankSize - start) - (sampleBankSize - end);
+                    sampleRate[bank][note] = SRAM_ReadSampleRegion(bank, note, SAMPLE_RATE);
+                    samplePan[bank][note] = SRAM_ReadSamplePan(bank, note);
+                    sampleLoop[bank][note] = SRAM_ReadSampleRegion(bank, note, SAMPLE_LOOP);
                 }
             }
 
@@ -2846,12 +2878,12 @@ static void ChangeInstrumentParameter(s8 modifier)
         SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, byteNum, value);
 
         // border check
-        u32 sampleEnd =
+        u32 sampleLength =
                 (SRAM_ReadSampleRegion(activeSampleBank, selectedSampleNote, SAMPLE_END_1) << 16) |
                 (SRAM_ReadSampleRegion(activeSampleBank, selectedSampleNote, SAMPLE_END_2) << 8) |
                  SRAM_ReadSampleRegion(activeSampleBank, selectedSampleNote, SAMPLE_END_3);
 
-        if (sampleEnd > DAC_DATA_END)
+        if (sampleLength > DAC_DATA_END)
         {
             SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_END_1, (u8)((DAC_DATA_END >> 16) & 0xFF));
             SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_END_2, (u8)((DAC_DATA_END >> 8) & 0xFF));
@@ -3600,8 +3632,7 @@ static inline void RequestZ80()
 
 static inline void ReleaseZ80()
 {
-    //if (bDAC_enable)
-        YM2612_write(PORT_1, YM2612REG_DAC); // needed for DAC
+    YM2612_write(PORT_1, YM2612REG_DAC); // needed for DAC
     if (Z80_isBusTaken()) Z80_releaseBus();
 }
 
@@ -3664,7 +3695,7 @@ static inline void SetPitchPSG(u8 mtxCh, u8 note)
 // DAC is also here
 static inline void SetPitchFM(u8 mtxCh, u8 note)
 {
-    static u8 part1 = 0, part2 = 0, pan = SOUND_PAN_CENTER;
+    static u8 part1 = 0, part2 = 0;
     static s8 key = 0;
 
     // CSM
@@ -3761,26 +3792,22 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
         case CHANNEL_FM6_DAC: // in DAC mode FM is still working normally, but sound output is muted
             if (bDAC_enable)
             {
-                static u32 sampleStart = 0, sampleEnd = 0;
-
-                sampleStart =
-                (SRAM_ReadSampleRegion(activeSampleBank, note, SAMPLE_START_1) << 16) |
-                (SRAM_ReadSampleRegion(activeSampleBank, note, SAMPLE_START_2) << 8) |
-                 SRAM_ReadSampleRegion(activeSampleBank, note, SAMPLE_START_3);
-
-                sampleEnd =
-                (SRAM_ReadSampleRegion(activeSampleBank, note, SAMPLE_END_1) << 16) |
-                (SRAM_ReadSampleRegion(activeSampleBank, note, SAMPLE_END_2) << 8) |
-                 SRAM_ReadSampleRegion(activeSampleBank, note, SAMPLE_END_3);
-
-                if (!FM_CH6_DAC_Pan) pan = SRAM_ReadSamplePan(activeSampleBank, note);
-                else pan = FM_CH6_DAC_Pan;
-
-                SND_startPlay_PCM(sample_bank_1 + sampleStart,
-                                  (sampleBankSize - sampleStart) - (sampleBankSize - sampleEnd),
-                                  SRAM_ReadSampleRegion(activeSampleBank, note, SAMPLE_RATE),
-                                  pan,
-                                  SRAM_ReadSampleRegion(activeSampleBank, note, SAMPLE_LOOP));
+                if (!FM_CH6_DAC_Pan)
+                {
+                    SND_startPlay_PCM(sampleStart[activeSampleBank][note],
+                                  sampleLength[activeSampleBank][note],
+                                  sampleRate[activeSampleBank][note],
+                                  samplePan[activeSampleBank][note],
+                                  sampleLoop[activeSampleBank][note]);
+                }
+                else
+                {
+                    SND_startPlay_PCM(sampleStart[activeSampleBank][note],
+                                  sampleLength[activeSampleBank][note],
+                                  sampleRate[activeSampleBank][note],
+                                  FM_CH6_DAC_Pan,
+                                  sampleLoop[activeSampleBank][note]);
+                }
             }
             else
             {
@@ -5428,6 +5455,7 @@ void InitTracker()
     if (SRAMW_readWord(FILE_CHECKER) != MDT_CHECKER)
     {
         VDP_setTextPalette(PAL0); VDP_drawText("GENERATING MODULE DATA", 3, 3);
+        for (u8 i = 0; i < 6; i++) SRAM_writeByte(i, MDT_HEADER[i]);
         for (u16 inst = 1; inst <= INSTRUMENTS_LAST; inst++)
         {
             LoadPreset(inst, 0);
@@ -5499,6 +5527,7 @@ void InitTracker()
     }
     else
     {
+        // check header version here and do legacy stuff
         SetBPM(0); // reads BPM from SRAM
     }
 
