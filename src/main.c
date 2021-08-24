@@ -22,6 +22,7 @@
 #include "MDT_Presets.h"
 #include "MDT_Version.h"
 
+#define MDT_HEADER              "MDT100" // 4D 00 44 00 54 00 31 00 30 00 30 00
 #define STRING_EMPTY            ""
 #define H_INT_DURATION_NTSC     744     // ; 744
 #define H_INT_DURATION_PAL      892     // ; 892
@@ -5450,6 +5451,7 @@ void InitTracker()
     JOY_setEventHandler(JoyEvent);
 
     ReColorsAndTranspose(); // need SRAM
+    //MDT_HEADER = "MDT100"; // 4D 00 44 00 54 00 31 00 30 00 30 00
 
     // if there is no SRAM file, needs fresh init.
     if (SRAMW_readWord(FILE_CHECKER) != MDT_CHECKER)

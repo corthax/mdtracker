@@ -1,5 +1,5 @@
 ----------------
-MD.Tracker 1.0b
+MD.Tracker 1.00
 Native music tracker for SEGA MEGADRIVE / GENESIS / NOMAD
 Source code: https://github.com/corthax/mdtracker
 Powered by SGDK
