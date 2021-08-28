@@ -1216,23 +1216,29 @@ static void SetBPM(u16 tempo)
     //static u32 microseconds = 0;
     static f32 mcs = 0;
 
-    if (!tempo) tempo = SRAMW_readWord(TEMPO);
-    else SRAMW_writeWord(TEMPO, tempo); // store
-    hIntToSkip = tempo;
+    if (!tempo)
+    {
+        hIntToSkip = SRAMW_readWord(TEMPO);
+    }
+    else
+    {
+        SRAMW_writeWord(TEMPO, tempo); // store
+        hIntToSkip = tempo;
+    }
 
     // GUI
     if (IS_PALSYSTEM)
     {
-        //microseconds = H_INT_DURATION_PAL * H_INT_SKIP * tempo; // h-blank = 1/11200 sec;  8.928571428571429e-5; 89.2857 microseconds;
-        mcs = fix32Div(FIX32(1.0), FIX32(1.120)) * H_INT_SKIP * tempo;
+        //microseconds = H_INT_DURATION_PAL * H_INT_SKIP * hIntToSkip; // h-blank = 1/11200 sec;  8.928571428571429e-5; 89.2857 microseconds;
+        mcs = fix32Div(FIX32(1.0), FIX32(1.120)) * H_INT_SKIP * hIntToSkip;
     }
     else
     {
-        //microseconds = H_INT_DURATION_NTSC * H_INT_SKIP * tempo; // h-blank = 1/13440 sec; 7.44047619047619e-5; 74.4047 microseconds; 224 * 60
-        mcs = fix32Div(FIX32(1.0), FIX32(1.344)) * H_INT_SKIP * tempo; //193, 140, 0.74404761904761904761904761904762
+        //microseconds = H_INT_DURATION_NTSC * H_INT_SKIP * hIntToSkip; // h-blank = 1/13440 sec; 7.44047619047619e-5; 74.4047 microseconds; 224 * 60
+        mcs = fix32Div(FIX32(1.0), FIX32(1.344)) * H_INT_SKIP * hIntToSkip; //193, 140, 0.74404761904761904761904761904762
     }
 
-    // precise BPM: 600000000000 / (1/13440) * 2 * tempo)) / ppb
+    // precise BPM: 600000000000 / (1/13440) * 2 * hIntToSkip)) / ppb
 
     u8 ppb = (ppl_2 + ppl_1) * 2; // pulses per beat
 
@@ -4333,9 +4339,11 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
 {
     switch (fxParam)
     {
+    // H-INT callback skip
     case 0x0F:
         if (fxValue) H_INT_SKIP = fxValue; else H_INT_SKIP = 2;
         VDP_setHIntCounter(H_INT_SKIP-1);
+        SetBPM(0);
         break;
     // TEMPO
     case 0x13:

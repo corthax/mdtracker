@@ -265,16 +265,22 @@ Commands are applied from left to right.
 ------------------------------------------------
 
 ************************************************
+H-INT callback skip (Tempo divider. Higher = slower tempo and less BPM precision, but also less CPU load)
+	0Fxx
+xx: 01..FF; Recommended values: 02 .. 04
+00: Set Default (02)
+	
+************************************************	
 Global LFO
 	10xx	Affects the all instruments AMS, FMS, AM.
 xx: 01 .. 08; Frequency Hz: 3.82, 5.33, 5.77, 6.11, 6.60, 9.23, 46.11, 69.22
---: to disable Global LFO.
+00: to disable Global LFO.
 
 ************************************************
 DAC (enabled by default)
 	11xx	
 xx: 01 = Enable DAC.
---: to disable DAC.
+00: to disable DAC.
 
 //////////////////
 WARNING
@@ -286,11 +292,11 @@ WARNING
 	Reserved space for DAC data in ROM.
 	
 	DAC ROM Samples region:
-		START:	0002FB00
-		END:	0036DD00
+		START:	0002FD00
+		END:	0036DF00
 	
 	Sample format: RAW (header-less), Signed 8 bit PCM, 32000 hz
-		(!!! Audacity may add noise at silence parts. The one way to remove it is to replace all FF with 00 using hex editor.)
+		(!!! When converted with Audacity it will add noise to silence parts. The one way to remove it is to replace all FF with 00 in sample using hex editor.)
 	3400192 bytes range reserved for DAC samples (~1min 46sec)
 		
 	With any hex editor overwrite that range with your samples.
@@ -312,13 +318,13 @@ SPECIAL+CSM:
 	No ARP or VOL sequences applied.
 	Pitch commands acting as "filtering" effect.
 	Kill previous note just a tick before enabling SPECIAL+CSM mode to not introduce noticable click.
---: set to NORMAL.
+00: set to NORMAL.
 
 ************************************************
 TEMPO (H-INT counter skip, more skipped = slower BPM) 
 	13xx	
 xx: 01 .. FF
---: reset to default project tempo.
+00: reset to default project tempo.
 !!! Resulting BPM is not precise. Use only as basic guide if want to sync tracker with something else !!!
 
 ************************************************
