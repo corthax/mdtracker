@@ -63,6 +63,8 @@
 #define INST_SSGEG3 47
 #define INST_SSGEG4 48
 
+#define SEQ_STEP_LAST   15
+
 #define INST_VOL_TICK_01 49
 #define INST_VOL_TICK_02 50
 #define INST_VOL_TICK_03 51

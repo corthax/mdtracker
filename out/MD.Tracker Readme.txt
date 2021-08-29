@@ -292,8 +292,8 @@ WARNING
 	Reserved space for DAC data in ROM.
 	
 	DAC ROM Samples region:
-		START:	0002FD00
-		END:	0036DF00
+		START:	0002FC00
+		END:	0036DE00
 	
 	Sample format: RAW (header-less), Signed 8 bit PCM, 32000 hz
 		(!!! When converted with Audacity it will add noise to silence parts. The one way to remove it is to replace all FF with 00 in sample using hex editor.)
@@ -393,7 +393,7 @@ xx: 01 .. FF; Enable
 ************************************************
 Note Cut (tip: cut the bass notes ends to avoid clicks)
 	50xx	
-xx: 01 .. FF; Kill note after xx ticks. [new note does not disable it]
+xx: 01 .. FF; Kills currently playing note after xx ticks. [new note does not disable it]
 
 ************************************************
 Set Channel Note Auto Cut (a bit less efficient than setting Note Cut manually)

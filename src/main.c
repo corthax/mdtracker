@@ -76,14 +76,17 @@ u8 channelVolSeqMODE[CHANNELS_TOTAL];
 u8 channelCurrentRowNote[CHANNELS_TOTAL]; // affected by channelMatrixTranspose
 u8 channelNoteAutoCut[CHANNELS_TOTAL];
 
-u8 channelSEQCounter_VOL[CHANNELS_TOTAL];
-u8 channelSEQCounter_ARP[CHANNELS_TOTAL];
+s8 channelSEQCounter_VOL[CHANNELS_TOTAL];
+s8 channelSEQCounter_ARP[CHANNELS_TOTAL];
 
 u8 channelRowShift[CHANNELS_TOTAL][PATTERN_ROWS];
 
 u8 selectedInstrumentID = 1; // 0 instrument is empty
 u8 selectedInstrumentParameter = 0; // 0..53
 u8 selectedInstrumentOperator = 0; // 0..53
+
+u8 seqArpValue[INSTRUMENTS_TOTAL][16];
+u8 seqVolValue[INSTRUMENTS_TOTAL][16];
 
 // screen
 u8 currentScreen = SCREEN_MATRIX;
@@ -621,9 +624,10 @@ static inline void DoEngine()
     }
 
     auto inline void seq_vol(u8 mtxCh) {
-        if (!channelVolSeqMODE[mtxCh] || (channelVolSeqMODE[mtxCh] && channelSEQCounter_VOL[mtxCh] != INST_VOL_TICK_16))
+        if (!channelVolSeqMODE[mtxCh] || (channelVolSeqMODE[mtxCh] && channelSEQCounter_VOL[mtxCh] != SEQ_STEP_LAST))
         {
-            _seqValue = SRAM_ReadInstrument(channelVolSeqID[mtxCh], ++channelSEQCounter_VOL[mtxCh]);
+            //_seqValue = SRAM_ReadInstrument(channelVolSeqID[mtxCh], ++channelSEQCounter_VOL[mtxCh]);
+            _seqValue = seqVolValue[channelVolSeqID[mtxCh]][(u8)++channelSEQCounter_VOL[mtxCh]];
             if (_seqValue != SEQ_VOL_SKIP)
             {
                 channelSeqAttenuation[mtxCh] = _seqValue;
@@ -631,15 +635,15 @@ static inline void DoEngine()
             }
         }
 
-        if (!channelVolSeqMODE[mtxCh] && channelSEQCounter_VOL[mtxCh] == INST_VOL_TICK_16) channelSEQCounter_VOL[mtxCh] = INST_VOL_TICK_01-1;
+        if (!channelVolSeqMODE[mtxCh] && channelSEQCounter_VOL[mtxCh] == SEQ_STEP_LAST) channelSEQCounter_VOL[mtxCh] = -1;
     }
 
     auto inline void seq_arp(u8 mtxCh) {
-        if (!channelArpSeqMODE[mtxCh] || (channelArpSeqMODE[mtxCh] && channelSEQCounter_ARP[mtxCh] != INST_ARP_TICK_16))
+        if (!channelArpSeqMODE[mtxCh] || (channelArpSeqMODE[mtxCh] && channelSEQCounter_ARP[mtxCh] != SEQ_STEP_LAST))
         {
             if (!pulseCounter)
             {
-                _seqValue = SRAM_ReadInstrument(channelArpSeqID[mtxCh], ++channelSEQCounter_ARP[mtxCh]);
+                _seqValue = seqArpValue[channelArpSeqID[mtxCh]][(u8)++channelSEQCounter_ARP[mtxCh]];
                 if (_seqValue != NOTE_EMPTY)
                 {
                     if (_seqValue > ARP_BASE) _key = channelCurrentRowNote[mtxCh] + (_seqValue - ARP_BASE);
@@ -649,7 +653,7 @@ static inline void DoEngine()
             }
             else
             {
-                _seqValue = SRAM_ReadInstrument(channelArpSeqID[mtxCh], ++channelSEQCounter_ARP[mtxCh]);
+                _seqValue = seqArpValue[channelArpSeqID[mtxCh]][(u8)++channelSEQCounter_ARP[mtxCh]];
                 if (_seqValue != NOTE_EMPTY)
                 {
                     if (_seqValue > ARP_BASE) channelArp[mtxCh] = channelPreviousNote[mtxCh] + (_seqValue - ARP_BASE);
@@ -660,7 +664,7 @@ static inline void DoEngine()
             }
         }
 
-        if (!channelArpSeqMODE[mtxCh] && channelSEQCounter_ARP[mtxCh] == INST_ARP_TICK_16) channelSEQCounter_ARP[mtxCh] = INST_ARP_TICK_01-1;
+        if (!channelArpSeqMODE[mtxCh] && channelSEQCounter_ARP[mtxCh] == SEQ_STEP_LAST) channelSEQCounter_ARP[mtxCh] = -1;
     }
 
     auto inline void do_row(u8 mtxCh) {
@@ -821,7 +825,6 @@ static inline void DoEngine()
                 {
                     PlayNote((u8)_key, mtxCh);
                 }
-                channelNoteCut[mtxCh] = 0;
             }
             else _key = NOTE_EMPTY; // empty row
         }
@@ -953,7 +956,18 @@ static inline void DoEngine()
             _bBeginPlay = FALSE;
             ReadMatrixRow();
 
-            for (u16 inst = 1; inst <= INSTRUMENTS_LAST; inst++) { CacheIstrumentToRAM(inst); }
+            // cache instruments and seq
+            for (u16 inst = 0; inst < INSTRUMENTS_TOTAL; inst++)
+            {
+                for (u8 step = 0; step < 16; step++)
+                {
+                    seqVolValue[inst][step] = SRAM_ReadInstrument(inst, INST_VOL_TICK_01+step);
+                    seqArpValue[inst][step] = SRAM_ReadInstrument(inst, INST_ARP_TICK_01+step);
+                }
+                CacheIstrumentToRAM(inst);
+            }
+
+            // set instruments
             for (u8 mtxCh = 0; mtxCh < CHANNELS_TOTAL; mtxCh++)
             {
                 if (mtxCh < CHANNEL_PSG1) chInst[mtxCh] = tmpInst[channelPreviousInstrument[mtxCh]];

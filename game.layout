@@ -7,56 +7,9 @@
 			<Cursor1 position="3312" topLine="107" />
 		</Cursor>
 	</File>
-	<File name="src\MDT_PCM.h" open="0" top="0" tabpos="12" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="inc\sram.h" open="0" top="0" tabpos="13" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="185" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="src\boot\sega.s" open="0" top="0" tabpos="14" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="12465" topLine="437" />
-		</Cursor>
-	</File>
-	<File name="src\MDT_Info.h" open="1" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="617" topLine="238" />
-		</Cursor>
-	</File>
-	<File name="src\MDT_Chips.h" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="0" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="inc\memory.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="6269" topLine="208" />
-		</Cursor>
-	</File>
-	<File name="src\MDT_SRAM.h" open="0" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="92" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="src\main.c" open="1" top="1" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="194391" topLine="4194" />
-		</Cursor>
-		<Folding>
-			<Collapse line="215" />
-			<Collapse line="267" />
-			<Collapse line="289" />
-			<Collapse line="601" />
-			<Collapse line="622" />
-		</Folding>
-	</File>
-	<File name="src\MDT_Main.h" open="1" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="5915" topLine="96" />
-		</Cursor>
-	</File>
-	<File name="src\MDT_ModuleData.h" open="1" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="3277" topLine="0" />
+			<Cursor1 position="1076" topLine="11" />
 		</Cursor>
 	</File>
 	<File name="res\graphics.res" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
@@ -64,32 +17,62 @@
 			<Cursor1 position="296" topLine="0" />
 		</Cursor>
 	</File>
-	<File name="src\MDT_GUI.h" open="1" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="src\main.c" open="1" top="1" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="6892" topLine="126" />
-		</Cursor>
-	</File>
-	<File name="src\MDT_Presets.c" open="1" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="57080" topLine="759" />
+			<Cursor1 position="23295" topLine="505" />
 		</Cursor>
 		<Folding>
-			<Collapse line="5" />
+			<Collapse line="218" />
+			<Collapse line="270" />
+			<Collapse line="292" />
+			<Collapse line="604" />
+			<Collapse line="669" />
+			<Collapse line="832" />
 		</Folding>
 	</File>
-	<File name="src\MDT_NoteTables.h" open="0" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="src\MDT_ModuleData.h" open="1" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="9837" topLine="89" />
+			<Cursor1 position="1210" topLine="57" />
 		</Cursor>
 	</File>
-	<File name="src\MDT_GUI.c" open="1" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="src\MDT_Presets.h" open="1" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="20" topLine="0" />
+			<Cursor1 position="65" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="inc\memory.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="6269" topLine="208" />
 		</Cursor>
 	</File>
 	<File name="res\fontdata.res" open="1" top="0" tabpos="12" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
 			<Cursor1 position="162" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="src\boot\sega.s" open="0" top="0" tabpos="14" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="12465" topLine="437" />
+		</Cursor>
+	</File>
+	<File name="inc\config.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2574" topLine="39" />
+		</Cursor>
+	</File>
+	<File name="src\MDT_SRAM.c" open="1" top="0" tabpos="11" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="310" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="src\MDT_Info.c" open="1" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1021" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="src\MDT_PCM.h" open="0" top="0" tabpos="12" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="185" topLine="0" />
 		</Cursor>
 	</File>
 	<File name="src\boot\rom_head.c" open="1" top="0" tabpos="10" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
@@ -102,34 +85,52 @@
 			<Cursor1 position="50" topLine="112" />
 		</Cursor>
 	</File>
+	<File name="src\MDT_Main.h" open="1" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="5915" topLine="96" />
+		</Cursor>
+	</File>
+	<File name="src\MDT_GUI.c" open="1" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="20" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="src\MDT_Info.h" open="1" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="617" topLine="238" />
+		</Cursor>
+	</File>
+	<File name="src\MDT_Chips.h" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="0" topLine="0" />
+		</Cursor>
+	</File>
 	<File name="src\MDT_Version.h" open="1" top="0" tabpos="14" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
 			<Cursor1 position="266" topLine="0" />
 		</Cursor>
 	</File>
-	<File name="src\MDT_SRAM.c" open="1" top="0" tabpos="11" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="src\MDT_SRAM.h" open="0" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="310" topLine="0" />
+			<Cursor1 position="92" topLine="0" />
 		</Cursor>
 	</File>
-	<File name="src\MDT_Presets.h" open="1" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="src\MDT_Presets.c" open="1" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="65" topLine="0" />
+			<Cursor1 position="57080" topLine="759" />
+		</Cursor>
+		<Folding>
+			<Collapse line="5" />
+		</Folding>
+	</File>
+	<File name="src\MDT_GUI.h" open="1" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="6892" topLine="126" />
 		</Cursor>
 	</File>
-	<File name="inc\config.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="src\MDT_NoteTables.h" open="0" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="2574" topLine="39" />
-		</Cursor>
-	</File>
-	<File name="src\MDT_Info.c" open="1" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="1021" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="inc\sram.h" open="0" top="0" tabpos="13" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="1076" topLine="11" />
+			<Cursor1 position="9837" topLine="89" />
 		</Cursor>
 	</File>
 </CodeBlocks_layout_file>
