@@ -39,7 +39,7 @@
 #define MATRIX_ROWS_ONPAGE_LAST 0x18    // index of max line on SCREEN; starts from 0; 25 lines per page; 10 pages
 #define MATRIX_PAGES            9        // MAX_MATRIX_ROWS / (MAX_MATRIX_SCREEN_ROW + 1)) - 1
 
-#define INST_SIZE               89
+#define INST_SIZE               89 // last 32 bytes reserved
 #define INST_MUTE               1
 #define INST_PLAY               0
 #define INST_SOLO               2
@@ -155,6 +155,7 @@ static s16 FindUnusedPattern();
 void CalculateCombined(u8 mtxCh, u8 reg);
 void ForceResetVariables();
 static void ReadMatrixRow();
+void Legacy();
 
 // temporal instrument storage
 struct Instrument

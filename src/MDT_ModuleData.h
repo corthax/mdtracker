@@ -63,49 +63,13 @@
 #define INST_SSGEG3 47
 #define INST_SSGEG4 48
 
-#define SEQ_STEP_LAST   15
-
-#define INST_VOL_TICK_01 49
-#define INST_VOL_TICK_02 50
-#define INST_VOL_TICK_03 51
-#define INST_VOL_TICK_04 52
-#define INST_VOL_TICK_05 53
-#define INST_VOL_TICK_06 54
-#define INST_VOL_TICK_07 55
-#define INST_VOL_TICK_08 56
-#define INST_VOL_TICK_09 57
-#define INST_VOL_TICK_10 58
-#define INST_VOL_TICK_11 59
-#define INST_VOL_TICK_12 60
-#define INST_VOL_TICK_13 61
-#define INST_VOL_TICK_14 62
-#define INST_VOL_TICK_15 63
+#define SEQ_STEP_LAST    31
+/*#define INST_VOL_TICK_01 49
 #define INST_VOL_TICK_16 64
-
 #define INST_ARP_TICK_01 65
-#define INST_ARP_TICK_02 66
-#define INST_ARP_TICK_03 67
-#define INST_ARP_TICK_04 68
-#define INST_ARP_TICK_05 69
-#define INST_ARP_TICK_06 70
-#define INST_ARP_TICK_07 71
-#define INST_ARP_TICK_08 72
-#define INST_ARP_TICK_09 73
-#define INST_ARP_TICK_10 74
-#define INST_ARP_TICK_11 75
-#define INST_ARP_TICK_12 76
-#define INST_ARP_TICK_13 77
-#define INST_ARP_TICK_14 78
-#define INST_ARP_TICK_15 79
-#define INST_ARP_TICK_16 80
+#define INST_ARP_TICK_16 80*/
 
 #define INST_NAME_1 81
-#define INST_NAME_2 82
-#define INST_NAME_3 83
-#define INST_NAME_4 84
-#define INST_NAME_5 85
-#define INST_NAME_6 86
-#define INST_NAME_7 87
 #define INST_NAME_8 88
 //}
 // sizes (byte):
@@ -160,6 +124,8 @@
 #define MATRIX_TRANSPOSE    0x6A3EC // matrix slot transpose (250*13)
 #define MUTE_CHANNEL        0x6B09E // store disabled matrix channels (13)
 #define SAMPLE_PAN          0x6B0AB // default sample pan (4 * 96)
+#define SEQ_VOL_START       0x6B230 // 32 steps vol seq start
+#define SEQ_ARP_START       0x6D230 // 32 steps arp seq start
 //}
 
 #define SAMPLE_START_1      0
@@ -170,8 +136,6 @@
 #define SAMPLE_END_3        5
 #define SAMPLE_LOOP         6
 #define SAMPLE_RATE         7
-
-
 
 //{ Pattern data 14 * 32 bytes
 #define DATA_NOTE           0
