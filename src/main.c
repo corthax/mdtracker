@@ -63,6 +63,8 @@ u8 chan = 0; // draw only one cell per VBlank to avoid slowdown?
 
 u8 playingPatternRow = 0; // current played pattern row
 
+s8 channelTranspose[CHANNELS_TOTAL];
+
 u16 channelPlayingPatternID[CHANNELS_TOTAL];
 s8 channelMatrixTranspose[CHANNELS_TOTAL];
 
@@ -804,14 +806,15 @@ static inline void DoEngine()
             }
             else if (channelCurrentRowNote[mtxCh] < NOTES) // there is a note on a row
             {
-                if (channelMatrixTranspose[mtxCh])
+                if (channelMatrixTranspose[mtxCh] || channelTranspose[mtxCh])
                 {
-                    _test = channelCurrentRowNote[mtxCh] + channelMatrixTranspose[mtxCh]; // check if out of notes range
+                    _test = channelCurrentRowNote[mtxCh] + channelMatrixTranspose[mtxCh] + channelTranspose[mtxCh]; // check if out of notes range
                     if (_test < NOTES || _test > -1)
                     {
                         _key = channelPreviousNote[mtxCh] = channelArp[mtxCh] = channelCurrentRowNote[mtxCh] = _test;
                     }
                 } else _key = channelPreviousNote[mtxCh] = channelArp[mtxCh] = channelCurrentRowNote[mtxCh];
+
                 if (channelRowShift[mtxCh][playingPatternRow]) channelNoteDelayCounter[mtxCh] = channelRowShift[mtxCh][playingPatternRow];
 
                 channelSEQCounter_VOL[mtxCh] = 0; channelSEQCounter_ARP[mtxCh] = 0;
@@ -4374,7 +4377,6 @@ void DrawPP()
         uintToStr(BPM, str, 3);
         DrawNum(BG_A, PAL0, str, 3, 27);
         DrawNum(BG_A, PAL1, str, 43, 27);
-
     }
     else { VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "OUT    ", 3, 27); VDP_drawTextBG(BG_A, "OUT    ", 43, 27); }
 
@@ -4385,6 +4387,26 @@ void DrawPP()
     // PPL
     DrawHex(PAL1, ppl_1, 27, 27); DrawHex(PAL1, ppl_2, 29, 27);
     DrawHex(PAL1, ppl_1, 67, 27); DrawHex(PAL1, ppl_2, 69, 27);
+
+    // transpose
+    /*if (!channelTranspose)
+    {
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_BIGDOT), 10, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_BIGDOT), 50, 27);
+    }
+    else if (channelTranspose > 0)
+    {
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_PLUS), 10, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_PLUS), 50, 27);
+    }
+    else
+    {
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_MINUS), 10, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_MINUS), 50, 27);
+    }
+
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[0] + channelTranspose), 11, 27);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[0] + channelTranspose), 51, 27);*/
 }
 
 static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
@@ -4407,6 +4429,17 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
         ppl_1 = (fxValue & 0b11110000) >> 4; if (!ppl_1) ppl_1 = PPL_DEFAULT;
         ppl_2 = fxValue & 0b00001111; if (!ppl_2) ppl_2 = PPL_DEFAULT;
         SetBPM(0);
+        break;
+
+    // CHANNEL TRANSPOSE
+    case 0x17:
+        switch ((fxValue & 0b11110000) >> 4)
+        {
+            case 1: channelTranspose[mtxCh] = fxValue & 0b00001111; break;
+            case 2: channelTranspose[mtxCh] = -(fxValue & 0b00001111); break;
+            default: channelTranspose[mtxCh] = 0; break;
+        }
+        //DrawPP();
         break;
 
     // ARP SEQUENCE MODE
@@ -5541,6 +5574,7 @@ void InitTracker()
         SetBPM(DEFAULT_TEMPO);
         SRAMW_writeByte(GLOBAL_LFO, 7);
         SRAMW_writeWord(FILE_CHECKER, MDT_CHECKER);
+        //SRAMW_writeByte(SONG_TRANSPOSE, (s8)0);
     }
     else
     {
@@ -5552,6 +5586,7 @@ void InitTracker()
             Legacy();
         }
         SetBPM(0); // reads BPM from SRAM
+        //songTranspose = (s8)SRAMW_readByte(SONG_TRANSPOSE);
     }
 
     // init
@@ -5645,10 +5680,10 @@ void DrawStaticHeaders()
     FillRowRight(BG_A, PAL3, FALSE, TRUE, GUI_SLASH, 2, 27, 0);
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SLASH_FAT), 29, 0);
 
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_LETTER_P),        31, 0); // PAGE:
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_LETTER_A),        32, 0);
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_LETTER_G),        33, 0);
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_LETTER_E),        34, 0);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_LETTER_P), 31, 0); // PAGE:
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_LETTER_A), 32, 0);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_LETTER_G), 33, 0);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_LETTER_E), 34, 0);
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON),    35, 0);
 
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_FM),      1, 1); // fm1 fm2 fm3
@@ -5970,6 +6005,7 @@ void ForceResetVariables()
 
     for (u8 ch=0; ch<CHANNELS_TOTAL; ch++)
     {
+        channelTranspose[ch]=
         channelPreviousNote[ch]=
         channelArpSeqID[ch]=
         channelVolSeqID[ch]=

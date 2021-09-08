@@ -105,9 +105,9 @@
 #define GUI_CURSOR                  30
 #define GUI_SLASH_FAT               31
 #define GUI_UP1                     32
-#define GUI_UP2                     33
+//#define GUI_SONG_TRANSPOSE          33
 #define GUI_DOWN1                   34
-#define GUI_DOWN2                   35
+//#define GUI_DOWN2                   35
 #define GUI_MINUS                   36
 #define GUI_COLON                   37
 #define GUI_HASH                    38

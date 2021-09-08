@@ -114,7 +114,7 @@
 
 //{ SRAM data blocks (BYTESWAPPED!!!)
 #define INSTRUMENT_DATA     0x00002 // 89 * 256 bytes
-#define GLOBAL_LFO          0x05902 // INSTRUMENT_DATA +  5900h; 1 byte
+#define GLOBAL_LFO          0x05902 // INSTRUMENT_DATA + 5900h; 1 byte
 #define FILE_CHECKER        0x05903 // DEAD. To check if SRAM file exists; 2 bytes
 #define PATTERN_MATRIX      0x05905 // MAX_MATRIX_ROWS * 13 * 2 bytes
 #define TEMPO               0x07269 // PATTERN_MATRIX + 1964h; 2 bytes
@@ -124,6 +124,7 @@
 #define MATRIX_TRANSPOSE    0x6A3EC // matrix slot transpose (250*13)
 #define MUTE_CHANNEL        0x6B09E // store disabled matrix channels (13)
 #define SAMPLE_PAN          0x6B0AB // default sample pan (4 * 96)
+//#define SONG_TRANSPOSE      0x6B22B // 1 byte
 #define SEQ_VOL_START       0x6B230 // 32 steps vol seq start
 #define SEQ_ARP_START       0x6D230 // 32 steps arp seq start
 //}

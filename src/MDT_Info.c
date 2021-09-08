@@ -26,7 +26,7 @@ void InitInfo()
     infoCommands[0x14] = "PATTERN ROW RESOLUTION (PULSES) ";
     infoCommands[0x15] = "PSG CH.4 NOISE MODE             ";
     infoCommands[0x16] = "PCM BANK                        ";
-    infoCommands[0x17] = "";
+    infoCommands[0x17] = "CHANNEL TRANSPOSE               ";
     infoCommands[0x18] = "";
     infoCommands[0x19] = "";
     infoCommands[0x1A] = "";
@@ -285,7 +285,7 @@ void InitInfo()
     infoDescriptions[0x14] = "X[ODD] 1..F; Y[EVEN] 1..F            ";
     infoDescriptions[0x15] = "X: 1=P, 2=W; Y: 0,1 TONAL 2,3,4 FIXED";
     infoDescriptions[0x16] = "00..03                               ";
-    infoDescriptions[0x17] = "";
+    infoDescriptions[0x17] = "X: 1=UP, 2=DOWN; Y: SEMITONES;       ";
     infoDescriptions[0x18] = "";
     infoDescriptions[0x19] = "";
     infoDescriptions[0x1A] = "";

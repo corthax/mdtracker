@@ -292,8 +292,8 @@ WARNING
 	Reserved space for DAC data in ROM.
 	
 	DAC ROM Samples region:
-		START:	0002F800
-		END:	0036DA00
+		START:	0002F900
+		END:	0036DB00
 	
 	Sample format: RAW (header-less), Signed 8 bit PCM, 32000 hz
 		(!!! When converted with Audacity it will add noise to silence parts. The one way to remove it is to replace all FF with 00 in sample using hex editor.)
@@ -344,6 +344,12 @@ y: 0 = tonal, SQ3 muted; 1 = tonal, SQ3 not muted; 2, 3, 4 = fixed clock /2, /4,
 PCM Sample ranges bank select
 	16xx
 xx: 00 .. 03; Each bank contains 96 sample region definitions, 1 per note.
+
+************************************************
+Set channel transpose in semitones
+	17xx
+x: 1 = UP; 2 = DOWN; Other values will reset transpose to 0;
+y: Semitones;
 
 ************************************************
 Matrix Jump	(Ignored while Pattern or Instrument editor is active)
