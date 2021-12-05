@@ -11,11 +11,13 @@
  
 	PicoDrive (RetroArch)
 	
-	- Replace "SEGA SSF" with "SEGA GENESIS" in rom header.
+	- No CSM
+	- No DAC panning
+	- Wrong PSG noise pitch
 	
 ---
 
-SGDK 1.62
+SGDK 1.65
 
 Code::Blocks 20.03
 
