@@ -22,7 +22,7 @@
 #include "MDT_Presets.h"
 #include "MDT_Version.h"
 
-#define MDT_HEADER              "MDT100" // 4D 00 44 00 54 00 31 00 30 00 30 00
+#define MDT_HEADER              "MDT101"
 #define STRING_EMPTY            ""
 #define H_INT_DURATION_NTSC     744     // ; 744
 #define H_INT_DURATION_PAL      892     // ; 892
@@ -3326,8 +3326,9 @@ inline void DisplayInstrumentEditor()
             }
         case GUI_INST_PARAM_LFO: case 239:
             value = SRAMW_readByte(GLOBAL_LFO);
-            if (value > 7) DrawHex2(BG_A, value - 7, 80+12, 23);
-            else FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_BIGDOT, 2, 86, 24);
+            //if (value > 7)
+                DrawHex2(BG_A, value - 7, 80+12, 23);
+            //else FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_BIGDOT, 2, 86, 24);
             break;
         case GUI_INST_PARAM_VOLSEQ: case 238:
             for (u8 i = 0; i <= SEQ_STEP_LAST; i++)
@@ -5495,17 +5496,16 @@ void InitTracker()
     JOY_setEventHandler(JoyEvent);
 
     ReColorsAndTranspose(); // need SRAM
-    //MDT_HEADER = "MDT100"; // 4D 00 44 00 54 00 31 00 30 00 30 00
 
     // if there is no SRAM file, needs fresh init.
     if (SRAMW_readWord(FILE_CHECKER) != MDT_CHECKER)
     {
         VDP_setTextPalette(PAL0); VDP_drawText("GENERATING MODULE DATA", 3, 3);
         for (u8 i = 0; i < 6; i++) SRAM_writeByte(i, MDT_HEADER[i]); // write file version
-        for (u16 inst = 1; inst <= INSTRUMENTS_LAST; inst++)
+        for (u16 inst = 0; inst <= INSTRUMENTS_LAST; inst++)
         {
-            LoadPreset(inst, 0);
-            for (u8 t = 0; t < 16; t++)
+            LoadPreset(inst, 0); // default sound
+            for (u8 t = 0; t <= SEQ_STEP_LAST; t++)
             {
                 if (!t)
                 {
@@ -5576,16 +5576,17 @@ void InitTracker()
         SRAMW_writeWord(FILE_CHECKER, MDT_CHECKER);
         //SRAMW_writeByte(SONG_TRANSPOSE, (s8)0);
     }
-    else
+    else // if it's correct save file
     {
-        // legacy beta stuff
+        // legacy stuff
         for (u8 i = 0; i < 6; i++) str[i] = SRAM_readByte(i);
 
-        if (strcmp(str, MDT_HEADER) != 0) // not equal
+        if (!strcmp(str, "MDT100"))
         {
-            Legacy();
+            for (u8 i = 0; i < 6; i++) SRAM_writeByte(i, MDT_HEADER[i]); // just write new file version
         }
-        SetBPM(0); // reads BPM from SRAM
+
+        SetBPM(NULL); // reads BPM from SRAM
         //songTranspose = (s8)SRAMW_readByte(SONG_TRANSPOSE);
     }
 
@@ -5890,8 +5891,9 @@ void DrawStaticHeaders()
     VDP_drawText("ARP:", 80, 26);
 }
 
-void Legacy()
+/*void Legacy() // update beta file to 1.0
 {
+    switch ()
     // update seq to 32 steps
     for (u16 id = 0; id < INSTRUMENTS_TOTAL; id++)
     {
@@ -5915,8 +5917,9 @@ void Legacy()
         SRAM_WriteSEQ_VOL(0, t, SEQ_VOL_SKIP); // skip step
         SRAM_WriteSEQ_ARP(0, t, NOTE_EMPTY); // empty note
     }
-    for (u8 i = 0; i < 6; i++) SRAM_writeByte(i, MDT_HEADER[i]); // write file version
-}
+    char* head = "MDT100";
+    for (u8 i = 0; i < 6; i++) SRAM_writeByte(i, head[i]); // write file version
+}*/
 
 void ForceResetVariables()
 {
