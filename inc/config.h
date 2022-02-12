@@ -65,7 +65,7 @@
  *      Some Megadrive models (as some MD2) need it to prevent some possible (but very rare) Z80 corruption bugs
  *      (may happen when Z80 access the main BUS during IO port access from 68K).
  */
-#define HALT_Z80_ON_IO      0
+#define HALT_Z80_ON_IO      1
 
 /**
  *  \brief
@@ -81,7 +81,7 @@
  *      will be accessed using BANK_getFarData(..) method (mapper.c). That may impact performance quite a bit
  *      it's why it's disabled by default if you don't require bank switch.
  */
-#define ENABLE_BANK_SWITCH  1
+#define ENABLE_BANK_SWITCH  0
 
 /**
  *  \brief
@@ -89,13 +89,6 @@
  *      That will disable any standard methods from SGDK to replace them by newlib library implementation.
  */
 #define ENABLE_NEWLIB       0
-
-/**
- *  \brief
- *      Set it to 1 if you want to use FAT16 methods provided by Krik.<br>
- *      This cost a bit more than 1 KB of RAM.
- */
-#define FAT16_SUPPORT       0
 
 /**
  *  \brief
@@ -113,5 +106,28 @@
 
 #endif // ENABLE_LOGO
 
+/**
+ *  \brief
+ *      Set it to 1 if you want to use EVERDRIVE programming methods (provided by Krikzz).<br>
+ */
+#define MODULE_EVERDRIVE    0
+
+/**
+ *  \brief
+ *      Set it to 1 if you want to use FAT16 methods for Everdrive cart (provided by Krikzz).<br>
+ *      This cost a bit more than 1 KB of RAM.
+ */
+#define MODULE_FAT16        0
+
+// FAT16 need EVERDRIVE
+#if ((MODULE_EVERDRIVE == 0) && (MODULE_FAT16 != 0))
+#error "Cannot enable FAT16 module without EVERDRIVE module"
+#endif
+
+/**
+ *  \brief
+ *      Set it to 1 if you want to enable MegaWiFi functions and support code
+ */
+#define MODULE_MEGAWIFI     0
 
 #endif // _CONFIG_

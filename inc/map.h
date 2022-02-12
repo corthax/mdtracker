@@ -118,6 +118,10 @@ typedef struct
  *      current view position X set using #MAP_scrollTo(..) method
  *  \param posY
  *      current view position Y set using #MAP_scrollTo(..) method
+ *  \param wMask
+ *      internal
+ *  \param hMask
+ *      internal
  *  \param planeWidthMask
  *      internal
  *  \param planeHeightMask
@@ -151,6 +155,8 @@ typedef struct Map
     u16 baseTile;
     u32 posX;
     u32 posY;
+    u16 wMask;
+    u16 hMask;
     u16 planeWidthMask;
     u16 planeHeightMask;
     u16 lastXT;
@@ -204,6 +210,22 @@ Map* MAP_create(const MapDefinition* mapDef, VDPPlane plane, u16 baseTile);
  *  \see #MAP_create(..)
  */
 void MAP_scrollTo(Map* map, u32 x, u32 y);
+/**
+ *  \brief
+ *      Exactly as #MAP_scrollTo(..) except we can force complete map drawing
+ *
+ *  \param map
+ *      Map structure containing map information.
+ *  \param x
+ *      view position X we want to scroll on
+ *  \param y
+ *      view position Y we want to scroll on
+ *  \param forceRedraw
+ *      Set to <i>TRUE</i> to force a complete map redraw (take more time)
+ *
+ *  \see #MAP_scrollTo(..)
+ */
+void MAP_scrollToEx(Map* map, u32 x, u32 y, bool forceRedraw);
 
 /**
  *  \brief

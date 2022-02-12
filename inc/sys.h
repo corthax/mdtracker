@@ -480,5 +480,4 @@ bool SYS_isChecksumOk();
  */
 void SYS_die(char *err);
 
-
 #endif // _SYS_H_

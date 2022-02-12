@@ -1,12 +1,14 @@
 #ifndef _GENESIS_H_
 #define _GENESIS_H_
 
+#define SGDK_VERSION    1.70
 
-#define SGDK_VERSION    1.65
+#include "types.h"
+
+#define SGDK            TRUE
 
 #include "config.h"
 #include "asm.h"
-#include "types.h"
 
 #include "sys.h"
 #include "sram.h"
@@ -46,6 +48,21 @@
 #include "psg.h"
 #include "joy.h"
 #include "timer.h"
+
+#include "task.h"
+
+// modules
+#if (MODULE_EVERDRIVE != 0)
+#include "ext/everdrive.h"
+#endif
+
+#if (MODULE_FAT16 != 0)
+#include "ext/fat16.h"
+#endif
+
+#if (MODULE_MEGAWIFI != 0)
+#include "ext/mw/megawifi.h"
+#endif
 
 // preserve compatibility with old resources name
 #define logo_lib sgdk_logo

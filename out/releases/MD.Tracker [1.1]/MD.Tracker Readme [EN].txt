@@ -308,8 +308,8 @@ WARNING
 	Reserved space for DAC data in ROM.
 	
 	DAC ROM Samples region: (see symbols.txt)
-		START:	0002FA00 (paste-rewrite sample data starting here)
-		END:	0036DC00
+		START:	0002F700 (paste-rewrite sample data starting here)
+		END:	0036D900
 	
 	Sample format: RAW (header-less), Signed 8 bit PCM, 32khz max
 		(!!! When converted with Audacity it will add noise to silence parts. The one way to remove it is to replace all FF with 00 in sample using hex editor.)

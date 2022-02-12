@@ -39,9 +39,9 @@ const ROMHeader rom_header = {
 //    "SEGA TERA68K    "	Tera Drive (boot from 68000 side)
 //    "SEGA TERA286    "	Tera Drive (boot from x86 side)
     "SEGA SSF        ", // Mega Everdrive Pro
-    "(C)Corthax 2021 ",
-    "MD.Tracker (1.0b) [MEGA EVERDRIVE PRO]          ",
-    "MD.Tracker                                      ",
+    "(C)Corthax 2022 ",
+    "MD.Tracker (1.1)                                ",
+    "MD.Tracker for MEGA EVERDRIVE PRO / BlastEm     ",
 //    "GM"	Game
 //    "AI"	Educational Aid
 //    "OS"	Boot ROM (TMSS)

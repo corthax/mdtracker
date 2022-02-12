@@ -74,12 +74,12 @@ extern const fix16 sqrttab16[0x10000];
  *  \brief
  *      Convert integer to fix32.
  */
-#define intToFix32(value)           ((value) << FIX32_FRAC_BITS)
+#define intToFix32(value)           ((fix32) ((value) << FIX32_FRAC_BITS))
 /**
  *  \brief
  *      Convert fix32 to integer.
  */
-#define fix32ToInt(value)           ((value) >> FIX32_FRAC_BITS)
+#define fix32ToInt(value)           ((s32) ((value) >> FIX32_FRAC_BITS))
 
 /**
  *  \brief
@@ -159,12 +159,12 @@ extern const fix16 sqrttab16[0x10000];
  *  \brief
  *      Convert integer to fix16.
  */
-#define intToFix16(value)           ((value) << FIX16_FRAC_BITS)
+#define intToFix16(value)           ((fix16) ((value) << FIX16_FRAC_BITS))
 /**
  *  \brief
  *      Convert fix16 to integer.
  */
-#define fix16ToInt(value)           ((value) >> FIX16_FRAC_BITS)
+#define fix16ToInt(value)           ((s16) ((value) >> FIX16_FRAC_BITS))
 
 /**
  *  \brief
@@ -739,6 +739,18 @@ s32 getApproximatedLog2(s32 value);
  *      value to return log2 of
  */
 u16 getLog2Int(u32 value);
+
+/**
+ *  \brief
+ *      Return next pow2 value which is greater than specified 32 bits unsigned value.
+ *      Ex:<br>
+ *      getNextPow2(700) = 1024<br>
+ *      getNextPow2(18) = 32<br>
+ *
+ *  \param value
+ *      value to return next pow2
+ */
+u32 getNextPow2(u32 value);
 
 
 #endif // _MATHS_H_
