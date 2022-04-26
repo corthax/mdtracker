@@ -118,7 +118,7 @@
 #define FILE_CHECKER        0x05903 // DEAD. To check if SRAM file exists; 2 bytes
 #define PATTERN_MATRIX      0x05905 // MAX_MATRIX_ROWS * 13 * 2 bytes
 #define TEMPO               0x07269 // PATTERN_MATRIX + 1964h; 2 bytes
-#define SAMPLE_DATA         0x0726B // 4 * 96 * 7 bytes (3byte start + 3byte end + 1byte loop)
+#define SAMPLE_DATA         0x0726B // 4 * 96 * SAMPLE_DATA_SIZE(7) bytes (3byte start + 3byte end + 1byte loop); 1byte rate is missing
 #define PATTERN_DATA        0x07CEB // SAMPLE_DATA + A80h;
 #define PATTERN_COLOR       0x6A06B // PATTERN_DATA + PATTERN_SIZE * (MAX_PATTERN + 1);
 #define MATRIX_TRANSPOSE    0x6A3EC // matrix slot transpose (250*13)
@@ -126,7 +126,11 @@
 #define SAMPLE_PAN          0x6B0AB // default sample pan (4 * 96)
 //#define SONG_TRANSPOSE      0x6B22B // 1 byte
 #define SEQ_VOL_START       0x6B230 // 32 steps vol seq start
-#define SEQ_ARP_START       0x6D230 // 32 steps arp seq start
+#define SEQ_ARP_START       0x6D230 // SEQ_VOL_START + 2000; 32 steps arp seq start
+#define SAMPLE_RATE         0x6f230 // SEQ_ARP_START + 2000; default sample rate (4 * 96)
+//0x71230
+// ...
+//0x80000 // eof
 //}
 
 #define SAMPLE_START_1      0
@@ -136,7 +140,7 @@
 #define SAMPLE_END_2        4
 #define SAMPLE_END_3        5
 #define SAMPLE_LOOP         6
-#define SAMPLE_RATE         7
+//#define SAMPLE_RATE         7
 
 //{ Pattern data 14 * 32 bytes
 #define DATA_NOTE           0

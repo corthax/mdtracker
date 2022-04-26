@@ -40,7 +40,7 @@ const ROMHeader rom_header = {
 //    "SEGA TERA286    "	Tera Drive (boot from x86 side)
     "SEGA SSF        ", // Mega Everdrive Pro
     "(C)Corthax 2022 ",
-    "MD.Tracker (1.1)                                ",
+    "MD.Tracker (1.2)                                ",
     "MD.Tracker for MEGA EVERDRIVE PRO / BlastEm     ",
 //    "GM"	Game
 //    "AI"	Educational Aid

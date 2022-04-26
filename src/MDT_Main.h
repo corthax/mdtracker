@@ -155,7 +155,7 @@ static s16 FindUnusedPattern();
 void CalculateCombined(u8 mtxCh, u8 reg);
 void ForceResetVariables();
 static void ReadMatrixRow();
-//void Legacy();
+void Legacy();
 
 // temporal instrument storage
 struct Instrument

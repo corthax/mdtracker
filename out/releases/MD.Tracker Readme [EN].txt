@@ -1,5 +1,5 @@
 ----------------
-MD.Tracker 1.01
+MD.Tracker 1.02
 Native music tracker for SEGA MEGADRIVE / GENESIS / NOMAD
 Source code: https://github.com/corthax/mdtracker
 Powered by SGDK
@@ -41,7 +41,11 @@ Playback slowdown when graphics redraw happens.
 ----------------
 Changelog:
 ----------------
-
+1.02
+	Fixes:
+		4th sample bank having not enought space to save sattings, leading to some data corruption.
+	Changes:
+		Added auto save upgrade from 1.01 to 1.02.
 1.01
 	Fixes:
 		Wrong ARP 16..32 values init when new empty song save file is created.
@@ -50,7 +54,7 @@ Changelog:
 	Changes:
 		Removed beta file upgrade feature.
 1.00
-	Initial release. Use ONLY this version for upgrading beta files to 1.00
+	Initial release. Use ONLY this version for upgrading beta files to 1.00.
 
 ----------------
 Features
@@ -308,8 +312,8 @@ WARNING
 	Reserved space for DAC data in ROM.
 	
 	DAC ROM Samples region: (see symbols.txt)
-		START:	0002F700 (paste-rewrite sample data starting here)
-		END:	0036D900
+		START:	0002F400 (paste-rewrite sample data starting here)
+		END:	0036D600
 	
 	Sample format: RAW (header-less), Signed 8 bit PCM, 32khz max
 		(!!! When converted with Audacity it will add noise to silence parts. The one way to remove it is to replace all FF with 00 in sample using hex editor.)

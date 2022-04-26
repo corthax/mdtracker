@@ -22,7 +22,7 @@
 #include "MDT_Presets.h"
 #include "MDT_Version.h"
 
-#define MDT_HEADER              "MDT101"
+#define MDT_HEADER              "MDT102"
 #define STRING_EMPTY            ""
 #define H_INT_DURATION_NTSC     744     // ; 744
 #define H_INT_DURATION_PAL      892     // ; 892
@@ -996,7 +996,7 @@ static inline void DoEngine()
 
                     sampleStart[bank][note] = sample_bank_1 + start;
                     sampleLength[bank][note] = (sampleBankSize - start) - (sampleBankSize - end);
-                    sampleRate[bank][note] = SRAM_ReadSampleRegion(bank, note, SAMPLE_RATE);
+                    sampleRate[bank][note] = SRAM_ReadSampleRate(bank, note);
                     samplePan[bank][note] = SRAM_ReadSamplePan(bank, note);
                     sampleLoop[bank][note] = SRAM_ReadSampleRegion(bank, note, SAMPLE_LOOP);
                 }
@@ -3104,9 +3104,9 @@ static void ChangeInstrumentParameter(s8 modifier)
         else SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_LOOP, TRUE);
         break;
     case GUI_INST_PARAM_PCM_RATE:
-        value = SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_RATE) + modifier;
+        value = SRAM_ReadSampleRate(selectedSampleBank, selectedSampleNote) + modifier;
         if (value < SOUND_RATE_32000) value = SOUND_RATE_32000; else if (value > SOUND_RATE_8000) value = SOUND_RATE_8000;
-        SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_RATE, value);
+        SRAM_WriteSampleRate(selectedSampleBank, selectedSampleNote, value);
         break;
     case GUI_INST_PARAM_PCM_PAN:
         if (modifier == -1) SRAM_WriteSamplePan(selectedSampleBank, selectedSampleNote, SOUND_PAN_LEFT);
@@ -3160,7 +3160,7 @@ inline void DisplayInstrumentEditor()
 
     auto void draw_pcm_rate()
     {
-        value = SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_RATE);
+        value = SRAM_ReadSampleRate(selectedSampleBank, selectedSampleNote);
         switch (value)
         {
             case SOUND_RATE_32000: DrawNum(BG_A, PAL1, "32000", 114, 6); break;
@@ -3168,7 +3168,8 @@ inline void DisplayInstrumentEditor()
             case SOUND_RATE_16000: DrawNum(BG_A, PAL1, "16000", 114, 6); break;
             case SOUND_RATE_13400: DrawNum(BG_A, PAL1, "13400", 114, 6); break;
             case SOUND_RATE_11025: DrawNum(BG_A, PAL1, "11025", 114, 6); break;
-            case SOUND_RATE_8000: DrawNum(BG_A, PAL1, "8000", 114, 6); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, NULL), 118, 6); break;
+            case SOUND_RATE_8000: DrawNum(BG_A, PAL1, "8000", 114, 6);
+                VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, NULL), 118, 6); break;
             default: DrawNum(BG_A, PAL1, "-----", 114, 6); break;
         }
     }
@@ -5388,6 +5389,9 @@ void SRAM_WriteSampleRegion(u8 bank, u8 note, u8 byteNum, u8 data) { SRAMW_write
 static inline u8 SRAM_ReadSamplePan(u8 bank, u8 note){ return SRAMW_readByte((u32)SAMPLE_PAN + (bank * NOTES) + note); }
 void SRAM_WriteSamplePan(u8 bank, u8 note, u8 data) { SRAMW_writeByte((u32)SAMPLE_PAN + (bank * NOTES) + note, data); }
 
+static inline u8 SRAM_ReadSampleRate(u8 bank, u8 note){ return SRAMW_readByte((u32)SAMPLE_RATE + (bank * NOTES) + note); }
+void SRAM_WriteSampleRate(u8 bank, u8 note, u8 data) { SRAMW_writeByte((u32)SAMPLE_RATE + (bank * NOTES) + note, data); }
+
 // other
 static inline void YM2612_writeRegZ80(u16 part, u8 reg, u8 data)
 {
@@ -5562,12 +5566,14 @@ void InitTracker()
             }
         }
 
-        // dac default pan init
+        // dac default pan and rate init
         for (u8 bank = 0; bank < 4; bank++)
         {
             for (u8 note = 0; note < NOTES; note++)
             {
+                // by default: regions are zero, loop is none
                 SRAM_WriteSamplePan(bank, note, SOUND_PAN_CENTER);
+                SRAM_WriteSampleRate(bank, note, SOUND_RATE_32000);
             }
         }
 
@@ -5581,9 +5587,17 @@ void InitTracker()
         // legacy stuff
         for (u8 i = 0; i < 6; i++) str[i] = SRAM_readByte(i);
 
-        if (!strcmp(str, "MDT100"))
+        // upgrade 1.0 to 1.1
+        /*if (!strcmp(str, "MDT100"))
         {
             for (u8 i = 0; i < 6; i++) SRAM_writeByte(i, MDT_HEADER[i]); // just write new file version
+        }*/
+
+        // not latest
+        if (strcmp(str, MDT_HEADER))
+        {
+            Legacy();
+            for (u8 i = 0; i < 6; i++) SRAM_writeByte(i, MDT_HEADER[i]); // write file version
         }
 
         SetBPM(NULL); // reads BPM from SRAM
@@ -5891,9 +5905,36 @@ void DrawStaticHeaders()
     VDP_drawText("ARP:", 80, 26);
 }
 
+static inline u32 SRAM_ReadSampleRegionLegacy(u8 bank, u8 note, u8 byteNum) { return (u32)SRAMW_readByte((u32)SAMPLE_DATA + (bank * NOTES * 8) + (note * 8) + byteNum); }
+void Legacy() // upgrade 1.1 to 1.2
+{
+    for (u8 bank = 0; bank < 4; bank++)
+    {
+        for (u8 key = 0; key < NOTES; key++)
+        {
+            u8 start1 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_START_1);
+            u8 start2 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_START_2);
+            u8 start3 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_START_3);
+            u8 end1 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_END_1);
+            u8 end2 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_END_2);
+            u8 end3 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_END_3);
+            u8 loop = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_LOOP);
+            u8 rate = SRAM_ReadSampleRegionLegacy(bank, key, 7);
+
+            SRAM_WriteSampleRegion(bank, key, SAMPLE_START_1, start1);
+            SRAM_WriteSampleRegion(bank, key, SAMPLE_START_2, start2);
+            SRAM_WriteSampleRegion(bank, key, SAMPLE_START_3, start3);
+            SRAM_WriteSampleRegion(bank, key, SAMPLE_END_1, end1);
+            SRAM_WriteSampleRegion(bank, key, SAMPLE_END_2, end2);
+            SRAM_WriteSampleRegion(bank, key, SAMPLE_END_3, end3);
+            SRAM_WriteSampleRegion(bank, key, SAMPLE_LOOP, loop);
+            SRAM_WriteSampleRate(bank, key, rate);
+        }
+    }
+}
+
 /*void Legacy() // update beta file to 1.0
 {
-    switch ()
     // update seq to 32 steps
     for (u16 id = 0; id < INSTRUMENTS_TOTAL; id++)
     {
