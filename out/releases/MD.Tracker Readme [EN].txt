@@ -317,7 +317,7 @@ WARNING
 	
 	Sample format: RAW (header-less), Signed 8 bit PCM, 32khz max
 		(!!! When converted with Audacity it will add noise to silence parts. The one way to remove it is to replace all FF with 00 in sample using hex editor.)
-	3400192 bytes range reserved for DAC samples (~1min 46sec at 32khz)
+	~3399000 bytes range reserved for DAC samples (~1min 45sec at 32khz)
 		
 	With any hex editor overwrite that range with your samples.
 	Then assign ranges to keys inside instrument editor SAMPLE section.

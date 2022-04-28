@@ -156,6 +156,7 @@ void CalculateCombined(u8 mtxCh, u8 reg);
 void ForceResetVariables();
 static void ReadMatrixRow();
 void Legacy();
+void FileWriteHeader();
 
 // temporal instrument storage
 struct Instrument

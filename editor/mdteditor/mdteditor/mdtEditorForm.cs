@@ -15,16 +15,20 @@ namespace mdteditor
 {
     public partial class mdtEditor : Form
     {
-        private readonly static int ROM_SAMPLE_BANK = 0x0002F700;
-        private readonly static int ROM_SAMPLE_BANK_SIZE = 3399000;
+        private const int ROM_SAMPLE_BANK = 0x0002F400; // symbol.txt sample_bank_1; check when md.tracker code is changed
+        private const int ROM_SAMPLE_BANK_SIZE = 3399000;
 
-        private readonly static int SRM_FILE_SIZE = 524288;
-        private readonly static uint SRM_SAMPLE_DATA = 0x0726B;
-        private readonly static uint SRM_SAMPLE_PAN = 0x6B0AB;
-        private readonly static uint SRM_SAMPLE_RATE = 0x6F230;
+        private const int SRM_FILE_SIZE = 524288;
+        private const uint SRM_SAMPLE_DATA = 0x0726B;
+        private const uint SRM_SAMPLE_PAN = 0x6B0AB;
+        private const uint SRM_SAMPLE_RATE = 0x6F230;
 
-        private readonly static byte NOTES_COUNT = 96;
-        private readonly static uint NOTES_TOTAL = 96 * 4;
+        private const byte NOTES_COUNT = 96;
+        private const int NOTES_TOTAL = 96 * 4;
+
+        private const byte SOUND_PAN_LEFT      = 0x80;
+        private const byte SOUND_PAN_RIGHT     = 0x40;
+        private const byte SOUND_PAN_CENTER    = 0xC0;
 
         /*  MD.Tracker
             #define INSTRUMENT_DATA     0x00002 // 89 * 256 bytes
@@ -63,8 +67,8 @@ namespace mdteditor
         private long sampleStart = -1, sampleEnd = 0;
 
         // GUI
-        private static List<string> lsNoteNames = new List<string> { "C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-" };
-        private readonly static int GUI_SAMPLE_SETTINGS_FIELD_HEIGHT = 25;
+        private static readonly List<string> lsNoteNames = new List<string> { "C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-" };
+        private const int GUI_SAMPLE_SETTINGS_FIELD_HEIGHT = 25;
 
         private const int WM_HSCROLL = 0x114;
         private const int WM_VSCROLL = 0x115;
@@ -185,54 +189,72 @@ namespace mdteditor
                         btnSampleSync[counter] = new Button
                         {
                             Location = new Point(5, y),
-                            Name = "btnSync" + name,
+                            Name = string.Concat("btnSync", name),
                             Width = 40,
-                            Text = lsNoteNames[note] + octave.ToString()
+                            Text = lsNoteNames[note] + octave.ToString(),
+                            BackColor = Color.FromArgb(255, 10, 10, 15),
+                            ForeColor = Color.Gold,
+                            FlatStyle = FlatStyle.Flat
                         };
 
                         txtSampleStart[counter] = new TextBox
                         {
                             Location = new Point(50, y),
-                            Name = "txtStart" + name,
+                            Name = string.Concat("txtStart", name),
                             Width = 100,
                             Text = "",
-                            TextAlign = HorizontalAlignment.Right
+                            TextAlign = HorizontalAlignment.Right,
+                            BackColor = Color.FromArgb(255, 10, 10, 15),
+                            ForeColor = Color.PaleGoldenrod,
+                            BorderStyle = BorderStyle.FixedSingle
                         };
 
                         txtSampleEnd[counter] = new TextBox
                         {
                             Location = new Point(160, y),
-                            Name = "txtEnd" + name,
+                            Name = string.Concat("txtEnd", name),
                             Width = 100,
                             Text = "",
-                            TextAlign = HorizontalAlignment.Right
+                            TextAlign = HorizontalAlignment.Right,
+                            BackColor = Color.FromArgb(255, 10, 10, 15),
+                            ForeColor = Color.PaleGoldenrod,
+                            BorderStyle = BorderStyle.FixedSingle
                         };
 
                         txtSampleID[counter] = new TextBox
                         {
                             Location = new Point(270, y),
-                            Name = "txtID" + name,
+                            Name = string.Concat("txtID", name),
                             Width = 40,
                             Text = "0",
-                            TextAlign = HorizontalAlignment.Right
+                            TextAlign = HorizontalAlignment.Right,
+                            BackColor = Color.FromArgb(255, 10, 10, 15),
+                            ForeColor = Color.AliceBlue,
+                            BorderStyle = BorderStyle.FixedSingle
                         };
 
                         cbxSamplePan[counter] = new ComboBox
                         {
                             Location = new Point(320, y),
-                            Name = "cbxPan" + name,
+                            Name = string.Concat("cbxPan", name),
                             Width = 70,
-                            Text = ""
+                            Text = "",
+                            BackColor = Color.FromArgb(255, 10, 10, 15),
+                            ForeColor = Color.LightGoldenrodYellow,
+                            FlatStyle = FlatStyle.Flat,
                         };
-                        cbxSamplePan[counter].Items.AddRange( new string[] { "MUTE", "RIGHT", "LEFT", "CENTER" } );
-                        cbxSamplePan[counter].SelectedIndex = 3;
+                        cbxSamplePan[counter].Items.AddRange( new string[] { "CENTER", "LEFT", "RIGHT" } );
+                        cbxSamplePan[counter].SelectedIndex = 0;
 
                         cbxSampleRate[counter] = new ComboBox
                         {
                             Location = new Point(400, y),
-                            Name = "cbxPan" + name,
+                            Name = string.Concat("cbxPan", name),
                             Width = 60,
-                            Text = ""
+                            Text = "",
+                            BackColor = Color.FromArgb(255, 10, 10, 15),
+                            ForeColor = Color.LightGoldenrodYellow,
+                            FlatStyle = FlatStyle.Flat
                         };
                         cbxSampleRate[counter].Items.AddRange( new string[] { "32000", "22050", "16000", "13400", "11025", "8000" } );
                         cbxSampleRate[counter].SelectedIndex = 0;
@@ -240,13 +262,16 @@ namespace mdteditor
                         chkSampleLoop[counter] = new CheckBox
                         {
                             Location = new Point(470, y),
-                            Name = "chkLoop" + name,
+                            Name = string.Concat("chkLoop", name),
                             Width = 60,
                             Text = "LOOP",
-                            Checked = false
+                            Checked = false,
+                            BackColor = Color.FromArgb(255, 10, 10, 15),
+                            ForeColor = Color.PaleGoldenrod,
+                            FlatStyle = FlatStyle.Flat
                         };
 
-                        lsSamplesBank_Sync.Add(btnSampleSync[counter]);
+                        /*lsSamplesBank_Sync.Add(btnSampleSync[counter]);
                         tcBanks[bank].Controls.Add(btnSampleSync[counter]);
                         lsSamplesBank_Start.Add(txtSampleStart[counter]);
                         tcBanks[bank].Controls.Add(txtSampleStart[counter]);
@@ -259,7 +284,7 @@ namespace mdteditor
                         lsSamplesBank_Rate.Add(cbxSampleRate[counter]);
                         tcBanks[bank].Controls.Add(cbxSampleRate[counter]);
                         lsSamplesBank_Loop.Add(chkSampleLoop[counter]);
-                        tcBanks[bank].Controls.Add(chkSampleLoop[counter]);
+                        tcBanks[bank].Controls.Add(chkSampleLoop[counter]);*/
 
                         counter++;
                     }
@@ -267,7 +292,7 @@ namespace mdteditor
             }
         
             //faster loading
-            /*Button[] btn1 = new Button[NOTES_COUNT];
+            Button[] btn1 = new Button[NOTES_COUNT];
             Button[] btn2 = new Button[NOTES_COUNT];
             Button[] btn3 = new Button[NOTES_COUNT];
             Button[] btn4 = new Button[NOTES_COUNT];
@@ -353,13 +378,18 @@ namespace mdteditor
             lsSamplesBank_ID.AddRange(txtSampleID);
             lsSamplesBank_Pan.AddRange(cbxSamplePan);
             lsSamplesBank_Rate.AddRange(cbxSampleRate);
-            lsSamplesBank_Loop.AddRange(chkSampleLoop);*/
+            lsSamplesBank_Loop.AddRange(chkSampleLoop);
 
             for (int i = 0; i < (NOTES_COUNT * 4); i++)
             {
                 dicSamplesPool_ID.Add(lsSamplesBank_Sync[i].Name, i);
                 lsSamplesBank_Sync[i].Click += new EventHandler(ButtonClicked);
             }
+
+            tcBanks[0].Refresh();
+            tcBanks[1].Refresh();
+            tcBanks[2].Refresh();
+            tcBanks[3].Refresh();
         }
 
         // init bank panels
@@ -395,25 +425,6 @@ namespace mdteditor
             GenerateBankForm();
                 /*}
             );*/
-        }
-
-        // open ROM
-        private void btnOpenROM_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog ofdROM = new OpenFileDialog();
-            ofdROM.Filter = "MD.Tracker ROM (*.bin)|*.bin|Any File (*.*)|*.*";
-            ofdROM.Multiselect = false;
-            ofdROM.Title = "Open ROM";
-            if (ofdROM.ShowDialog() == DialogResult.OK)
-            {
-                txtRomName.Text = ofdROM.FileName;
-                FileStream fs = new FileStream(ofdROM.FileName, FileMode.Open, FileAccess.Read);
-                BinaryReader br = new BinaryReader(fs);
-
-                // load presets from rom
-
-                br.Close(); fs.Close();
-            }
         }
 
         // assign all available samples
@@ -459,67 +470,34 @@ namespace mdteditor
         // mdt sram. byteswapped
         private uint SRAMW_readByte(uint offset)
         {
-            //if ((offset % 2) == 0) offset -= 2;
+            //if ((offset & 1) == 1) offset -= 2;
+            //if ((offset & 1) == 1) offset++; else offset--;
             if ((offset % 2) == 0) offset++; else offset--;
             return offset;
         }
 
-        // open SRM
-        private void btnOpenSRM_Click(object sender, EventArgs e)
+        // mdt sram. byteswapped
+        /*private uint SRAMW_writeByte(uint offset)
         {
-            OpenFileDialog ofd = new OpenFileDialog();
-            ofd.Filter = "MD.Tracker Save (*.srm)|*.srm|Any File (*.*)|*.*";
-            ofd.Multiselect = false;
-            ofd.Title = "Open SRM";
-            if (ofd.ShowDialog() == DialogResult.OK)
+            if ((offset & 1) == 1) offset -= 2;
+            //if ((offset % 2) == 0) offset++; else offset--;
+            return offset;
+        }*/
+
+        // open ROM
+        private void btnOpenROM_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog ofdROM = new OpenFileDialog();
+            ofdROM.Filter = "MD.Tracker ROM (*.bin)|*.bin|Any File (*.*)|*.*";
+            ofdROM.Multiselect = false;
+            ofdROM.Title = "Open ROM";
+            if (ofdROM.ShowDialog() == DialogResult.OK)
             {
-                txtSrmName.Text = ofd.FileName;
-                FileStream fs = new FileStream(ofd.FileName, FileMode.Open, FileAccess.Read);
+                txtRomName.Text = ofdROM.FileName;
+                FileStream fs = new FileStream(ofdROM.FileName, FileMode.Open, FileAccess.Read);
                 BinaryReader br = new BinaryReader(fs);
 
-                br.Read(srmFile, 0, SRM_FILE_SIZE);
-
-                // load sample settings
-                for (int i = 0; i < NOTES_TOTAL; i++)
-                {
-                    uint addr = SRM_SAMPLE_DATA + ((uint)i * 7); // 0x0726B
-                    uint addrPan = (uint)(SRM_SAMPLE_PAN + i);
-                    uint addrRate = (uint)(SRM_SAMPLE_RATE + i);
-
-                    uint st1 = SRAMW_readByte(addr + 0);
-                    uint st2 = SRAMW_readByte(addr + 1);
-                    uint st3 = SRAMW_readByte(addr + 2);
-                    uint ed1 = SRAMW_readByte(addr + 3);
-                    uint ed2 = SRAMW_readByte(addr + 4);
-                    uint ed3 = SRAMW_readByte(addr + 5);
-                    uint loop = SRAMW_readByte(addr + 6);
-                    uint pan = SRAMW_readByte(addrPan);
-                    uint rate = SRAMW_readByte(addrRate);
-
-                    uint val;
-
-                    // range
-                    val = ((uint)srmFile[st1] << 16) | (uint)(srmFile[st2] << 8) | (srmFile[st3]);
-                    lsSamplesBank_Start[i].Text = val.ToString();
-
-                    val = ((uint)srmFile[ed1] << 16) | ((uint)srmFile[ed2] << 8) | (srmFile[ed3]);
-                    lsSamplesBank_End[i].Text = val.ToString();
-
-                    // pan
-                    val = srmFile[pan];
-                    if (val <= 3)
-                        lsSamplesBank_Pan[i].SelectedIndex = (int)val;
-
-                    // rate
-                    val = srmFile[rate];
-                    if (val <= 5)
-                        lsSamplesBank_Rate[i].SelectedIndex = (int)val;
-
-                    // loop
-                    val = srmFile[loop];
-                    if (val <= 1)
-                        lsSamplesBank_Loop[i].Checked = Convert.ToBoolean(val);
-                }
+                // load presets from rom
 
                 br.Close(); fs.Close();
             }
@@ -565,6 +543,70 @@ namespace mdteditor
             // save presets
 
         }
+        
+        // open SRM
+        private void btnOpenSRM_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.Filter = "MD.Tracker Save (*.srm)|*.srm|Any File (*.*)|*.*";
+            ofd.Multiselect = false;
+            ofd.Title = "Open SRM";
+            if (ofd.ShowDialog() == DialogResult.OK)
+            {
+                txtSrmName.Text = ofd.FileName;
+                FileStream fs = new FileStream(ofd.FileName, FileMode.Open, FileAccess.Read);
+                BinaryReader br = new BinaryReader(fs);
+
+                br.Read(srmFile, 0, SRM_FILE_SIZE);
+
+                // load sample settings
+                for (int i = 0; i < NOTES_TOTAL; i++)
+                {
+                    uint addr = SRM_SAMPLE_DATA + ((uint)i * 7); // 0x0726B
+                    uint addrPan = (uint)(SRM_SAMPLE_PAN + i);
+                    uint addrRate = (uint)(SRM_SAMPLE_RATE + i);
+
+                    uint st1 = SRAMW_readByte(addr + 0);
+                    uint st2 = SRAMW_readByte(addr + 1);
+                    uint st3 = SRAMW_readByte(addr + 2);
+                    uint ed1 = SRAMW_readByte(addr + 3);
+                    uint ed2 = SRAMW_readByte(addr + 4);
+                    uint ed3 = SRAMW_readByte(addr + 5);
+                    uint loop = SRAMW_readByte(addr + 6);
+                    uint pan = SRAMW_readByte(addrPan);
+                    uint rate = SRAMW_readByte(addrRate);
+                    uint val;
+
+                    // range
+                    val = ((uint)srmFile[st1] << 16) | (uint)(srmFile[st2] << 8) | (srmFile[st3]);
+                    lsSamplesBank_Start[i].Text = val.ToString();
+
+                    val = ((uint)srmFile[ed1] << 16) | ((uint)srmFile[ed2] << 8) | (srmFile[ed3]);
+                    lsSamplesBank_End[i].Text = val.ToString();
+
+                    // pan
+                    val = srmFile[pan];
+                    switch (val)
+                    {
+                        case SOUND_PAN_LEFT: lsSamplesBank_Pan[i].SelectedIndex = 1; break;
+                        case SOUND_PAN_RIGHT: lsSamplesBank_Pan[i].SelectedIndex = 2; break;
+                        default: lsSamplesBank_Pan[i].SelectedIndex = 0; break;
+                    }
+
+                    // rate
+                    val = srmFile[rate];
+                    if (val <= 5)
+                        lsSamplesBank_Rate[i].SelectedIndex = (int)val;
+
+                    // loop
+                    val = srmFile[loop];
+                    if (val <= 1)
+                        lsSamplesBank_Loop[i].Checked = Convert.ToBoolean(val);
+                }
+
+                br.Close(); fs.Close();
+            }
+        }
 
         // save SRM
         private void btnSaveSrm_Click(object sender, EventArgs e)
@@ -593,23 +635,28 @@ namespace mdteditor
                         uint loop = SRAMW_readByte(addr + 6);
                         uint pan = SRAMW_readByte(addrPan);
                         uint rate = SRAMW_readByte(addrRate);
-
-                        uint strToNum;
+                        uint val;
 
                         // range
-                        strToNum = Convert.ToUInt32(lsSamplesBank_Start[i].Text);
-                        srmFile[st1] = Convert.ToByte(strToNum >> 16);
-                        srmFile[st2] = Convert.ToByte((strToNum >> 8) & 0xFF);
-                        srmFile[st3] = Convert.ToByte(strToNum & 0xFF);
+                        val = Convert.ToUInt32(lsSamplesBank_Start[i].Text);
+                        srmFile[st1] = Convert.ToByte(val >> 16);
+                        srmFile[st2] = Convert.ToByte((val >> 8) & 0xFF);
+                        srmFile[st3] = Convert.ToByte(val & 0xFF);
 
 
-                        strToNum = Convert.ToUInt32(lsSamplesBank_End[i].Text);
-                        srmFile[ed1] = Convert.ToByte(strToNum >> 16);
-                        srmFile[ed2] = Convert.ToByte((strToNum >> 8) & 0xFF);
-                        srmFile[ed3] = Convert.ToByte(strToNum & 0xFF);
+                        val = Convert.ToUInt32(lsSamplesBank_End[i].Text);
+                        srmFile[ed1] = Convert.ToByte(val >> 16);
+                        srmFile[ed2] = Convert.ToByte((val >> 8) & 0xFF);
+                        srmFile[ed3] = Convert.ToByte(val & 0xFF);
 
                         // pan
-                        srmFile[pan] = (byte)lsSamplesBank_Pan[i].SelectedIndex;
+                        val = (byte)lsSamplesBank_Pan[i].SelectedIndex;
+                        switch (val)
+                        {
+                            case 1: srmFile[pan] = SOUND_PAN_LEFT; break;
+                            case 2: srmFile[pan] = SOUND_PAN_RIGHT; break;
+                            default: srmFile[pan] = SOUND_PAN_CENTER; break;
+                        }
 
                         // rate
                         srmFile[rate] = (byte)lsSamplesBank_Rate[i].SelectedIndex;
@@ -629,7 +676,7 @@ namespace mdteditor
         {
             OpenFileDialog ofd = new OpenFileDialog
             {
-                Filter = "S-int 8 bit raw (*.raw)|*.raw|Any File (*.*)|*.*",
+                Filter = "Signed 8 bit raw (*.raw)|*.raw|Any file (*.*)|*.*",
                 Multiselect = true,
                 Title = "Add Samples",
                 FilterIndex = 2
@@ -644,23 +691,25 @@ namespace mdteditor
 
                     Label lbID = new Label
                     {
-                        Name = ofd.SafeFileNames[i] + "_id_" + id.ToString(),
+                        Name = string.Concat(ofd.SafeFileNames[i], "_id_", id.ToString()),
                         Text = id.ToString(),
                         Width = 40,
                         Location = new Point(5, y),
                         BorderStyle = BorderStyle.FixedSingle,
-                        TextAlign = ContentAlignment.MiddleCenter
+                        TextAlign = ContentAlignment.MiddleCenter,
+                        ForeColor = Color.PaleGoldenrod
                     };
                     samplesPool.Controls.Add(lbID);
 
                     Label lbFileName = new Label
                     {
-                        Name = ofd.SafeFileNames[i] + "_name_" + id.ToString(),
+                        Name = string.Concat(ofd.SafeFileNames[i], "_name_",  id.ToString()),
                         Text = ofd.SafeFileNames[i],
                         Width = 300,
                         Location = new Point(50, y),
                         BorderStyle = BorderStyle.FixedSingle,
-                        TextAlign = ContentAlignment.MiddleLeft
+                        TextAlign = ContentAlignment.MiddleLeft,
+                        ForeColor = Color.PaleGoldenrod
                     };
                     samplesPool.Controls.Add(lbFileName);
 
@@ -674,23 +723,25 @@ namespace mdteditor
 
                     Label lbSampleStart = new Label
                     {
-                        Name = ofd.SafeFileNames[i] + "_start_" + id.ToString(),
+                        Name = string.Concat(ofd.SafeFileNames[i], "_start_", id.ToString()),
                         Text = sampleStart.ToString(),
                         Width = 80,
                         Location = new Point(360, y),
                         BorderStyle = BorderStyle.FixedSingle,
-                        TextAlign = ContentAlignment.MiddleRight
+                        TextAlign = ContentAlignment.MiddleRight,
+                        ForeColor = Color.PaleGoldenrod
                     };
                     samplesPool.Controls.Add(lbSampleStart);
 
                     Label lbSampleEnd = new Label
                     {
-                        Name = ofd.SafeFileNames[i] + "_end_" + id.ToString(),
+                        Name = string.Concat(ofd.SafeFileNames[i], "_end_", id.ToString()),
                         Text = sampleEnd.ToString(),
                         Width = 80,
                         Location = new Point(450, y),
                         BorderStyle = BorderStyle.FixedSingle,
-                        TextAlign = ContentAlignment.MiddleRight
+                        TextAlign = ContentAlignment.MiddleRight,
+                        ForeColor = Color.PaleGoldenrod
                     };
                     samplesPool.Controls.Add(lbSampleEnd);
 

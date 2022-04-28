@@ -5505,7 +5505,9 @@ void InitTracker()
     if (SRAMW_readWord(FILE_CHECKER) != MDT_CHECKER)
     {
         VDP_setTextPalette(PAL0); VDP_drawText("GENERATING MODULE DATA", 3, 3);
-        for (u8 i = 0; i < 6; i++) SRAM_writeByte(i, MDT_HEADER[i]); // write file version
+
+        FileWriteHeader();
+
         for (u16 inst = 0; inst <= INSTRUMENTS_LAST; inst++)
         {
             LoadPreset(inst, 0); // default sound
@@ -5585,19 +5587,24 @@ void InitTracker()
     else // if it's correct save file
     {
         // legacy stuff
-        for (u8 i = 0; i < 6; i++) str[i] = SRAM_readByte(i);
+        for (u8 i = 0; i < 6; i++) str[i] = SRAM_readByte(i); // standard sgdk 8 bit sram read
 
         // upgrade 1.0 to 1.1
         /*if (!strcmp(str, "MDT100"))
         {
-            for (u8 i = 0; i < 6; i++) SRAM_writeByte(i, MDT_HEADER[i]); // just write new file version
+            for (u8 i = 0; i < 6; i++) SRAMW_writeByte(i, MDT_HEADER[i]); // just write new file version
         }*/
 
         // not latest
-        if (strcmp(str, MDT_HEADER))
+        /*
+        <0	the first character that does not match has a lower value in ptr1 than in ptr2
+        0	the contents of both strings are equal
+        >0	the first character that does not match has a greater value in ptr1 than in ptr2
+        */
+        if (strcmp(str, MDT_HEADER)) // header mismatch
         {
             Legacy();
-            for (u8 i = 0; i < 6; i++) SRAM_writeByte(i, MDT_HEADER[i]); // write file version
+            FileWriteHeader();
         }
 
         SetBPM(NULL); // reads BPM from SRAM
@@ -5674,6 +5681,11 @@ void InitTracker()
     VDP_waitDMACompletion();
 
     SYS_enableInts();
+}
+
+void FileWriteHeader()
+{
+    for (u8 i = 0; i < 6; i++) SRAM_writeByte(i, MDT_HEADER[i]); // write file version
 }
 
 void DrawStaticHeaders()
