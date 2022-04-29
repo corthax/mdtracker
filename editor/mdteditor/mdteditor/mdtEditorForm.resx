@@ -147,7 +147,7 @@
     <value>panelOpenSave</value>
   </data>
   <data name="&gt;&gt;label2.ZOrder" xml:space="preserve">
-    <value>12</value>
+    <value>8</value>
   </data>
   <metadata name="label3.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>False</value>
@@ -159,13 +159,13 @@
     <value>170, 33</value>
   </data>
   <data name="label3.Size" type="System.Drawing.Size, System.Drawing">
-    <value>120, 13</value>
+    <value>134, 13</value>
   </data>
   <data name="label3.TabIndex" type="System.Int32, mscorlib">
     <value>32</value>
   </data>
   <data name="label3.Text" xml:space="preserve">
-    <value>Sample to key mapping.</value>
+    <value>Samples to notes mapping.</value>
   </data>
   <data name="&gt;&gt;label3.Name" xml:space="preserve">
     <value>label3</value>
@@ -177,7 +177,7 @@
     <value>panelOpenSave</value>
   </data>
   <data name="&gt;&gt;label3.ZOrder" xml:space="preserve">
-    <value>11</value>
+    <value>7</value>
   </data>
   <metadata name="lbBytesAvailable.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>False</value>
@@ -186,7 +186,7 @@
     <value>True</value>
   </data>
   <data name="lbBytesAvailable.Location" type="System.Drawing.Point, System.Drawing">
-    <value>919, 12</value>
+    <value>919, 10</value>
   </data>
   <data name="lbBytesAvailable.Size" type="System.Drawing.Size, System.Drawing">
     <value>115, 13</value>
@@ -207,7 +207,7 @@
     <value>tabSamples</value>
   </data>
   <data name="&gt;&gt;lbBytesAvailable.ZOrder" xml:space="preserve">
-    <value>0</value>
+    <value>2</value>
   </data>
   <metadata name="lbSamplesPool.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>False</value>
@@ -216,7 +216,7 @@
     <value>True</value>
   </data>
   <data name="lbSamplesPool.Location" type="System.Drawing.Point, System.Drawing">
-    <value>589, 10</value>
+    <value>611, 7</value>
   </data>
   <data name="lbSamplesPool.Size" type="System.Drawing.Size, System.Drawing">
     <value>87, 15</value>
@@ -237,7 +237,7 @@
     <value>tabSamples</value>
   </data>
   <data name="&gt;&gt;lbSamplesPool.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>4</value>
   </data>
   <metadata name="tabsMain.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>False</value>
@@ -245,8 +245,69 @@
   <metadata name="tabSamples.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>False</value>
   </metadata>
+  <metadata name="lbCopy.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>False</value>
+  </metadata>
+  <data name="lbCopy.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="lbCopy.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="lbCopy.Location" type="System.Drawing.Point, System.Drawing">
+    <value>858, 440</value>
+  </data>
+  <data name="lbCopy.Size" type="System.Drawing.Size, System.Drawing">
+    <value>173, 13</value>
+  </data>
+  <data name="lbCopy.TabIndex" type="System.Int32, mscorlib">
+    <value>57</value>
+  </data>
+  <data name="lbCopy.Text" xml:space="preserve">
+    <value>Copy across notes range from start.</value>
+  </data>
+  <data name="&gt;&gt;lbCopy.Name" xml:space="preserve">
+    <value>lbCopy</value>
+  </data>
+  <data name="&gt;&gt;lbCopy.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;lbCopy.Parent" xml:space="preserve">
+    <value>tabSamples</value>
+  </data>
+  <data name="&gt;&gt;lbCopy.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="chkReplaceFF.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="chkReplaceFF.Location" type="System.Drawing.Point, System.Drawing">
+    <value>1035, 439</value>
+  </data>
+  <data name="chkReplaceFF.Size" type="System.Drawing.Size, System.Drawing">
+    <value>118, 17</value>
+  </data>
+  <data name="chkReplaceFF.TabIndex" type="System.Int32, mscorlib">
+    <value>47</value>
+  </data>
+  <data name="chkReplaceFF.Text" xml:space="preserve">
+    <value>Replace FF with 00</value>
+  </data>
+  <data name="&gt;&gt;chkReplaceFF.Name" xml:space="preserve">
+    <value>chkReplaceFF</value>
+  </data>
+  <data name="&gt;&gt;chkReplaceFF.Type" xml:space="preserve">
+    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;chkReplaceFF.Parent" xml:space="preserve">
+    <value>tabSamples</value>
+  </data>
+  <data name="&gt;&gt;chkReplaceFF.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
   <data name="txtBytesUsed.Location" type="System.Drawing.Point, System.Drawing">
-    <value>813, 12</value>
+    <value>813, 10</value>
   </data>
   <data name="txtBytesUsed.Size" type="System.Drawing.Size, System.Drawing">
     <value>100, 13</value>
@@ -257,7 +318,6 @@
   <data name="txtBytesUsed.Text" xml:space="preserve">
     <value>0</value>
   </data>
-  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="txtBytesUsed.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
     <value>Right</value>
   </data>
@@ -271,7 +331,40 @@
     <value>tabSamples</value>
   </data>
   <data name="&gt;&gt;txtBytesUsed.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>3</value>
+  </data>
+  <data name="btnAutoLoop.FlatStyle" type="System.Windows.Forms.FlatStyle, System.Windows.Forms">
+    <value>Flat</value>
+  </data>
+  <data name="btnAutoLoop.Location" type="System.Drawing.Point, System.Drawing">
+    <value>777, 435</value>
+  </data>
+  <data name="btnAutoLoop.Size" type="System.Drawing.Size, System.Drawing">
+    <value>75, 23</value>
+  </data>
+  <data name="btnAutoLoop.TabIndex" type="System.Int32, mscorlib">
+    <value>46</value>
+  </data>
+  <data name="btnAutoLoop.Text" xml:space="preserve">
+    <value>Copy Loop</value>
+  </data>
+  <metadata name="ttCopy.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>17, 17</value>
+  </metadata>
+  <data name="btnAutoLoop.ToolTip" xml:space="preserve">
+    <value>Copy LOOP</value>
+  </data>
+  <data name="&gt;&gt;btnAutoLoop.Name" xml:space="preserve">
+    <value>btnAutoLoop</value>
+  </data>
+  <data name="&gt;&gt;btnAutoLoop.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;btnAutoLoop.Parent" xml:space="preserve">
+    <value>tabSamples</value>
+  </data>
+  <data name="&gt;&gt;btnAutoLoop.ZOrder" xml:space="preserve">
+    <value>5</value>
   </data>
   <data name="pageSamplesBank1.AutoScroll" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -292,7 +385,7 @@
     <value>3, 3, 3, 3</value>
   </data>
   <data name="pageSamplesBank1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>569, 425</value>
+    <value>598, 433</value>
   </data>
   <data name="pageSamplesBank1.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
@@ -322,7 +415,7 @@
     <value>3, 3, 3, 3</value>
   </data>
   <data name="pageSamplesBank2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>569, 425</value>
+    <value>598, 433</value>
   </data>
   <data name="pageSamplesBank2.TabIndex" type="System.Int32, mscorlib">
     <value>1</value>
@@ -352,7 +445,7 @@
     <value>3, 3, 3, 3</value>
   </data>
   <data name="pageSamplesBank3.Size" type="System.Drawing.Size, System.Drawing">
-    <value>569, 425</value>
+    <value>598, 433</value>
   </data>
   <data name="pageSamplesBank3.TabIndex" type="System.Int32, mscorlib">
     <value>2</value>
@@ -382,7 +475,7 @@
     <value>3, 3, 3, 3</value>
   </data>
   <data name="pageSamplesBank4.Size" type="System.Drawing.Size, System.Drawing">
-    <value>569, 425</value>
+    <value>598, 433</value>
   </data>
   <data name="pageSamplesBank4.TabIndex" type="System.Int32, mscorlib">
     <value>3</value>
@@ -403,10 +496,10 @@
     <value>3</value>
   </data>
   <data name="tabControl_SampleBanks.Location" type="System.Drawing.Point, System.Drawing">
-    <value>6, 6</value>
+    <value>3, 3</value>
   </data>
   <data name="tabControl_SampleBanks.Size" type="System.Drawing.Size, System.Drawing">
-    <value>577, 451</value>
+    <value>606, 459</value>
   </data>
   <data name="tabControl_SampleBanks.TabIndex" type="System.Int32, mscorlib">
     <value>30</value>
@@ -421,10 +514,43 @@
     <value>tabSamples</value>
   </data>
   <data name="&gt;&gt;tabControl_SampleBanks.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>6</value>
+  </data>
+  <data name="btnAutoRate.FlatStyle" type="System.Windows.Forms.FlatStyle, System.Windows.Forms">
+    <value>Flat</value>
+  </data>
+  <data name="btnAutoRate.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="btnAutoRate.Location" type="System.Drawing.Point, System.Drawing">
+    <value>696, 435</value>
+  </data>
+  <data name="btnAutoRate.Size" type="System.Drawing.Size, System.Drawing">
+    <value>75, 23</value>
+  </data>
+  <data name="btnAutoRate.TabIndex" type="System.Int32, mscorlib">
+    <value>45</value>
+  </data>
+  <data name="btnAutoRate.Text" xml:space="preserve">
+    <value>Copy Rate</value>
+  </data>
+  <data name="btnAutoRate.ToolTip" xml:space="preserve">
+    <value>Copy RATE</value>
+  </data>
+  <data name="&gt;&gt;btnAutoRate.Name" xml:space="preserve">
+    <value>btnAutoRate</value>
+  </data>
+  <data name="&gt;&gt;btnAutoRate.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;btnAutoRate.Parent" xml:space="preserve">
+    <value>tabSamples</value>
+  </data>
+  <data name="&gt;&gt;btnAutoRate.ZOrder" xml:space="preserve">
+    <value>7</value>
   </data>
   <data name="btnAddSamples.Location" type="System.Drawing.Point, System.Drawing">
-    <value>1040, 3</value>
+    <value>1043, 0</value>
   </data>
   <data name="btnAddSamples.Size" type="System.Drawing.Size, System.Drawing">
     <value>107, 23</value>
@@ -445,34 +571,64 @@
     <value>tabSamples</value>
   </data>
   <data name="&gt;&gt;btnAddSamples.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>8</value>
   </data>
-  <data name="samplesPool.AutoScroll" type="System.Boolean, mscorlib">
-    <value>True</value>
+  <data name="btnAutoPan.FlatStyle" type="System.Windows.Forms.FlatStyle, System.Windows.Forms">
+    <value>Flat</value>
   </data>
-  <data name="samplesPool.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
+  <data name="btnAutoPan.Location" type="System.Drawing.Point, System.Drawing">
+    <value>615, 435</value>
   </data>
-  <data name="samplesPool.Location" type="System.Drawing.Point, System.Drawing">
-    <value>589, 28</value>
+  <data name="btnAutoPan.Size" type="System.Drawing.Size, System.Drawing">
+    <value>75, 23</value>
   </data>
-  <data name="samplesPool.Size" type="System.Drawing.Size, System.Drawing">
-    <value>558, 425</value>
+  <data name="btnAutoPan.TabIndex" type="System.Int32, mscorlib">
+    <value>44</value>
   </data>
-  <data name="samplesPool.TabIndex" type="System.Int32, mscorlib">
-    <value>37</value>
+  <data name="btnAutoPan.Text" xml:space="preserve">
+    <value>Copy Pan</value>
   </data>
-  <data name="&gt;&gt;samplesPool.Name" xml:space="preserve">
-    <value>samplesPool</value>
+  <data name="btnAutoPan.ToolTip" xml:space="preserve">
+    <value>Copy PAN</value>
   </data>
-  <data name="&gt;&gt;samplesPool.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="&gt;&gt;btnAutoPan.Name" xml:space="preserve">
+    <value>btnAutoPan</value>
   </data>
-  <data name="&gt;&gt;samplesPool.Parent" xml:space="preserve">
+  <data name="&gt;&gt;btnAutoPan.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;btnAutoPan.Parent" xml:space="preserve">
     <value>tabSamples</value>
   </data>
-  <data name="&gt;&gt;samplesPool.ZOrder" xml:space="preserve">
-    <value>5</value>
+  <data name="&gt;&gt;btnAutoPan.ZOrder" xml:space="preserve">
+    <value>9</value>
+  </data>
+  <data name="pnSamplesPool.AutoScroll" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="pnSamplesPool.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="pnSamplesPool.Location" type="System.Drawing.Point, System.Drawing">
+    <value>611, 25</value>
+  </data>
+  <data name="pnSamplesPool.Size" type="System.Drawing.Size, System.Drawing">
+    <value>542, 406</value>
+  </data>
+  <data name="pnSamplesPool.TabIndex" type="System.Int32, mscorlib">
+    <value>37</value>
+  </data>
+  <data name="&gt;&gt;pnSamplesPool.Name" xml:space="preserve">
+    <value>pnSamplesPool</value>
+  </data>
+  <data name="&gt;&gt;pnSamplesPool.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;pnSamplesPool.Parent" xml:space="preserve">
+    <value>tabSamples</value>
+  </data>
+  <data name="&gt;&gt;pnSamplesPool.ZOrder" xml:space="preserve">
+    <value>10</value>
   </data>
   <data name="tabSamples.Location" type="System.Drawing.Point, System.Drawing">
     <value>4, 22</value>
@@ -501,470 +657,257 @@
   <data name="&gt;&gt;tabSamples.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
-  <metadata name="lbAr.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+  <metadata name="label5.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>False</value>
   </metadata>
-  <data name="lbAr.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="lbAr.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+  <data name="label5.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>
-  <data name="lbAr.Location" type="System.Drawing.Point, System.Drawing">
-    <value>355, 185</value>
+  <data name="label5.Location" type="System.Drawing.Point, System.Drawing">
+    <value>758, 442</value>
   </data>
-  <data name="lbAr.Size" type="System.Drawing.Size, System.Drawing">
-    <value>64, 13</value>
+  <data name="label5.Size" type="System.Drawing.Size, System.Drawing">
+    <value>20, 13</value>
   </data>
-  <data name="lbAr.TabIndex" type="System.Int32, mscorlib">
-    <value>15</value>
+  <data name="label5.TabIndex" type="System.Int32, mscorlib">
+    <value>55</value>
   </data>
-  <data name="lbAr.Text" xml:space="preserve">
-    <value>Attack Rate</value>
+  <data name="label5.Text" xml:space="preserve">
+    <value>to</value>
   </data>
-  <data name="&gt;&gt;lbAr.Name" xml:space="preserve">
-    <value>lbAr</value>
+  <data name="&gt;&gt;label5.Name" xml:space="preserve">
+    <value>label5</value>
   </data>
-  <data name="&gt;&gt;lbAr.Type" xml:space="preserve">
+  <data name="&gt;&gt;label5.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;lbAr.Parent" xml:space="preserve">
+  <data name="&gt;&gt;label5.Parent" xml:space="preserve">
     <value>tabPresets</value>
   </data>
-  <data name="&gt;&gt;lbAr.ZOrder" xml:space="preserve">
+  <data name="&gt;&gt;label5.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
-  <metadata name="lbRs.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>False</value>
-  </metadata>
-  <data name="lbRs.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
+  <data name="txtPresetTarget.Location" type="System.Drawing.Point, System.Drawing">
+    <value>784, 438</value>
   </data>
-  <data name="lbRs.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
+  <data name="txtPresetTarget.Size" type="System.Drawing.Size, System.Drawing">
+    <value>56, 20</value>
   </data>
-  <data name="lbRs.Location" type="System.Drawing.Point, System.Drawing">
-    <value>355, 139</value>
+  <data name="txtPresetTarget.TabIndex" type="System.Int32, mscorlib">
+    <value>50</value>
   </data>
-  <data name="lbRs.Size" type="System.Drawing.Size, System.Drawing">
-    <value>60, 13</value>
+  <data name="txtPresetTarget.Text" xml:space="preserve">
+    <value>0</value>
   </data>
-  <data name="lbRs.TabIndex" type="System.Int32, mscorlib">
-    <value>14</value>
+  <data name="&gt;&gt;txtPresetTarget.Name" xml:space="preserve">
+    <value>txtPresetTarget</value>
   </data>
-  <data name="lbRs.Text" xml:space="preserve">
-    <value>Rate Scale</value>
-  </data>
-  <data name="&gt;&gt;lbRs.Name" xml:space="preserve">
-    <value>lbRs</value>
-  </data>
-  <data name="&gt;&gt;lbRs.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;lbRs.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;lbRs.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <metadata name="lbPan.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>False</value>
-  </metadata>
-  <data name="lbPan.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="lbPan.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="lbPan.Location" type="System.Drawing.Point, System.Drawing">
-    <value>355, 78</value>
-  </data>
-  <data name="lbPan.Size" type="System.Drawing.Size, System.Drawing">
-    <value>55, 13</value>
-  </data>
-  <data name="lbPan.TabIndex" type="System.Int32, mscorlib">
-    <value>13</value>
-  </data>
-  <data name="lbPan.Text" xml:space="preserve">
-    <value>Panorama</value>
-  </data>
-  <data name="&gt;&gt;lbPan.Name" xml:space="preserve">
-    <value>lbPan</value>
-  </data>
-  <data name="&gt;&gt;lbPan.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;lbPan.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;lbPan.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <metadata name="lbFb.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>False</value>
-  </metadata>
-  <data name="lbFb.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="lbFb.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="lbFb.Location" type="System.Drawing.Point, System.Drawing">
-    <value>355, 65</value>
-  </data>
-  <data name="lbFb.Size" type="System.Drawing.Size, System.Drawing">
-    <value>108, 13</value>
-  </data>
-  <data name="lbFb.TabIndex" type="System.Int32, mscorlib">
-    <value>12</value>
-  </data>
-  <data name="lbFb.Text" xml:space="preserve">
-    <value>Operator 1 Feedback</value>
-  </data>
-  <data name="&gt;&gt;lbFb.Name" xml:space="preserve">
-    <value>lbFb</value>
-  </data>
-  <data name="&gt;&gt;lbFb.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;lbFb.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;lbFb.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <metadata name="lbMul.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>False</value>
-  </metadata>
-  <data name="lbMul.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="lbMul.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="lbMul.Location" type="System.Drawing.Point, System.Drawing">
-    <value>355, 126</value>
-  </data>
-  <data name="lbMul.Size" type="System.Drawing.Size, System.Drawing">
-    <value>101, 13</value>
-  </data>
-  <data name="lbMul.TabIndex" type="System.Int32, mscorlib">
-    <value>11</value>
-  </data>
-  <data name="lbMul.Text" xml:space="preserve">
-    <value>Frequency Multiplier</value>
-  </data>
-  <data name="&gt;&gt;lbMul.Name" xml:space="preserve">
-    <value>lbMul</value>
-  </data>
-  <data name="&gt;&gt;lbMul.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;lbMul.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;lbMul.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
-  <metadata name="lbDt.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>False</value>
-  </metadata>
-  <data name="lbDt.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="lbDt.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="lbDt.Location" type="System.Drawing.Point, System.Drawing">
-    <value>355, 152</value>
-  </data>
-  <data name="lbDt.Size" type="System.Drawing.Size, System.Drawing">
-    <value>42, 13</value>
-  </data>
-  <data name="lbDt.TabIndex" type="System.Int32, mscorlib">
-    <value>10</value>
-  </data>
-  <data name="lbDt.Text" xml:space="preserve">
-    <value>Detune</value>
-  </data>
-  <data name="&gt;&gt;lbDt.Name" xml:space="preserve">
-    <value>lbDt</value>
-  </data>
-  <data name="&gt;&gt;lbDt.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;lbDt.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;lbDt.ZOrder" xml:space="preserve">
-    <value>5</value>
-  </data>
-  <metadata name="lbTl.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>False</value>
-  </metadata>
-  <data name="lbTl.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="lbTl.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="lbTl.Location" type="System.Drawing.Point, System.Drawing">
-    <value>354, 113</value>
-  </data>
-  <data name="lbTl.Size" type="System.Drawing.Size, System.Drawing">
-    <value>60, 13</value>
-  </data>
-  <data name="lbTl.TabIndex" type="System.Int32, mscorlib">
-    <value>9</value>
-  </data>
-  <data name="lbTl.Text" xml:space="preserve">
-    <value>Total Level</value>
-  </data>
-  <data name="&gt;&gt;lbTl.Name" xml:space="preserve">
-    <value>lbTl</value>
-  </data>
-  <data name="&gt;&gt;lbTl.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;lbTl.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;lbTl.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
-  <data name="btnLoadPreset.BackgroundImageLayout" type="System.Windows.Forms.ImageLayout, System.Windows.Forms">
-    <value>None</value>
-  </data>
-  <data name="btnLoadPreset.FlatStyle" type="System.Windows.Forms.FlatStyle, System.Windows.Forms">
-    <value>Flat</value>
-  </data>
-  <data name="btnLoadPreset.Location" type="System.Drawing.Point, System.Drawing">
-    <value>1071, 7</value>
-  </data>
-  <data name="btnLoadPreset.Size" type="System.Drawing.Size, System.Drawing">
-    <value>75, 23</value>
-  </data>
-  <data name="btnLoadPreset.TabIndex" type="System.Int32, mscorlib">
-    <value>8</value>
-  </data>
-  <data name="btnLoadPreset.Text" xml:space="preserve">
-    <value>Load Preset</value>
-  </data>
-  <data name="&gt;&gt;btnLoadPreset.Name" xml:space="preserve">
-    <value>btnLoadPreset</value>
-  </data>
-  <data name="&gt;&gt;btnLoadPreset.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;btnLoadPreset.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;btnLoadPreset.ZOrder" xml:space="preserve">
-    <value>7</value>
-  </data>
-  <metadata name="lbSsgeg.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>False</value>
-  </metadata>
-  <data name="lbSsgeg.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="lbSsgeg.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="lbSsgeg.Location" type="System.Drawing.Point, System.Drawing">
-    <value>355, 313</value>
-  </data>
-  <data name="lbSsgeg.Size" type="System.Drawing.Size, System.Drawing">
-    <value>47, 13</value>
-  </data>
-  <data name="lbSsgeg.TabIndex" type="System.Int32, mscorlib">
-    <value>7</value>
-  </data>
-  <data name="lbSsgeg.Text" xml:space="preserve">
-    <value>SSG-EG</value>
-  </data>
-  <data name="&gt;&gt;lbSsgeg.Name" xml:space="preserve">
-    <value>lbSsgeg</value>
-  </data>
-  <data name="&gt;&gt;lbSsgeg.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;lbSsgeg.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;lbSsgeg.ZOrder" xml:space="preserve">
-    <value>8</value>
-  </data>
-  <metadata name="lbAm.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>False</value>
-  </metadata>
-  <data name="lbAm.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="lbAm.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="lbAm.Location" type="System.Drawing.Point, System.Drawing">
-    <value>355, 326</value>
-  </data>
-  <data name="lbAm.Size" type="System.Drawing.Size, System.Drawing">
-    <value>108, 13</value>
-  </data>
-  <data name="lbAm.TabIndex" type="System.Int32, mscorlib">
-    <value>6</value>
-  </data>
-  <data name="lbAm.Text" xml:space="preserve">
-    <value>Amplitude Mudulation</value>
-  </data>
-  <data name="&gt;&gt;lbAm.Name" xml:space="preserve">
-    <value>lbAm</value>
-  </data>
-  <data name="&gt;&gt;lbAm.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;lbAm.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;lbAm.ZOrder" xml:space="preserve">
-    <value>9</value>
-  </data>
-  <metadata name="lbFms.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>False</value>
-  </metadata>
-  <data name="lbFms.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="lbFms.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="lbFms.Location" type="System.Drawing.Point, System.Drawing">
-    <value>355, 52</value>
-  </data>
-  <data name="lbFms.Size" type="System.Drawing.Size, System.Drawing">
-    <value>134, 13</value>
-  </data>
-  <data name="lbFms.TabIndex" type="System.Int32, mscorlib">
-    <value>5</value>
-  </data>
-  <data name="lbFms.Text" xml:space="preserve">
-    <value>Phase Modulation (Vibrato)</value>
-  </data>
-  <data name="&gt;&gt;lbFms.Name" xml:space="preserve">
-    <value>lbFms</value>
-  </data>
-  <data name="&gt;&gt;lbFms.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;lbFms.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;lbFms.ZOrder" xml:space="preserve">
-    <value>10</value>
-  </data>
-  <metadata name="lbAms.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>False</value>
-  </metadata>
-  <data name="lbAms.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="lbAms.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="lbAms.Location" type="System.Drawing.Point, System.Drawing">
-    <value>355, 36</value>
-  </data>
-  <data name="lbAms.Size" type="System.Drawing.Size, System.Drawing">
-    <value>155, 13</value>
-  </data>
-  <data name="lbAms.TabIndex" type="System.Int32, mscorlib">
-    <value>4</value>
-  </data>
-  <data name="lbAms.Text" xml:space="preserve">
-    <value>Amplitude Modulation (Tremolo)</value>
-  </data>
-  <data name="&gt;&gt;lbAms.Name" xml:space="preserve">
-    <value>lbAms</value>
-  </data>
-  <data name="&gt;&gt;lbAms.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;lbAms.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;lbAms.ZOrder" xml:space="preserve">
-    <value>11</value>
-  </data>
-  <metadata name="lbAlg.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>False</value>
-  </metadata>
-  <data name="lbAlg.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="lbAlg.Location" type="System.Drawing.Point, System.Drawing">
-    <value>355, 19</value>
-  </data>
-  <data name="lbAlg.Size" type="System.Drawing.Size, System.Drawing">
-    <value>50, 13</value>
-  </data>
-  <data name="lbAlg.TabIndex" type="System.Int32, mscorlib">
-    <value>3</value>
-  </data>
-  <data name="lbAlg.Text" xml:space="preserve">
-    <value>Algorithm</value>
-  </data>
-  <data name="&gt;&gt;lbAlg.Name" xml:space="preserve">
-    <value>lbAlg</value>
-  </data>
-  <data name="&gt;&gt;lbAlg.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;lbAlg.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;lbAlg.ZOrder" xml:space="preserve">
-    <value>12</value>
-  </data>
-  <data name="textBox1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>566, 12</value>
-  </data>
-  <data name="textBox1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>100, 20</value>
-  </data>
-  <data name="textBox1.TabIndex" type="System.Int32, mscorlib">
-    <value>2</value>
-  </data>
-  <data name="&gt;&gt;textBox1.Name" xml:space="preserve">
-    <value>textBox1</value>
-  </data>
-  <data name="&gt;&gt;textBox1.Type" xml:space="preserve">
+  <data name="&gt;&gt;txtPresetTarget.Type" xml:space="preserve">
     <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;textBox1.Parent" xml:space="preserve">
+  <data name="&gt;&gt;txtPresetTarget.Parent" xml:space="preserve">
     <value>tabPresets</value>
   </data>
-  <data name="&gt;&gt;textBox1.ZOrder" xml:space="preserve">
-    <value>13</value>
-  </data>
-  <data name="lbxPresets.Location" type="System.Drawing.Point, System.Drawing">
-    <value>7, 7</value>
-  </data>
-  <data name="lbxPresets.Size" type="System.Drawing.Size, System.Drawing">
-    <value>326, 446</value>
-  </data>
-  <data name="lbxPresets.TabIndex" type="System.Int32, mscorlib">
+  <data name="&gt;&gt;txtPresetTarget.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
-  <data name="&gt;&gt;lbxPresets.Name" xml:space="preserve">
-    <value>lbxPresets</value>
+  <data name="txtPresetsSource.Location" type="System.Drawing.Point, System.Drawing">
+    <value>696, 437</value>
   </data>
-  <data name="&gt;&gt;lbxPresets.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ListBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="txtPresetsSource.Size" type="System.Drawing.Size, System.Drawing">
+    <value>56, 20</value>
   </data>
-  <data name="&gt;&gt;lbxPresets.Parent" xml:space="preserve">
+  <data name="txtPresetsSource.TabIndex" type="System.Int32, mscorlib">
+    <value>49</value>
+  </data>
+  <data name="txtPresetsSource.Text" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;txtPresetsSource.Name" xml:space="preserve">
+    <value>txtPresetsSource</value>
+  </data>
+  <data name="&gt;&gt;txtPresetsSource.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;txtPresetsSource.Parent" xml:space="preserve">
     <value>tabPresets</value>
   </data>
-  <data name="&gt;&gt;lbxPresets.ZOrder" xml:space="preserve">
-    <value>14</value>
+  <data name="&gt;&gt;txtPresetsSource.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="btnAssignPreset.FlatStyle" type="System.Windows.Forms.FlatStyle, System.Windows.Forms">
+    <value>Flat</value>
+  </data>
+  <data name="btnAssignPreset.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="btnAssignPreset.Location" type="System.Drawing.Point, System.Drawing">
+    <value>615, 435</value>
+  </data>
+  <data name="btnAssignPreset.Size" type="System.Drawing.Size, System.Drawing">
+    <value>75, 23</value>
+  </data>
+  <data name="btnAssignPreset.TabIndex" type="System.Int32, mscorlib">
+    <value>45</value>
+  </data>
+  <data name="btnAssignPreset.Text" xml:space="preserve">
+    <value>Assign Preset</value>
+  </data>
+  <data name="&gt;&gt;btnAssignPreset.Name" xml:space="preserve">
+    <value>btnAssignPreset</value>
+  </data>
+  <data name="&gt;&gt;btnAssignPreset.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;btnAssignPreset.Parent" xml:space="preserve">
+    <value>tabPresets</value>
+  </data>
+  <data name="&gt;&gt;btnAssignPreset.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="pnPresetsPool.AutoScroll" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="pnPresetsPool.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="pnPresetsPool.Location" type="System.Drawing.Point, System.Drawing">
+    <value>611, 25</value>
+  </data>
+  <data name="pnPresetsPool.Size" type="System.Drawing.Size, System.Drawing">
+    <value>542, 406</value>
+  </data>
+  <data name="pnPresetsPool.TabIndex" type="System.Int32, mscorlib">
+    <value>40</value>
+  </data>
+  <data name="&gt;&gt;pnPresetsPool.Name" xml:space="preserve">
+    <value>pnPresetsPool</value>
+  </data>
+  <data name="&gt;&gt;pnPresetsPool.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;pnPresetsPool.Parent" xml:space="preserve">
+    <value>tabPresets</value>
+  </data>
+  <data name="&gt;&gt;pnPresetsPool.ZOrder" xml:space="preserve">
+    <value>4</value>
+  </data>
+  <data name="btnAddPresets.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="btnAddPresets.Location" type="System.Drawing.Point, System.Drawing">
+    <value>1043, 0</value>
+  </data>
+  <data name="btnAddPresets.Size" type="System.Drawing.Size, System.Drawing">
+    <value>107, 23</value>
+  </data>
+  <data name="btnAddPresets.TabIndex" type="System.Int32, mscorlib">
+    <value>39</value>
+  </data>
+  <data name="btnAddPresets.Text" xml:space="preserve">
+    <value>Add Presets</value>
+  </data>
+  <data name="&gt;&gt;btnAddPresets.Name" xml:space="preserve">
+    <value>btnAddPresets</value>
+  </data>
+  <data name="&gt;&gt;btnAddPresets.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;btnAddPresets.Parent" xml:space="preserve">
+    <value>tabPresets</value>
+  </data>
+  <data name="&gt;&gt;btnAddPresets.ZOrder" xml:space="preserve">
+    <value>5</value>
+  </data>
+  <data name="tbInstSRM.AutoScroll" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="tbInstSRM.AutoScrollMargin" type="System.Drawing.Size, System.Drawing">
+    <value>10, 10</value>
+  </data>
+  <data name="tbInstSRM.AutoScrollMinSize" type="System.Drawing.Size, System.Drawing">
+    <value>10, 10</value>
+  </data>
+  <data name="tbInstSRM.BackgroundImageLayout" type="System.Windows.Forms.ImageLayout, System.Windows.Forms">
+    <value>None</value>
+  </data>
+  <data name="tbInstSRM.Location" type="System.Drawing.Point, System.Drawing">
+    <value>4, 22</value>
+  </data>
+  <data name="tbInstSRM.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
+    <value>3, 3, 3, 3</value>
+  </data>
+  <data name="tbInstSRM.Size" type="System.Drawing.Size, System.Drawing">
+    <value>598, 433</value>
+  </data>
+  <data name="tbInstSRM.TabIndex" type="System.Int32, mscorlib">
+    <value>0</value>
+  </data>
+  <data name="tbInstSRM.Text" xml:space="preserve">
+    <value>SRM</value>
+  </data>
+  <data name="&gt;&gt;tbInstSRM.Name" xml:space="preserve">
+    <value>tbInstSRM</value>
+  </data>
+  <data name="&gt;&gt;tbInstSRM.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;tbInstSRM.Parent" xml:space="preserve">
+    <value>tcInstruments</value>
+  </data>
+  <data name="&gt;&gt;tbInstSRM.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="tbInstROM.AutoScroll" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="tbInstROM.Location" type="System.Drawing.Point, System.Drawing">
+    <value>4, 22</value>
+  </data>
+  <data name="tbInstROM.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
+    <value>3, 3, 3, 3</value>
+  </data>
+  <data name="tbInstROM.Size" type="System.Drawing.Size, System.Drawing">
+    <value>598, 433</value>
+  </data>
+  <data name="tbInstROM.TabIndex" type="System.Int32, mscorlib">
+    <value>1</value>
+  </data>
+  <data name="tbInstROM.Text" xml:space="preserve">
+    <value>ROM</value>
+  </data>
+  <data name="&gt;&gt;tbInstROM.Name" xml:space="preserve">
+    <value>tbInstROM</value>
+  </data>
+  <data name="&gt;&gt;tbInstROM.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;tbInstROM.Parent" xml:space="preserve">
+    <value>tcInstruments</value>
+  </data>
+  <data name="&gt;&gt;tbInstROM.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="tcInstruments.Location" type="System.Drawing.Point, System.Drawing">
+    <value>3, 3</value>
+  </data>
+  <data name="tcInstruments.Size" type="System.Drawing.Size, System.Drawing">
+    <value>606, 459</value>
+  </data>
+  <data name="tcInstruments.TabIndex" type="System.Int32, mscorlib">
+    <value>31</value>
+  </data>
+  <data name="&gt;&gt;tcInstruments.Name" xml:space="preserve">
+    <value>tcInstruments</value>
+  </data>
+  <data name="&gt;&gt;tcInstruments.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TabControl, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;tcInstruments.Parent" xml:space="preserve">
+    <value>tabPresets</value>
+  </data>
+  <data name="&gt;&gt;tcInstruments.ZOrder" xml:space="preserve">
+    <value>6</value>
   </data>
   <data name="tabPresets.Location" type="System.Drawing.Point, System.Drawing">
     <value>4, 22</value>
@@ -979,7 +922,7 @@
     <value>1</value>
   </data>
   <data name="tabPresets.Text" xml:space="preserve">
-    <value>PRESETS</value>
+    <value>PRESETS (Unimplemented)</value>
   </data>
   <data name="&gt;&gt;tabPresets.Name" xml:space="preserve">
     <value>tabPresets</value>
@@ -1020,134 +963,14 @@
   <metadata name="panelOpenSave.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>False</value>
   </metadata>
-  <data name="chkReplaceFF.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="chkReplaceFF.Location" type="System.Drawing.Point, System.Drawing">
-    <value>1033, 52</value>
-  </data>
-  <data name="chkReplaceFF.Size" type="System.Drawing.Size, System.Drawing">
-    <value>118, 17</value>
-  </data>
-  <data name="chkReplaceFF.TabIndex" type="System.Int32, mscorlib">
-    <value>47</value>
-  </data>
-  <data name="chkReplaceFF.Text" xml:space="preserve">
-    <value>Replace FF with 00</value>
-  </data>
-  <data name="&gt;&gt;chkReplaceFF.Name" xml:space="preserve">
-    <value>chkReplaceFF</value>
-  </data>
-  <data name="&gt;&gt;chkReplaceFF.Type" xml:space="preserve">
-    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;chkReplaceFF.Parent" xml:space="preserve">
-    <value>panelOpenSave</value>
-  </data>
-  <data name="&gt;&gt;chkReplaceFF.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="btnAutoLoop.FlatStyle" type="System.Windows.Forms.FlatStyle, System.Windows.Forms">
-    <value>Flat</value>
-  </data>
-  <data name="btnAutoLoop.Location" type="System.Drawing.Point, System.Drawing">
-    <value>815, 3</value>
-  </data>
-  <data name="btnAutoLoop.Size" type="System.Drawing.Size, System.Drawing">
-    <value>75, 23</value>
-  </data>
-  <data name="btnAutoLoop.TabIndex" type="System.Int32, mscorlib">
-    <value>46</value>
-  </data>
-  <data name="btnAutoLoop.Text" xml:space="preserve">
-    <value>Copy Loop</value>
-  </data>
-  <metadata name="ttCopy.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-    <value>17, 17</value>
+  <metadata name="pnAutoRange.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>False</value>
   </metadata>
-  <data name="btnAutoLoop.ToolTip" xml:space="preserve">
-    <value>Copy LOOP</value>
-  </data>
-  <data name="&gt;&gt;btnAutoLoop.Name" xml:space="preserve">
-    <value>btnAutoLoop</value>
-  </data>
-  <data name="&gt;&gt;btnAutoLoop.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;btnAutoLoop.Parent" xml:space="preserve">
-    <value>panelOpenSave</value>
-  </data>
-  <data name="&gt;&gt;btnAutoLoop.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <data name="btnAutoRate.FlatStyle" type="System.Windows.Forms.FlatStyle, System.Windows.Forms">
-    <value>Flat</value>
-  </data>
-  <data name="btnAutoRate.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
-    <value>NoControl</value>
-  </data>
-  <data name="btnAutoRate.Location" type="System.Drawing.Point, System.Drawing">
-    <value>734, 3</value>
-  </data>
-  <data name="btnAutoRate.Size" type="System.Drawing.Size, System.Drawing">
-    <value>75, 23</value>
-  </data>
-  <data name="btnAutoRate.TabIndex" type="System.Int32, mscorlib">
-    <value>45</value>
-  </data>
-  <data name="btnAutoRate.Text" xml:space="preserve">
-    <value>Copy Rate</value>
-  </data>
-  <data name="btnAutoRate.ToolTip" xml:space="preserve">
-    <value>Copy RATE</value>
-  </data>
-  <data name="&gt;&gt;btnAutoRate.Name" xml:space="preserve">
-    <value>btnAutoRate</value>
-  </data>
-  <data name="&gt;&gt;btnAutoRate.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;btnAutoRate.Parent" xml:space="preserve">
-    <value>panelOpenSave</value>
-  </data>
-  <data name="&gt;&gt;btnAutoRate.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="btnAutoPan.FlatStyle" type="System.Windows.Forms.FlatStyle, System.Windows.Forms">
-    <value>Flat</value>
-  </data>
-  <data name="btnAutoPan.Location" type="System.Drawing.Point, System.Drawing">
-    <value>652, 3</value>
-  </data>
-  <data name="btnAutoPan.Size" type="System.Drawing.Size, System.Drawing">
-    <value>75, 23</value>
-  </data>
-  <data name="btnAutoPan.TabIndex" type="System.Int32, mscorlib">
-    <value>44</value>
-  </data>
-  <data name="btnAutoPan.Text" xml:space="preserve">
-    <value>Copy Pan</value>
-  </data>
-  <data name="btnAutoPan.ToolTip" xml:space="preserve">
-    <value>Copy PAN</value>
-  </data>
-  <data name="&gt;&gt;btnAutoPan.Name" xml:space="preserve">
-    <value>btnAutoPan</value>
-  </data>
-  <data name="&gt;&gt;btnAutoPan.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;btnAutoPan.Parent" xml:space="preserve">
-    <value>panelOpenSave</value>
-  </data>
-  <data name="&gt;&gt;btnAutoPan.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
   <data name="btnAutoRange.FlatStyle" type="System.Windows.Forms.FlatStyle, System.Windows.Forms">
     <value>Flat</value>
   </data>
   <data name="btnAutoRange.Location" type="System.Drawing.Point, System.Drawing">
-    <value>652, 33</value>
+    <value>2, 0</value>
   </data>
   <data name="btnAutoRange.Size" type="System.Drawing.Size, System.Drawing">
     <value>75, 23</value>
@@ -1171,10 +994,247 @@
     <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;btnAutoRange.Parent" xml:space="preserve">
-    <value>panelOpenSave</value>
+    <value>pnAutoRange</value>
   </data>
   <data name="&gt;&gt;btnAutoRange.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <metadata name="label4.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>False</value>
+  </metadata>
+  <data name="label4.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="label4.Location" type="System.Drawing.Point, System.Drawing">
+    <value>227, 20</value>
+  </data>
+  <data name="label4.Size" type="System.Drawing.Size, System.Drawing">
+    <value>20, 13</value>
+  </data>
+  <data name="label4.TabIndex" type="System.Int32, mscorlib">
+    <value>55</value>
+  </data>
+  <data name="label4.Text" xml:space="preserve">
+    <value>...</value>
+  </data>
+  <data name="&gt;&gt;label4.Name" xml:space="preserve">
+    <value>label4</value>
+  </data>
+  <data name="&gt;&gt;label4.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label4.Parent" xml:space="preserve">
+    <value>pnAutoRange</value>
+  </data>
+  <data name="&gt;&gt;label4.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="txtAssignStart_ROM.Location" type="System.Drawing.Point, System.Drawing">
+    <value>165, -3</value>
+  </data>
+  <data name="txtAssignStart_ROM.Size" type="System.Drawing.Size, System.Drawing">
+    <value>56, 20</value>
+  </data>
+  <data name="txtAssignStart_ROM.TabIndex" type="System.Int32, mscorlib">
+    <value>48</value>
+  </data>
+  <data name="txtAssignStart_ROM.Text" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;txtAssignStart_ROM.Name" xml:space="preserve">
+    <value>txtAssignStart_ROM</value>
+  </data>
+  <data name="&gt;&gt;txtAssignStart_ROM.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;txtAssignStart_ROM.Parent" xml:space="preserve">
+    <value>pnAutoRange</value>
+  </data>
+  <data name="&gt;&gt;txtAssignStart_ROM.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <metadata name="label1.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>False</value>
+  </metadata>
+  <data name="label1.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="label1.Location" type="System.Drawing.Point, System.Drawing">
+    <value>227, 0</value>
+  </data>
+  <data name="label1.Size" type="System.Drawing.Size, System.Drawing">
+    <value>20, 13</value>
+  </data>
+  <data name="label1.TabIndex" type="System.Int32, mscorlib">
+    <value>54</value>
+  </data>
+  <data name="label1.Text" xml:space="preserve">
+    <value>...</value>
+  </data>
+  <data name="&gt;&gt;label1.Name" xml:space="preserve">
+    <value>label1</value>
+  </data>
+  <data name="&gt;&gt;label1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;label1.Parent" xml:space="preserve">
+    <value>pnAutoRange</value>
+  </data>
+  <data name="&gt;&gt;label1.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="txtAssignEnd_ROM.Location" type="System.Drawing.Point, System.Drawing">
+    <value>255, -3</value>
+  </data>
+  <data name="txtAssignEnd_ROM.Size" type="System.Drawing.Size, System.Drawing">
+    <value>56, 20</value>
+  </data>
+  <data name="txtAssignEnd_ROM.TabIndex" type="System.Int32, mscorlib">
+    <value>49</value>
+  </data>
+  <data name="txtAssignEnd_ROM.Text" xml:space="preserve">
+    <value>383</value>
+  </data>
+  <data name="&gt;&gt;txtAssignEnd_ROM.Name" xml:space="preserve">
+    <value>txtAssignEnd_ROM</value>
+  </data>
+  <data name="&gt;&gt;txtAssignEnd_ROM.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;txtAssignEnd_ROM.Parent" xml:space="preserve">
+    <value>pnAutoRange</value>
+  </data>
+  <data name="&gt;&gt;txtAssignEnd_ROM.ZOrder" xml:space="preserve">
     <value>4</value>
+  </data>
+  <metadata name="lbAssignSRM.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>False</value>
+  </metadata>
+  <data name="lbAssignSRM.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="lbAssignSRM.Location" type="System.Drawing.Point, System.Drawing">
+    <value>84, 20</value>
+  </data>
+  <data name="lbAssignSRM.Size" type="System.Drawing.Size, System.Drawing">
+    <value>60, 13</value>
+  </data>
+  <data name="lbAssignSRM.TabIndex" type="System.Int32, mscorlib">
+    <value>53</value>
+  </data>
+  <data name="lbAssignSRM.Text" xml:space="preserve">
+    <value>Target</value>
+  </data>
+  <data name="&gt;&gt;lbAssignSRM.Name" xml:space="preserve">
+    <value>lbAssignSRM</value>
+  </data>
+  <data name="&gt;&gt;lbAssignSRM.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;lbAssignSRM.Parent" xml:space="preserve">
+    <value>pnAutoRange</value>
+  </data>
+  <data name="&gt;&gt;lbAssignSRM.ZOrder" xml:space="preserve">
+    <value>5</value>
+  </data>
+  <data name="txtAssignEnd_SRM.Location" type="System.Drawing.Point, System.Drawing">
+    <value>255, 16</value>
+  </data>
+  <data name="txtAssignEnd_SRM.Size" type="System.Drawing.Size, System.Drawing">
+    <value>56, 20</value>
+  </data>
+  <data name="txtAssignEnd_SRM.TabIndex" type="System.Int32, mscorlib">
+    <value>51</value>
+  </data>
+  <data name="txtAssignEnd_SRM.Text" xml:space="preserve">
+    <value>383</value>
+  </data>
+  <data name="&gt;&gt;txtAssignEnd_SRM.Name" xml:space="preserve">
+    <value>txtAssignEnd_SRM</value>
+  </data>
+  <data name="&gt;&gt;txtAssignEnd_SRM.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;txtAssignEnd_SRM.Parent" xml:space="preserve">
+    <value>pnAutoRange</value>
+  </data>
+  <data name="&gt;&gt;txtAssignEnd_SRM.ZOrder" xml:space="preserve">
+    <value>6</value>
+  </data>
+  <metadata name="lbAssignROM.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>False</value>
+  </metadata>
+  <data name="lbAssignROM.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
+    <value>NoControl</value>
+  </data>
+  <data name="lbAssignROM.Location" type="System.Drawing.Point, System.Drawing">
+    <value>84, 0</value>
+  </data>
+  <data name="lbAssignROM.Size" type="System.Drawing.Size, System.Drawing">
+    <value>60, 13</value>
+  </data>
+  <data name="lbAssignROM.TabIndex" type="System.Int32, mscorlib">
+    <value>52</value>
+  </data>
+  <data name="lbAssignROM.Text" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="&gt;&gt;lbAssignROM.Name" xml:space="preserve">
+    <value>lbAssignROM</value>
+  </data>
+  <data name="&gt;&gt;lbAssignROM.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;lbAssignROM.Parent" xml:space="preserve">
+    <value>pnAutoRange</value>
+  </data>
+  <data name="&gt;&gt;lbAssignROM.ZOrder" xml:space="preserve">
+    <value>7</value>
+  </data>
+  <data name="txtAssignStart_SRM.Location" type="System.Drawing.Point, System.Drawing">
+    <value>165, 16</value>
+  </data>
+  <data name="txtAssignStart_SRM.Size" type="System.Drawing.Size, System.Drawing">
+    <value>56, 20</value>
+  </data>
+  <data name="txtAssignStart_SRM.TabIndex" type="System.Int32, mscorlib">
+    <value>50</value>
+  </data>
+  <data name="txtAssignStart_SRM.Text" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;txtAssignStart_SRM.Name" xml:space="preserve">
+    <value>txtAssignStart_SRM</value>
+  </data>
+  <data name="&gt;&gt;txtAssignStart_SRM.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;txtAssignStart_SRM.Parent" xml:space="preserve">
+    <value>pnAutoRange</value>
+  </data>
+  <data name="&gt;&gt;txtAssignStart_SRM.ZOrder" xml:space="preserve">
+    <value>8</value>
+  </data>
+  <data name="pnAutoRange.Location" type="System.Drawing.Point, System.Drawing">
+    <value>652, 3</value>
+  </data>
+  <data name="pnAutoRange.Size" type="System.Drawing.Size, System.Drawing">
+    <value>322, 50</value>
+  </data>
+  <data name="pnAutoRange.TabIndex" type="System.Int32, mscorlib">
+    <value>56</value>
+  </data>
+  <data name="&gt;&gt;pnAutoRange.Name" xml:space="preserve">
+    <value>pnAutoRange</value>
+  </data>
+  <data name="&gt;&gt;pnAutoRange.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;pnAutoRange.Parent" xml:space="preserve">
+    <value>panelOpenSave</value>
+  </data>
+  <data name="&gt;&gt;pnAutoRange.ZOrder" xml:space="preserve">
+    <value>0</value>
   </data>
   <data name="btnSaveRom.FlatStyle" type="System.Windows.Forms.FlatStyle, System.Windows.Forms">
     <value>Flat</value>
@@ -1201,7 +1261,7 @@
     <value>panelOpenSave</value>
   </data>
   <data name="&gt;&gt;btnSaveRom.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>1</value>
   </data>
   <data name="btnOpenROM.FlatStyle" type="System.Windows.Forms.FlatStyle, System.Windows.Forms">
     <value>Flat</value>
@@ -1228,7 +1288,7 @@
     <value>panelOpenSave</value>
   </data>
   <data name="&gt;&gt;btnOpenROM.ZOrder" xml:space="preserve">
-    <value>6</value>
+    <value>2</value>
   </data>
   <data name="txtSrmName.Location" type="System.Drawing.Point, System.Drawing">
     <value>362, 33</value>
@@ -1252,7 +1312,7 @@
     <value>panelOpenSave</value>
   </data>
   <data name="&gt;&gt;txtSrmName.ZOrder" xml:space="preserve">
-    <value>7</value>
+    <value>3</value>
   </data>
   <data name="btnOpenSRM.FlatStyle" type="System.Windows.Forms.FlatStyle, System.Windows.Forms">
     <value>Flat</value>
@@ -1279,7 +1339,7 @@
     <value>panelOpenSave</value>
   </data>
   <data name="&gt;&gt;btnOpenSRM.ZOrder" xml:space="preserve">
-    <value>8</value>
+    <value>4</value>
   </data>
   <data name="txtRomName.Location" type="System.Drawing.Point, System.Drawing">
     <value>362, 3</value>
@@ -1303,7 +1363,7 @@
     <value>panelOpenSave</value>
   </data>
   <data name="&gt;&gt;txtRomName.ZOrder" xml:space="preserve">
-    <value>9</value>
+    <value>5</value>
   </data>
   <data name="btnSaveSrm.FlatStyle" type="System.Windows.Forms.FlatStyle, System.Windows.Forms">
     <value>Flat</value>
@@ -1330,13 +1390,13 @@
     <value>panelOpenSave</value>
   </data>
   <data name="&gt;&gt;btnSaveSrm.ZOrder" xml:space="preserve">
-    <value>10</value>
+    <value>6</value>
   </data>
   <data name="panelOpenSave.Location" type="System.Drawing.Point, System.Drawing">
     <value>12, 5</value>
   </data>
   <data name="panelOpenSave.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1161, 69</value>
+    <value>1161, 58</value>
   </data>
   <data name="panelOpenSave.TabIndex" type="System.Int32, mscorlib">
     <value>41</value>

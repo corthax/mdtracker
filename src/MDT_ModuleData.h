@@ -63,7 +63,7 @@
 #define INST_SSGEG3 47
 #define INST_SSGEG4 48
 
-#define SEQ_STEP_LAST    31
+// 49..80 (32 bytes) unused!
 /*#define INST_VOL_TICK_01 49
 #define INST_VOL_TICK_16 64
 #define INST_ARP_TICK_01 65
@@ -71,6 +71,8 @@
 
 #define INST_NAME_1 81
 #define INST_NAME_8 88
+
+#define SEQ_STEP_LAST    31
 //}
 // sizes (byte):
 // pattern data size

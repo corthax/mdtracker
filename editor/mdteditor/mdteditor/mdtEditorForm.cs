@@ -23,6 +23,9 @@ namespace mdteditor
         private const uint SRM_SAMPLE_PAN = 0x6B0AB;
         private const uint SRM_SAMPLE_RATE = 0x6F230;
 
+        private const uint SRM_PRESET_DATA = 0x00002;
+        private const uint SRM_PRESET_NAME = 81;
+
         private const byte NOTES_COUNT = 96;
         private const int NOTES_TOTAL = 96 * 4;
 
@@ -30,26 +33,131 @@ namespace mdteditor
         private const byte SOUND_PAN_RIGHT     = 0x40;
         private const byte SOUND_PAN_CENTER    = 0xC0;
 
-        /*  MD.Tracker
-            #define INSTRUMENT_DATA     0x00002 // 89 * 256 bytes
-            #define GLOBAL_LFO          0x05902 // INSTRUMENT_DATA + 5900h; 1 byte
-            #define FILE_CHECKER        0x05903 // DEAD. To check if SRAM file exists; 2 bytes
-            #define PATTERN_MATRIX      0x05905 // MAX_MATRIX_ROWS * 13 * 2 bytes
-            #define TEMPO               0x07269 // PATTERN_MATRIX + 1964h; 2 bytes
-            #define SAMPLE_DATA         0x0726B // 4 * 96 * SAMPLE_DATA_SIZE(7) bytes (3byte start + 3byte end + 1byte loop); 1byte rate is missing
-            #define PATTERN_DATA        0x07CEB // SAMPLE_DATA + A80h;
-            #define PATTERN_COLOR       0x6A06B // PATTERN_DATA + PATTERN_SIZE * (MAX_PATTERN + 1);
-            #define MATRIX_TRANSPOSE    0x6A3EC // matrix slot transpose (250*13)
-            #define MUTE_CHANNEL        0x6B09E // store disabled matrix channels (13)
-            #define SAMPLE_PAN          0x6B0AB // default sample pan (4 * 96)
-            //#define SONG_TRANSPOSE      0x6B22B // 1 byte
-            #define SEQ_VOL_START       0x6B230 // 32 steps vol seq start
-            #define SEQ_ARP_START       0x6D230 // SEQ_VOL_START + 2000; 32 steps arp seq start
-            #define SAMPLE_RATE         0x6F230 // SEQ_ARP_START + 2000; default sample rate (4 * 96)
-            //0x71230
-            // ...
-            //0x80000 // eof
-        */
+        private const byte VGI_SIZE = 43;
+        private const byte TFI_SIZE = 42;
+
+/*
+TFI (TFM Maker format)
+
+TFM Maker instruments have the ".tfi" file extension and consist of 42 bytes. The first two bytes are:
+TFI format initial bytes Size	Description	Range
+1 byte	Algorithm	0 to 7
+1 byte	Feedback	0 to 7
+    1 byte	PAN FMS AMS ($B4+ from the YM2612) .vgi
+
+The following 40 bytes are for the operators, with each group of 10 bytes being an operator. Operators come in S1, S3, S2, S4 order.
+These bytes are as follows (repeat for each operator):
+Data for each operator Size	Description	Range
+1 byte	Multiplier	    0 to 15
+1 byte	Detune	        0 to 6
+1 byte	Total level	    0 to 127
+1 byte	Rate scaling	0 to 3
+1 byte	Attack rate	    0 to 31
+1 byte	Decay rate	    0 to 31
+1 byte	Sustain rate	0 to 31
+1 byte	Release rate	0 to 15
+1 byte	Sustain level	0 to 15
+1 byte	SSG-EG	        0 to 15
+
+All values use the same format as the corresponding YM2612 registers, except for detune.
+        In order to get the detune, substract 3 (to put it in the -3 to +3 range),
+        then convert that to the format the YM2612 wants.
+
+VGM Maker instruments have the ".vgi" file extension and consist of 43 bytes.
+It's almost identical to TFI files, except that an extra byte follows feedback,
+which includes FMS and AMS (in the same format as register $B4+ from the YM2612). 
+*/
+/*  MD.Tracker srm
+#define INSTRUMENT_DATA     0x00002 // 89 * 256 bytes
+#define GLOBAL_LFO          0x05902 // INSTRUMENT_DATA + 5900h; 1 byte
+#define FILE_CHECKER        0x05903 // DEAD. To check if SRAM file exists; 2 bytes
+#define PATTERN_MATRIX      0x05905 // MAX_MATRIX_ROWS * 13 * 2 bytes
+#define TEMPO               0x07269 // PATTERN_MATRIX + 1964h; 2 bytes
+#define SAMPLE_DATA         0x0726B // 4 * 96 * SAMPLE_DATA_SIZE(7) bytes (3byte start + 3byte end + 1byte loop); 1byte rate is missing
+#define PATTERN_DATA        0x07CEB // SAMPLE_DATA + A80h;
+#define PATTERN_COLOR       0x6A06B // PATTERN_DATA + PATTERN_SIZE * (MAX_PATTERN + 1);
+#define MATRIX_TRANSPOSE    0x6A3EC // matrix slot transpose (250*13)
+#define MUTE_CHANNEL        0x6B09E // store disabled matrix channels (13)
+#define SAMPLE_PAN          0x6B0AB // default sample pan (4 * 96)
+//#define SONG_TRANSPOSE      0x6B22B // 1 byte
+#define SEQ_VOL_START       0x6B230 // 32 steps vol seq start
+#define SEQ_ARP_START       0x6D230 // SEQ_VOL_START + 2000; 32 steps arp seq start
+#define SAMPLE_RATE         0x6F230 // SEQ_ARP_START + 2000; default sample rate (4 * 96)
+//0x71230
+// ...
+//0x80000 // eof
+*/
+/*
+#define INST_ALG 0 // 1 byte ..
+#define INST_FMS 1
+#define INST_AMS 2
+#define INST_PAN 3
+#define INST_FB 4
+
+#define INST_TL1 5
+#define INST_TL2 6
+#define INST_TL3 7
+#define INST_TL4 8
+
+#define INST_RS1 9
+#define INST_RS2 10
+#define INST_RS3 11
+#define INST_RS4 12
+
+#define INST_MUL1 13
+#define INST_MUL2 14
+#define INST_MUL3 15
+#define INST_MUL4 16
+
+#define INST_DT1 17
+#define INST_DT2 18
+#define INST_DT3 19
+#define INST_DT4 20
+
+#define INST_AR1 21
+#define INST_AR2 22
+#define INST_AR3 23
+#define INST_AR4 24
+
+#define INST_D1R1 25
+#define INST_D1R2 26
+#define INST_D1R3 27
+#define INST_D1R4 28
+
+#define INST_D1L1 29
+#define INST_D1L2 30
+#define INST_D1L3 31
+#define INST_D1L4 32
+
+#define INST_D2R1 33
+#define INST_D2R2 34
+#define INST_D2R3 35
+#define INST_D2R4 36
+
+#define INST_RR1 37
+#define INST_RR2 38
+#define INST_RR3 39
+#define INST_RR4 40
+
+#define INST_AM1 41
+#define INST_AM2 42
+#define INST_AM3 43
+#define INST_AM4 44
+
+#define INST_SSGEG1 45
+#define INST_SSGEG2 46
+#define INST_SSGEG3 47
+#define INST_SSGEG4 48
+
+// 49..80 (32 bytes) unused!
+//#define INST_VOL_TICK_01 49
+//#define INST_VOL_TICK_16 64
+//#define INST_ARP_TICK_01 65
+//#define INST_ARP_TICK_16 80
+
+#define INST_NAME_1 81
+#define INST_NAME_8 88
+*/
 
         private byte[] srmFile = new byte[SRM_FILE_SIZE];
         private List<Button> lsSamplesBank_Sync = new List<Button>();
@@ -59,12 +167,14 @@ namespace mdteditor
         private Dictionary<string, int> dicSamplesPool_ID = new Dictionary<string, int>();
         private List<long> lsSamplesPool_Start, lsSamplesPool_End;
         private Dictionary<int, byte[]> dicSamplesPool_File = new Dictionary<int, byte[]>();
+        private Dictionary<int, byte[]> dicPresetsPool_File = new Dictionary<int, byte[]>();
         private List<int> lsSamplesPool_Size;
 
         private TabPage[] tcBanks = new TabPage[4];
 
-        private int samplesCount = 0;
+        private int samplesCount = 0, presetsCount = 0;
         private long sampleStart = -1, sampleEnd = 0;
+        private List<int> lsPresetTypes = new List<int>();
 
         // GUI
         private static readonly List<string> lsNoteNames = new List<string> { "C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-" };
@@ -80,6 +190,9 @@ namespace mdteditor
         public CheckBox[] chkSampleLoop = new CheckBox[NOTES_TOTAL];
         public ComboBox[] cbxSampleRate = new ComboBox[NOTES_TOTAL];
         public TextBox[] txtSampleID = new TextBox[NOTES_TOTAL];
+
+        //public Label[] presetID = new Label[512];
+        public Label[] presetName = new Label[512]; // 0th instrument is empty, 255 user, 256 midi
 
         /*static void SetDoubleBuffer(Control ctl, bool doubleBuffered)
         {
@@ -190,8 +303,9 @@ namespace mdteditor
                         {
                             Location = new Point(5, y),
                             Name = string.Concat("btnSync", name),
-                            Width = 40,
-                            Text = lsNoteNames[note] + octave.ToString(),
+                            Width = 70,
+                            TextAlign = ContentAlignment.MiddleRight,
+                            Text = string.Concat(counter.ToString(), ": ", lsNoteNames[note], octave.ToString()),
                             BackColor = Color.FromArgb(255, 10, 10, 15),
                             ForeColor = Color.Gold,
                             FlatStyle = FlatStyle.Flat
@@ -199,7 +313,7 @@ namespace mdteditor
 
                         txtSampleStart[counter] = new TextBox
                         {
-                            Location = new Point(50, y),
+                            Location = new Point(80, y),
                             Name = string.Concat("txtStart", name),
                             Width = 100,
                             Text = "",
@@ -211,7 +325,7 @@ namespace mdteditor
 
                         txtSampleEnd[counter] = new TextBox
                         {
-                            Location = new Point(160, y),
+                            Location = new Point(190, y),
                             Name = string.Concat("txtEnd", name),
                             Width = 100,
                             Text = "",
@@ -223,7 +337,7 @@ namespace mdteditor
 
                         txtSampleID[counter] = new TextBox
                         {
-                            Location = new Point(270, y),
+                            Location = new Point(300, y),
                             Name = string.Concat("txtID", name),
                             Width = 40,
                             Text = "0",
@@ -235,7 +349,7 @@ namespace mdteditor
 
                         cbxSamplePan[counter] = new ComboBox
                         {
-                            Location = new Point(320, y),
+                            Location = new Point(350, y),
                             Name = string.Concat("cbxPan", name),
                             Width = 70,
                             Text = "",
@@ -248,7 +362,7 @@ namespace mdteditor
 
                         cbxSampleRate[counter] = new ComboBox
                         {
-                            Location = new Point(400, y),
+                            Location = new Point(430, y),
                             Name = string.Concat("cbxPan", name),
                             Width = 60,
                             Text = "",
@@ -261,7 +375,7 @@ namespace mdteditor
 
                         chkSampleLoop[counter] = new CheckBox
                         {
-                            Location = new Point(470, y),
+                            Location = new Point(500, y),
                             Name = string.Concat("chkLoop", name),
                             Width = 60,
                             Text = "LOOP",
@@ -391,6 +505,60 @@ namespace mdteditor
             tcBanks[2].Refresh();
             tcBanks[3].Refresh();
         }
+        private void GeneratePresetsForm()
+        {
+            int y;
+            string name = "--------";
+
+            // srm
+            for (int i = 0; i < 512; i++)
+            {
+                if (i < 256)
+                {
+                    y = 5 + i * GUI_SAMPLE_SETTINGS_FIELD_HEIGHT;
+                }
+                else
+                {
+                    name = "-------------";
+                    y = 5 + (i - 256) * GUI_SAMPLE_SETTINGS_FIELD_HEIGHT;
+                }
+
+                Label lbID = new Label
+                {
+                    Location = new Point(5, y),
+                    Name = string.Concat("lbPreset_ID_", i.ToString()),
+                    Width = 70,
+                    TextAlign = ContentAlignment.MiddleRight,
+                    Text = i.ToString(),
+                    BackColor = Color.FromArgb(255, 10, 10, 15),
+                    ForeColor = Color.Gold,
+                    FlatStyle = FlatStyle.Flat
+                };
+
+                presetName[i] = new Label
+                {
+                    Location = new Point(80, y),
+                    Name = string.Concat("lbPreset_Name_", i.ToString()),
+                    Width = 100,
+                    TextAlign = ContentAlignment.MiddleRight,
+                    Text = name,
+                    BackColor = Color.FromArgb(255, 10, 10, 15),
+                    ForeColor = Color.Gold,
+                    FlatStyle = FlatStyle.Flat
+                };
+
+                if (i < 256)
+                {
+                    tbInstSRM.Controls.Add(lbID);
+                    tbInstSRM.Controls.Add(presetName[i]);
+                }
+                else
+                {
+                    tbInstROM.Controls.Add(lbID);
+                    tbInstROM.Controls.Add(presetName[i]);
+                }
+            }
+        }
 
         // init bank panels
         private void Form1_Load(object sender, EventArgs e)
@@ -423,6 +591,7 @@ namespace mdteditor
                 () =>
                 {*/
             GenerateBankForm();
+            GeneratePresetsForm();
                 /*}
             );*/
         }
@@ -432,38 +601,56 @@ namespace mdteditor
         {
             //int activeBank;
             //activeBank = tabControl_SampleBanks.SelectedIndex;
-            for (int id = 0; id < samplesCount; id++)
+
+            int.TryParse(txtAssignStart_ROM.Text, out int start);
+            int.TryParse(txtAssignEnd_ROM.Text, out int end);
+            int.TryParse(txtAssignStart_SRM.Text, out int startKey);
+            int.TryParse(txtAssignEnd_SRM.Text, out int endKey);
+
+            if (startKey < 0 || endKey < 0 || start < 0 || end < 0) return;
+
+            for (int id = start; id <= end; id++)
             {
-                if (id == NOTES_TOTAL) break;
-                lsSamplesBank_ID[id].Text = id.ToString();
-                lsSamplesBank_Sync[id].PerformClick();
+                int keyId = id + startKey;
+                if (id >= NOTES_TOTAL || id >= samplesCount || keyId > endKey) break;
+                lsSamplesBank_ID[keyId].Text = id.ToString();
+                lsSamplesBank_Sync[keyId].PerformClick();
             }
         }
 
         private void btnAutoPan_Click(object sender, EventArgs e)
         {
-            int offset = tabControl_SampleBanks.SelectedIndex * NOTES_COUNT;
-            for (int id = 0; id < NOTES_COUNT; id++)
+            int.TryParse(txtAssignStart_SRM.Text, out int startKey);
+            int.TryParse(txtAssignEnd_SRM.Text, out int endKey);
+            if (startKey < 0 || endKey < 0) return;
+            for (int id = startKey; id <= endKey; id++)
             {
-                lsSamplesBank_Pan[id + offset].SelectedItem = lsSamplesBank_Pan[offset].SelectedItem;
+                if (id >= NOTES_TOTAL) break;
+                lsSamplesBank_Pan[id ].SelectedItem = lsSamplesBank_Pan[startKey].SelectedItem;
             }
         }
 
         private void btnAutoRate_Click(object sender, EventArgs e)
         {
-            int offset = tabControl_SampleBanks.SelectedIndex * NOTES_COUNT;
-            for (int id = 0; id < NOTES_COUNT; id++)
+            int.TryParse(txtAssignStart_SRM.Text, out int startKey);
+            int.TryParse(txtAssignEnd_SRM.Text, out int endKey);
+            if (startKey < 0 || endKey < 0) return;
+            for (int id = startKey; id <= endKey; id++)
             {
-                lsSamplesBank_Rate[id + offset].SelectedItem = lsSamplesBank_Rate[offset].SelectedItem;
+                if (id >= NOTES_TOTAL) break;
+                lsSamplesBank_Rate[id].SelectedItem = lsSamplesBank_Rate[startKey].SelectedItem;
             }
         }
 
         private void btnAutoLoop_Click(object sender, EventArgs e)
         {
-            int offset = tabControl_SampleBanks.SelectedIndex * NOTES_COUNT;
-            for (int id = 0; id < NOTES_COUNT; id++)
+            int.TryParse(txtAssignStart_SRM.Text, out int startKey);
+            int.TryParse(txtAssignEnd_SRM.Text, out int endKey);
+            if (startKey < 0 || endKey < 0) return;
+            for (int id = startKey; id <= endKey; id++)
             {
-                lsSamplesBank_Loop[id + offset].Checked = lsSamplesBank_Loop[offset].Checked;
+                if (id >= NOTES_TOTAL) break;
+                lsSamplesBank_Loop[id].Checked = lsSamplesBank_Loop[startKey].Checked;
             }
         }
 
@@ -474,6 +661,75 @@ namespace mdteditor
             //if ((offset & 1) == 1) offset++; else offset--;
             if ((offset % 2) == 0) offset++; else offset--;
             return offset;
+        }
+
+        private void btnAddPresets_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog ofd = new OpenFileDialog
+            {
+                Filter = string.Concat
+                (
+                    "VGM Maker (*.vgi)|*.vgi|",
+                    "TFM Maker (*.tfi)|*.tfi|",
+                    "Any file (*.*)|*.*"
+                ),
+                Multiselect = true,
+                Title = "Add Presets",
+                FilterIndex = 1
+            };
+
+            if (ofd.ShowDialog() == DialogResult.OK)
+            {
+                for (int i = 0; i < ofd.SafeFileNames.Length; i++)
+                {
+                    int id = i + presetsCount;
+                    int y = 5 + 25 * id;
+
+                    Label lbID = new Label
+                    {
+                        Name = string.Concat(ofd.SafeFileNames[i], "_PresetID_", id.ToString()),
+                        Text = id.ToString(),
+                        Width = 40,
+                        Location = new Point(5, y),
+                        BorderStyle = BorderStyle.FixedSingle,
+                        TextAlign = ContentAlignment.MiddleCenter,
+                        ForeColor = Color.PaleGoldenrod
+                    };
+                    pnPresetsPool.Controls.Add(lbID);
+
+                    Label lbFileName = new Label
+                    {
+                        Name = string.Concat(ofd.SafeFileNames[i], "_PresetName_", id.ToString()),
+                        Text = ofd.SafeFileNames[i],
+                        Width = 450,
+                        Location = new Point(50, y),
+                        BorderStyle = BorderStyle.FixedSingle,
+                        TextAlign = ContentAlignment.MiddleLeft,
+                        ForeColor = Color.PaleGoldenrod
+                    };
+                    pnPresetsPool.Controls.Add(lbFileName);
+
+                    FileInfo fi = new FileInfo(ofd.FileNames[i]);
+
+                    switch(fi.Extension)
+                    {
+                        case "vgi": lsPresetTypes.Add(0); break;
+                        case "tfi": lsPresetTypes.Add(1); break;
+                        default: lsPresetTypes.Add(0);  break;
+                    }
+
+                    FileStream fs = new FileStream(ofd.FileNames[i], FileMode.Open, FileAccess.Read);
+                    BinaryReader br = new BinaryReader(fs);
+
+                    byte[] file = new byte[fs.Length];
+                    fs.Read(file, 0, file.Length);
+
+                    dicPresetsPool_File.Add(id, file);
+
+                    br.Close(); fs.Close();
+                }
+                presetsCount += ofd.SafeFileNames.Length;
+            }
         }
 
         // mdt sram. byteswapped
@@ -699,7 +955,7 @@ namespace mdteditor
                         TextAlign = ContentAlignment.MiddleCenter,
                         ForeColor = Color.PaleGoldenrod
                     };
-                    samplesPool.Controls.Add(lbID);
+                    pnSamplesPool.Controls.Add(lbID);
 
                     Label lbFileName = new Label
                     {
@@ -711,7 +967,7 @@ namespace mdteditor
                         TextAlign = ContentAlignment.MiddleLeft,
                         ForeColor = Color.PaleGoldenrod
                     };
-                    samplesPool.Controls.Add(lbFileName);
+                    pnSamplesPool.Controls.Add(lbFileName);
 
                     FileInfo fi = new FileInfo(ofd.FileNames[i]);
 
@@ -731,7 +987,7 @@ namespace mdteditor
                         TextAlign = ContentAlignment.MiddleRight,
                         ForeColor = Color.PaleGoldenrod
                     };
-                    samplesPool.Controls.Add(lbSampleStart);
+                    pnSamplesPool.Controls.Add(lbSampleStart);
 
                     Label lbSampleEnd = new Label
                     {
@@ -743,7 +999,7 @@ namespace mdteditor
                         TextAlign = ContentAlignment.MiddleRight,
                         ForeColor = Color.PaleGoldenrod
                     };
-                    samplesPool.Controls.Add(lbSampleEnd);
+                    pnSamplesPool.Controls.Add(lbSampleEnd);
 
                     FileStream fs = new FileStream(ofd.FileNames[i], FileMode.Open, FileAccess.Read);
                     BinaryReader br = new BinaryReader(fs);

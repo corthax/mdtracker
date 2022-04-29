@@ -4739,6 +4739,27 @@ static inline void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
         }
         break;
 
+    // Smooth PCM pan
+    //case 0x2C:
+        /*When Bit 5 of YM Register $2C is set to 1, Panning gets affected by the L/R part of the L/R/AMS/FMS reg of these channels:
+
+        move.b #$2C, ($A04000)
+        move.b #$20, ($A04001) ; Set bit 5 (this is the relevant bit starting from 0)
+
+        $B4 in Bank 1 of the YM2612 for Channel FM1
+        $B5 in Bank 1 of the YM2612 for Channel FM2
+        $B6 in Bank 1 of the YM2612 for Channel FM3
+        $B4 in Bank 2 of the YM2612 for Channel FM4
+        $B6 in Bank 2 of the YM2612 for Channel FM6
+
+        9 bit DAC
+        2A represents D8 to D1
+        D0 is located in bit 3 of register 2C.
+
+        */
+        //YM2612_writeRegZ80(0, 0x2C, 0x20);
+        //break;
+
     default: break;
     }
 }
@@ -5296,6 +5317,7 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
         }
         write_pan_ams_fms();
         break;
+
     default: return; break;
     }
 }
