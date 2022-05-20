@@ -22,6 +22,10 @@
 #include "MDT_Presets.h"
 #include "MDT_Version.h"
 
+//-------------------------------
+#define MDT_VERSION 3
+//-------------------------------
+
 #define MDT_HEADER              "MDT102"
 #define STRING_EMPTY            ""
 #define H_INT_DURATION_NTSC     744     // ; 744
@@ -456,8 +460,8 @@ void NavigatePattern(u8 direction)
         break;
     case PATTERN_JUMPSIDETRIGGER: // jump to other side
         DrawSelectionCursor(selectedPatternColumn, selectedPatternRow, TRUE);
-        if (selectedPatternColumn < 14) selectedPatternColumn += 14;
-        else selectedPatternColumn -= 14;
+        if (selectedPatternColumn < GUI_PATTERN_SIDE_ROWS) selectedPatternColumn += GUI_PATTERN_SIDE_ROWS;
+        else selectedPatternColumn -= GUI_PATTERN_SIDE_ROWS;
         DrawSelectionCursor(selectedPatternColumn, selectedPatternRow, FALSE);
         break;
     }
@@ -723,9 +727,14 @@ static inline void DoEngine()
                 command(DATA_FX1_TYPE, DATA_FX1_VALUE, 0);
                 command(DATA_FX2_TYPE, DATA_FX2_VALUE, 1);
                 command(DATA_FX3_TYPE, DATA_FX3_VALUE, 2);
+
+            #if (MDT_VERSION == 0)
+
                 command(DATA_FX4_TYPE, DATA_FX4_VALUE, 3);
                 command(DATA_FX5_TYPE, DATA_FX5_VALUE, 4);
                 command(DATA_FX6_TYPE, DATA_FX6_VALUE, 5);
+
+            #endif
             }
 
             _inst = SRAM_ReadPattern(channelPlayingPatternID[mtxCh], playingPatternRow, DATA_INSTRUMENT);
@@ -1853,12 +1862,18 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX2_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX2_VALUE));
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX3_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX3_TYPE));
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX3_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX3_VALUE));
+
+                                #if (MDT_VERSION == 0)
+
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX4_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX4_TYPE));
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX4_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX4_VALUE));
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX5_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX5_TYPE));
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX5_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX5_VALUE));
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX6_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX6_TYPE));
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX6_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX6_VALUE));
+
+                                #endif
+
                                 inc++;
                             }
                         }
@@ -1930,6 +1945,8 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                                 } //else return;
                                 break;
 
+                            #if (MDT_VERSION == 0)
+
                             case DATA_FX4_TYPE: case (DATA_FX4_TYPE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
@@ -1971,6 +1988,9 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                                     SRAM_WritePattern(selectedPatternID, row, DATA_FX6_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX6_VALUE)); inc++;
                                 } //else return;
                                 break;
+
+                            #endif
+
                             }
                         }
                         inc = 0; bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
@@ -2110,6 +2130,9 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                     bRefreshScreen = TRUE;
                     patternRowToRefresh = selectedPatternRow + patternColumnShift;
                     break;
+
+                #if (MDT_VERSION == 0)
+
                 case DATA_FX4_TYPE: case (DATA_FX4_TYPE + PATTERN_COLUMNS):
                     SRAM_WritePattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX4_TYPE, NULL);
                     bRefreshScreen = TRUE;
@@ -2140,6 +2163,9 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                     bRefreshScreen = TRUE;
                     patternRowToRefresh = selectedPatternRow + patternColumnShift;
                     break;
+
+                #endif
+
                 }
 
                 switch (changed)
@@ -2335,12 +2361,17 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
         case GUI_PATTERN_L_FX2_VALUE:
         case GUI_PATTERN_L_FX3_TYPE:
         case GUI_PATTERN_L_FX3_VALUE:
+
+        #if (MDT_VERSION == 0)
+
         case GUI_PATTERN_L_FX4_TYPE:
         case GUI_PATTERN_L_FX4_VALUE:
         case GUI_PATTERN_L_FX5_TYPE:
         case GUI_PATTERN_L_FX5_VALUE:
         case GUI_PATTERN_L_FX6_TYPE:
         case GUI_PATTERN_L_FX6_VALUE:
+
+        #endif
             offset_x = 40+6; offset_y = 4; width = 1;
             break;
         case GUI_PATTERN_R_NOTE:
@@ -2355,12 +2386,18 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
         case GUI_PATTERN_R_FX2_VALUE:
         case GUI_PATTERN_R_FX3_TYPE:
         case GUI_PATTERN_R_FX3_VALUE:
+
+        #if (MDT_VERSION == 0)
+
         case GUI_PATTERN_R_FX4_TYPE:
         case GUI_PATTERN_R_FX4_VALUE:
         case GUI_PATTERN_R_FX5_TYPE:
         case GUI_PATTERN_R_FX5_VALUE:
         case GUI_PATTERN_R_FX6_TYPE:
         case GUI_PATTERN_R_FX6_VALUE:
+
+        #endif
+
             offset_x = 40+12; offset_y = 4; width = 1;
             break;
         default: break;
@@ -2508,8 +2545,14 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
             case GUI_PATTERN_L_FX1_VALUE: case GUI_PATTERN_R_FX1_VALUE:
             case GUI_PATTERN_L_FX2_VALUE: case GUI_PATTERN_R_FX2_VALUE:
             case GUI_PATTERN_L_FX3_VALUE: case GUI_PATTERN_R_FX3_VALUE:
+
+                #if (MDT_VERSION == 0)
+
             case GUI_PATTERN_L_FX4_VALUE: case GUI_PATTERN_R_FX4_VALUE:
             case GUI_PATTERN_L_FX5_VALUE: case GUI_PATTERN_R_FX5_VALUE:
+
+                #endif
+
                 VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SEPARATOR), pos_x * width + offset_x, pos_y + offset_y); break; // draw separator
             default: clear_cursor_1(pos_x * width + offset_x, pos_y + offset_y); break; // effects
             }
@@ -2759,12 +2802,17 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
     case DATA_FX2_VALUE:                        write_fx_value(DATA_FX2_VALUE, 0); break;
     case DATA_FX3_TYPE:                         write_fx_type(DATA_FX3_TYPE, 0); break;
     case DATA_FX3_VALUE:                        write_fx_value(DATA_FX3_VALUE, 0); break;
+
+    #if (MDT_VERSION == 0)
+
     case DATA_FX4_TYPE:                         write_fx_type(DATA_FX4_TYPE, 0); break;
     case DATA_FX4_VALUE:                        write_fx_value(DATA_FX4_VALUE, 0); break;
     case DATA_FX5_TYPE:                         write_fx_type(DATA_FX5_TYPE, 0); break;
     case DATA_FX5_VALUE:                        write_fx_value(DATA_FX5_VALUE, 0); break;
     case DATA_FX6_TYPE:                         write_fx_type(DATA_FX6_TYPE, 0); break;
     case DATA_FX6_VALUE:                        write_fx_value(DATA_FX6_VALUE, 0); break;
+
+    #endif
 
     case (DATA_NOTE + PATTERN_COLUMNS):         write_note(1); break;
     case (DATA_INSTRUMENT + PATTERN_COLUMNS):   write_instrument(1); break;
@@ -2774,12 +2822,18 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
     case (DATA_FX2_VALUE + PATTERN_COLUMNS):    write_fx_value(DATA_FX2_VALUE, 1); break;
     case (DATA_FX3_TYPE + PATTERN_COLUMNS):     write_fx_type(DATA_FX3_TYPE, 1); break;
     case (DATA_FX3_VALUE + PATTERN_COLUMNS):    write_fx_value(DATA_FX3_VALUE, 1); break;
+
+    #if (MDT_VERSION == 0)
+
     case (DATA_FX4_TYPE + PATTERN_COLUMNS):     write_fx_type(DATA_FX4_TYPE, 1); break;
     case (DATA_FX4_VALUE + PATTERN_COLUMNS):    write_fx_value(DATA_FX4_VALUE, 1); break;
     case (DATA_FX5_TYPE + PATTERN_COLUMNS):     write_fx_type(DATA_FX5_TYPE, 1); break;
     case (DATA_FX5_VALUE + PATTERN_COLUMNS):    write_fx_value(DATA_FX5_VALUE, 1); break;
     case (DATA_FX6_TYPE + PATTERN_COLUMNS):     write_fx_type(DATA_FX6_TYPE, 1); break;
     case (DATA_FX6_VALUE + PATTERN_COLUMNS):    write_fx_value(DATA_FX6_VALUE, 1); break;
+
+    #endif
+
     }
 }
 
@@ -2877,9 +2931,15 @@ inline void DisplayPatternEditor()
         display_fx(DATA_FX1_TYPE, DATA_FX1_VALUE, 0);
         display_fx(DATA_FX2_TYPE, DATA_FX2_VALUE, 2);
         display_fx(DATA_FX3_TYPE, DATA_FX3_VALUE, 4);
+
+        #if (MDT_VERSION == 0)
+
         display_fx(DATA_FX4_TYPE, DATA_FX4_VALUE, 6);
         display_fx(DATA_FX5_TYPE, DATA_FX5_VALUE, 8);
         display_fx(DATA_FX6_TYPE, DATA_FX6_VALUE, 10);
+
+        #endif
+
         // refresh all, line by frame; or only currently edited line;
         if (patternRowToRefresh == OXFF) // refresh all
         {
@@ -5382,10 +5442,10 @@ static inline u8 SRAM_ReadInstrument(u8 id, u16 param) { return SRAMW_readByte((
 void SRAM_WriteInstrument(u8 id, u16 param, u8 data) { SRAMW_writeByte((u32)INSTRUMENT_DATA + (id * INST_SIZE) + param, data); }
 
 // seq
-static inline u8 SRAM_ReadSEQ_VOL(u8 id, u8 step) { return SRAMW_readByte((u32)SEQ_VOL_START + (id*32) + step); }
-void SRAM_WriteSEQ_VOL(u8 id, u8 step, u8 data) { SRAMW_writeByte((u32)SEQ_VOL_START + (id*32) + step, data); }
-static inline u8 SRAM_ReadSEQ_ARP(u8 id, u8 step) { return SRAMW_readByte((u32)SEQ_ARP_START + (id*32) + step); }
-void SRAM_WriteSEQ_ARP(u8 id, u8 step, u8 data) { SRAMW_writeByte((u32)SEQ_ARP_START + (id*32) + step, data); }
+static inline u8 SRAM_ReadSEQ_VOL(u8 id, u8 step) { return SRAMW_readByte((u32)SEQ_VOL_START + (id*SEQ_STEPS) + step); }
+void SRAM_WriteSEQ_VOL(u8 id, u8 step, u8 data) { SRAMW_writeByte((u32)SEQ_VOL_START + (id*SEQ_STEPS) + step, data); }
+static inline u8 SRAM_ReadSEQ_ARP(u8 id, u8 step) { return SRAMW_readByte((u32)SEQ_ARP_START + (id*SEQ_STEPS) + step); }
+void SRAM_WriteSEQ_ARP(u8 id, u8 step, u8 data) { SRAMW_writeByte((u32)SEQ_ARP_START + (id*SEQ_STEPS) + step, data); }
 
 // pattern
 static inline u8 SRAM_ReadPattern(u16 id, u8 line, u8 param) { return SRAMW_readByte((u32)PATTERN_DATA + (id * PATTERN_SIZE) + (line * PATTERN_COLUMNS) + param); }
@@ -5453,12 +5513,17 @@ void InitTracker()
     ssf_set_rom_bank(7, 31); // 4
     ssf_rom_wr_on();
 
+    #if (MDT_VERSION == 0)
+
     msu_resp = msu_drv();
+
     //if (msu_resp == 0) // Function will return 0 if driver loaded successfully or 1 if MCD hardware not detected.
     //{
         //while (*mcd_stat != 1); // Init driver ... 0-ready, 1-init, 2-cmd busy
         //while (*mcd_stat == 1); // Wait till sub CPU finish initialization
     //}
+
+    #endif
 
     VDP_init();
     VDP_setDMAEnabled(TRUE);
@@ -5533,7 +5598,7 @@ void InitTracker()
         for (u16 inst = 0; inst <= INSTRUMENTS_LAST; inst++)
         {
             LoadPreset(inst, 0); // default sound
-            for (u8 t = 0; t <= SEQ_STEP_LAST; t++)
+            for (u8 t = 0; t < SEQ_STEPS; t++)
             {
                 if (!t)
                 {
@@ -5581,12 +5646,17 @@ void InitTracker()
                 SRAM_WritePattern(pattern, row, DATA_FX2_VALUE, NULL);
                 SRAM_WritePattern(pattern, row, DATA_FX3_TYPE, NULL);
                 SRAM_WritePattern(pattern, row, DATA_FX3_VALUE, NULL);
+
+                #if (MDT_VERSION == 0)
+
                 SRAM_WritePattern(pattern, row, DATA_FX4_TYPE, NULL);
                 SRAM_WritePattern(pattern, row, DATA_FX4_VALUE, NULL);
                 SRAM_WritePattern(pattern, row, DATA_FX5_TYPE, NULL);
                 SRAM_WritePattern(pattern, row, DATA_FX5_VALUE, NULL);
                 SRAM_WritePattern(pattern, row, DATA_FX6_TYPE, NULL);
                 SRAM_WritePattern(pattern, row, DATA_FX6_VALUE, NULL);
+
+                #endif
             }
         }
 
@@ -5939,9 +6009,15 @@ void DrawStaticHeaders()
     VDP_drawText("ARP:", 80, 26);
 }
 
-static inline u32 SRAM_ReadSampleRegionLegacy(u8 bank, u8 note, u8 byteNum) { return (u32)SRAMW_readByte((u32)SAMPLE_DATA + (bank * NOTES * 8) + (note * 8) + byteNum); }
+static inline u32 SRAM_ReadSampleRegionLegacy(u8 bank, u8 note, u8 byteNum)
+{
+    return (u32)SRAMW_readByte((u32)SAMPLE_DATA + (bank * NOTES * 8) + (note * 8) + byteNum);
+}
+
 void Legacy() // upgrade 1.1 to 1.2
 {
+    #if (MDT_VERSION == 0)
+
     for (u8 bank = 0; bank < 4; bank++)
     {
         for (u8 key = 0; key < NOTES; key++)
@@ -5965,6 +6041,8 @@ void Legacy() // upgrade 1.1 to 1.2
             SRAM_WriteSampleRate(bank, key, rate);
         }
     }
+
+    #endif
 }
 
 /*void Legacy() // update beta file to 1.0
@@ -6137,7 +6215,7 @@ void ForceResetVariables()
             channelPreviousEffectType[ch][ef]=0;
         }
 
-        for (u8 row=0; row<32; row++)
+        for (u8 row=0; row<PATTERN_ROWS; row++)
         {
             channelRowShift[ch][row]=0;
         }

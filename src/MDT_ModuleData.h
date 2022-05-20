@@ -1,6 +1,10 @@
 #ifndef MDT_MODULEDATA_H_INCLUDED
 #define MDT_MODULEDATA_H_INCLUDED
 
+//-------------------------------
+#define MDT_VERSION 3
+//-------------------------------
+
 //{ Instrument data SRAM offsets
 #define INST_ALG 0 // 1 byte ..
 #define INST_FMS 1
@@ -69,8 +73,17 @@
 #define INST_ARP_TICK_01 65
 #define INST_ARP_TICK_16 80*/
 
+    #if (MDT_VERSION == 0)
+
 #define INST_NAME_1 81
 #define INST_NAME_8 88
+
+    #elif (MDT_VERSION == 3)
+
+#define INST_NAME_1 49
+#define INST_NAME_8 56
+
+    #endif
 
 #define SEQ_STEP_LAST    31
 //}
@@ -111,6 +124,8 @@
 // 256K = 262144
 // 512K = 524288
 
+    #if (MDT_VERSION == 0)
+
 #define PATTERN_COLUMNS     14
 #define PATTERN_SIZE        448 // 32 (pattern rows) * PATTERN_COLUMNS bytes
 
@@ -121,7 +136,7 @@
 #define PATTERN_MATRIX      0x05905 // MAX_MATRIX_ROWS * 13 * 2 bytes
 #define TEMPO               0x07269 // PATTERN_MATRIX + 1964h; 2 bytes
 #define SAMPLE_DATA         0x0726B // 4 * 96 * SAMPLE_DATA_SIZE(7) bytes (3byte start + 3byte end + 1byte loop); 1byte rate is missing
-#define PATTERN_DATA        0x07CEB // SAMPLE_DATA + A80h;
+#define PATTERN_DATA        0x07CEB // SAMPLE_DATA + A80h; 402304‬
 #define PATTERN_COLOR       0x6A06B // PATTERN_DATA + PATTERN_SIZE * (MAX_PATTERN + 1);
 #define MATRIX_TRANSPOSE    0x6A3EC // matrix slot transpose (250*13)
 #define MUTE_CHANNEL        0x6B09E // store disabled matrix channels (13)
@@ -130,10 +145,37 @@
 #define SEQ_VOL_START       0x6B230 // 32 steps vol seq start
 #define SEQ_ARP_START       0x6D230 // SEQ_VOL_START + 2000; 32 steps arp seq start
 #define SAMPLE_RATE         0x6f230 // SEQ_ARP_START + 2000; default sample rate (4 * 96)
-//0x71230
+//0x71230; 463408 ‬bytes
 // ...
 //0x80000 // eof
 //}
+
+    #elif (MDT_VERSION == 3)
+
+#define PATTERN_COLUMNS     8
+#define PATTERN_SIZE        256 // 32 * 8
+
+//{ SRAM data blocks (BYTESWAPPED!!!)
+#define INSTRUMENT_DATA     0x00002 // + 0          57 * 64 = 3684 (E40h); instruments * instrument_size;
+#define GLOBAL_LFO          0x00E42 // + E40h       1 byte; lfo
+#define FILE_CHECKER        0x00E43 // + 1h         2 bytes; checker
+#define PATTERN_MATRIX      0x00E45 // + 2h         13 * 250 * 2 = 6500 (1964h); channels * rows * bytes
+#define TEMPO               0x027A9 // + 1964h      2 bytes; tempo
+#define SAMPLE_DATA         0x027AB // + 2h         96 * 4 * 7 = 2688 (A80h); notes * banks * sample_data_size
+#define PATTERN_DATA        0x0322B // + A80h       256 * 420 = 107520 (1A400h); pattern_size * patterns
+#define PATTERN_COLOR       0x1D62B // + 1A400h     420 bytes (1A4h); patterns
+#define MATRIX_TRANSPOSE    0x1D7CF // + 1A4h       250 * 13 = 3250 (CB2h); rows * channels
+#define MUTE_CHANNEL        0x1E481 // + CB2h       13 bytes (Dh); channels
+#define SAMPLE_PAN          0x1E48E // + Dh         96 * 4 = 384 (180h); notes * banks
+#define SEQ_VOL_START       0x1E60E // + 180h       32 * 64 = 2048 (800h); steps * instruments
+#define SEQ_ARP_START       0x1EE0E // + 800h       32 * 64 = 2048 (800h); steps * instruments
+#define SAMPLE_RATE         0x1F60E // + 800h       96 * 4 = 384 (180h); notes * banks
+//0x1F78E // + 180h
+// ... 872 bytes (3 patterns or 7 instruments)
+//0x20000 // eof
+//}
+
+    #endif
 
 #define SAMPLE_START_1      0
 #define SAMPLE_START_2      1
@@ -153,12 +195,17 @@
 #define DATA_FX2_VALUE      5
 #define DATA_FX3_TYPE       6
 #define DATA_FX3_VALUE      7
+
+    #if (MDT_VERSION == 0)
+
 #define DATA_FX4_TYPE       8
 #define DATA_FX4_VALUE      9
 #define DATA_FX5_TYPE       10
 #define DATA_FX5_VALUE      11
 #define DATA_FX6_TYPE       12
 #define DATA_FX6_VALUE      13
+
+    #endif
 //}
 
 #endif // MDT_MODULEDATA_H_INCLUDED

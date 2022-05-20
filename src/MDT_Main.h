@@ -1,6 +1,10 @@
 #ifndef MDT_MAIN_H_INCLUDED
 #define MDT_MAIN_H_INCLUDED
 
+//-------------------------------
+#define MDT_VERSION 3
+//-------------------------------
+
 // bit help
 // a=target variable, b=bit number to act upon 0-n
 #define BIT_SET(a,b) ((a) |= (1U<<(b)))
@@ -27,25 +31,36 @@
 #define SEQ_VOL_MIN_ATT         0x00
 #define SEQ_VOL_MAX_ATT         0x7F
 #define PPL_DEFAULT             4
+#define SEQ_STEPS               32
 
 #define PATTERN_ROWS            32
 #define PATTERN_ROW_LAST        0x1F    // index of max line; starts from 0
+
+    #if (MDT_VERSION == 0)
 #define PATTERN_LAST            0x380   // 896
+#define INST_SIZE               89 // last 32 bytes reserved
+#define INSTRUMENTS_TOTAL       256
+#define INSTRUMENTS_LAST        0xFF
+#define EFFECTS_TOTAL           6
+    #elif (MDT_VERSION == 3)
+#define PATTERN_LAST            0x1A4   // 420
+#define INST_SIZE               57
+#define INSTRUMENTS_TOTAL       64
+#define INSTRUMENTS_LAST        0x3F
+#define EFFECTS_TOTAL           3
+    #endif
+
 #define PATTERN_JUMPSIDETRIGGER 0xFF
 
 #define MATRIX_ROWS             250
 #define MATRIX_ROWS_ONPAGE      25
 #define MATRIX_ROW_LAST         0xF9
-#define MATRIX_ROWS_ONPAGE_LAST 0x18    // index of max line on SCREEN; starts from 0; 25 lines per page; 10 pages
-#define MATRIX_PAGES            9        // MAX_MATRIX_ROWS / (MAX_MATRIX_SCREEN_ROW + 1)) - 1
+#define MATRIX_ROWS_ONPAGE_LAST 0x18        // index of max line on SCREEN; starts from 0; 25 lines per page; 10 pages
+#define MATRIX_PAGES            9           // MAX_MATRIX_ROWS / (MAX_MATRIX_SCREEN_ROW + 1)) - 1
 
-#define INST_SIZE               89 // last 32 bytes reserved
 #define INST_MUTE               1
 #define INST_PLAY               0
 #define INST_SOLO               2
-
-#define INSTRUMENTS_TOTAL       256
-#define INSTRUMENTS_LAST        0xFF
 
 #define NOTE_EMPTY              0xFE
 #define NOTE_OFF                0xFF
@@ -81,8 +96,6 @@
 #define SCREEN_MATRIX           0
 #define SCREEN_PATTERN          1
 #define SCREEN_INSTRUMENT       2
-
-#define EFFECTS_TOTAL           6
 
 #define COMB_FB_ALG 0
 #define COMB_PAN_AMS_FMS 1

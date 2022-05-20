@@ -5,4 +5,4 @@ out/src/MDT_SRAM.o: src/MDT_SRAM.c inc/genesis.h inc/types.h inc/config.h \
  inc/string.h inc/tab_cnv.h inc/maths3D.h inc/vdp_dma.h inc/vdp_spr.h \
  inc/vdp_pal.h inc/vram.h inc/sprite_eng.h inc/sound.h inc/xgm.h \
  inc/z80_ctrl.h inc/ym2612.h inc/psg.h inc/joy.h inc/timer.h inc/task.h \
- inc/task_cst.h inc/sram.h
+ inc/task_cst.h inc/sram.h src/MDT_Version.h

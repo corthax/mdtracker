@@ -6,9 +6,10 @@
 0 = Mega Everdrive Pro
 1 = BlastEm (libretro)
 2 = PicoDrive (libretro)
+3 = Mega Everdrive X7
 */
 
-#define MDT_VERSION 0
+#define MDT_VERSION 3 // does not work globally =/
 #define MDT_CHECKER 0xDEAD
 
 const char *MDT_HEADER;
