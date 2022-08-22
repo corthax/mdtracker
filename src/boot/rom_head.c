@@ -2,7 +2,7 @@
 #include "../MDT_Version.h"
 
 //-------------------------------
-#define MDT_VERSION 3
+//#define MDT_VERSION 0
 //-------------------------------
 
 __attribute__((externally_visible))
@@ -31,7 +31,7 @@ const struct
 */
 const ROMHeader rom_header = {
 //    "SEGA MEGADRIVE  "	Mega Drive
-//    "SEGA GENESIS    "	Mega Drive
+//    "SEGA GENESIS    "	Mega Drive (blastem 0.6.3-pre may need it too)
 //    "SEGA 32X        "	Mega Drive + 32X
 //    "SEGA EVERDRIVE  "	Mega Drive (Everdrive extensions)
 //    "SEGA EVERDRIVEXX"
@@ -42,31 +42,51 @@ const ROMHeader rom_header = {
 //    "SEGA PICO       "	SEGA Pico console for kids
 //    "SEGA TERA68K    "	Tera Drive (boot from 68000 side)
 //    "SEGA TERA286    "	Tera Drive (boot from x86 side)
-    //#if (MDT_VERSION == 0)
+
+#if (MDT_VERSION == 0)
+
     "SEGA SSF        ", // Mega Everdrive Pro
-    //#elif (MDT_VERSION == 3)
-    //"SEGA EVERDRIVE  ", // Mega Everdrive X7
-    //#endif
+
+#elif (MDT_VERSION == 1 || MDT_VERSION == 2)
+
+    "SEGA MEGADRIVE  ", // BlastEm 0.6.3-pre, PicoDrive
+
+#elif (MDT_VERSION == 3)
+
+    "SEGA EVERDRIVE  ", // Mega Everdrive X7
+
+#endif
+
     "(C)Corthax 2022 ",
 
-    #if (MDT_VERSION == 0)
+#if (MDT_VERSION == 0)
 
     "MD.Tracker (1.2)                                ",
-    "MD.Tracker for MEGA EVERDRIVE PRO / BlastEm     ",
+    "MD.Tracker for MEGA EVERDRIVE PRO               ",
 
-    #elif (MDT_VERSION == 3)
+#elif (MDT_VERSION == 1)
 
-    "MD.Tracker X7 (1.2)                             ",
-    "MD.Tracker for MEGA EVERDRIVE X7 / BlastEm      ",
+    "MD.Tracker (1.2)                                ",
+    "MD.Tracker for BlastEm                          ",
 
-    #endif
+#elif (MDT_VERSION == 2)
+
+    "MD.Tracker (1.2)                                ",
+    "MD.Tracker for PicoDrive                        ",
+
+#elif (MDT_VERSION == 3)
+
+    "MD.Tracker (1.2)                                ",
+    "MD.Tracker for MEGA EVERDRIVE X7                ",
+
+#endif
 
 //    "GM"	Game
 //    "AI"	Educational Aid
 //    "OS"	Boot ROM (TMSS)
 //    "BR"	Boot ROM (Sega CD)
     "AI 00000000-00",
-    0x0000,
+    0x0000, // checksum
 //"J"	3-button controller
 //"6"	6-button controller
 //"0"	Master System controller
@@ -99,23 +119,35 @@ const ROMHeader rom_header = {
 //F8	Yes	    8-bit (odd addresses)
 //"RA", 0xE840; EEPROM type
 
-    #if (MDT_VERSION == 0)
+#if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
+
     0xE020,     // 16 bit SRAM mode
-    #elif (MDT_VERSION == 3)
+
+#elif (MDT_VERSION == 3)
+
     0xF820,     // 8 bit SRAM mode
-    #endif
 
-    #if (MDT_VERSION == 0)
+#endif
+
+#if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
+
     0x00380000, // SRAM start
-    #elif (MDT_VERSION == 3)
-    0x003C0000, // SRAM start; upper half of 31 bank
-    #endif
 
-    #if (MDT_VERSION == 0)
+#elif (MDT_VERSION == 3)
+
+    0x003C0000, // SRAM start; upper half of 31 bank
+
+#endif
+
+#if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
+
     0x003FFFFF, // SRAM end 512K
-    #elif (MDT_VERSION == 3)
+
+#elif (MDT_VERSION == 3)
+
     0x003FFFFF, // SRAM end 256K (128K 8 bit ); upper of 31 bank
-    #endif
+
+#endif
 
     "            ",                             // modem
     "MUSIC TRACKER                           ", // memo

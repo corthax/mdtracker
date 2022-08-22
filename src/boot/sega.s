@@ -499,7 +499,7 @@ ltuns:
         move.l  %a2,%d3           /* restore d3 */
         rts
 
-* #if (MDT_VERSION == 0)
+* #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 .global msu_drv
 msu_drv:
 .incbin "D:/gamedev/sega/project/mdtracker/src/boot/msu-drv.bin"

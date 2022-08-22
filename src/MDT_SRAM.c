@@ -3,18 +3,22 @@
 #include "MDT_Version.h"
 
 //-------------------------------
-#define MDT_VERSION 3
+//#define MDT_VERSION 0
 //-------------------------------
 
 //! change SRAM_BASE to 0x380000
 
 u8 SRAMW_readByte(u32 offset)
 {
-    #if (MDT_VERSION == 0)
+    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
+
     if (offset & 1) offset -= 2;
     return *(vu8*)(SRAM_BASE + offset);
+
     #elif (MDT_VERSION == 3)
+
     return SRAM_readByte(offset);
+
     #endif
 }
 
@@ -30,11 +34,15 @@ void SRAM_writeByte(u32 offset, u8 val)
 
 void SRAMW_writeByte(u32 offset, u8 val)
 {
-    #if (MDT_VERSION == 0)
+    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
+
     if (offset & 1) offset -= 2;
     *(vu8*)(SRAM_BASE + offset) = val;
+
     #elif (MDT_VERSION == 3)
+
     SRAM_writeByte(offset, val);
+
     #endif
 }
 

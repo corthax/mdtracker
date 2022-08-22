@@ -2,7 +2,7 @@
 #define MDT_MODULEDATA_H_INCLUDED
 
 //-------------------------------
-#define MDT_VERSION 3
+//#define MDT_VERSION 0
 //-------------------------------
 
 //{ Instrument data SRAM offsets
@@ -73,7 +73,7 @@
 #define INST_ARP_TICK_01 65
 #define INST_ARP_TICK_16 80*/
 
-    #if (MDT_VERSION == 0)
+    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
 #define INST_NAME_1 81
 #define INST_NAME_8 88
@@ -124,7 +124,7 @@
 // 256K = 262144
 // 512K = 524288
 
-    #if (MDT_VERSION == 0)
+    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
 #define PATTERN_COLUMNS     14
 #define PATTERN_SIZE        448 // 32 (pattern rows) * PATTERN_COLUMNS bytes
@@ -196,7 +196,7 @@
 #define DATA_FX3_TYPE       6
 #define DATA_FX3_VALUE      7
 
-    #if (MDT_VERSION == 0)
+    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
 #define DATA_FX4_TYPE       8
 #define DATA_FX4_VALUE      9

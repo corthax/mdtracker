@@ -2,7 +2,7 @@
 #define MDT_MAIN_H_INCLUDED
 
 //-------------------------------
-#define MDT_VERSION 3
+//#define MDT_VERSION 0
 //-------------------------------
 
 // bit help
@@ -36,18 +36,22 @@
 #define PATTERN_ROWS            32
 #define PATTERN_ROW_LAST        0x1F    // index of max line; starts from 0
 
-    #if (MDT_VERSION == 0)
+    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
+
 #define PATTERN_LAST            0x380   // 896
 #define INST_SIZE               89 // last 32 bytes reserved
 #define INSTRUMENTS_TOTAL       256
 #define INSTRUMENTS_LAST        0xFF
 #define EFFECTS_TOTAL           6
+
     #elif (MDT_VERSION == 3)
+
 #define PATTERN_LAST            0x1A4   // 420
 #define INST_SIZE               57
 #define INSTRUMENTS_TOTAL       64
 #define INSTRUMENTS_LAST        0x3F
 #define EFFECTS_TOTAL           3
+
     #endif
 
 #define PATTERN_JUMPSIDETRIGGER 0xFF

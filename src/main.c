@@ -23,7 +23,7 @@
 #include "MDT_Version.h"
 
 //-------------------------------
-#define MDT_VERSION 3
+//#define MDT_VERSION 0
 //-------------------------------
 
 #define MDT_HEADER              "MDT102"
@@ -728,7 +728,7 @@ static inline void DoEngine()
                 command(DATA_FX2_TYPE, DATA_FX2_VALUE, 1);
                 command(DATA_FX3_TYPE, DATA_FX3_VALUE, 2);
 
-            #if (MDT_VERSION == 0)
+            #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
                 command(DATA_FX4_TYPE, DATA_FX4_VALUE, 3);
                 command(DATA_FX5_TYPE, DATA_FX5_VALUE, 4);
@@ -1863,7 +1863,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX3_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX3_TYPE));
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX3_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX3_VALUE));
 
-                                #if (MDT_VERSION == 0)
+                                #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX4_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX4_TYPE));
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX4_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX4_VALUE));
@@ -1945,7 +1945,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                                 } //else return;
                                 break;
 
-                            #if (MDT_VERSION == 0)
+                            #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
                             case DATA_FX4_TYPE: case (DATA_FX4_TYPE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
@@ -2131,7 +2131,7 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
                     patternRowToRefresh = selectedPatternRow + patternColumnShift;
                     break;
 
-                #if (MDT_VERSION == 0)
+                #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
                 case DATA_FX4_TYPE: case (DATA_FX4_TYPE + PATTERN_COLUMNS):
                     SRAM_WritePattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX4_TYPE, NULL);
@@ -2362,7 +2362,7 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
         case GUI_PATTERN_L_FX3_TYPE:
         case GUI_PATTERN_L_FX3_VALUE:
 
-        #if (MDT_VERSION == 0)
+        #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
         case GUI_PATTERN_L_FX4_TYPE:
         case GUI_PATTERN_L_FX4_VALUE:
@@ -2387,7 +2387,7 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
         case GUI_PATTERN_R_FX3_TYPE:
         case GUI_PATTERN_R_FX3_VALUE:
 
-        #if (MDT_VERSION == 0)
+        #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
         case GUI_PATTERN_R_FX4_TYPE:
         case GUI_PATTERN_R_FX4_VALUE:
@@ -2546,7 +2546,7 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
             case GUI_PATTERN_L_FX2_VALUE: case GUI_PATTERN_R_FX2_VALUE:
             case GUI_PATTERN_L_FX3_VALUE: case GUI_PATTERN_R_FX3_VALUE:
 
-                #if (MDT_VERSION == 0)
+                #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
             case GUI_PATTERN_L_FX4_VALUE: case GUI_PATTERN_R_FX4_VALUE:
             case GUI_PATTERN_L_FX5_VALUE: case GUI_PATTERN_R_FX5_VALUE:
@@ -2803,7 +2803,7 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
     case DATA_FX3_TYPE:                         write_fx_type(DATA_FX3_TYPE, 0); break;
     case DATA_FX3_VALUE:                        write_fx_value(DATA_FX3_VALUE, 0); break;
 
-    #if (MDT_VERSION == 0)
+    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
     case DATA_FX4_TYPE:                         write_fx_type(DATA_FX4_TYPE, 0); break;
     case DATA_FX4_VALUE:                        write_fx_value(DATA_FX4_VALUE, 0); break;
@@ -2823,7 +2823,7 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
     case (DATA_FX3_TYPE + PATTERN_COLUMNS):     write_fx_type(DATA_FX3_TYPE, 1); break;
     case (DATA_FX3_VALUE + PATTERN_COLUMNS):    write_fx_value(DATA_FX3_VALUE, 1); break;
 
-    #if (MDT_VERSION == 0)
+    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
     case (DATA_FX4_TYPE + PATTERN_COLUMNS):     write_fx_type(DATA_FX4_TYPE, 1); break;
     case (DATA_FX4_VALUE + PATTERN_COLUMNS):    write_fx_value(DATA_FX4_VALUE, 1); break;
@@ -2932,7 +2932,7 @@ inline void DisplayPatternEditor()
         display_fx(DATA_FX2_TYPE, DATA_FX2_VALUE, 2);
         display_fx(DATA_FX3_TYPE, DATA_FX3_VALUE, 4);
 
-        #if (MDT_VERSION == 0)
+        #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
         display_fx(DATA_FX4_TYPE, DATA_FX4_VALUE, 6);
         display_fx(DATA_FX5_TYPE, DATA_FX5_VALUE, 8);
@@ -5513,7 +5513,7 @@ void InitTracker()
     ssf_set_rom_bank(7, 31); // 4
     ssf_rom_wr_on();
 
-    #if (MDT_VERSION == 0)
+#if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
     msu_resp = msu_drv();
 
@@ -5523,7 +5523,7 @@ void InitTracker()
         //while (*mcd_stat == 1); // Wait till sub CPU finish initialization
     //}
 
-    #endif
+#endif
 
     VDP_init();
     VDP_setDMAEnabled(TRUE);
@@ -5647,7 +5647,7 @@ void InitTracker()
                 SRAM_WritePattern(pattern, row, DATA_FX3_TYPE, NULL);
                 SRAM_WritePattern(pattern, row, DATA_FX3_VALUE, NULL);
 
-                #if (MDT_VERSION == 0)
+                #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
                 SRAM_WritePattern(pattern, row, DATA_FX4_TYPE, NULL);
                 SRAM_WritePattern(pattern, row, DATA_FX4_VALUE, NULL);
@@ -6016,7 +6016,7 @@ static inline u32 SRAM_ReadSampleRegionLegacy(u8 bank, u8 note, u8 byteNum)
 
 void Legacy() // upgrade 1.1 to 1.2
 {
-    #if (MDT_VERSION == 0)
+    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
     for (u8 bank = 0; bank < 4; bank++)
     {
