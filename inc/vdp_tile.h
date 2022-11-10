@@ -165,7 +165,7 @@ u16 VDP_getPlaneAddress(VDPPlane plane, u16 x, u16 y);
  *  \param data
  *      Pointer to tile data.
  *  \param index
- *      Tile index where start tile data load (use TILE_USERINDEX as base user index).
+ *      Tile index where start tile data load (use TILE_USER_INDEX as base user index).
  *  \param num
  *      Number of tile to load.
  *  \param tm
@@ -191,7 +191,7 @@ void VDP_loadTileData(const u32 *data, u16 index, u16 num, TransferMethod tm);
  *      Using DMA_QUEUE for packed resource is unsafe as the resource will be released and eventually
  *      can be overwritten before DMA operation so use DMA_QUEUE_COPY in that case or unpack the resource first.
  *  \param index
- *      Tile index where start tile data load (use TILE_USERINDEX as base user index).
+ *      Tile index where start tile data load (use TILE_USER_INDEX as base user index).
  *  \param tm
  *      Transfer method.<br>
  *      Accepted values are:<br>
@@ -225,7 +225,7 @@ u16 VDP_loadTileSet(const TileSet *tileset, u16 index, TransferMethod tm);
  *      - DMA_QUEUE_COPY
  *
  *  This fonction permits to replace system font by user font.<br>
- *  The font tile data are loaded to TILE_FONTINDEX and can contains FONT_LEN characters at max.<br>
+ *  The font tile data are loaded to TILE_FONT_INDEX and can contains FONT_LEN characters at max.<br>
  *  Each character should fit in one tile (8x8 pixels bloc).<br>
  *  See also VDP_loadFont(..) and VDP_loadTileData(..)
  */
@@ -250,7 +250,7 @@ void VDP_loadFontData(const u32 *font, u16 length, TransferMethod tm);
  *      FALSE if there is not enough memory to unpack the specified font (only if compression was enabled).
  *
  *  This fonction permits to replace system font by user font.<br>
- *  The font tile data are loaded to TILE_FONTINDEX and can contains FONT_LEN characters at max.<br>
+ *  The font tile data are loaded to TILE_FONT_INDEX and can contains FONT_LEN characters at max.<br>
  *  Each character should fit in one tile (8x8 pixels bloc).<br>
  *  See also VDP_loadFontData(..)
  */
@@ -263,7 +263,7 @@ u16 VDP_loadFont(const TileSet *font, TransferMethod tm);
  *  \param data
  *      Pointer to 4bpp bitmap tile data.
  *  \param index
- *      Tile index where start tile data load (use TILE_USERINDEX as base user index).
+ *      Tile index where start tile data load (use TILE_USER_INDEX as base user index).
  *  \param w
  *      Width of bitmap region to load (in tile).
  *  \param h
@@ -284,7 +284,7 @@ void VDP_loadBMPTileData(const u32 *data, u16 index, u16 w, u16 h, u16 bmp_w);
  *  \param data
  *      Pointer to 4bpp bitmap tile data.
  *  \param index
- *      Tile index where start tile data load (use TILE_USERINDEX as base user index).
+ *      Tile index where start tile data load (use TILE_USER_INDEX as base user index).
  *  \param x
  *      X start position of bitmap region to load (in tile).
  *  \param y
@@ -310,7 +310,7 @@ void VDP_loadBMPTileDataEx(const u32 *data, u16 index, u16 x, u16 y, u16 w, u16 
  *  \param value
  *      Value (byte) used to fill VRAM tile data.
  *  \param index
- *      Tile index where start tile data fill (use TILE_USERINDEX as base user index).
+ *      Tile index where start tile data fill (use TILE_USER_INDEX as base user index).
  *  \param num
  *      Number of tile to fill.
  *  \param wait

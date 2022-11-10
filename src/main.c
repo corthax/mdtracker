@@ -360,7 +360,7 @@ int main(bool hardReset)
 	return(0);
 }
 
-static inline void hIntCallback()
+HINTERRUPT_CALLBACK hIntCallback()
 {
     hIntCounter--;
     if (!hIntCounter)
@@ -370,7 +370,7 @@ static inline void hIntCallback()
     }
 }
 
-static inline void vIntCallback()
+void vIntCallback()
 {
     static u32 _fps; // redraw only if FPS changes
 
@@ -1251,7 +1251,7 @@ static void SetBPM(u16 tempo)
     }
 
     // GUI
-    if (IS_PALSYSTEM)
+    if (IS_PAL_SYSTEM)
     {
         //microseconds = H_INT_DURATION_PAL * H_INT_SKIP * hIntToSkip; // h-blank = 1/11200 sec;  8.928571428571429e-5; 89.2857 microseconds;
         mcs = fix32Div(FIX32(1.0), FIX32(1.120)) * H_INT_SKIP * hIntToSkip;
@@ -5556,7 +5556,7 @@ void InitTracker()
 
     // Double digit font 00(--)..FF
     u16 ind;
-    ind = TILE_USERINDEX;
+    ind = TILE_USER_INDEX;
     bgBaseTileIndex[0] = ind;
     VDP_loadTileSet(&numfont, ind, DMA);
     ind += numfont.numTile;
@@ -5577,7 +5577,7 @@ void InitTracker()
 
     SRAM_enable();
 
-    PSG_init();
+    PSG_reset();
     YM2612_reset();
     Z80_init();
     Z80_loadDriver(Z80_DRIVER_PCM, TRUE);
@@ -5693,7 +5693,7 @@ void InitTracker()
         0	the contents of both strings are equal
         >0	the first character that does not match has a greater value in ptr1 than in ptr2
         */
-        if (strcmp(str, MDT_HEADER)) // header mismatch
+        if (strcmp(str, MDT_HEADER) != 0) // header mismatch
         {
             Legacy();
             FileWriteHeader();
@@ -5726,14 +5726,6 @@ void InitTracker()
     }
 
     sampleBankSize = sizeof(sample_bank_1);
-    /*
-    Vertical interrupt (V-INT): level 6
-    Horizontal interrupt (H-INT): level 4
-    External interrupt (EX-INT): level 2
-    */
-    SYS_setInterruptMaskLevel(2);
-    SYS_setHIntCallback(*hIntCallback);
-    SYS_setVIntCallback(*vIntCallback);
 
     // global LFO frequency (0..7) 3.98 5.56 6.02 6.37 6.88 9.63 48.1 72.2
     // 0000 - unused, 0 - enable, 000 - frequency
@@ -5773,6 +5765,16 @@ void InitTracker()
     VDP_waitDMACompletion();
 
     SYS_enableInts();
+
+    /*
+    Vertical interrupt (V-INT): level 6
+    Horizontal interrupt (H-INT): level 4
+    External interrupt (EX-INT): level 2
+    */
+
+    SYS_setHIntCallback(*hIntCallback);
+    SYS_setVIntCallback(*vIntCallback);
+    SYS_setInterruptMaskLevel(2);
 }
 
 void FileWriteHeader()

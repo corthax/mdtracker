@@ -73,13 +73,6 @@
 
 
 /**
- *  \typedef bool
- *      boolean type, to be used with TRUE and FALSE constant.
- *      (internally set as unsigned short)
- */
-typedef unsigned short bool;
-
-/**
  *  \typedef s8
  *      8 bits signed integer (equivalent to char).
  */
@@ -112,11 +105,14 @@ typedef unsigned short u16;
 typedef unsigned long u32;
 
 /**
- *  \typedef vbool
- *      volatile boolean type.
- *      (internally set as volatile unsigned short)
+ *  \typedef bool
+ *      boolean type, to be used with TRUE and FALSE constant.
+ *      (internally set as unsigned char)
  */
-typedef volatile u16 vbool;
+#ifndef __cplusplus
+typedef u8 bool;
+#endif
+
 /**
  *  \typedef vs8
  *      volatile 8 bits signed integer.
@@ -149,6 +145,20 @@ typedef volatile u16 vu16;
  */
 typedef volatile u32 vu32;
 
+/**
+ *  \typedef vbool
+ *      volatile boolean type.
+ *      (internally set as volatile unsigned char)
+ */
+typedef vu8 vbool;
+
+/**
+ *  \typedef p16
+ *      short pointer for fast 16 bit addressing (GCC does correctly cast that to pointer).
+ *      Limited to 0xFFFF8000-0x00007FFF memory region (first 32KB bank of ROM, and last 32KB of RAM)
+ */
+typedef s16 p16;
+
 
 #if !defined(uint8_t) && !defined(__int8_t_defined)
 #define uint8_t     u8
@@ -174,7 +184,6 @@ typedef s16 fix16;
  *      32 bits fixed point type.
  */
 typedef s32 fix32;
-
 /**
  *  \typedef f16
  *      16 bits fixed point type (short version).
@@ -185,6 +194,27 @@ typedef s16 f16;
  *      32 bits fixed point type (short version).
  */
 typedef s32 f32;
+
+/**
+ *  \typedef vfix16
+ *      volatile 16 bits fixed point type.
+ */
+typedef vs16 vfix16;
+/**
+ *  \typedef vfix32
+ *      volatile 32 bits fixed point type.
+ */
+typedef vs32 vfix32;
+/**
+ *  \typedef vf16
+ *      volatile 16 bits fixed point type (short version).
+ */
+typedef vs16 vf16;
+/**
+ *  \typedef vf32
+ *      volatile 32 bits fixed point type (short version).
+ */
+typedef vs32 vf32;
 
 
 #define FASTCALL
@@ -229,12 +259,12 @@ typedef struct
 } Circle;
 
 
-typedef void VoidCallback();
+typedef void VoidCallback(void);
 
 
-u8  getZeroU8();
-u16 getZeroU16();
-u32 getZeroU32();
+u8  getZeroU8(void);
+u16 getZeroU16(void);
+u32 getZeroU32(void);
 
 /**
  *  \brief

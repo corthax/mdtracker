@@ -1,7 +1,7 @@
 #ifndef _GENESIS_H_
 #define _GENESIS_H_
 
-#define SGDK_VERSION    1.70
+#define SGDK_VERSION    1.71
 
 #include "types.h"
 
@@ -16,6 +16,9 @@
 #include "memory.h"
 #include "tools.h"
 
+#include "pool.h"
+#include "object.h"
+
 #include "font.h"
 #include "string.h"
 
@@ -26,10 +29,8 @@
 
 #include "vdp.h"
 #include "vdp_bg.h"
-#include "vdp_dma.h"
 #include "vdp_spr.h"
 #include "vdp_tile.h"
-#include "vdp_pal.h"
 
 #include "pal.h"
 
@@ -62,6 +63,11 @@
 
 #if (MODULE_MEGAWIFI != 0)
 #include "ext/mw/megawifi.h"
+#endif
+
+#if (MODULE_FRACTAL != 0)
+#include "ext/fractal/fractal.h"
+#include "ext/fractal/visual_dbg.h"
 #endif
 
 // preserve compatibility with old resources name

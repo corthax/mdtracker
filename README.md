@@ -17,7 +17,7 @@
 	
 ---
 
-SGDK 1.65
+SGDK 1.80
 
 Code::Blocks 20.03
 

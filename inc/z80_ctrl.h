@@ -178,13 +178,13 @@
  *
  *  Request Z80 BUS and reset bank number.
  */
-void Z80_init();
+void Z80_init(void);
 
 /**
  *  \brief
  *      Return Z80 BUS taken state.
  */
-bool Z80_isBusTaken();
+bool Z80_isBusTaken(void);
 /**
  *  \brief
  *      Request Z80 BUS.
@@ -206,18 +206,18 @@ bool Z80_getAndRequestBus(bool wait);
  *  \brief
  *      Release Z80 BUS.
  */
-void Z80_releaseBus();
+void Z80_releaseBus(void);
 
 /**
  *  \brief
  *      Start Z80 reset.
  */
-void Z80_startReset();
+void Z80_startReset(void);
 /**
  *  \brief
  *      End Z80 reset.
  */
-void Z80_endReset();
+void Z80_endReset(void);
 
 /**
  *  \brief
@@ -301,12 +301,12 @@ void Z80_download(const u16 from, u8 *dest, const u16 size);
  *  - #Z80_DRIVER_XGM<br>
  *  - #Z80_DRIVER_CUSTOM<br>
  */
-u16  Z80_getLoadedDriver();
+u16  Z80_getLoadedDriver(void);
 /**
  *  \brief
  *      Unload Z80 driver (actually clear Z80 ram).
  */
-void Z80_unloadDriver();
+void Z80_unloadDriver(void);
 /**
  *  \brief
  *      Load a Z80 driver.
@@ -337,7 +337,76 @@ void Z80_loadCustomDriver(const u8 *drv, u16 size);
  *  \brief
  *      Return driver ready state (only for non custom driver).
  */
-u16  Z80_isDriverReady();
+u16  Z80_isDriverReady(void);
 
+/**
+ *  \brief
+ *      Enable/disable 68K bus access protection from Z80 (can be used by any sound driver).
+ *
+ *  \param signalAddress
+ *      Z80 RAM address used (relative to the start of Z80 RAM) to set the BUS protection signal.<br>
+ *      Signal is set to 1 when main BUS should not be accesssed from Z80 (DMA operation in progess), set to 0 otherwise.
+ */
+void Z80_useBusProtection(u16 signalAddress);
+
+/**
+ *  \brief
+ *      Set temporary 68K BUS protection from Z80 (for sound driver supporting it).<br>
+ *      You should protect BUS Access during DMA and restore it after. Ex:<br>
+ *      Z80_setBusProtection(TRUE);
+ *      VDP_doVRamDMA(data, 0x1000, 0x100);
+ *      Z80_setBusProtection(FALSE);
+ *
+ *      This way the sound driver will *try* to avoid accessing the 68K BUS during DMA to
+ *      avoid execution interruption and so preserve PCM playback quality.<br>
+ *      Note that depending the sound driver, the success of the operation is not 100% garantee and can fails in some conditions
+ *      (heavy Z80 load, lot of PSG data in XGM music).<br>
+ *      In that case you can also try to use the #Z80_setForceDelayDMA() method to help improving the PCM playblack.
+ *
+ *  \see Z80_useBusProtection(..)
+ *  \see Z80_enableBusProtection(..)
+ *  \see Z80_disableBusProtection(..)
+ */
+void Z80_setBusProtection(bool value);
+/**
+ *  \brief
+ *      Enable temporary 68K BUS protection from Z80 (for sound driver supporting it). See #Z80_setBusProtection(..) for more info.
+ *
+ *  \see Z80_setBusProtection(..)
+ *  \see Z80_enableBusProtection(..)
+ *  \see Z80_disableBusProtection(..)
+ */
+void Z80_enableBusProtection();
+/**
+ *  \brief
+ *      Disable temporary 68K BUS protection from Z80 (for sound driver supporting it). See #Z80_setBusProtection(..) for more info.
+ *
+ *  \see Z80_setBusProtection(..)
+ *  \see Z80_enableBusProtection(..)
+ *  \see Z80_disableBusProtection(..)
+ */
+void Z80_disableBusProtection();
+
+/**
+ *  \brief
+ *      Returns #TRUE if DMA delay is enabled to improve PCM playback.
+ *
+ *  \see Z80_setForceDelayDMA(bool)
+ */
+bool Z80_getForceDelayDMA(void);
+/**
+ *  \brief
+ *      This method can be used to improve the PCM playback during music play and while DMA queue is used.<br>
+ *      Even using the BUS protection with #Z80_setBusProtection you may still experience altered PCM playback.
+ *      With the XGM driver for instance this happens when music contains PSG data (Z80 requires the main BUS to access PSG).<br>
+ *      By delaying a bit the DMA execution from the DMA queue we let the Z80 to access main bus for a bit of time thus avoiding any stall.
+ *      The delay is about 3 scanlines so using the force delay DMA will reduce the DMA bandwidth for about 3 vblank lines.
+ *
+ *  \param value TRUE or FALSE
+ *
+ *  \see Z80_getForceDelayDMA()
+ *  \see Z80_setBusProtection()
+ */
+void Z80_setForceDelayDMA(bool value);
 
 #endif // _Z80_CTRL_H_

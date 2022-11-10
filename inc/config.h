@@ -57,7 +57,7 @@
  *      This actually happen when Z80 access the main BUS exactly at same time you trigger a DMA operation.<br>
  *      If you are 100% sure that you are actually avoiding that case you may try to disable the flag (at your own risk though).
  */
-#define HALT_Z80_ON_DMA     1
+#define HALT_Z80_ON_DMA     0
 
 /**
  *  \brief
@@ -65,7 +65,7 @@
  *      Some Megadrive models (as some MD2) need it to prevent some possible (but very rare) Z80 corruption bugs
  *      (may happen when Z80 access the main BUS during IO port access from 68K).
  */
-#define HALT_Z80_ON_IO      1
+#define HALT_Z80_ON_IO      0
 
 /**
  *  \brief
@@ -126,8 +126,15 @@
 
 /**
  *  \brief
- *      Set it to 1 if you want to enable MegaWiFi functions and support code
- */
+ *      Set it to 1 if you want to enable MegaWiFi functions and support code (provided by Jesus Alonso - doragasu) */
 #define MODULE_MEGAWIFI     0
+
+/**
+ *  \brief
+ *      Set it to 1 if you want to use the Fractal sound driver from Aurora Fields.<br>
+ *      Note that you need to install the module first before enable it (https://gitlab.com/Natsumi/Fractal-Sound)
+ */
+#define MODULE_FRACTAL      0
+
 
 #endif // _CONFIG_

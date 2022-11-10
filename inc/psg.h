@@ -61,10 +61,15 @@
 
 
 /**
- *  \brief
- *      Initialize PSG chip
+ *  \deprecated use PSG_reset() instead
  */
-void PSG_init();
+void PSG_init(void);
+
+/**
+ *  \brief
+ *      Reset PSG chip
+ */
+void PSG_reset(void);
 
 /**
  *  \brief
@@ -102,6 +107,18 @@ void PSG_setEnvelope(u8 channel, u8 value);
  * Set direct tone value for the specified PSG channel.
  */
 void PSG_setTone(u8 channel, u16 value);
+/**
+ *  \brief
+ *      Partial set tone (low bit only b3-b0).
+ *
+ *  \param channel
+ *      Channel we want to set tone (0-3).
+ *  \param value
+ *      Low bit (b3-b0) of tone value to set (0-15)
+ *
+ * Set low part of tone value for the specified PSG channel.
+ */
+void PSG_setToneLow(u8 channel, u8 value);
 /**
  *  \brief
  *      Set frequency.

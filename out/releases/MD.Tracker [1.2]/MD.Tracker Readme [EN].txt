@@ -22,20 +22,24 @@ Emulators:
 		PSG Noise channel wrong pitch.
 		FM CH.6 DAC pan not working.
 		FM CH.3 Special+CSM mode not working.
-	BlastEm (RetroArch)
+	BlastEm (RetroArch) - use [PRO] version
+		ISSUES:
+	BlastEm (Standalone) - use [BlastEm] version
 		ISSUES:
 //////////////////
 Flashcarts: 
-	Mega Everdrive Pro (MEGAOS-V4.11)
+	Mega Everdrive Pro
 		ISSUES:
-		Replaced .srm file is not loaded. Remove *rom name*.cfg in \MEGA\sys\romcfg\
-		No mapper for SSF + MSU-MD.
+		Replaced .srm file may be not reloaded on rom start. Remove *rom name*.cfg in \MEGA\sys\romcfg\
 		To dump save file from SRAM to SD card, reset console BEFORE power off.
 //////////////////
 
 If there is no song data, default empty is generated.
-To save as new song just rename the rom. Or move/rename SRAM file. Or whatever :)
-Playback slowdown when graphics redraw happens.
+To save as new song just rename the rom, or move/rename your save file.
+
+If your goal is to make a VGM file, then go with standalone BlastEm (latest 0.6.3+) as it has vgm logging (press 'M' to start/stop it).
+Use overclocking for best perfomance =^..^=
+
 //////////////////
 
 ----------------
@@ -43,9 +47,12 @@ Changelog:
 ----------------
 1.02
 	Fixes:
-		4th sample bank having not enought space to save sattings, leading to some data corruption.
+		4th sample bank having not enought space to save sattings, leading to minor data corruption.
+		Now works both in BlastEm Standalone and RetroArch.
 	Changes:
-		Added auto save upgrade from 1.01 to 1.02.
+		Auto save upgrade from 1.01 to 1.02.
+		Tool for adding PCM samples into rom.
+		SGDK 1.70 -> 1.80
 1.01
 	Fixes:
 		Wrong ARP 16..32 values init when new empty song save file is created.
@@ -53,8 +60,10 @@ Changelog:
 		Instrument 0 (empty, uneditable) also must have correct default ARP values.
 	Changes:
 		Removed beta file upgrade feature.
+		SGDK 1.65 -> 1.70
 1.00
 	Initial release. Use ONLY this version for upgrading beta files to 1.00.
+		SGDK 1.41 -> 1.50 -> 1.51 -> 1.60 -> 1.62 -> 1.65
 
 ----------------
 Features
@@ -78,7 +87,7 @@ PSG:	A4 = 440.39677657480314 Hz (NTSC)
 		Lowest note is A-0 (FreqNum 1016~), high part of G#0 (FreqNum 1023~) is also possible, below that is the same notes as octave higher.
 		Frequency number of all microtones of A#7 is 1, B-7 is 0.
 
-1 .. 16 pulses per pattern row.
+1 .. 16 pulses per pattern row. (1 .. 6 recommended at 140BPM on real, non overclocked HW.)
 BPM is rounded, has less resolution at higher values.
 Song data is automatically saved to SRAM at any parameter change.
 SRAM used as additional RAM, but only contains the module data.
@@ -399,7 +408,7 @@ x: 0 .. F; Row
 y: 0 .. F; Shift in pulses.
 
 ************************************************
-MSU MD: CD Audio - Play Once [NOT WORKING]
+MSU MD: CD Audio - Play Once [NOT WORKING : No mapper for SSF + MSU-MD. Maybe even not physically possible.]
 	20xx	
 xx: 01 .. 63; Track number in .wav + .cue (99 tracks max)
 00: stop.
@@ -411,7 +420,7 @@ xx: 01 .. 63; Track number in .wav + .cue (99 tracks max)
 00: stop.
 
 ************************************************
-MSU MD: CD Audio - Seek Time [NOT WORKING]
+MSU MD: CD Audio - Seek Time [NOT WORKING] 
 	22xx	
 xx: 01 .. FF; Enable
 00: disable.

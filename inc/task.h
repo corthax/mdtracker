@@ -26,6 +26,11 @@
 
 
 /**
+ * \brief Initialize the task sub system (reset internal variables).
+ */
+void TSK_init();
+
+/**
  * \brief Configure the user task callback function.<br>
  *  Must be set with a not NULL callback before calling any TSK_xxx functions.
  *
@@ -37,7 +42,7 @@ void TSK_userSet(VoidCallback *task);
  * \brief Stop the user task.<br>
  *  This has the same effect than using TSK_setUser(NULL).
  */
-void TSK_stop();
+void TSK_stop(void);
 
 /**
  * \brief Yield from supervisor task to user task. The user task will resume

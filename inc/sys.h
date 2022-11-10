@@ -22,9 +22,12 @@
 #define ROM_ALIGN                   (1 << ROM_ALIGN_BIT)
 #define ROM_ALIGN_MASK              (ROM_ALIGN - 1)
 
-#define ROM_START                   0
+#define ROM_START                   ROM
 #define ROM_END                     (((u32) &_stext) + ((u32) &_sdata))
 #define ROM_SIZE                    ((ROM_END + ROM_ALIGN_MASK) & (~ROM_ALIGN_MASK))
+
+
+#define HINTERRUPT_CALLBACK         __attribute__ ((interrupt)) void
 
 
 // exist through rom_head.c
@@ -67,6 +70,7 @@ typedef enum
     ON_VBLANK ,         /** Start VBlank process on VBlank period, start immediatly in we are already in VBlank */
     ON_VBLANK_START     /** Start VBlank process on VBlank *start* period, means that we wait the next *start* of VBlank period if we missed it */
 } VBlankProcessTime;
+
 
 /**
  *  \brief
@@ -154,21 +158,21 @@ extern VoidCallback *intCB;
  * Assert reset pin on the 68000 CPU.
  * This is needed to reset some attached hardware.
  */
-void SYS_assertReset();
+void SYS_assertReset(void);
 /**
  *  \brief
  *      Soft reset
  *
  * Software reset
  */
-void SYS_reset();
+void SYS_reset(void);
 /**
  *  \brief
  *      Hard reset
  *
  * Reset with forced hardware init and memory clear / reset operation.
  */
-void SYS_hardReset();
+void SYS_hardReset(void);
 
 /**
  *  \brief
@@ -187,7 +191,7 @@ void SYS_hardReset();
  * <br>
  * Note that VBlank process may be delayed to next VBlank if we missed the start of the VBlank period so that will cause a frame miss.
  */
-bool SYS_doVBlankProcess();
+bool SYS_doVBlankProcess(void);
 /**
  *  \brief
  *      Do all the VBlank processing (DMA transfers, XGM driver tempo, Joypad pooling..)
@@ -226,7 +230,7 @@ bool SYS_doVBlankProcessEx(VBlankProcessTime processTime);
  *
  * See SYS_setInterruptMaskLevel() for more informations about interrupt mask level.
  */
-u16 SYS_getInterruptMaskLevel();
+u16 SYS_getInterruptMaskLevel(void);
 /**
  *  \brief
  *      Set interrupt mask level.
@@ -278,9 +282,9 @@ u16 SYS_getAndSetInterruptMaskLevel(u16 value);
  * but you may need it if your interrupts callback code does mess with VDP for instance.<br>
  * Note that you can nest #SYS_disableInts / #SYS_enableInts() calls.
  *
- * \see SYS_enableInts()
+ * \see SYS_enableInts(void)
  */
-void SYS_disableInts();
+void SYS_disableInts(void);
 /**
  *  \brief
  *      Re-enable interrupts (Vertical, Horizontal and External).
@@ -288,9 +292,9 @@ void SYS_disableInts();
  * This method is used to reenable interrupts after a call to #SYS_disableInts().<br>
  * Note that you can nest #SYS_disableInts / #SYS_enableInts() calls.
  *
- * \see SYS_disableInts()
+ * \see SYS_disableInts(void)
  */
-void SYS_enableInts();
+void SYS_enableInts(void);
 
 /**
  *  \brief
@@ -311,7 +315,7 @@ void SYS_setVBlankCallback(VoidCallback *CB);
 
 /**
  *  \brief
- *      Set 'Vertical Interrupt' callback method.
+ *      Set 'Vertical Interrupt' callback method, prefer #SYS_setVBlankCallback(..) when possible.
  *
  *  \param CB
  *      Pointer to the method to call on Vertical Interrupt.<br>
@@ -330,12 +334,17 @@ void SYS_setVBlankCallback(VoidCallback *CB);
 void SYS_setVIntCallback(VoidCallback *CB);
 /**
  *  \brief
- *      Set 'Horizontal Interrupt' callback method.
+ *      Set 'Horizontal Interrupt' callback method (need to be prefixed by HINTERRUPT_CALLBACK).
  *
  *  \param CB
  *      Pointer to the method to call on Horizontal Interrupt.<br>
- *      You can remove current callback by passing a null pointer here.
- *
+ *      You can remove current callback by passing a NULL pointer here.<br>
+ *      You need to prefix your hint method with <i>HINTERRUPT_CALLBACK</i>:<br>
+ *      <p>HINTERRUPT_CALLBACK myHIntFunction()
+ *      {
+ *          ...
+ *      }</p>
+ * <br>
  * Horizontal interrupt happen at the end of scanline display period right before Horizontal blank.<br>
  * This period is usually used to do mid frame changes (palette, scrolling or others raster effect).<br>
  * When you do that, don't forget to protect your VDP access from your main loop using
@@ -355,59 +364,27 @@ void SYS_setHIntCallback(VoidCallback *CB);
 void SYS_setExtIntCallback(VoidCallback *CB);
 
 /**
- *  \deprecated
- *      Use #SYS_isInVInt() instead
- */
-u16 SYS_isInVIntCallback();
-/**
- *  \deprecated
- *      Always return 0 now, you need to use your own flag to detect if you are processing a Horizontal interrupt
- */
-u16 SYS_isInHIntCallback();
-/**
- *  \deprecated
- *      Always return 0 now, you need to use your own flag to detect if you are processing an External interrupt
- */
-u16 SYS_isInExtIntCallback();
-/**
- *  \deprecated
- *      Use #SYS_isInVInt() instead, only vertical interrupt supported now
- */
-u16 SYS_isInInterrupt();
-
-/**
  *  \brief
  *      Return TRUE if we are in the V-Interrupt process.
  *
  * This method tests if we are currently processing a Vertical retrace interrupt (V-Int callback).
  */
-bool SYS_isInVInt();
-
-/**
- *  \deprecated
- *      Not anymore useful as #SYS_doVBlankProcess() handle that directly now
- */
-void SYS_setVIntAligned(bool value);
-/**
- *  \deprecated
- *      Not anymore useful as #SYS_doVBlankProcess() handle that directly now
- */
-bool SYS_isVIntAligned();
+bool SYS_isInVInt(void);
 
 /**
  *  \brief
  *      Return != 0 if we are on a NTSC system.
  *
- * Better to use the IS_PALSYSTEM
+ * Better to use the IS_PAL_SYSTEM
  */
-u16 SYS_isNTSC();
+u16 SYS_isNTSC(void);
 /**
  *  \brief
  *      Return != 0 if we are on a PAL system.
  *
- * Better to use the IS_PALSYSTEM
+ * Better to use the IS_PAL_SYSTEM
  */
-u16 SYS_isPAL();
+u16 SYS_isPAL(void);
 
 /**
  *  \brief
@@ -416,7 +393,7 @@ u16 SYS_isPAL();
  * This function actually returns the number of time it was called in the last second.<br>
  * i.e: for benchmarking you should call this method only once per frame update.
  */
-u32 SYS_getFPS();
+u32 SYS_getFPS(void);
 /**
  *  \brief
  *      Returns number of Frame Per Second (fix32 form).
@@ -424,7 +401,7 @@ u32 SYS_getFPS();
  * This function actually returns the number of time it was called in the last second.<br>
  * i.e: for benchmarking you should call this method only once per frame update.
  */
-fix32 SYS_getFPSAsFloat();
+fix32 SYS_getFPSAsFloat(void);
 /**
  *  \brief
  *      Return an estimation of CPU frame load (in %)
@@ -432,10 +409,10 @@ fix32 SYS_getFPSAsFloat();
  * Return an estimation of CPU load (in %, mean value computed on 8 frames) based of idle time spent in #VDP_waitVSync() / #VDP_waitVInt() methods.<br>
  * The method can return value above 100% you CPU load is higher than 1 frame.
  *
- * \see VDP_waitVSync()
- * \see VDP_waitVInt()
+ * \see VDP_waitVSync(void)
+ * \see VDP_waitVInt(void)
  */
-u16 SYS_getCPULoad();
+u16 SYS_getCPULoad(void);
 /**
  *  \brief
  *      Show a cursor indicating current frame load level in scanline (top = 0% load, bottom = 100% load)
@@ -447,16 +424,16 @@ u16 SYS_getCPULoad();
  *  Note that internally sprite 0 is used to display to cursor (palette 0 and color 15) as it is not directly used by the Sprite Engine but
  *  if you're using the low level VDP sprite methods then you should know that sprite 0 will be used here.
  *
- * \see SYS_hideFrameLoad()
+ * \see SYS_hideFrameLoad(void)
  */
 void SYS_showFrameLoad(bool mean);
 /**
  *  \brief
  *      Hide the frame load cursor previously enabled using #SYS_showFrameLoad() method.
 
- * \see SYS_showFrameLoad()
+ * \see SYS_showFrameLoad(void)
  */
-void SYS_hideFrameLoad();
+void SYS_hideFrameLoad(void);
 
 
 /**
@@ -464,12 +441,12 @@ void SYS_hideFrameLoad();
  *      Computes full ROM checksum and return it.<br>
  *      The checksum is a custom fast 32 bit checksum converted to 16 bit at end
  */
-u16 SYS_computeChecksum();
+u16 SYS_computeChecksum(void);
 /**
  *  \brief
  *      Returns TRUE if ROM checksum is ok (correspond to rom_head.checksum field)
  */
-bool SYS_isChecksumOk();
+bool SYS_isChecksumOk(void);
 
 /**
  *  \brief

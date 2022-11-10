@@ -55,10 +55,6 @@
  *      number of MetaTile
  *  \param numBlock
  *      number of Block (128x128 pixels chunk)
- *  \param palette
- *      Palette data.
- *  \param tileset
- *      TileSet data structure (contains tiles definition for the image).
  *  \param metaTiles
  *      metatiles definition, each metatile is encoded as 2x2 tiles block:<br>
  *      - b15: priority<br>
@@ -85,12 +81,10 @@ typedef struct
     u16 compression;
     u16 numMetaTile;
     u16 numBlock;
-    Palette *palette;
-    TileSet *tileset;
     u16 *metaTiles;
-    void *blocks;
-    void *blockIndexes;
-    u16 *blockRowOffsets;
+    void* blocks;
+    void* blockIndexes;
+    u16* blockRowOffsets;
 } MapDefinition;
 
 
@@ -147,10 +141,10 @@ typedef struct Map
 {
     u16 w;
     u16 h;
-    u16 *metaTiles;
-    void *blocks;
-    void *blockIndexes;
-    u16 *blockRowOffsets;
+    u16* metaTiles;
+    void* blocks;
+    void* blockIndexes;
+    u16* blockRowOffsets;
     VDPPlane plane;
     u16 baseTile;
     u32 posX;
@@ -183,6 +177,7 @@ typedef struct Map
  *      Accepted values are:<br>
  *      - BG_A<br>
  *      - BG_B<br>
+ *      If you want to use the map for collision or special behavior (using the MAP_getTile(..) method) then you can just let this parameter to 0.
  *  \param baseTile
  *      Used to provide base tile index and base palette index (see TILE_ATTR_FULL() macro).<br>
  *      Note that you can also use it to force HIGH priority but in that case your map should only contains LOW priority tiles
