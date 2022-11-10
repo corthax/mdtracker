@@ -17,7 +17,7 @@
 	
 ---
 
-SGDK 1.70 (https://github.com/Stephane-D/SGDK/wiki/Setup-SGDK-with-CodeBlocks)
+SGDK 1.80 (https://github.com/Stephane-D/SGDK/wiki/Setup-SGDK-with-CodeBlocks)
 
 Code::Blocks 20.03
 
