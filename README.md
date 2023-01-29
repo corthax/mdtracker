@@ -48,6 +48,7 @@ See "MD.Tracker Readme.txt" for help on commands etc.
 ---
 
 Discord: https://discord.gg/CE22HNNk5y
+Demo music (recorded from sega nomad + guitars + vocals): https://youtu.be/evPza2j4I88
 
 ---
 
