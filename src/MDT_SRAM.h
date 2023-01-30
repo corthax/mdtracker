@@ -8,6 +8,9 @@ void SRAMW_writeByte(u32 offset, u8 val);
 u16 SRAMW_readWord(u32 offset);
 u8 SRAMW_readByte(u32 offset);
 
+u8 SRAM_readByte_Odd(u32 offset);
+void SRAM_writeByte_Odd(u32 offset, u8 val);
+
 // SRAM
 static u8 SRAM_ReadInstrument(u8 id, u16 param);
 void SRAM_WriteInstrument(u8 id, u16 param, u8 data);

@@ -129,7 +129,7 @@
 #define MSU_SEEK_OFF	0x1601
 #define MSU_PLAYOF 	    0x1A00 // #1 = decimal no. of track (1-99) #2 = offset in sectors from the start of the track to apply when looping; play cdda track and loop from specified sector offset
 
-#define DEFAULT_TEMPO   0xB3   // 140 BPM NTSC if 16/16
+#define DEFAULT_TEMPO   0xB3   // 179 H-INT skips; 140 BPM NTSC if 16/16
 #define VIBRATO_PHASE   0
 #define TREMOLO_PHASE   512
 

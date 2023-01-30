@@ -2,11 +2,9 @@
 #include <sram.h>
 #include "MDT_Version.h"
 
-//-------------------------------
-//#define MDT_VERSION 0
-//-------------------------------
-
 //! change SRAM_BASE to 0x380000
+
+//! offset must be > 1
 
 u8 SRAMW_readByte(u32 offset)
 {
@@ -22,15 +20,17 @@ u8 SRAMW_readByte(u32 offset)
     #endif
 }
 
-/*u8 SRAM_readByte(u32 offset)
+// default are even. these are odd
+u8 SRAM_readByte_Odd(u32 offset)
 {
     return *(vu8*)(SRAM_BASE + (offset * 2));
 }
 
-void SRAM_writeByte(u32 offset, u8 val)
+void SRAM_writeByte_Odd(u32 offset, u8 val)
 {
     *(vu8*)(SRAM_BASE + (offset * 2)) = val;
-}*/
+}
+// ---
 
 void SRAMW_writeByte(u32 offset, u8 val)
 {

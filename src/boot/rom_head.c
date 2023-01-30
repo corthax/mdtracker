@@ -151,7 +151,7 @@ const ROMHeader rom_header = {
 
     "            ",                             // modem
     "MUSIC TRACKER                           ", // memo
-    "JUE             "                          // country
+    "W               "                          // country
 };
 /*
 $1B0 - 'R'

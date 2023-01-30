@@ -29,7 +29,7 @@
 
 
 #define SRAM_CONTROL    MAPPER_BASE
-#define SRAM_BASE       0x380001
+#define SRAM_BASE       0x380000
 
 
 /**

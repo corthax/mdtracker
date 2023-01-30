@@ -79,6 +79,7 @@
             this.btnSaveSrm = new System.Windows.Forms.Button();
             this.ttCopy = new System.Windows.Forms.ToolTip(this.components);
             this.ttAutoRange = new System.Windows.Forms.ToolTip(this.components);
+            this.dacDescription = new System.Windows.Forms.Label();
             label2 = new System.Windows.Forms.Label();
             label3 = new System.Windows.Forms.Label();
             lbBytesAvailable = new System.Windows.Forms.Label();
@@ -501,12 +502,21 @@
             // 
             this.ttAutoRange.ToolTipTitle = "Set auto range";
             // 
+            // dacDescription
+            // 
+            resources.ApplyResources(this.dacDescription, "dacDescription");
+            this.dacDescription.BackColor = System.Drawing.Color.DarkBlue;
+            this.dacDescription.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.dacDescription.ForeColor = System.Drawing.Color.WhiteSmoke;
+            this.dacDescription.Name = "dacDescription";
+            // 
             // mdtEditor
             // 
             resources.ApplyResources(this, "$this");
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(10)))), ((int)(((byte)(10)))), ((int)(((byte)(20)))));
             this.BackgroundImage = global::mdteditor.Properties.Resources.mdtracker_logo2;
+            this.Controls.Add(this.dacDescription);
             this.Controls.Add(panelMain);
             this.Controls.Add(panelOpenSave);
             this.DoubleBuffered = true;
@@ -567,6 +577,7 @@
         private System.Windows.Forms.TextBox txtPresetTarget;
         private System.Windows.Forms.TextBox txtPresetsSource;
         private System.Windows.Forms.Button btnAssignPreset;
+        private System.Windows.Forms.Label dacDescription;
     }
 }
 

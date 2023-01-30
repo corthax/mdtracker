@@ -1,5 +1,5 @@
 ----------------
-MD.Tracker 1.02
+MD.Tracker 1.03
 Native music tracker for SEGA MEGADRIVE / GENESIS / NOMAD
 Source code: https://github.com/corthax/mdtracker
 Powered by SGDK
@@ -16,36 +16,61 @@ Powered by SGDK
 //////////////////
 Works in:
 //////////////////
+
 Emulators: 
-	PicoDrive (RetroArch)
+	PicoDrive (RetroArch) - use [mdt] version.
 		ISSUES:
 		PSG Noise channel wrong pitch.
 		FM CH.6 DAC pan not working.
 		FM CH.3 Special+CSM mode not working.
-	BlastEm (RetroArch)
-		ISSUES:
+		
+	BlastEm (RetroArch) - use [mdt] version.
+
+	BlastEm (Standalone) - use [mdt-blastem] version.
+	
 //////////////////
+
 Flashcarts: 
-	Mega Everdrive Pro (MEGAOS-V4.11)
+	Mega Everdrive Pro - use [mdt] version.
 		ISSUES:
-		Replaced .srm file is not loaded. Remove *rom name*.cfg in \MEGA\sys\romcfg\
-		No mapper for SSF + MSU-MD.
+		Replaced .srm file may be not reloaded on rom start. Remove *rom name*.cfg in \MEGA\sys\romcfg\
 		To dump save file from SRAM to SD card, reset console BEFORE power off.
+		
+	Mega Everdrive X7 - use [mdt-x7] version. (WIP!)
+		
+	Your custom one - use [mdt] version.
+		4MB: 3.5MB for rom + 512KB battery sram.
+		16 bit sram.
+		No bank switching needed.
+		
 //////////////////
 
 If there is no song data, default empty is generated.
-To save as new song just rename the rom. Or move/rename SRAM file. Or whatever :)
-Playback slowdown when graphics redraw happens.
+To save as new song just rename the rom, or move/rename your save file.
+
+If your goal is to make a VGM file, then go with standalone BlastEm (latest 0.6.3+) as it has vgm logging (press 'M' to start/stop it).
+VGM File then can be edited and optimized with VGM TOOLS and optvgm (http://project2612.org/optvgm.zip)
+Use overclocking for best performance =^..^=
+
 //////////////////
 
 ----------------
 Changelog:
 ----------------
-1.02
+1.03
 	Fixes:
-		4th sample bank having not enought space to save sattings, leading to some data corruption.
+		SRAM file changed to start at address 0 (same as pre 1.02).
+		Editor tool now auto align sample length to 256 bytes, as required by SGDK driver. IDK if it improves anything.
+		FPS counter now displays amount of frames being processed last second.
+		Auto save upgrade from 1.00/1.01 to 1.03.
+1.02 [Don't use 1.02, it's messed up! Will break save file.]
+	Fixes:
+		4th sample bank having not enought space to save sattings, leading to minor data corruption.
+		Now works both in BlastEm Standalone and RetroArch.
 	Changes:
-		Added auto save upgrade from 1.01 to 1.02.
+		Auto save upgrade from 1.01 to 1.02.
+		Tool for adding PCM samples into rom.
+		SGDK 1.70 -> 1.80
 1.01
 	Fixes:
 		Wrong ARP 16..32 values init when new empty song save file is created.
@@ -53,8 +78,10 @@ Changelog:
 		Instrument 0 (empty, uneditable) also must have correct default ARP values.
 	Changes:
 		Removed beta file upgrade feature.
+		SGDK 1.65 -> 1.70
 1.00
 	Initial release. Use ONLY this version for upgrading beta files to 1.00.
+		SGDK 1.41 -> 1.50 -> 1.51 -> 1.60 -> 1.62 -> 1.65
 
 ----------------
 Features
@@ -64,7 +91,7 @@ Features
 250 pattern rows in matrix (25 per page).
 255 instruments. 00th(--) for empty, unusable.
 Additional 32 step ARP and VOL tick sequencers.
-FM (YM2612/YM3438) CSM and CH3 Special Mode support, CH6 DAC support.
+FM (YM2612/YM3438) CSM and CH3 Special/CSM Modes support, CH6 DAC support.
 PSG (SN76489) support.
 895 patterns.
 384 samples (96 notes * 4 banks).
@@ -78,7 +105,7 @@ PSG:	A4 = 440.39677657480314 Hz (NTSC)
 		Lowest note is A-0 (FreqNum 1016~), high part of G#0 (FreqNum 1023~) is also possible, below that is the same notes as octave higher.
 		Frequency number of all microtones of A#7 is 1, B-7 is 0.
 
-1 .. 16 pulses per pattern row.
+1 .. 16 pulses per pattern row. (1 .. 6 recommended at 140BPM on real, non overclocked HW.)
 BPM is rounded, has less resolution at higher values.
 Song data is automatically saved to SRAM at any parameter change.
 SRAM used as additional RAM, but only contains the module data.
@@ -94,6 +121,11 @@ From Instrument Editor [IE] - no special.
 	Start	Play song from the beginning of selected pattern in the matrix.
 
 	Mode	Play song from position of selected pattern in the matrix + selected row in pattern editor.
+	
+BPM: Displays current BPM. Not precise.
+FPS: Pulses (frames) processed last second. Not precise. If FPS is much less than PPS that means cpu can't handle current load.
+PPS: Pulses (frames) per second required by current tempo and PPL settings. Not redrawn if higher than 1000.
+PPL: Pulses per odd | even lines. Higher values will increase presicion, but needs more cpu. Less than 4 is recommended for non overclocked hardware/emulator.
 
 ----------------
 Patterm Matrix [PM]
@@ -317,7 +349,7 @@ WARNING
 	
 	Sample format: RAW (header-less), Signed 8 bit PCM, 32khz max
 		(!!! When converted with Audacity it will add noise to silence parts. The one way to remove it is to replace all FF with 00 in sample using hex editor.)
-	~3399000 bytes range reserved for DAC samples (~1min 45sec at 32khz)
+	3400192 bytes range reserved for DAC samples (~1min 46sec at 32khz)
 		
 	With any hex editor overwrite that range with your samples.
 	Then assign ranges to keys inside instrument editor SAMPLE section.
@@ -333,11 +365,12 @@ SPECIAL:
 	CH3 operators have saparate pitch control.
 SPECIAL+CSM:
 	Instrument OP AR need to be set to 31 to produce any sound.
-	This mode is active only at FM3-OP4.
 	Pitch is far from perfect, especially for higher notes.
 	No ARP or VOL sequences applied.
 	Pitch commands acting as "filtering" effect.
 	Kill previous note just a tick before enabling SPECIAL+CSM mode to not introduce noticable click.
+	FM3 Channels: Use command 55xx to set each operator base note (frequency). It will affect it's "filtering" effect.
+	OP4 controls pitch in note column.
 00: set to NORMAL.
 
 ************************************************
@@ -399,7 +432,7 @@ x: 0 .. F; Row
 y: 0 .. F; Shift in pulses.
 
 ************************************************
-MSU MD: CD Audio - Play Once [NOT WORKING]
+MSU MD: CD Audio - Play Once [NOT WORKING : No mapper for SSF + MSU-MD. Maybe even not physically possible.]
 	20xx	
 xx: 01 .. 63; Track number in .wav + .cue (99 tracks max)
 00: stop.
@@ -411,7 +444,7 @@ xx: 01 .. 63; Track number in .wav + .cue (99 tracks max)
 00: stop.
 
 ************************************************
-MSU MD: CD Audio - Seek Time [NOT WORKING]
+MSU MD: CD Audio - Seek Time [NOT WORKING] 
 	22xx	
 xx: 01 .. FF; Enable
 00: disable.

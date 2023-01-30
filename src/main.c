@@ -26,7 +26,7 @@
 //#define MDT_VERSION 0
 //-------------------------------
 
-#define MDT_HEADER              "MDT102"
+#define MDT_HEADER              "MDT103"
 #define STRING_EMPTY            ""
 #define H_INT_DURATION_NTSC     744     // ; 744
 #define H_INT_DURATION_PAL      892     // ; 892
@@ -200,10 +200,10 @@ u8 navigationDirection = BUTTON_RIGHT;
 
 u8 FM_CH6_DAC_Pan = SOUND_PAN_CENTER;
 
-u32 FPS = 0;
-u32 BPM = 0;
+u32 frames_counter = 0; // to measure fps
+u32 BPM = 0; // rough beats per minute
 f32 fBPM = 0; // very bad precision
-u32 PPS = 0;
+u32 PPS = 0; // pulses per second needed
 
 u8 patternSize = 0x1F;
 
@@ -355,7 +355,6 @@ int main(bool hardReset)
         case SCREEN_INSTRUMENT: DisplayInstrumentEditor(); break;
         default: break;
         }
-        FPS = SYS_getFPS();
     }
 	return(0);
 }
@@ -372,11 +371,31 @@ HINTERRUPT_CALLBACK hIntCallback()
 
 void vIntCallback()
 {
-    static u32 _fps; // redraw only if FPS changes
+    static u8 _vInts_counter;
 
     SYS_doVBlankProcessEx(ON_VBLANK);
 
-    if (_fps != FPS) { _fps = FPS; uintToStr(FPS, str, 3); DrawNum(BG_A, PAL1, str, 15, 27); DrawNum(BG_A, PAL1, str, 55, 27); }
+    _vInts_counter++;
+    if (_vInts_counter > 59) // measure every second
+    {
+        if (frames_counter < 1000)
+        {
+            uintToStr(frames_counter, str, 3);
+
+            if (frames_counter < PPS)
+            {
+                DrawNum(BG_A, PAL0, str, 15, 27);
+                DrawNum(BG_A, PAL0, str, 55, 27);
+            }
+            else
+            {
+                DrawNum(BG_A, PAL1, str, 15, 27);
+                DrawNum(BG_A, PAL1, str, 55, 27);
+            }
+        }
+        frames_counter = 0;
+        _vInts_counter = 0;
+    }
 
     // fast navigation
     if (bDoCount)
@@ -661,7 +680,8 @@ static inline void DoEngine()
                 {
                     if (_seqValue > ARP_BASE) channelArp[mtxCh] = channelPreviousNote[mtxCh] + (_seqValue - ARP_BASE);
                     else if (_seqValue < ARP_BASE) channelArp[mtxCh] = channelPreviousNote[mtxCh] - (ARP_BASE - _seqValue);
-                    if (channelArp[mtxCh] < 0 || channelArp[mtxCh] > NOTE_MAX || _seqValue == ARP_BASE) channelArp[mtxCh] = channelPreviousNote[mtxCh];
+                    if (channelArp[mtxCh] < 0 || channelArp[mtxCh] > NOTE_MAX || _seqValue == ARP_BASE)
+                        channelArp[mtxCh] = channelPreviousNote[mtxCh];
                     PlayNote(channelArp[mtxCh], mtxCh);
                 }
             }
@@ -708,7 +728,10 @@ static inline void DoEngine()
                         break;
                     case CHANNEL_FM6_DAC:
                         ApplyCommand_DAC(channelPreviousEffectType[CHANNEL_FM6_DAC][effect], _fxValue);
-                        if (!bDAC_enable) ApplyCommand_FM(CHANNEL_FM6_DAC, channelPreviousInstrument[CHANNEL_FM6_DAC], channelPreviousEffectType[CHANNEL_FM6_DAC][effect], _fxValue);
+                        if (!bDAC_enable) ApplyCommand_FM(
+                                                          CHANNEL_FM6_DAC,
+                                                          channelPreviousInstrument[CHANNEL_FM6_DAC],
+                                                          channelPreviousEffectType[CHANNEL_FM6_DAC][effect], _fxValue);
                         break;
                     case CHANNEL_FM3_OP1: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP3:
                         ApplyCommand_FM3_SP(mtxCh, channelPreviousEffectType[mtxCh][effect], _fxValue); // currently useless
@@ -834,7 +857,11 @@ static inline void DoEngine()
                     PlayNote((u8)_key, mtxCh);
                 }
             }
-            else _key = NOTE_EMPTY; // empty row
+            else
+            {
+                _key = NOTE_EMPTY; // empty row
+                //PlayNote(NOTE_EMPTY, mtxCh); //?
+            }
         }
     }
 
@@ -1074,7 +1101,9 @@ static inline void DoEngine()
                         if (channelPreviousEffectType[_ch][_eff]) // if any effect
                         {
                             ApplyCommand_Common(_ch, channelPreviousEffectType[_ch][_eff], channelPreviousEffectValue[_ch][_eff]);
-                            ApplyCommand_FM(_ch, channelPreviousInstrument[_ch], channelPreviousEffectType[_ch][_eff], channelPreviousEffectValue[_ch][_eff]);
+                            ApplyCommand_FM(_ch, channelPreviousInstrument[_ch],
+                                            channelPreviousEffectType[_ch][_eff],
+                                            channelPreviousEffectValue[_ch][_eff]);
                             ApplyCommand_PSG(channelPreviousEffectType[_ch][_eff], channelPreviousEffectValue[_ch][_eff]);
                         }
                     }
@@ -1191,6 +1220,8 @@ static inline void DoEngine()
                 pulseCounter = 0;
             }
             bDoPulse = FALSE;
+
+            frames_counter++;
         }
     }
     else if (!_bBeginPlay) // need to run only once at playback stopped
@@ -1264,7 +1295,7 @@ static void SetBPM(u16 tempo)
 
     // precise BPM: 600000000000 / (1/13440) * 2 * hIntToSkip)) / ppb
 
-    u8 ppb = (ppl_2 + ppl_1) * 2; // pulses per beat
+    u8 ppb = (ppl_1 + ppl_2) * 2; // pulses per beat
 
     // beat per minute
     //BPM = (600000000 / microseconds) / ppb;
@@ -3725,7 +3756,7 @@ static inline void SetChannelVolume(u8 mtxCh)
         break;
 
     case CHANNEL_FM3_OP3: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP1:
-        if (FM_CH3_Mode == CH3_SPECIAL) { port = PORT_1; ymCh = 2; set_special_channel_vol(); }
+        if (FM_CH3_Mode == CH3_SPECIAL || FM_CH3_Mode == CH3_SPECIAL_CSM) { port = PORT_1; ymCh = 2; set_special_channel_vol(); }
         break;
 
     case CHANNEL_FM4: case CHANNEL_FM5: case CHANNEL_FM6_DAC:
@@ -3822,16 +3853,25 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
     static u8 part1 = 0, part2 = 0;
     static s8 key = 0;
 
-    // CSM
-    if ((mtxCh == CHANNEL_FM3_OP4) && (FM_CH3_Mode == CH3_SPECIAL_CSM))
-    {
-       key = FM_CH3_OpFreq[0] + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh];
-    }
-    // Normal or Special
-    else
+    auto void set_key()
     {
         key = note + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh];
     }
+
+    // CSM
+    if (FM_CH3_Mode == CH3_SPECIAL_CSM)
+    {
+        switch (mtxCh)
+        {
+            case CHANNEL_FM3_OP4: key = FM_CH3_OpFreq[0] + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh]; break;
+            case CHANNEL_FM3_OP3: key = FM_CH3_OpFreq[1] + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh]; break;
+            case CHANNEL_FM3_OP2: key = FM_CH3_OpFreq[2] + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh]; break;
+            case CHANNEL_FM3_OP1: key = FM_CH3_OpFreq[3] + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh]; break;
+            default: set_key(); break;
+        }
+    }
+    // Normal or Special
+    else set_key();
 
     if ((key > -1) && (key < NOTES))
     {
@@ -3853,7 +3893,6 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
         case CHANNEL_FM3_OP4:
             YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_FREQ_MSB, part1);
             YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_FREQ_LSB, part2);
-
             switch (FM_CH3_Mode)
             {
             case CH3_NORMAL:
@@ -3870,7 +3909,7 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
 
                 // play CSM note
                 // bb: Ch3 mode, Reset B, Reset A, Enable B, Enable A, Load B, Load A
-                YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_FREQ_MSB, CH3_SPECIAL_CSM | 0b00001111);
+                //YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_FREQ_MSB, CH3_SPECIAL_CSM | 0b00001111);
                 YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_SPECIAL_CSM | 0b00010101); //!?
                 break;
             default: break;
@@ -3884,6 +3923,11 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
                 YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP3_LSB, part2);
                 YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, FM_CH3_OpNoteStatus); // 2
             }
+            else if (FM_CH3_Mode == CH3_SPECIAL_CSM)
+            {
+                YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP3_MSB, part1);
+                YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP3_LSB, part2);
+            }
             break;
         case CHANNEL_FM3_OP2:
             if (FM_CH3_Mode == CH3_SPECIAL)
@@ -3893,6 +3937,11 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
                 YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP2_LSB, part2);
                 YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, FM_CH3_OpNoteStatus); // 2
             }
+            else if (FM_CH3_Mode == CH3_SPECIAL_CSM)
+            {
+                YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP2_MSB, part1);
+                YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP2_LSB, part2);
+            }
             break;
         case CHANNEL_FM3_OP1:
             if (FM_CH3_Mode == CH3_SPECIAL)
@@ -3901,6 +3950,11 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
                 YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP1_MSB, part1);
                 YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP1_LSB, part2);
                 YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, FM_CH3_OpNoteStatus); // 2
+            }
+            else if (FM_CH3_Mode == CH3_SPECIAL_CSM)
+            {
+                YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP1_MSB, part1);
+                YM2612_writeRegZ80(PORT_1, YM2612REG_CH3SP_FREQ_OP1_LSB, part2);
             }
             break;
         case CHANNEL_FM4:
@@ -3919,10 +3973,22 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
                 if (!FM_CH6_DAC_Pan)
                 {
                     SND_startPlay_PCM(sampleStart[activeSampleBank][note],
-                                  sampleLength[activeSampleBank][note],
-                                  sampleRate[activeSampleBank][note],
-                                  samplePan[activeSampleBank][note],
-                                  sampleLoop[activeSampleBank][note]);
+                                    sampleLength[activeSampleBank][note],
+                                    sampleRate[activeSampleBank][note],
+                                    samplePan[activeSampleBank][note],
+                                    sampleLoop[activeSampleBank][note]);
+                    /*SND_startPlay_2ADPCM(sampleStart[activeSampleBank][note],
+                                    sampleLength[activeSampleBank][note],
+                                    SOUND_PCM_CH_AUTO,
+                                    sampleLoop[activeSampleBank][note]);*/
+                    /*SND_startPlay_4PCM(sampleStart[activeSampleBank][note],
+                                    sampleLength[activeSampleBank][note],
+                                    SOUND_PCM_CH_AUTO,
+                                    sampleLoop[activeSampleBank][note]);*/
+                    /*XGM_setPCM(sampleID[[activeSampleBank][note]], // 64..255
+                            sampleStart[activeSampleBank][note],
+                            sampleLength[activeSampleBank][note]);
+                    XGM_startPlayPCM(sampleID[[activeSampleBank][note]], 15, SOUND_PCM_CH1);*/
                 }
                 else
                 {
@@ -3948,6 +4014,7 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
         channelPitchSlideSpeed[mtxCh]= 0;
     }
 }
+
 static inline void PlayNoteOff(u8 mtxCh)
 {
         if (FM_CH3_Mode == CH3_SPECIAL_CSM && mtxCh == CHANNEL_FM3_OP4) FM_CH3_Mode = CH3_SPECIAL_CSM_OFF;
@@ -3957,7 +4024,6 @@ static inline void PlayNoteOff(u8 mtxCh)
 
 static inline void PlayNote(u8 note, u8 mtxCh)
 {
-
     if (mtxCh < CHANNEL_PSG1) // FM
     {
         // S1>S3>S2>S4 for common registers and S4>S3>S1>S2 for CH3 frequencies
@@ -4880,20 +4946,19 @@ static inline void ApplyCommand_FM3_SP(u8 mtxCh, u8 fxParam, u8 fxValue)
 
     // CH3 CSM FILTER
     case 0x55:
+        if (FM_CH3_Mode != CH3_SPECIAL_CSM) return;
         if (fxValue >= 0x09 && fxValue <= NOTE_MAX)
         {
-            //switch (mtxCh)
-            //{
-            //case 2:
-                FM_CH3_OpFreq[0] = fxValue;
-                //break;
-            //case 3: FM_CH3_OpFreq[1] = fxValue; break;
-            //case 4: FM_CH3_OpFreq[2] = fxValue; break;
-            //case 5: FM_CH3_OpFreq[3] = fxValue; break;
-            //}
+            switch (mtxCh)
+            {
+            case CHANNEL_FM3_OP4: FM_CH3_OpFreq[0] = fxValue; break;
+            case CHANNEL_FM3_OP3: FM_CH3_OpFreq[1] = fxValue; SetPitchFM(mtxCh, 0); break;
+            case CHANNEL_FM3_OP2: FM_CH3_OpFreq[2] = fxValue; SetPitchFM(mtxCh, 0); break;
+            case CHANNEL_FM3_OP1: FM_CH3_OpFreq[3] = fxValue; SetPitchFM(mtxCh, 0); break;
+            }
         }
         break;
-    default: return; break;
+    default: break;
     }
 }
 
@@ -5593,9 +5658,7 @@ void InitTracker()
     {
         VDP_setTextPalette(PAL0); VDP_drawText("GENERATING MODULE DATA", 3, 3);
 
-        FileWriteHeader();
-
-        for (u16 inst = 0; inst <= INSTRUMENTS_LAST; inst++)
+        for (u16 inst = 0; inst <= INSTRUMENTS_LAST; inst++) // 0 inst is unused. also header space. but must have vol and arp
         {
             LoadPreset(inst, 0); // default sound
             for (u8 t = 0; t < SEQ_STEPS; t++)
@@ -5673,21 +5736,15 @@ void InitTracker()
 
         SetBPM(DEFAULT_TEMPO);
         SRAMW_writeByte(GLOBAL_LFO, 7);
-        SRAMW_writeWord(FILE_CHECKER, MDT_CHECKER);
         //SRAMW_writeByte(SONG_TRANSPOSE, (s8)0);
+
+        SRAMW_writeWord(FILE_CHECKER, MDT_CHECKER);
+        FileWriteHeader();
     }
     else // if it's correct save file
     {
         // legacy stuff
-        for (u8 i = 0; i < 6; i++) str[i] = SRAM_readByte(i); // standard sgdk 8 bit sram read
-
-        // upgrade 1.0 to 1.1
-        /*if (!strcmp(str, "MDT100"))
-        {
-            for (u8 i = 0; i < 6; i++) SRAMW_writeByte(i, MDT_HEADER[i]); // just write new file version
-        }*/
-
-        // not latest
+        for (u8 i = 0; i < 6; i++) str[i] = SRAM_readByte_Odd(i);
         /*
         <0	the first character that does not match has a lower value in ptr1 than in ptr2
         0	the contents of both strings are equal
@@ -5779,7 +5836,11 @@ void InitTracker()
 
 void FileWriteHeader()
 {
-    for (u8 i = 0; i < 6; i++) SRAM_writeByte(i, MDT_HEADER[i]); // write file version
+    for (u8 i = 0; i < 6; i++)
+    {
+        SRAM_writeByte_Odd(i, MDT_HEADER[i]); // write file version
+        SRAM_writeByte(i, 0); // clean spaces
+    }
 }
 
 void DrawStaticHeaders()
@@ -6016,65 +6077,62 @@ static inline u32 SRAM_ReadSampleRegionLegacy(u8 bank, u8 note, u8 byteNum)
     return (u32)SRAMW_readByte((u32)SAMPLE_DATA + (bank * NOTES * 8) + (note * 8) + byteNum);
 }
 
-void Legacy() // upgrade 1.1 to 1.2
+// tool
+void Legacy()
 {
     #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
-    for (u8 bank = 0; bank < 4; bank++)
-    {
-        for (u8 key = 0; key < NOTES; key++)
+        for (u8 bank = 0; bank < 4; bank++)
         {
-            u8 start1 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_START_1);
-            u8 start2 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_START_2);
-            u8 start3 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_START_3);
-            u8 end1 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_END_1);
-            u8 end2 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_END_2);
-            u8 end3 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_END_3);
-            u8 loop = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_LOOP);
-            u8 rate = SRAM_ReadSampleRegionLegacy(bank, key, 7);
+            for (u8 key = 0; key < NOTES; key++)
+            {
+                u8 start1 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_START_1);
+                u8 start2 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_START_2);
+                u8 start3 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_START_3);
+                u8 end1 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_END_1);
+                u8 end2 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_END_2);
+                u8 end3 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_END_3);
+                u8 loop = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_LOOP);
+                u8 rate = SRAM_ReadSampleRegionLegacy(bank, key, 7);
 
-            SRAM_WriteSampleRegion(bank, key, SAMPLE_START_1, start1);
-            SRAM_WriteSampleRegion(bank, key, SAMPLE_START_2, start2);
-            SRAM_WriteSampleRegion(bank, key, SAMPLE_START_3, start3);
-            SRAM_WriteSampleRegion(bank, key, SAMPLE_END_1, end1);
-            SRAM_WriteSampleRegion(bank, key, SAMPLE_END_2, end2);
-            SRAM_WriteSampleRegion(bank, key, SAMPLE_END_3, end3);
-            SRAM_WriteSampleRegion(bank, key, SAMPLE_LOOP, loop);
-            SRAM_WriteSampleRate(bank, key, rate);
+                SRAM_WriteSampleRegion(bank, key, SAMPLE_START_1, start1);
+                SRAM_WriteSampleRegion(bank, key, SAMPLE_START_2, start2);
+                SRAM_WriteSampleRegion(bank, key, SAMPLE_START_3, start3);
+                SRAM_WriteSampleRegion(bank, key, SAMPLE_END_1, end1);
+                SRAM_WriteSampleRegion(bank, key, SAMPLE_END_2, end2);
+                SRAM_WriteSampleRegion(bank, key, SAMPLE_END_3, end3);
+                SRAM_WriteSampleRegion(bank, key, SAMPLE_LOOP, loop);
+                SRAM_WriteSampleRate(bank, key, rate);
+            }
         }
-    }
+
+        /* beta
+        // update seq to 32 steps
+        for (u16 id = 0; id < INSTRUMENTS_TOTAL; id++)
+        {
+            for (u8 step = 0; step < 32; step++)
+            {
+                if (step < 16)
+                {
+                    SRAM_WriteSEQ_VOL(id, step, SRAM_ReadInstrument(id, 49+step));
+                    SRAM_WriteSEQ_ARP(id, step, SRAM_ReadInstrument(id, 65+step));
+                }
+                else
+                {
+                    SRAM_WriteSEQ_VOL(id, step, SEQ_VOL_SKIP);
+                    SRAM_WriteSEQ_ARP(id, step, NOTE_EMPTY);
+                }
+            }
+        }
+        // 00th instrument SEQ
+        for (u8 t = 0; t < 16; t++)
+        {
+            SRAM_WriteSEQ_VOL(0, t, SEQ_VOL_SKIP); // skip step
+            SRAM_WriteSEQ_ARP(0, t, NOTE_EMPTY); // empty note
+        }*/
 
     #endif
 }
-
-/*void Legacy() // update beta file to 1.0
-{
-    // update seq to 32 steps
-    for (u16 id = 0; id < INSTRUMENTS_TOTAL; id++)
-    {
-        for (u8 step = 0; step < 32; step++)
-        {
-            if (step < 16)
-            {
-                SRAM_WriteSEQ_VOL(id, step, SRAM_ReadInstrument(id, 49+step));
-                SRAM_WriteSEQ_ARP(id, step, SRAM_ReadInstrument(id, 65+step));
-            }
-            else
-            {
-                SRAM_WriteSEQ_VOL(id, step, SEQ_VOL_SKIP);
-                SRAM_WriteSEQ_ARP(id, step, NOTE_EMPTY);
-            }
-        }
-    }
-    // 00th instrument SEQ
-    for (u8 t = 0; t < 16; t++)
-    {
-        SRAM_WriteSEQ_VOL(0, t, SEQ_VOL_SKIP); // skip step
-        SRAM_WriteSEQ_ARP(0, t, NOTE_EMPTY); // empty note
-    }
-    char* head = "MDT100";
-    for (u8 i = 0; i < 6; i++) SRAM_writeByte(i, head[i]); // write file version
-}*/
 
 void ForceResetVariables()
 {

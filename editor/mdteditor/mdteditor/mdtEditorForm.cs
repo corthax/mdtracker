@@ -1,15 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
-using System.Diagnostics;
-using System.Reflection;
 
 namespace mdteditor
 {
@@ -173,7 +167,8 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
         private TabPage[] tcBanks = new TabPage[4];
 
         private int samplesCount = 0, presetsCount = 0;
-        private long sampleStart = -1, sampleEnd = 0;
+        private long sampleStart;
+        private long sampleEnd = -1;
         private List<int> lsPresetTypes = new List<int>();
 
         // GUI
@@ -657,9 +652,10 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
         // mdt sram. byteswapped
         private uint SRAMW_readByte(uint offset)
         {
-            //if ((offset & 1) == 1) offset -= 2;
-            //if ((offset & 1) == 1) offset++; else offset--;
-            if ((offset % 2) == 0) offset++; else offset--;
+            if (offset < 2) return 0;
+
+            //if ((offset % 2) == 0) offset++; else offset--;
+            if ((offset & 1) == 1) offset -= 2;
             return offset;
         }
 
@@ -804,7 +800,11 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
         private void btnOpenSRM_Click(object sender, EventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog();
-            ofd.Filter = "MD.Tracker Save (*.srm)|*.srm|Any File (*.*)|*.*";
+            ofd.Filter =
+                "MD.Tracker Save (*.sram)|*.sram|" +
+                "MD.Tracker Save (*.srm)|*.srm|" +
+                "Any File (*.*)|*.*";
+
             ofd.Multiselect = false;
             ofd.Title = "Open SRM";
             if (ofd.ShowDialog() == DialogResult.OK)
@@ -971,8 +971,17 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
 
                     FileInfo fi = new FileInfo(ofd.FileNames[i]);
 
+                    // samples must be 256 bytes aligned, so we extend if too short
+                    long chunks = fi.Length / 256;
+                    long remain = fi.Length - chunks * 256;
+                    long alignedLength = fi.Length;
+
+                    if (remain > 0) alignedLength += 256 - remain;
+
+                    Console.WriteLine($"chunks: {chunks}");
+
                     sampleStart = sampleEnd + 1;
-                    sampleEnd += fi.Length;
+                    sampleEnd += alignedLength;
 
                     lsSamplesPool_Start.Add(sampleStart);
                     lsSamplesPool_End.Add(sampleEnd);
@@ -1004,7 +1013,7 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
                     FileStream fs = new FileStream(ofd.FileNames[i], FileMode.Open, FileAccess.Read);
                     BinaryReader br = new BinaryReader(fs);
 
-                    byte[] file = new byte[fs.Length];
+                    byte[] file = new byte[alignedLength];
                     fs.Read(file, 0, file.Length);
 
                     dicSamplesPool_File.Add(id, file);
