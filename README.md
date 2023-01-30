@@ -17,7 +17,7 @@
 	
 ---
 
-SGDK 1.70 (https://github.com/Stephane-D/SGDK/wiki/Setup-SGDK-with-CodeBlocks)
+SGDK 1.80 (https://github.com/Stephane-D/SGDK/wiki/Setup-SGDK-with-CodeBlocks)
 
 Code::Blocks 20.03
 
@@ -48,6 +48,8 @@ See "MD.Tracker Readme.txt" for help on commands etc.
 ---
 
 Discord: https://discord.gg/CE22HNNk5y
+
+Demo music (recorded from sega nomad + guitars + vocals): https://youtu.be/evPza2j4I88
 
 ---
 
