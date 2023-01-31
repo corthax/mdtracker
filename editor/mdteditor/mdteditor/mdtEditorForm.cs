@@ -9,7 +9,7 @@ namespace mdteditor
 {
     public partial class mdtEditor : Form
     {
-        private const int ROM_SAMPLE_BANK = 0x0002F400; // symbol.txt sample_bank_1; check when md.tracker code is changed
+        private const int ROM_SAMPLE_BANK = 0x0002F600; // symbol.txt sample_bank_1; check when md.tracker code is changed
         private const int ROM_SAMPLE_BANK_SIZE = 3399000;
 
         private const int SRM_FILE_SIZE = 524288;
