@@ -5,6 +5,8 @@
  
 	BlastEm (RetroArch)
 	
+	BlastEm (Standalone 0.6.3-pre)
+	
 	Mega Everdrive Pro
 	
  Partially:
