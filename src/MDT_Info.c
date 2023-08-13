@@ -27,7 +27,7 @@ void InitInfo()
     infoCommands[0x15] = "PSG CH.4 NOISE MODE             ";
     infoCommands[0x16] = "PCM BANK                        ";
     infoCommands[0x17] = "CHANNEL TRANSPOSE               ";
-    infoCommands[0x18] = "";
+    infoCommands[0x18] = "CHANNEL FINETUNE                ";
     infoCommands[0x19] = "";
     infoCommands[0x1A] = "";
     infoCommands[0x1B] = "";
@@ -35,9 +35,9 @@ void InitInfo()
     infoCommands[0x1D] = "";
     infoCommands[0x1E] = "";
     infoCommands[0x1F] = "";
-    infoCommands[0x20] = "MSU MD: CD AUDIO - PLAY ONCE    ";
-    infoCommands[0x21] = "MSU MD: CD AUDIO - PLAY LOOP    ";
-    infoCommands[0x22] = "MSU MD: CD AUDIO - SEEK TIME    ";
+    infoCommands[0x20] = "";//"MSU MD: CD AUDIO - PLAY ONCE    ";
+    infoCommands[0x21] = "";//"MSU MD: CD AUDIO - PLAY LOOP    ";
+    infoCommands[0x22] = "";//"MSU MD: CD AUDIO - SEEK TIME    ";
     infoCommands[0x23] = "";
     infoCommands[0x24] = "";
     infoCommands[0x25] = "";
@@ -286,7 +286,7 @@ void InitInfo()
     infoDescriptions[0x15] = "X: 1=P, 2=W; Y: 0,1 TONAL 2,3,4 FIXED";
     infoDescriptions[0x16] = "00..03                               ";
     infoDescriptions[0x17] = "X: 1=UP, 2=DOWN; Y: SEMITONES;       ";
-    infoDescriptions[0x18] = "";
+    infoDescriptions[0x18] = "ADD 00..1F MICROTONES TO CHANNEL     ";
     infoDescriptions[0x19] = "";
     infoDescriptions[0x1A] = "";
     infoDescriptions[0x1B] = "";
@@ -294,9 +294,9 @@ void InitInfo()
     infoDescriptions[0x1D] = "";
     infoDescriptions[0x1E] = "";
     infoDescriptions[0x1F] = "";
-    infoDescriptions[0x20] = "01..63 TRACK NUMBER, 00: PAUSE       ";
-    infoDescriptions[0x21] = "01..63 TRACK NUMBER, 00: PAUSE       ";
-    infoDescriptions[0x22] = "01..FF ENABLE, 00: DISABLE           ";
+    infoDescriptions[0x20] = "";//01..63 TRACK NUMBER, 00: PAUSE       ";
+    infoDescriptions[0x21] = "";//01..63 TRACK NUMBER, 00: PAUSE       ";
+    infoDescriptions[0x22] = "";//01..FF ENABLE, 00: DISABLE           ";
     infoDescriptions[0x23] = "";
     infoDescriptions[0x24] = "";
     infoDescriptions[0x25] = "";

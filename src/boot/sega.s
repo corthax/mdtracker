@@ -496,7 +496,7 @@ ltuns:
         rts
 
 * #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-.global msu_drv
-msu_drv:
-.incbin "D:/gamedev/sega/project/mdtracker/src/boot/msu-drv.bin"
+*.global msu_drv
+*msu_drv:
+*.incbin "D:/gamedev/sega/project/mdtracker/src/boot/msu-drv.bin"
 * #endif

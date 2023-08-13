@@ -26,7 +26,7 @@
 //#define MDT_VERSION 0
 //-------------------------------
 
-#define MDT_HEADER              "MDT103"
+#define MDT_HEADER              "MDT104"
 #define STRING_EMPTY            ""
 #define H_INT_DURATION_NTSC     744     // ; 744
 #define H_INT_DURATION_PAL      892     // ; 892
@@ -131,6 +131,7 @@ u16 channelVibratoSpeed[CHANNELS_TOTAL]; // (u4) * channelVibratoSpeedMult
 u8 channelVibratoSpeedMult[CHANNELS_TOTAL];
 u16 channelVibratoPhase[CHANNELS_TOTAL];
 s8 channelFinalPitch[CHANNELS_TOTAL];
+u8 channelFineTune[CHANNELS_TOTAL];
 s8 channelModNoteVibrato[CHANNELS_TOTAL];
 
 u8 channelTremoloDepth[CHANNELS_TOTAL];
@@ -212,12 +213,12 @@ Instrument chInst[CHANNELS_TOTAL]; // to apply commands; FM only
 
 u8 midiPreset = 0;
 
-u16 msu_drv();
+/*u16 msu_drv();
 vu16 *mcd_cmd = (vu16 *) 0xA12010;  // command
 vu32 *mcd_arg = (vu32 *) 0xA12012;  // argument
 vu8 *mcd_cmd_ck = (vu8 *) 0xA1201F; // increment for command execution
 vu8 *mcd_stat = (vu8 *) 0xA12020;   // Driver ready for commands processing when 0xA12020 sets to 0
-u16 msu_resp;
+u16 msu_resp;*/
 
 static const u8 GUI_PATTERNCOLORS[14] = { 42, 43, 44, 45, 46, 47, 56, 57, 58, 59, 60, 61, 62, 63 };
 
@@ -3793,14 +3794,18 @@ static inline void ReleaseZ80()
 
 static inline void SetPitchPSG(u8 mtxCh, u8 note)
 {
-    static s8 key = 0;
+    static u8 key = 0;
+    static s8 keyMod = 0;
 
-    key = note + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh];
+    keyMod = note + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh];
+    channelFinalPitch[mtxCh] += channelFineTune[mtxCh];
+    if (channelFinalPitch[mtxCh] > 31) { keyMod++; channelFinalPitch[mtxCh] -= 32; }
 
-    if (key < PSG_LOWEST_NOTE) { key = PSG_LOWEST_NOTE;
+    if (keyMod < PSG_LOWEST_NOTE) { key = PSG_LOWEST_NOTE;
         channelPitchSlideSpeed[mtxCh] = 0; }
-    else if (key > NOTE_MAX) { key = NOTE_MAX;
+    else if (keyMod > NOTE_MAX) { key = NOTE_MAX;
         channelPitchSlideSpeed[mtxCh] = 0; }
+    else key = keyMod;
 
     if (channelFlags[mtxCh])
     {
@@ -3808,11 +3813,11 @@ static inline void SetPitchPSG(u8 mtxCh, u8 note)
         {
         case CHANNEL_PSG1:
             SetChannelVolume(mtxCh);
-            PSG_setTone(0, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]); // write tone to PSG3 to supply PSG4 tonal noise
+            PSG_setTone(0, noteMicrotone_PSG[key][(u8)channelFinalPitch[mtxCh]]);
             break;
         case CHANNEL_PSG2:
             SetChannelVolume(mtxCh);
-            PSG_setTone(1, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]);
+            PSG_setTone(1, noteMicrotone_PSG[key][(u8)channelFinalPitch[mtxCh]]);
             break;
         case CHANNEL_PSG3:
             switch (PSG_NoiseMode)
@@ -3822,7 +3827,7 @@ static inline void SetPitchPSG(u8 mtxCh, u8 note)
                 break;
             case PSG_TONAL_CH3_NOT_MUTED: case PSG_FIXED:
                 SetChannelVolume(mtxCh);
-                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]);
+                PSG_setTone(2, noteMicrotone_PSG[key][(u8)channelFinalPitch[mtxCh]]);
                 break;
             }
             break;
@@ -3832,11 +3837,11 @@ static inline void SetPitchPSG(u8 mtxCh, u8 note)
             case PSG_TONAL_CH3_MUTED:
                 SetChannelVolume(mtxCh);
                 PSG_setEnvelope(2, PSG_ENVELOPE_MIN); // mute PSG3 channel
-                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]);
+                PSG_setTone(2, noteMicrotone_PSG[key][(u8)channelFinalPitch[mtxCh]]); // write tone to PSG3 to supply PSG4 tonal noise
                 break;
             case PSG_TONAL_CH3_NOT_MUTED:
                 SetChannelVolume(mtxCh);
-                PSG_setTone(2, psgNoteMicrotone[(u8)key][(u8)channelFinalPitch[mtxCh] / 2]);
+                PSG_setTone(2, noteMicrotone_PSG[key][(u8)channelFinalPitch[mtxCh]]); // write tone to PSG3 to supply PSG4 tonal noise
                 break;
             case PSG_FIXED:
                 SetChannelVolume(mtxCh);
@@ -3853,9 +3858,15 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
     static u8 part1 = 0, part2 = 0;
     static s8 key = 0;
 
+    key = note + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh];
+    channelFinalPitch[mtxCh] += channelFineTune[mtxCh];
+    if (channelFinalPitch[mtxCh] > 31) { key++; channelFinalPitch[mtxCh] -= 32; }
+
     auto void set_key()
     {
         key = note + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh];
+        channelFinalPitch[mtxCh] += channelFineTune[mtxCh];
+        if (channelFinalPitch[mtxCh] > 31) { key++; channelFinalPitch[mtxCh] -= 32; }
     }
 
     // CSM
@@ -3875,8 +3886,8 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
 
     if ((key > -1) && (key < NOTES))
     {
-        part1 = ((noteOctave[(u8)key]) << 3) | (noteMicrotone[noteFreqID[(u8)key]][(u8)channelFinalPitch[mtxCh]] >> 8);
-        part2 = 0b0000000011111111 & noteMicrotone[noteFreqID[(u8)key]][(u8)channelFinalPitch[mtxCh]];
+        part1 = ((noteOctave[(u8)key]) << 3) | (noteMicrotone_YM[noteFreqID[(u8)key]][(u8)channelFinalPitch[mtxCh]] >> 8);
+        part2 = 0b0000000011111111 & noteMicrotone_YM[noteFreqID[(u8)key]][(u8)channelFinalPitch[mtxCh]];
 
         switch (mtxCh)
         {
@@ -4570,6 +4581,11 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
         //DrawPP();
         break;
 
+    // CHANNEL FINETUNE
+    case 0x18:
+        if (fxValue < 32) channelFineTune[mtxCh] = fxValue;
+        break;
+
     // ARP SEQUENCE MODE
     case 0x2F:
         if (!fxValue) channelArpSeqMODE[mtxCh] = 0; else channelArpSeqMODE[mtxCh] = 1;
@@ -4822,7 +4838,7 @@ static inline void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
         break;
 
     // MSU MD CD audio PLAY ONCE
-    case 0x20:
+    /*case 0x20:
         if (!fxValue)
         {
             *mcd_cmd = MSU_PAUSE;
@@ -4834,10 +4850,10 @@ static inline void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
             *mcd_cmd = MSU_PLAY | fxValue; // track number
             *mcd_cmd_ck = *mcd_cmd_ck + 1;
         }
-        break;
+        break;*/
 
     // MSU MD CD audio PLAY LOOP
-    case 0x21:
+    /*case 0x21:
         if (!fxValue)
         {
             *mcd_cmd = MSU_PAUSE;
@@ -4849,10 +4865,10 @@ static inline void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
             *mcd_cmd = MSU_PLAY_LOOP | fxValue;
             *mcd_cmd_ck = *mcd_cmd_ck + 1;
         }
-        break;
+        break;*/
 
     // MSU MD CD audio SEEK TIME EMULATION
-    case 0x22:
+    /*case 0x22:
         if (!fxValue)
         {
             *mcd_cmd = MSU_SEEK_OFF;
@@ -4863,7 +4879,7 @@ static inline void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
             *mcd_cmd = MSU_SEEK_ON;
             *mcd_cmd_ck = *mcd_cmd_ck + 1;
         }
-        break;
+        break;*/
 
     // Smooth PCM pan
     //case 0x2C:
@@ -5580,7 +5596,7 @@ void InitTracker()
 
 #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
-    msu_resp = msu_drv();
+    //msu_resp = msu_drv();
 
     //if (msu_resp == 0) // Function will return 0 if driver loaded successfully or 1 if MCD hardware not detected.
     //{
