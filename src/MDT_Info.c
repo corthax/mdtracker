@@ -50,8 +50,8 @@ void InitInfo()
     infoCommands[0x2C] = "";
     infoCommands[0x2D] = "";
     infoCommands[0x2E] = "";
-    infoCommands[0x2F] = "ARP SEQUENCE MACRO MODE         ";
-    infoCommands[0x30] = "ARP SEQUENCE MACRO              ";
+    infoCommands[0x2F] = "ARP MACRO PLAY MODE             ";
+    infoCommands[0x30] = "ARP MACRO ID                    ";
     infoCommands[0x31] = "PITCH SLIDE UP                  ";
     infoCommands[0x32] = "PITCH SLIDE DOWN                ";
     infoCommands[0x33] = "VIBRATO                         ";
@@ -65,9 +65,9 @@ void InitInfo()
     infoCommands[0x3B] = "";
     infoCommands[0x3C] = "";
     infoCommands[0x3D] = "";
-    infoCommands[0x3E] = "";
-    infoCommands[0x3F] = "VOL SEQUENCE MACRO MODE         ";
-    infoCommands[0x40] = "VOL SEQUENCE MACRO              ";
+    infoCommands[0x3E] = "SEQ TYPE                        ";
+    infoCommands[0x3F] = "SEQ MACRO PLAY MODE             ";
+    infoCommands[0x40] = "SEQ MACRO ID                    ";
     infoCommands[0x41] = "CHANNEL VOLUME ATTENUATION      ";
     infoCommands[0x42] = "TREMOLO                         ";
     infoCommands[0x43] = "TREMOLO SPEED                   ";
@@ -277,7 +277,7 @@ void InitInfo()
     infoDescriptions[0x0C] = "00..03; >03: RESET                   ";
     infoDescriptions[0x0D] = "00..07; >07: RESET                   ";
     infoDescriptions[0x0E] = "11=C, 10=L, 01=R, FF=MUTE; 00: RESET ";
-    infoDescriptions[0x0F] = "01..FF, 00: RESET         [DEFAULT 2]";
+    infoDescriptions[0x0F] = "1,2,4,8,16,[32]           [DEFAULT 2]";
     infoDescriptions[0x10] = "01..08, 00: RESET                    ";
     infoDescriptions[0x11] = ">00 DAC ON, 00: DAC OFF              ";
     infoDescriptions[0x12] = "01=SPECIAL, 02=CSM, 00: NORMAL       ";
@@ -309,7 +309,7 @@ void InitInfo()
     infoDescriptions[0x2C] = "";
     infoDescriptions[0x2D] = "";
     infoDescriptions[0x2E] = "";
-    infoDescriptions[0x2F] = "00: LOOP, 01=ONCE                    ";
+    infoDescriptions[0x2F] = "00: LOOP, 01: ONCE                   ";
     infoDescriptions[0x30] = "[XX] INSTRUMENT; 00: DISABLE         ";
     infoDescriptions[0x31] = "01..7F, 00: OFF, FF=RESET, FE=HOLD   ";
     infoDescriptions[0x32] = "01..7F, 00: OFF, FF=RESET, FE=HOLD   ";
@@ -324,9 +324,9 @@ void InitInfo()
     infoDescriptions[0x3B] = "";
     infoDescriptions[0x3C] = "";
     infoDescriptions[0x3D] = "";
-    infoDescriptions[0x3E] = "";
-    infoDescriptions[0x3F] = "00: LOOP, 01=ONCE                    ";
-    infoDescriptions[0x40] = "00: DISABLE                          ";
+    infoDescriptions[0x3E] = "COMMAND ID               [DEFAULT 41]";
+    infoDescriptions[0x3F] = "00: LOOP, 01: ONCE                   ";
+    infoDescriptions[0x40] = "[XX] INSTRUMENT; 00: DISABLE         ";
     infoDescriptions[0x41] = "[FM] 00..7F; [PSG]/8;                ";
     infoDescriptions[0x42] = "X SPEED, Y DEPTH, 00: OFF            ";
     infoDescriptions[0x43] = "00: RESET                [DEFAULT 20]";

@@ -133,6 +133,11 @@
 #define VIBRATO_PHASE   0
 #define TREMOLO_PHASE   512
 
+#define COMMAND_ALG     0x0A
+
+#define SEQ_TYPE_ALG    0x00
+#define SEQ_TYPE_VOL    0x50
+
 void InitTracker();
 void DrawText(u8 plane, u8 pal, const char *str, u8 x, u8 y);
 void DrawNum(u8 plane, u8 pal, const char *str, u8 x, u8 y);
@@ -174,6 +179,7 @@ void ForceResetVariables();
 static void ReadMatrixRow();
 void Legacy();
 void FileWriteHeader();
+static inline void CountPulses();
 
 // temporal instrument storage
 struct Instrument
