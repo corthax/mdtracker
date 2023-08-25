@@ -813,14 +813,14 @@ static inline void DoEngine()
 
             _inst = SRAM_ReadPattern(channelPlayingPatternID[mtxCh], playingPatternRow, DATA_INSTRUMENT);
 
-            if (instrumentIsMuted[_inst] == INST_MUTE) // check if instrument is muted. ignore writes, replace note with OFF if so
+            /*if (instrumentIsMuted[_inst] == INST_MUTE) // check if instrument is muted. ignore writes, replace note with OFF if so
             {
                 _inst = NULL; channelCurrentRowNote[mtxCh] = NOTE_OFF;
-            }
-            else
-            {
+            }*/
+            //else
+            //{
                 channelCurrentRowNote[mtxCh] = SRAM_ReadPattern(channelPlayingPatternID[mtxCh], playingPatternRow, DATA_NOTE);
-            }
+            //}
 
             // auto cut note before next note
             if (channelNoteAutoCut[mtxCh])
@@ -876,6 +876,8 @@ static inline void DoEngine()
                 apply_commands();
             }
 
+            if (instrumentIsMuted[channelPreviousInstrument[mtxCh]] == INST_MUTE) channelCurrentRowNote[mtxCh] = NOTE_OFF;
+
             // --------- trigger note playback; check empty note later; pass note id: 0..95, 254, 255
             if (channelCurrentRowNote[mtxCh] == NOTE_OFF) // there is OFF
             {
@@ -906,6 +908,8 @@ static inline void DoEngine()
 
                 //if (!channelNoteDelayCounter[mtxCh] && !channelNoteRetrigger[mtxCh]) // re-triggered from do_effects
                 //{
+                    //if (instrumentIsMuted[_inst] == INST_MUTE) _key = NOTE_OFF;
+
                     PlayNote((u8)_key, mtxCh);
                 //}
             }
