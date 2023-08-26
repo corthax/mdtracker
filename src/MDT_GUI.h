@@ -22,7 +22,7 @@
 #define GUI_INST_PARAM_AM           14
 #define GUI_INST_PARAM_SSGEG        15
 #define GUI_INST_PARAM_LFO          16
-#define GUI_INST_PARAM_VOLSEQ       17
+#define GUI_INST_PARAM_PARSEQ       17
 #define GUI_INST_PARAM_ARPSEQ       18
 #define GUI_INST_PARAM_PCM_BANK     19
 #define GUI_INST_PARAM_PCM_NOTE     20

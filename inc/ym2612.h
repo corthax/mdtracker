@@ -36,21 +36,25 @@ void YM2612_reset(void);
 u8   YM2612_read(const u16 port);
 /**
  *  \brief
+ *      Return YM2612 status (busy and timer flag).
+ *
+ *  \return YM2612 status.
+ */
+u8   YM2612_readStatus();
+/**
+ *  \brief
  *      Write YM2612 port.
  *
  *  \param port
  *      Port number (0-3)
  *  \param data
  *      Data to write
- *
- *  This function does not perform busy check before writing to YM port.<br>
- *  See also YM2612_writeSafe().
  */
 void YM2612_write(const u16 port, const u8 data);
 /**
  *  \deprecated Use YM2612_write(..) method instead.
  */
-void YM2612_writeSafe(const u16 port, const u8 data);
+#define YM2612_writeSafe(port, data)        _Pragma("GCC error \"This definition is deprecated, use YM2612_write(..) instead.\"")
 /**
  *  \brief
  *      Set YM2612 register value.
@@ -61,15 +65,12 @@ void YM2612_writeSafe(const u16 port, const u8 data);
  *      register number
  *  \param data
  *      register value
- *
- *  This function does not perform busy check before writing to YM port.<br>
- *  See also YM2612_writeRegSafe().
  */
 void YM2612_writeReg(const u16 part, const u8 reg, const u8 data);
 /**
  *  \deprecated Use YM2612_writeReg(..) method instead.
  */
-void YM2612_writeRegSafe(const u16 part, const u8 reg, const u8 data);
+#define YM2612_writeRegSafe(part, reg, data)        _Pragma("GCC error \"This definition is deprecated, use YM2612_writeReg(..) instead.\"")
 
 /**
  *  \brief

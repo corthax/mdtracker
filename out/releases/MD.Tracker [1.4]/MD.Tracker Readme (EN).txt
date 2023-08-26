@@ -58,17 +58,19 @@ Use overclocking for best performance =^..^=
 Changelog:
 ----------------
 1.04
+	Fixes:
+		A bit smoother playback.
+		Note retrigger.
+		Instrument mute/solo.		
 	Changes:
 		Command 18xx - Channel microtone finetune. Add up to 31 (1F) microtones (1/32 semitone).
 		Command 3Exx - Channel sub-sequencer type. VOL sub-sequencer renamed to SEQ. Now it's used to sequence any FM parameter (and PSG volume). Value is FM-related command number or 41 for volume.
 		Removed non working msu-md driver.
 		Removed save upgrade from 1.00/1.01 to 1.03.
+		Added save upgrade from 1.03 to 1.04.
 		Removed pulses/frames per second counter. Not really helpfull.
 		PSG microtones resolution increased to 32 instead of 16. Somewhat usefull for 1-2 octaves.
-		Not fully compatible with 1.03 saves: with old save, to disable SEQ/ARP, you need to set it to any empty sequence not containing value at first tick, instead of 3000/4000 commands.
-		A bit smoother playback.
-		Fixed(?) note retrigger.
-		Instrument mute/solo fix.
+		SGDK 1.80 -> 1.90
 1.03
 	Fixes:
 		SRAM file changed to start at address 0 (same as pre 1.02).
@@ -329,12 +331,11 @@ Commands are applied from left to right.
 ------------------------------------------------
 
 ************************************************
-H-INT callback skip (Tempo divider. Higher = slower tempo and less BPM precision, but also less CPU load)
+H-INT callback skip (Tempo divider. Higher = slower tempo and less BPM precision, but also less CPU load) !!! V-INT always counts a pulse (every 1/50 or 1/60 sec). !!!
 	0Fxx
-xx: 00..FF; Recommended values:
+xx: 00..FF; Recommended values (whole divisions of scanlines number):
 	NTSC 224: 1,2,4,8,16,32
 	PAL  240: 1,2,4,8,16
-	V-INTS always counts a pulse.
 	1 = no skips, 2 = every second scanline, 4 = every 4th scanline, etc.
 00: Set	to default (2)
 	

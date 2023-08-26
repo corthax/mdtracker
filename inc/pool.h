@@ -9,7 +9,7 @@
  * You can use <i>Pool</i> object to handle dynamic allocation from a fixed set of objects.<br>
  * For instance if you may need to handle dynamically bullets for your game and you want to have
  * at max 20 bullets, you can handle it that way:<pre>
- * Pool* bulletPool POOL_create(20, sizeof(Bullet));
+ * Pool* bulletPool = POOL_create(20, sizeof(Bullet));
  * ...
  * // create a new bullet
  * Bullet* bullet = POOL_allocate(bulletPool);
@@ -46,7 +46,8 @@
  *      bank data
  *  \param allocStack
  *      allocation stack used for fast allocate / release operation
- *  \param ree      point on first available object in the allocation stack
+ *  \param free
+ *      point on first available object in the allocation stack
  *  \param objectSize
  *      size of a single object (in bytes)
  *  \param size
@@ -117,15 +118,15 @@ void* POOL_allocate(Pool* pool);
  *
  *  \param pool
  *      Object pool allocator
- *  \param obj
+ *  \param object
  *      Object to release
  *  \param maintainCoherency
- *      set it to <i>TRUE</i> if you want to keep coherency for stack iteration (#see POOL_getFirst()).<br>
+ *      set it to <i>TRUE</i> if you want to keep coherency for stack iteration (see #POOL_getFirst()).<br>
  *      Set it to <i>FALSE</i> for faster release process if you don't require object iteration through alloc stack.
  *
  *  \see POOL_allocate(..)
  */
-void POOL_release(Pool* pool, void* obj, bool maintainCoherency);
+void POOL_release(Pool* pool, void* object, bool maintainCoherency);
 
 /**
  *  \return
@@ -161,10 +162,10 @@ void** POOL_getFirst(Pool* pool);
  *
  *  \param pool
  *      Object pool allocator
- *  \param obj
+ *  \param object
  *      Object to get slot position
  */
-s16 POOL_find(Pool* pool, void* obj);
+s16 POOL_find(Pool* pool, void* object);
 
 
 #endif // _POOL_H_

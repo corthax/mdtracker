@@ -67,7 +67,7 @@ void XGM_stopPlay(void);
 void XGM_pausePlay(void);
 /**
  * \brief
- *      Resume playing music after pausing with XGM_pausePlay (XGM music player driver).<br>
+ *      Resume playing music after pausing with #XGM_pausePlay (XGM music player driver).<br>
  *      Note that due to the nature of the music chip (FM synthesis), resume play operation will never be perfect
  *      and some notes will miss until next key-on event occurs.
  *
@@ -133,6 +133,16 @@ void XGM_setPCM(const u8 id, const u8 *sample, const u32 len);
  *      SGDK automatically adjust resource size as needed
  */
 void XGM_setPCMFast(const u8 id, const u8 *sample, const u32 len);
+/**
+ *  \brief
+ *      Same as #XGM_setPCM(..) allowing PCM access through bank switch
+ */
+void XGM_setPCM_FAR(const u8 id, const u8 *sample, const u32 len);
+/**
+ *  \brief
+ *      Same as #XGM_setPCMFast(..) allowing PCM access through bank switch
+ */
+void XGM_setPCMFast_FAR(const u8 id, const u8 *sample, const u32 len);
 /**
  *  \brief
  *      Play a PCM sample on specified channel (XGM music player driver).<br>

@@ -33,7 +33,7 @@ void InitInfo()
     infoCommands[0x1B] = "";
     infoCommands[0x1C] = "";
     infoCommands[0x1D] = "";
-    infoCommands[0x1E] = "";
+    infoCommands[0x1E] = "";//IGNORE CHANNEL EFFECTS          ";
     infoCommands[0x1F] = "";
     infoCommands[0x20] = "";//"MSU MD: CD AUDIO - PLAY ONCE    ";
     infoCommands[0x21] = "";//"MSU MD: CD AUDIO - PLAY LOOP    ";
@@ -292,7 +292,7 @@ void InitInfo()
     infoDescriptions[0x1B] = "";
     infoDescriptions[0x1C] = "";
     infoDescriptions[0x1D] = "";
-    infoDescriptions[0x1E] = "";
+    infoDescriptions[0x1E] = "";//00=DISABLE, ELSE ENABLE   [DEFAULT 1]";
     infoDescriptions[0x1F] = "";
     infoDescriptions[0x20] = "";//01..63 TRACK NUMBER, 00: PAUSE       ";
     infoDescriptions[0x21] = "";//01..63 TRACK NUMBER, 00: PAUSE       ";
@@ -342,7 +342,7 @@ void InitInfo()
     infoDescriptions[0x4D] = "";
     infoDescriptions[0x4E] = "";
     infoDescriptions[0x4F] = "";
-    infoDescriptions[0x50] = "EVERY [XX] PULSES; 00: OFF           ";
+    infoDescriptions[0x50] = "CUT AT [XX] PULSE; 00: OFF           ";
     infoDescriptions[0x51] = "AFTER [XX] PULSES                    ";
     infoDescriptions[0x52] = "00..FA MATRIX ROW TO JUMP            ";
     infoDescriptions[0x53] = "00..1F PATTERN ROW TO JUMP           ";

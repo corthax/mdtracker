@@ -31,8 +31,8 @@ static u8 SRAM_ReadMatrixChannelEnabled(u8 channel);
 void SRAM_WriteMatrixChannelEnabled(u8 channel, u8 state);
 
 //seq
-static u8 SRAM_ReadSEQ_VOL(u8 id, u8 step);
-void SRAM_WriteSEQ_VOL(u8 id, u8 step, u8 data);
+static u8 SRAM_ReadSEQ_PAR(u8 id, u8 step);
+void SRAM_WriteSEQ_PAR(u8 id, u8 step, u8 data);
 static u8 SRAM_ReadSEQ_ARP(u8 id, u8 step);
 void SRAM_WriteSEQ_ARP(u8 id, u8 step, u8 data);
 

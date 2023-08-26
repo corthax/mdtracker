@@ -1,7 +1,7 @@
 #ifndef _GENESIS_H_
 #define _GENESIS_H_
 
-#define SGDK_VERSION    1.71
+#define SGDK_VERSION    1.90
 
 #include "types.h"
 
@@ -31,6 +31,7 @@
 #include "vdp_bg.h"
 #include "vdp_spr.h"
 #include "vdp_tile.h"
+#include "vdp_pal.h"
 
 #include "pal.h"
 
@@ -41,6 +42,7 @@
 
 #include "bmp.h"
 #include "sprite_eng.h"
+#include "sprite_eng_legacy.h"
 
 #include "sound.h"
 #include "xgm.h"
@@ -63,6 +65,15 @@
 
 #if (MODULE_MEGAWIFI != 0)
 #include "ext/mw/megawifi.h"
+#endif
+
+#if (MODULE_FLASHSAVE != 0)
+#include "ext/flash-save/flash.h"
+#include "ext/flash-save/saveman.h"
+#endif
+
+#if (MODULE_CONSOLE != 0)
+#include "ext/console.h"
 #endif
 
 #if (MODULE_FRACTAL != 0)

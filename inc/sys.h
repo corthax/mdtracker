@@ -211,7 +211,7 @@ bool SYS_doVBlankProcess(void);
  *      and the method was called from V-Int (vertical interrupt) callback in which case we exit the function
  *      as V-Int will be triggered immediately.<br>
  *
- * Do all the SGDK VBlank process.<br>
+ * Wait for Vblank and does all the SGDK VBlank process.<br>
  * Some specific processing should be done during the Vertical Blank period as the VDP is idle at this time.
  * This is always where we should do all VDP data transfer (using the DMA preferably) but we can also do the processes which
  * has to be done at a frame basis (joypad polling, sound driver sync/update..)<br>
@@ -223,6 +223,16 @@ bool SYS_doVBlankProcess(void);
  * Note that depending the used <i>time</i> parameter, VBlank process may be delayed to next VBlank so that will wause a frame miss.
  */
 bool SYS_doVBlankProcessEx(VBlankProcessTime processTime);
+
+/**
+ *  \brief
+ *      End the current frame (alias for #SYS_doVBlankProcess(void)).
+ *
+ *  End the current frame and does all the internal SGDK process (DMA flush, VDP data upload, async palette fade, scroll update..)
+ *
+ *  \see SYS_doVBlankProcess(void)
+ */
+bool SYS_nextFrame(void);
 
 /**
  *  \brief
@@ -415,6 +425,13 @@ fix32 SYS_getFPSAsFloat(void);
 u16 SYS_getCPULoad(void);
 /**
  *  \brief
+ *      Returns TRUE if frame load is currently displayed, FALSE otherwise
+
+ * \see SYS_showFrameLoad(void)
+ */
+bool SYS_getShowFrameLoad();
+/**
+ *  \brief
  *      Show a cursor indicating current frame load level in scanline (top = 0% load, bottom = 100% load)
  *
  *  \param mean
@@ -434,7 +451,6 @@ void SYS_showFrameLoad(bool mean);
  * \see SYS_showFrameLoad(void)
  */
 void SYS_hideFrameLoad(void);
-
 
 /**
  *  \brief

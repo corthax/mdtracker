@@ -87,10 +87,6 @@
 #define PORT_TYPE_PAD           0x0D
 #define PORT_TYPE_UNKNOWN       0x0F
 #define PORT_TYPE_EA4WAYPLAY    0x10
-/**
- * \deprecated Use  PORT_TYPE_UNKNOWN instead
- */
-#define PORT_TYPE_UKNOWN        PORT_TYPE_UNKNOWN
 
 #define JOY_SUPPORT_OFF             0x00
 #define JOY_SUPPORT_3BTN            0x01
@@ -164,10 +160,21 @@ void JOY_reset(void);
 
 /**
  *  \brief
+ *      Returns the current set callback function for controller state change.<br>
+ *<br>
+ *      SGDK provides an event system to detect state change on controller.<br>
+ *      It internally updates controllers state at each V Blank period and fire an event if a state change is detected.<br>
+ *
+ *  \return
+ *      The current set callback method on joy state change.<br>
+ */
+JoyEventCallback* JOY_getEventHandler();
+/**
+ *  \brief
  *      Set the callback function for controller state changed.<br>
  *<br>
- *      SGDK provides facilities to detect state change on controller.<br>
- *      It update controllers state at each V Blank period and fire event if a state change is detected.<br>
+ *      SGDK provides an event system to detect state change on controller.<br>
+ *      It internally updates controllers state at each V Blank period and fire an event if a state change is detected.<br>
  *
  *  \param CB
  *      Callback to call when controller(s) state changed.<br>

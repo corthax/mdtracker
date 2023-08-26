@@ -168,7 +168,7 @@ typedef struct Map
  *  \brief
  *      Create and return a Map structure required to use all MAP_xxx functions
  *      from a given MapDefinition.<br>
- *      When you're done with the map just use MEM_free(map) to release it.
+ *      When you're done with the map you shall use MAP_release(map) to release it.
  *
  *  \param mapDef
  *      MapDefinition structure containing background/plane data.
@@ -185,6 +185,15 @@ typedef struct Map
  *  \return initialized Map structure or <i>NULL</i> if there is not enough memory to allocate data for given MapDefinition.
  */
 Map* MAP_create(const MapDefinition* mapDef, VDPPlane plane, u16 baseTile);
+
+/**
+ *  \brief
+ *      Release the map and its resources (same as MEM_free(map))
+ *
+ *  \param map
+ *      the Map structure to release
+ */
+void MAP_release(Map* map);
 
 /**
  *  \brief

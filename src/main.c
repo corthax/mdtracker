@@ -76,14 +76,16 @@ u8 channelPreviousInstrument[CHANNELS_TOTAL];
 u8 channelPreviousEffectType[CHANNELS_TOTAL][EFFECTS_TOTAL];
 u8 channelPreviousNote[CHANNELS_TOTAL];
 u8 channelArpSeqID[CHANNELS_TOTAL];
-u8 channelArpSeqMODE[CHANNELS_TOTAL];
-u8 channelVolSeqID[CHANNELS_TOTAL];
-u8 channelVolSeqMODE[CHANNELS_TOTAL];
-u8 channelVolSeqTYPE[CHANNELS_TOTAL];
+u8 channelArpSeqPlayMODE[CHANNELS_TOTAL];
+u8 channelParSeqID[CHANNELS_TOTAL];
+u8 channelParSeqPlayMODE[CHANNELS_TOTAL];
+u8 channelParSeqTYPE[CHANNELS_TOTAL];
 u8 channelCurrentRowNote[CHANNELS_TOTAL]; // affected by channelMatrixTranspose
 u8 channelNoteAutoCut[CHANNELS_TOTAL];
 
-u8 channelSEQCounter_VOL[CHANNELS_TOTAL];
+//u8 channelDoEffects[CHANNELS_TOTAL];
+
+u8 channelSEQCounter_PAR[CHANNELS_TOTAL];
 u8 channelSEQCounter_ARP[CHANNELS_TOTAL];
 
 u8 channelRowShift[CHANNELS_TOTAL][PATTERN_ROWS];
@@ -93,7 +95,7 @@ u8 selectedInstrumentParameter = 0; // 0..53
 u8 selectedInstrumentOperator = 0; // 0..53
 
 u8 seqArpValue[INSTRUMENTS_TOTAL][SEQ_STEP_LAST+1];
-u8 seqVolValue[INSTRUMENTS_TOTAL][SEQ_STEP_LAST+1];
+u8 seqParValue[INSTRUMENTS_TOTAL][SEQ_STEP_LAST+1];
 
 // screen
 u8 currentScreen = SCREEN_MATRIX;
@@ -361,7 +363,7 @@ int main(bool hardReset)
 	return(0);
 }
 
-static inline void CountPulses()
+FORCE_INLINE static inline void CountPulses()
 {
     hIntCounter--;
     if (!hIntCounter)
@@ -530,7 +532,7 @@ void NavigateInstrument(u8 direction)
         case GUI_INST_PARAM_SSGEG:
             if (selectedInstrumentOperator > 0) selectedInstrumentOperator--; else selectedInstrumentOperator = 3;
             break;
-        case GUI_INST_PARAM_VOLSEQ:
+        case GUI_INST_PARAM_PARSEQ:
         case GUI_INST_PARAM_ARPSEQ:
             if (selectedInstrumentOperator > 0) selectedInstrumentOperator--; else selectedInstrumentOperator = SEQ_STEP_LAST;
             break;
@@ -576,7 +578,7 @@ void NavigateInstrument(u8 direction)
         case GUI_INST_PARAM_SSGEG:
             if (selectedInstrumentOperator < 3) selectedInstrumentOperator++; else selectedInstrumentOperator = 0;
             break;
-        case GUI_INST_PARAM_VOLSEQ:
+        case GUI_INST_PARAM_PARSEQ:
         case GUI_INST_PARAM_ARPSEQ:
             if (selectedInstrumentOperator < SEQ_STEP_LAST) selectedInstrumentOperator++; else selectedInstrumentOperator = 0;
             break;
@@ -626,7 +628,7 @@ void NavigateInstrument(u8 direction)
     }
 }
 // -------------------------------------------------------------------------------------------------------------
-static inline void DoEngine()
+static void DoEngine()
 {
     static u8 _seqValue = 0;
     static u8 _fxType = 0;
@@ -661,13 +663,14 @@ static inline void DoEngine()
     //static u16 port = 0;    // chip port (0..1)
     //static u8 ymCh = 0;       // chip channel (0..2)
 
-    auto inline void seq_vol(u8 mtxCh) {
-        if (!channelVolSeqMODE[mtxCh] || (channelVolSeqMODE[mtxCh] && (channelSEQCounter_VOL[mtxCh] < SEQ_STEP_LAST)))
+    auto void seq_par(u8 mtxCh) {
+        if (!channelParSeqPlayMODE[mtxCh] || (channelParSeqPlayMODE[mtxCh] && (channelSEQCounter_PAR[mtxCh] < SEQ_STEP_LAST)))
         {
-            _seqValue = seqVolValue[channelVolSeqID[mtxCh]][channelSEQCounter_VOL[mtxCh]]; channelSEQCounter_VOL[mtxCh]++;
-            if (_seqValue != SEQ_VOL_SKIP)
+            _seqValue = seqParValue[channelParSeqID[mtxCh]][channelSEQCounter_PAR[mtxCh]]; channelSEQCounter_PAR[mtxCh]++;
+
+            if (_seqValue != SEQ_SKIP)
             {
-                if (channelVolSeqTYPE[mtxCh] == 0x41) // common FM/PSG volume attenuation
+                if (channelParSeqTYPE[mtxCh] == SEQ_TYPE_VOL) // common FM/PSG volume attenuation
                 {
                     channelSeqAttenuation[mtxCh] = _seqValue;
                     SetChannelVolume(mtxCh);
@@ -675,45 +678,15 @@ static inline void DoEngine()
                 else if (mtxCh < CHANNEL_PSG1) // FM commands only
                 {
                     bWriteRegs = TRUE;
-                    ApplyCommand_FM(mtxCh, channelPreviousInstrument[mtxCh], channelVolSeqTYPE[mtxCh], _seqValue);
+                    ApplyCommand_FM(mtxCh, channelPreviousInstrument[mtxCh], channelParSeqTYPE[mtxCh], _seqValue);
                 }
-
-                /*switch (mtxCh)
-                {
-                case CHANNEL_FM1: case CHANNEL_FM2: case CHANNEL_FM4: case CHANNEL_FM5: bWriteRegs = TRUE;
-                    ApplyCommand_FM(mtxCh, channelPreviousInstrument[mtxCh], channelVolSeqTYPE[mtxCh], _seqValue);
-                    break;
-                case CHANNEL_FM6_DAC: bWriteRegs = TRUE;
-                    ApplyCommand_DAC(channelVolSeqTYPE[mtxCh], _seqValue);
-                    if (!bDAC_enable) ApplyCommand_FM(CHANNEL_FM6_DAC, channelPreviousInstrument[CHANNEL_FM6_DAC], channelVolSeqTYPE[mtxCh], _seqValue);
-                    break;
-                case CHANNEL_FM3_OP1: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP3: bWriteRegs = TRUE;
-                    ApplyCommand_FM3_SP(mtxCh, channelVolSeqTYPE[mtxCh], _seqValue);
-                    break;
-                case CHANNEL_FM3_OP4: bWriteRegs = TRUE;
-                    ApplyCommand_FM3_SP(mtxCh, channelVolSeqTYPE[mtxCh], _seqValue);
-                    ApplyCommand_FM(mtxCh, channelPreviousInstrument[mtxCh], channelVolSeqTYPE[mtxCh], _seqValue);
-                    break;
-                default: ApplyCommand_PSG(channelVolSeqTYPE[mtxCh], _seqValue); break;
-                }
-                ApplyCommand_Common(mtxCh, channelVolSeqTYPE[mtxCh], _seqValue);*/
-                /*switch(channelVolSeqTYPE[mtxCh])
-                {
-                case SEQ_TYPE_ALG:
-                    ApplyCommand_FM(mtxCh, channelPreviousInstrument[mtxCh], COMMAND_ALG, _seqValue);
-                    break;
-                case SEQ_TYPE_VOL:
-                    channelSeqAttenuation[mtxCh] = _seqValue;
-                    SetChannelVolume(mtxCh);
-                    break;
-                }*/
             }
         }
-        if (!channelVolSeqMODE[mtxCh] && (channelSEQCounter_VOL[mtxCh] > SEQ_STEP_LAST)) channelSEQCounter_VOL[mtxCh] = 0;
+        if (!channelParSeqPlayMODE[mtxCh] && (channelSEQCounter_PAR[mtxCh] > SEQ_STEP_LAST)) channelSEQCounter_PAR[mtxCh] = 0;
     }
 
-    auto inline void seq_arp(u8 mtxCh) {
-        if (!channelArpSeqMODE[mtxCh] || (channelArpSeqMODE[mtxCh] && (channelSEQCounter_ARP[mtxCh] < SEQ_STEP_LAST)))
+    auto void seq_arp(u8 mtxCh) {
+        if (!channelArpSeqPlayMODE[mtxCh] || (channelArpSeqPlayMODE[mtxCh] && (channelSEQCounter_ARP[mtxCh] < SEQ_STEP_LAST)))
         {
             _seqValue = seqArpValue[channelArpSeqID[mtxCh]][channelSEQCounter_ARP[mtxCh]]; channelSEQCounter_ARP[mtxCh]++;
             if (!pulseCounter)
@@ -737,15 +710,18 @@ static inline void DoEngine()
                 }
             }
         }
-        if (!channelArpSeqMODE[mtxCh] && (channelSEQCounter_ARP[mtxCh] > SEQ_STEP_LAST)) channelSEQCounter_ARP[mtxCh] = 0;
+        if (!channelArpSeqPlayMODE[mtxCh] && (channelSEQCounter_ARP[mtxCh] > SEQ_STEP_LAST)) channelSEQCounter_ARP[mtxCh] = 0;
     }
 
-    auto inline void do_row(u8 mtxCh) {
+    auto void do_row(u8 mtxCh) {
         if (channelFlags[mtxCh])
         {
-            auto inline void command(u8 type, u8 val, u8 effect) {
-                _fxType = SRAM_ReadPattern(channelPlayingPatternID[mtxCh], playingPatternRow, type);
-                _fxValue = SRAM_ReadPattern(channelPlayingPatternID[mtxCh], playingPatternRow, val);
+            auto void command(u8 type, u8 val, u8 effect) { // slow!
+                //if (channelDoEffects[mtxCh])
+                //{
+                    _fxType = SRAM_ReadPattern(channelPlayingPatternID[mtxCh], playingPatternRow, type);
+                    _fxValue = SRAM_ReadPattern(channelPlayingPatternID[mtxCh], playingPatternRow, val);
+                //}
 
                 if (_fxType)
                 {
@@ -797,7 +773,7 @@ static inline void DoEngine()
                 }
             }
 
-            auto inline void apply_commands() {
+            auto void apply_commands() { // slow!
                 command(DATA_FX1_TYPE, DATA_FX1_VALUE, 0);
                 command(DATA_FX2_TYPE, DATA_FX2_VALUE, 1);
                 command(DATA_FX3_TYPE, DATA_FX3_VALUE, 2);
@@ -866,7 +842,7 @@ static inline void DoEngine()
                 else // PSG
                 {
                     channelPreviousInstrument[mtxCh] = _inst;
-                    channelArpSeqID[mtxCh] = channelVolSeqID[mtxCh] = _inst; // set seq for PSG as instrument
+                    channelArpSeqID[mtxCh] = channelParSeqID[mtxCh] = _inst; // set seq for PSG as instrument
                     apply_commands(); // will override PSG seq
                 }
             }
@@ -876,10 +852,10 @@ static inline void DoEngine()
                 apply_commands();
             }
 
-            if (instrumentIsMuted[channelPreviousInstrument[mtxCh]] == INST_MUTE) channelCurrentRowNote[mtxCh] = NOTE_OFF;
+            //if (instrumentIsMuted[channelPreviousInstrument[mtxCh]] == INST_MUTE) channelCurrentRowNote[mtxCh] = NOTE_OFF;
 
             // --------- trigger note playback; check empty note later; pass note id: 0..95, 254, 255
-            if (channelCurrentRowNote[mtxCh] == NOTE_OFF) // there is OFF
+            if (channelCurrentRowNote[mtxCh] == NOTE_OFF || instrumentIsMuted[channelPreviousInstrument[mtxCh]] == INST_MUTE) // there is OFF
             {
                 channelPreviousNote[mtxCh] = channelArp[mtxCh] = NOTE_OFF;
                 //if (channelNoteRetrigger[mtxCh])
@@ -903,8 +879,8 @@ static inline void DoEngine()
 
                 if (channelRowShift[mtxCh][playingPatternRow]) channelNoteDelayCounter[mtxCh] = channelRowShift[mtxCh][playingPatternRow];
 
-                channelSEQCounter_VOL[mtxCh] = 0; channelSEQCounter_ARP[mtxCh] = 0;
-                seq_vol(mtxCh); seq_arp(mtxCh);
+                channelSEQCounter_PAR[mtxCh] = 0; channelSEQCounter_ARP[mtxCh] = 0;
+                seq_par(mtxCh); seq_arp(mtxCh);
 
                 //if (!channelNoteDelayCounter[mtxCh] && !channelNoteRetrigger[mtxCh]) // re-triggered from do_effects
                 //{
@@ -921,13 +897,13 @@ static inline void DoEngine()
         }
     }
 
-    auto inline void do_effects(u8 mtxCh) {
-        if (channelFlags[mtxCh] && channelPreviousNote[mtxCh] < NOTES)
+    auto void do_effects(u8 mtxCh) {
+        if (/*channelDoEffects[mtxCh] && */channelFlags[mtxCh] && channelPreviousNote[mtxCh] != NOTE_OFF)
         //if (channelFlags[mtxCh] && channelPreviousNote[mtxCh] != NOTE_OFF)
         {
             if (pulseCounter) // only do at sub-pulses; 0th seq pulse handled in do_row to modify note before it's played
             {
-                seq_vol(mtxCh);
+                seq_par(mtxCh);
                 //if (channelPreviousNote[mtxCh] != NOTE_OFF)
                     seq_arp(mtxCh);
             }
@@ -939,7 +915,7 @@ static inline void DoEngine()
                 {
                     PlayNote(channelPreviousNote[mtxCh], mtxCh);
                     channelNoteRetriggerCounter[mtxCh] = 0;
-                    channelSEQCounter_VOL[mtxCh] = 0; channelSEQCounter_ARP[mtxCh] = 0;
+                    channelSEQCounter_PAR[mtxCh] = 0; channelSEQCounter_ARP[mtxCh] = 0;
                 }
                 channelNoteRetriggerCounter[mtxCh]++;
             }
@@ -1057,7 +1033,7 @@ static inline void DoEngine()
                 {
                     //seqVolValue[id][step] = SRAM_ReadInstrument(id, INST_VOL_TICK_01 + step);
                     //seqArpValue[id][step] = SRAM_ReadInstrument(id, INST_ARP_TICK_01 + step);
-                    seqVolValue[id][step] = SRAM_ReadSEQ_VOL(id, step);
+                    seqParValue[id][step] = SRAM_ReadSEQ_PAR(id, step);
                     seqArpValue[id][step] = SRAM_ReadSEQ_ARP(id, step);
                 }
                 CacheIstrumentToRAM(id);
@@ -1069,7 +1045,7 @@ static inline void DoEngine()
                 if (mtxCh < CHANNEL_PSG1) chInst[mtxCh] = tmpInst[channelPreviousInstrument[mtxCh]];
                 else
                 {
-                    channelArpSeqID[mtxCh] = channelVolSeqID[mtxCh] = channelPreviousInstrument[mtxCh];
+                    channelArpSeqID[mtxCh] = channelParSeqID[mtxCh] = channelPreviousInstrument[mtxCh];
                 }
             }
 
@@ -1188,6 +1164,7 @@ static inline void DoEngine()
         {
             if (!pulseCounter) // row first pulse; prepare command, note, instrument, draw cursor
             {
+                // main slowdown!
                 do_row(CHANNEL_FM1);
                 do_row(CHANNEL_FM2);
                 do_row(CHANNEL_FM3_OP4);
@@ -1257,8 +1234,6 @@ static inline void DoEngine()
                 pulseCounter = -1; // to run this part only once when timer expires, not at every while loop tick.
             }
 
-        //if (bDoPulse)
-        //{
             do_effects(CHANNEL_FM1);
             do_effects(CHANNEL_FM2);
             do_effects(CHANNEL_FM3_OP4);
@@ -1298,7 +1273,7 @@ static inline void DoEngine()
     }
 }
 
-inline static void ReadMatrixRow()
+static void ReadMatrixRow()
 {
     for (u8 mtxCh = 0; mtxCh < CHANNELS_TOTAL; mtxCh++)
     {
@@ -1307,7 +1282,7 @@ inline static void ReadMatrixRow()
     }
 }
 
-inline static s16 FindUnusedPattern()
+static s16 FindUnusedPattern()
 {
     static bool used = FALSE;
     u8 x = selectedMatrixChannel * 3 + 1;
@@ -1442,7 +1417,7 @@ static void ChangeMatrixValue(s16 mod)
     }
 }
 
-static inline void LoadPreset(u8 id, u8 preset)
+static void LoadPreset(u8 id, u8 preset)
 {
     SRAM_WriteInstrument(id, INST_MUL1, M_BANK_0[preset]->multiple_1);
     SRAM_WriteInstrument(id, INST_MUL2, M_BANK_0[preset]->multiple_3);
@@ -1507,7 +1482,7 @@ static inline void LoadPreset(u8 id, u8 preset)
 }
 
 // gamepad interrupts handler
-static inline void JoyEvent(u16 joy, u16 changed, u16 state)
+static void JoyEvent(u16 joy, u16 changed, u16 state)
 {
     static u8 patternColumnShift = 0;
     static s8 inc = 0; // paste increment
@@ -2372,11 +2347,11 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
 
             // ARP and VOL step on/off
             case BUTTON_C:
-                if (selectedInstrumentParameter == GUI_INST_PARAM_VOLSEQ)
+                if (selectedInstrumentParameter == GUI_INST_PARAM_PARSEQ)
                 {
                     //SRAM_WriteInstrument(selectedInstrumentID, INST_VOL_TICK_01 + selectedInstrumentOperator, SEQ_VOL_SKIP); // VOL
-                    SRAM_WriteSEQ_VOL(selectedInstrumentID, selectedInstrumentOperator, SEQ_VOL_SKIP);
-                    bRefreshScreen = TRUE; instrumentParameterToRefresh = GUI_INST_PARAM_VOLSEQ;
+                    SRAM_WriteSEQ_PAR(selectedInstrumentID, selectedInstrumentOperator, SEQ_SKIP);
+                    bRefreshScreen = TRUE; instrumentParameterToRefresh = GUI_INST_PARAM_PARSEQ;
                 }
                 else if (selectedInstrumentParameter == GUI_INST_PARAM_ARPSEQ)
                 {
@@ -2389,10 +2364,10 @@ static inline void JoyEvent(u16 joy, u16 changed, u16 state)
             case BUTTON_B:
                 switch (selectedInstrumentParameter)
                 {
-                case GUI_INST_PARAM_VOLSEQ:
+                case GUI_INST_PARAM_PARSEQ:
                     //SRAM_WriteInstrument(selectedInstrumentID, INST_VOL_TICK_01 + selectedInstrumentOperator, SEQ_VOL_MIN_ATT); // VOL
-                    SRAM_WriteSEQ_VOL(selectedInstrumentID, selectedInstrumentOperator, SEQ_VOL_MIN_ATT); // VOL
-                    bRefreshScreen = TRUE; instrumentParameterToRefresh = GUI_INST_PARAM_VOLSEQ;
+                    SRAM_WriteSEQ_PAR(selectedInstrumentID, selectedInstrumentOperator, SEQ_VOL_MIN_ATT); // VOL
+                    bRefreshScreen = TRUE; instrumentParameterToRefresh = GUI_INST_PARAM_PARSEQ;
                     break;
                 case GUI_INST_PARAM_ARPSEQ:
                     //SRAM_WriteInstrument(selectedInstrumentID, INST_ARP_TICK_01 + selectedInstrumentOperator, NOTE_EMPTY); // ARP
@@ -2527,7 +2502,7 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
         case GUI_INST_PARAM_LFO:
             offset_x = 80+12; offset_y = 7; width = 0; selectedInstrumentOperator = 0;
             break;
-        case GUI_INST_PARAM_VOLSEQ:
+        case GUI_INST_PARAM_PARSEQ:
         case GUI_INST_PARAM_ARPSEQ:
             if (pos_x < 8) offset_x = 80+5;
             else if (pos_x < 16) offset_x = 80+6;
@@ -2563,36 +2538,36 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
         }
     }
 
-    auto inline void draw_cursor_1(u8 x, u8 y)
+    auto void draw_cursor_1(u8 x, u8 y)
     {
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x, y);
     }
 
-    auto inline void draw_cursor_2(u8 x, u8 y)
+    auto void draw_cursor_2(u8 x, u8 y)
     {
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x, y);
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x + 1, y);
     }
 
-    auto inline void draw_cursor_3(u8 x, u8 y)
+    auto void draw_cursor_3(u8 x, u8 y)
     {
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x, y);
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x + 1, y);
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x + 2, y);
     }
 
-    auto inline void clear_cursor_1(u8 x, u8 y)
+    auto void clear_cursor_1(u8 x, u8 y)
     {
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x, y);
     }
 
-    auto inline void clear_cursor_2(u8 x, u8 y)
+    auto void clear_cursor_2(u8 x, u8 y)
     {
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x, y);
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x + 1, y);
     }
 
-    auto inline void clear_cursor_2_color(u8 x, u8 y)
+    auto void clear_cursor_2_color(u8 x, u8 y)
     {
         selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow); // select previous pattern on clear
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x, y);
@@ -2602,7 +2577,7 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
             VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x + 1, y);
     }
 
-    auto inline void clear_cursor_3(u8 x, u8 y)
+    auto void clear_cursor_3(u8 x, u8 y)
     {
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x, y);
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x + 1, y);
@@ -2667,7 +2642,7 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
             case GUI_INST_PARAM_PCM_RATE:
             case GUI_INST_PARAM_PCM_PAN:
             case GUI_INST_PARAM_PRESET:
-            case GUI_INST_PARAM_VOLSEQ:
+            case GUI_INST_PARAM_PARSEQ:
             case GUI_INST_PARAM_ARPSEQ:
                 clear_cursor_1(pos_x * width + offset_x, pos_y + offset_y); break;
             case GUI_INST_PARAM_PCM_NOTE: clear_cursor_3(pos_x * width + offset_x, pos_y + offset_y); break;
@@ -2682,7 +2657,7 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
             case GUI_INST_PARAM_PCM_RATE:
             case GUI_INST_PARAM_PCM_PAN:
             case GUI_INST_PARAM_PRESET:
-            case GUI_INST_PARAM_VOLSEQ:
+            case GUI_INST_PARAM_PARSEQ:
             case GUI_INST_PARAM_ARPSEQ:
                 draw_cursor_1(pos_x * width + offset_x, pos_y + offset_y); break;
             case GUI_INST_PARAM_PCM_NOTE: draw_cursor_3(pos_x * width + offset_x, pos_y + offset_y); break;
@@ -2694,7 +2669,7 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
     }
 }
 // ------------------------------ PATTERN MATRIX
-inline void DisplayPatternMatrix()
+void DisplayPatternMatrix()
 {
     static u16 patternID = 0;
     static u8 shiftX = 0;
@@ -2929,7 +2904,7 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
     }
 }
 
-inline void DisplayPatternEditor()
+void DisplayPatternEditor()
 {
     if (bInitScreen)
     {
@@ -3196,9 +3171,9 @@ static void ChangeInstrumentParameter(s8 modifier)
         if (value < 7) value = 7; else if (value > 15) value = 15;
         SRAMW_writeByte(GLOBAL_LFO, value); SetGlobalLFO(value);
         break;
-    case GUI_INST_PARAM_VOLSEQ:
+    case GUI_INST_PARAM_PARSEQ:
         //value = SRAM_ReadInstrument(selectedInstrumentID, INST_VOL_TICK_01 + selectedInstrumentOperator);
-        value = SRAM_ReadSEQ_VOL(selectedInstrumentID, selectedInstrumentOperator);
+        value = SRAM_ReadSEQ_PAR(selectedInstrumentID, selectedInstrumentOperator);
         // align step by 8
         /*if (value == SEQ_VOL_MIN_ATT)
         {
@@ -3217,7 +3192,7 @@ static void ChangeInstrumentParameter(s8 modifier)
         if (value > 0x7F) value = 0;
         else if (value < 0) value = 0x7F;
         //SRAM_WriteInstrument(selectedInstrumentID, INST_VOL_TICK_01 + selectedInstrumentOperator, value);
-        SRAM_WriteSEQ_VOL(selectedInstrumentID, selectedInstrumentOperator, value);
+        SRAM_WriteSEQ_PAR(selectedInstrumentID, selectedInstrumentOperator, value);
         break;
     case GUI_INST_PARAM_ARPSEQ:
         //value = SRAM_ReadInstrument(selectedInstrumentID, INST_ARP_TICK_01 + selectedInstrumentOperator); // need to check first
@@ -3485,15 +3460,15 @@ inline void DisplayInstrumentEditor()
                 DrawHex2(BG_A, value - 7, 80+12, 23);
             //else FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_BIGDOT, 2, 86, 24);
             break;
-        case GUI_INST_PARAM_VOLSEQ: case 238:
+        case GUI_INST_PARAM_PARSEQ: case 238:
             for (u8 i = 0; i <= SEQ_STEP_LAST; i++)
             {
                 //value = SRAM_ReadInstrument(selectedInstrumentID, INST_VOL_TICK_01 + i);
-                value = SRAM_ReadSEQ_VOL(selectedInstrumentID, i);
+                value = SRAM_ReadSEQ_PAR(selectedInstrumentID, i);
                 //stepDrawPos = 86 + (i*2) + (i/8);
                 stepDrawPos = 85 + i + (i/8);
 
-                if (value == SEQ_VOL_SKIP) // draw --
+                if (value == SEQ_SKIP) // draw --
                 {
                     if (i%4==0) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_MINUS), stepDrawPos, 25);
                     else VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_MINUS), stepDrawPos, 25);
@@ -3649,12 +3624,12 @@ inline void DisplayInstrumentEditor()
     }
 }
 // only attenuate, not increase
-static inline void SetChannelVolume(u8 mtxCh)
+static void SetChannelVolume(u8 mtxCh)
 {
     static s16 vol[4] = {0,0,0,0};
     static u8 port = 0, ymCh = 0, psgCh = 0;
 
-    auto inline void set_normal_channel_vol() {
+    auto void set_normal_channel_vol() {
         switch (chInst[mtxCh].ALG)
         {
         case 0: case 1: case 2: case 3:
@@ -3775,7 +3750,7 @@ static inline void SetChannelVolume(u8 mtxCh)
         }
     }
 
-    auto inline void set_special_channel_vol() {
+    auto void set_special_channel_vol() {
         switch (mtxCh)
         {
         case CHANNEL_FM3_OP4:
@@ -3863,20 +3838,20 @@ static inline void SetChannelVolume(u8 mtxCh)
     bWriteRegs = TRUE; // trigger
 }
 
-static inline void RequestZ80()
+static void RequestZ80()
 {
     //if (!Z80_isBusTaken())
         Z80_requestBus(FALSE);
 }
 
-static inline void ReleaseZ80()
+static void ReleaseZ80()
 {
     YM2612_write(PORT_1, YM2612REG_DAC); // needed for DAC
     //if (Z80_isBusTaken())
         Z80_releaseBus();
 }
 
-static inline void SetPitchPSG(u8 mtxCh, u8 note)
+static void SetPitchPSG(u8 mtxCh, u8 note)
 {
     static u8 key = 0;
     static s8 keyMod = 0;
@@ -3937,7 +3912,7 @@ static inline void SetPitchPSG(u8 mtxCh, u8 note)
 }
 
 // DAC is also here
-static inline void SetPitchFM(u8 mtxCh, u8 note)
+static void SetPitchFM(u8 mtxCh, u8 note)
 {
     static u8 part1 = 0, part2 = 0;
     static s8 key = 0;
@@ -4110,14 +4085,14 @@ static inline void SetPitchFM(u8 mtxCh, u8 note)
     }
 }
 
-static inline void PlayNoteOff(u8 mtxCh)
+static void PlayNoteOff(u8 mtxCh)
 {
         if (FM_CH3_Mode == CH3_SPECIAL_CSM && mtxCh == CHANNEL_FM3_OP4) FM_CH3_Mode = CH3_SPECIAL_CSM_OFF;
         StopChannelSound(mtxCh);
         StopEffects(mtxCh);
 }
 
-static inline void PlayNote(u8 note, u8 mtxCh)
+static void PlayNote(u8 note, u8 mtxCh)
 {
     if (mtxCh < CHANNEL_PSG1) // FM
     {
@@ -4160,11 +4135,11 @@ static void StopEffects(u8 mtxCh)
     channelPreviousNote[mtxCh] = NOTE_OFF;
 
     channelSEQCounter_ARP[mtxCh] = 0;
-    channelSEQCounter_VOL[mtxCh] = 0;
+    channelSEQCounter_PAR[mtxCh] = 0;
 }
 
 // stopping sound on matrix channel
-static inline void StopChannelSound(u8 mtxCh)
+static void StopChannelSound(u8 mtxCh)
 {
     switch (mtxCh)
     {
@@ -4255,7 +4230,7 @@ static inline void StopChannelSound(u8 mtxCh)
     }
 }
 
-static inline void StopAllSound()
+static void StopAllSound()
 {
     for (u8 mtxCh = CHANNEL_FM1; mtxCh < CHANNELS_TOTAL; mtxCh++)
     {
@@ -4289,7 +4264,7 @@ static void SetGlobalLFO(u8 freq)
 }
 
 // cache instrument
-static inline void CacheIstrumentToRAM(u8 id)
+static void CacheIstrumentToRAM(u8 id)
 {
     tmpInst[id].ALG = SRAM_ReadInstrument(id, INST_ALG);
     tmpInst[id].AMS = SRAM_ReadInstrument(id, INST_AMS);
@@ -4408,9 +4383,9 @@ inline void CalculateCombined(u8 mtxCh, u8 reg)
     }
 }
 // changing instrument will not reset channel attenuation (post-fader)
-static inline void SetChannelBaseVolume_FM(u8 mtxCh)
+static void SetChannelBaseVolume_FM(u8 mtxCh)
 {
-    auto inline void set_normal_slots()
+    auto void set_normal_slots()
     {
         switch (chInst[mtxCh].ALG)
         {
@@ -4446,7 +4421,7 @@ static inline void SetChannelBaseVolume_FM(u8 mtxCh)
 }
 
 // write all YM2612 registers
-static inline void WriteYM2612(u8 mtxCh)
+static void WriteYM2612(u8 mtxCh)
 {
     static u16 port = 0;
     static u8 ymCh = 0;
@@ -4459,7 +4434,7 @@ static inline void WriteYM2612(u8 mtxCh)
     case CHANNEL_FM4: case CHANNEL_FM5: case CHANNEL_FM6_DAC:
         port = PORT_2; ymCh = mtxCh - 6;
         break;
-    default: return; break;
+    default: break;
     }
 
     switch (ymCh)
@@ -4633,7 +4608,7 @@ void DrawPP()
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[0] + channelTranspose), 51, 27);*/
 }
 
-static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
+static void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
 {
     switch (fxParam)
     {
@@ -4671,9 +4646,14 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
         if (fxValue < 32) channelFineTune[mtxCh] = fxValue;
         break;
 
+    // ENABLE/DISABLE CHANNEL SUBTICKS PROCESSING TO SAVE CPU
+    /*case 0x1E:
+        channelDoEffects[mtxCh] = fxValue;
+        break;*/
+
     // ARP SEQUENCE MODE
     case 0x2F:
-        if (!fxValue) channelArpSeqMODE[mtxCh] = 0; else channelArpSeqMODE[mtxCh] = 1;
+        if (!fxValue) channelArpSeqPlayMODE[mtxCh] = 0; else channelArpSeqPlayMODE[mtxCh] = 1;
         break;
 
     // ARP SEQUENCE
@@ -4785,12 +4765,12 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
 
     // VOLUME SEQUENCE MODE
     case 0x3F:
-        if (!fxValue) channelVolSeqMODE[mtxCh] = 0; else channelVolSeqMODE[mtxCh] = 1;
+        if (!fxValue) channelParSeqPlayMODE[mtxCh] = 0; else channelParSeqPlayMODE[mtxCh] = 1;
         break;
 
     // VOLUME SEQUENCE
     case 0x40:
-        channelVolSeqID[mtxCh] = fxValue;
+        channelParSeqID[mtxCh] = fxValue;
         if (!fxValue) channelSeqAttenuation[mtxCh] = 0;
         //channelVolumeChangeSpeed[mtxCh] = 0;
         break;
@@ -4886,7 +4866,7 @@ static inline void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
     }
 }
 
-static inline void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
+static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
 {
     switch (fxParam)
     {
@@ -4993,7 +4973,7 @@ static inline void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
     }
 }
 
-static inline void ApplyCommand_PSG(u8 fxParam, u8 fxValue)
+static void ApplyCommand_PSG(u8 fxParam, u8 fxValue)
 {
     switch (fxParam)
     {
@@ -5019,11 +4999,12 @@ static inline void ApplyCommand_PSG(u8 fxParam, u8 fxValue)
     /*case 0x17:
         if (fxValue < 0x0D) psgPWM = fxValue;
         break;*/
-    default: return; break;
+
+    default: break;
     }
 }
 
-static inline void ApplyCommand_FM3_SP(u8 mtxCh, u8 fxParam, u8 fxValue)
+static void ApplyCommand_FM3_SP(u8 mtxCh, u8 fxParam, u8 fxValue)
 {
     switch (fxParam)
     {
@@ -5061,39 +5042,40 @@ static inline void ApplyCommand_FM3_SP(u8 mtxCh, u8 fxParam, u8 fxValue)
             }
         }
         break;
+
     default: break;
     }
 }
 
-static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
+static void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
 {
     static u16 port = 0;    // chip port (0..1)
     static u8 ymCh = 0;       // chip channel (0..2)
 
     // TL; 0 - unused, 000 0000 - TL (0..127) high to low ~0.75db step
-    auto inline void write_tl1() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + ymCh, chInst[mtxCh].TL1); }
-    auto inline void write_tl2() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + ymCh, chInst[mtxCh].TL2); }
-    auto inline void write_tl3() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, chInst[mtxCh].TL3); }
-    auto inline void write_tl4() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, chInst[mtxCh].TL4); }
+    auto void write_tl1() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + ymCh, chInst[mtxCh].TL1); }
+    auto void write_tl2() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + ymCh, chInst[mtxCh].TL2); }
+    auto void write_tl3() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, chInst[mtxCh].TL3); }
+    auto void write_tl4() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, chInst[mtxCh].TL4); }
 
     // RS, AR
     // 2b - RS (0..3), 1b - unused, 5b - AR (0..31)
-    auto inline void write_rs1_ar1()
+    auto void write_rs1_ar1()
     {
         CalculateCombined(mtxCh, COMB_RS_AR_1);
         if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH0 + ymCh, chInst[mtxCh].RS1_AR1);
     }
-    auto inline void write_rs2_ar2()
+    auto void write_rs2_ar2()
     {
         CalculateCombined(mtxCh, COMB_RS_AR_2);
         if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_RS_AR_CH0 + ymCh, chInst[mtxCh].RS2_AR2);
     }
-    auto inline void write_rs3_ar3()
+    auto void write_rs3_ar3()
     {
         CalculateCombined(mtxCh, COMB_RS_AR_3);
         if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_RS_AR_CH0 + ymCh, chInst[mtxCh].RS3_AR3);
     }
-    auto inline void write_rs4_ar4()
+    auto void write_rs4_ar4()
     {
         CalculateCombined(mtxCh, COMB_RS_AR_4);
         if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_RS_AR_CH0 + ymCh, chInst[mtxCh].RS4_AR4);
@@ -5101,23 +5083,23 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
 
     // DT, MUL (FM channels 0, 1, 2)
     // 1b - unused, 3b - DT1, 4b - MUL; DT1 = 1..-4+..8, MUL = 0..15
-    auto inline void write_dt1_mul1()
+    auto void write_dt1_mul1()
     {
         CalculateCombined(mtxCh, COMB_DT_MUL_1);
         if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH0 + ymCh, chInst[mtxCh].DT1_MUL1);
     }
-    auto inline void write_dt2_mul2()
+    auto void write_dt2_mul2()
     {
         CalculateCombined(mtxCh, COMB_DT_MUL_2);
         if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_DT_MUL_CH0 + ymCh, chInst[mtxCh].DT2_MUL2);
     }
-    auto inline void write_dt3_mul3()
+    auto void write_dt3_mul3()
     {
         CalculateCombined(mtxCh, COMB_DT_MUL_3);
         if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_DT_MUL_CH0 + ymCh, chInst[mtxCh].DT3_MUL3);
 
     }
-    auto inline void write_dt4_mul4()
+    auto void write_dt4_mul4()
     {
         CalculateCombined(mtxCh, COMB_DT_MUL_4);
         if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_DT_MUL_CH0 + ymCh, chInst[mtxCh].DT4_MUL4);
@@ -5125,7 +5107,7 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
 
     // FB, ALG
     // 2b - unused, 3b (0..7) - FB, 3b - ALG (0..7)
-    auto inline void write_fb_alg()
+    auto void write_fb_alg()
     {
         CalculateCombined(mtxCh, COMB_FB_ALG);
         if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH0 + ymCh, chInst[mtxCh].FB_ALG);
@@ -5133,7 +5115,7 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
 
     // PAN, AMS, FMS
     // 2b - PAN (1..3), 3b - AMS (0..7), 1b - unused, 2b - FMS (0..3)
-    auto inline void write_pan_ams_fms()
+    auto void write_pan_ams_fms()
     {
         CalculateCombined(mtxCh, COMB_PAN_AMS_FMS);
         if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH0 + ymCh, chInst[mtxCh].PAN_AMS_FMS);
@@ -5141,22 +5123,22 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
 
     // AM, D1R
     // 1b - AM (0 or 1), 2b - unused, 5b - D1R (0..31)
-    auto inline void write_am1_d1r1()
+    auto void write_am1_d1r1()
     {
         CalculateCombined(mtxCh, COMB_AM_D1R_1);
         if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH0 + ymCh, chInst[mtxCh].AM1_D1R1);
     }
-    auto inline void write_am2_d1r2()
+    auto void write_am2_d1r2()
     {
         CalculateCombined(mtxCh, COMB_AM_D1R_2);
         if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_AM_D1R_CH0 + ymCh, chInst[mtxCh].AM2_D1R2);
     }
-    auto inline void write_am3_d1r3()
+    auto void write_am3_d1r3()
     {
         CalculateCombined(mtxCh, COMB_AM_D1R_3);
         if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_AM_D1R_CH0 + ymCh, chInst[mtxCh].AM3_D1R3);
     }
-    auto inline void write_am4_d1r4()
+    auto void write_am4_d1r4()
     {
         CalculateCombined(mtxCh, COMB_AM_D1R_4);
         if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_AM_D1R_CH0 + ymCh, chInst[mtxCh].AM4_D1R4);
@@ -5168,29 +5150,29 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
     // | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
     // |---------------|---|---|---|---|
     // | /   /   /   / | E |ATT|ALT|HLD|
-    auto inline void write_ssgeg1() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH0 + ymCh, chInst[mtxCh].SSGEG1); }
-    auto inline void write_ssgeg2() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH0 + ymCh, chInst[mtxCh].SSGEG2); }
-    auto inline void write_ssgeg3() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH0 + ymCh, chInst[mtxCh].SSGEG3); }
-    auto inline void write_ssgeg4() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH0 + ymCh, chInst[mtxCh].SSGEG4); }
+    auto void write_ssgeg1() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH0 + ymCh, chInst[mtxCh].SSGEG1); }
+    auto void write_ssgeg2() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH0 + ymCh, chInst[mtxCh].SSGEG2); }
+    auto void write_ssgeg3() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH0 + ymCh, chInst[mtxCh].SSGEG3); }
+    auto void write_ssgeg4() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH0 + ymCh, chInst[mtxCh].SSGEG4); }
 
     // D1L, RR
     // 4b - D1L (0..15), 4b - RR (0..15)
-    auto inline void write_d1l1_rr1()
+    auto void write_d1l1_rr1()
     {
         CalculateCombined(mtxCh, COMB_D1L_RR_1);
         if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH0 + ymCh, chInst[mtxCh].D1L1_RR1);
     }
-    auto inline void write_d1l2_rr2()
+    auto void write_d1l2_rr2()
     {
         CalculateCombined(mtxCh, COMB_D1L_RR_2);
         if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_D1L_RR_CH0 + ymCh, chInst[mtxCh].D1L2_RR2);
     }
-    auto inline void write_d1l3_rr3()
+    auto void write_d1l3_rr3()
     {
         CalculateCombined(mtxCh, COMB_D1L_RR_3);
         if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_D1L_RR_CH0 + ymCh, chInst[mtxCh].D1L3_RR3);
     }
-    auto inline void write_d1l4_rr4()
+    auto void write_d1l4_rr4()
     {
         CalculateCombined(mtxCh, COMB_D1L_RR_4);
         if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_D1L_RR_CH0 + ymCh, chInst[mtxCh].D1L4_RR4);
@@ -5198,10 +5180,10 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
 
     // D2R
     // 3b - unused, 5b - D2R (0..31)
-    auto inline void write_d2r1() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH0 + ymCh, chInst[mtxCh].D2R1); }
-    auto inline void write_d2r2() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH0 + ymCh, chInst[mtxCh].D2R2); }
-    auto inline void write_d2r3() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH0 + ymCh, chInst[mtxCh].D2R3); }
-    auto inline void write_d2r4() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH0 + ymCh, chInst[mtxCh].D2R4); }
+    auto void write_d2r1() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH0 + ymCh, chInst[mtxCh].D2R1); }
+    auto void write_d2r2() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP2_D2R_CH0 + ymCh, chInst[mtxCh].D2R2); }
+    auto void write_d2r3() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP3_D2R_CH0 + ymCh, chInst[mtxCh].D2R3); }
+    auto void write_d2r4() { if (bWriteRegs) YM2612_writeRegZ80(port, YM2612REG_OP4_D2R_CH0 + ymCh, chInst[mtxCh].D2R4); }
 
     switch (mtxCh)
     {
@@ -5324,7 +5306,7 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
 
     // PARAMETER SEQUENCE TYPE
     case 0x3E:
-        channelVolSeqTYPE[mtxCh] = fxValue;
+        channelParSeqTYPE[mtxCh] = fxValue;
         break;
 
     // ATTACK
@@ -5552,7 +5534,7 @@ static inline void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
         write_pan_ams_fms();
         break;
 
-    default: return; break;
+    default: break;
     }
 }
 
@@ -5612,44 +5594,44 @@ void ReColorsAndTranspose() // on color change
 }
 
 // instrument
-static inline u8 SRAM_ReadInstrument(u8 id, u16 param) { return SRAMW_readByte((u32)INSTRUMENT_DATA + (id * INST_SIZE) + param); }
+static u8 SRAM_ReadInstrument(u8 id, u16 param) { return SRAMW_readByte((u32)INSTRUMENT_DATA + (id * INST_SIZE) + param); }
 void SRAM_WriteInstrument(u8 id, u16 param, u8 data) { SRAMW_writeByte((u32)INSTRUMENT_DATA + (id * INST_SIZE) + param, data); }
 
 // seq
-static inline u8 SRAM_ReadSEQ_VOL(u8 id, u8 step) { return SRAMW_readByte((u32)SEQ_VOL_START + (id*SEQ_STEPS) + step); }
-void SRAM_WriteSEQ_VOL(u8 id, u8 step, u8 data) { SRAMW_writeByte((u32)SEQ_VOL_START + (id*SEQ_STEPS) + step, data); }
-static inline u8 SRAM_ReadSEQ_ARP(u8 id, u8 step) { return SRAMW_readByte((u32)SEQ_ARP_START + (id*SEQ_STEPS) + step); }
+static u8 SRAM_ReadSEQ_PAR(u8 id, u8 step) { return SRAMW_readByte((u32)SEQ_VOL_START + (id*SEQ_STEPS) + step); }
+void SRAM_WriteSEQ_PAR(u8 id, u8 step, u8 data) { SRAMW_writeByte((u32)SEQ_VOL_START + (id*SEQ_STEPS) + step, data); }
+static u8 SRAM_ReadSEQ_ARP(u8 id, u8 step) { return SRAMW_readByte((u32)SEQ_ARP_START + (id*SEQ_STEPS) + step); }
 void SRAM_WriteSEQ_ARP(u8 id, u8 step, u8 data) { SRAMW_writeByte((u32)SEQ_ARP_START + (id*SEQ_STEPS) + step, data); }
 
 // pattern
-static inline u8 SRAM_ReadPattern(u16 id, u8 line, u8 param) { return SRAMW_readByte((u32)PATTERN_DATA + (id * PATTERN_SIZE) + (line * PATTERN_COLUMNS) + param); }
+static u8 SRAM_ReadPattern(u16 id, u8 line, u8 param) { return SRAMW_readByte(PATTERN_DATA + (id * PATTERN_SIZE) + (line * PATTERN_COLUMNS) + param); }
 void SRAM_WritePattern(u16 id, u8 line, u8 param, u8 data) { SRAMW_writeByte((u32)PATTERN_DATA + (id * PATTERN_SIZE) + (line * PATTERN_COLUMNS) + param, data); }
 
-inline u8 SRAM_ReadPatternColor(u16 id) { return SRAMW_readByte((u32)PATTERN_COLOR + id); }
+u8 SRAM_ReadPatternColor(u16 id) { return SRAMW_readByte((u32)PATTERN_COLOR + id); }
 void SRAM_WritePatternColor(u16 id, u8 color) { SRAMW_writeByte((u32)PATTERN_COLOR + id, color); }
 
 // matrix
-static inline u16 SRAM_ReadMatrix(u8 channel, u8 line) { return SRAMW_readWord((u32)PATTERN_MATRIX + ((channel * MATRIX_ROWS) + line) * 2); }
+static u16 SRAM_ReadMatrix(u8 channel, u8 line) { return SRAMW_readWord((u32)PATTERN_MATRIX + ((channel * MATRIX_ROWS) + line) * 2); }
 void SRAM_WriteMatrix(u8 channel, u8 line, u16 data) { SRAMW_writeWord((u32)PATTERN_MATRIX + ((channel * MATRIX_ROWS) + line) * 2, data); }
 
-static inline s8 SRAM_ReadMatrixTranspose(u8 channel, u8 line) { return SRAMW_readByte((u32)MATRIX_TRANSPOSE + ((channel * MATRIX_ROWS) + line)); }
+static s8 SRAM_ReadMatrixTranspose(u8 channel, u8 line) { return SRAMW_readByte((u32)MATRIX_TRANSPOSE + ((channel * MATRIX_ROWS) + line)); }
 void SRAM_WriteMatrixTranspose(u8 channel, u8 line, s8 transpose) { SRAMW_writeByte((u32)MATRIX_TRANSPOSE + ((channel * MATRIX_ROWS) + line), transpose); }
 
-static inline u8 SRAM_ReadMatrixChannelEnabled(u8 channel) { return SRAMW_readByte((u32)MUTE_CHANNEL + channel); }
+static u8 SRAM_ReadMatrixChannelEnabled(u8 channel) { return SRAMW_readByte((u32)MUTE_CHANNEL + channel); }
 void SRAM_WriteMatrixChannelEnabled(u8 channel, u8 state) { SRAMW_writeByte((u32)MUTE_CHANNEL + channel, state); }
 
 // pcm
-static inline u32 SRAM_ReadSampleRegion(u8 bank, u8 note, u8 byteNum) { return (u32)SRAMW_readByte((u32)SAMPLE_DATA + (bank * NOTES * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum); }
+static u32 SRAM_ReadSampleRegion(u8 bank, u8 note, u8 byteNum) { return (u32)SRAMW_readByte((u32)SAMPLE_DATA + (bank * NOTES * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum); }
 void SRAM_WriteSampleRegion(u8 bank, u8 note, u8 byteNum, u8 data) { SRAMW_writeByte((u32)SAMPLE_DATA + (bank * NOTES * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum, data); }
 
-static inline u8 SRAM_ReadSamplePan(u8 bank, u8 note){ return SRAMW_readByte((u32)SAMPLE_PAN + (bank * NOTES) + note); }
+static u8 SRAM_ReadSamplePan(u8 bank, u8 note){ return SRAMW_readByte((u32)SAMPLE_PAN + (bank * NOTES) + note); }
 void SRAM_WriteSamplePan(u8 bank, u8 note, u8 data) { SRAMW_writeByte((u32)SAMPLE_PAN + (bank * NOTES) + note, data); }
 
-static inline u8 SRAM_ReadSampleRate(u8 bank, u8 note){ return SRAMW_readByte((u32)SAMPLE_RATE + (bank * NOTES) + note); }
+static u8 SRAM_ReadSampleRate(u8 bank, u8 note){ return SRAMW_readByte((u32)SAMPLE_RATE + (bank * NOTES) + note); }
 void SRAM_WriteSampleRate(u8 bank, u8 note, u8 data) { SRAMW_writeByte((u32)SAMPLE_RATE + (bank * NOTES) + note, data); }
 
 // other
-static inline void YM2612_writeRegZ80(u16 part, u8 reg, u8 data)
+static void YM2612_writeRegZ80(u16 part, u8 reg, u8 data)
 {
     RequestZ80();
     YM2612_writeReg(part, reg, data);
@@ -5723,10 +5705,10 @@ void InitTracker()
     VDP_setWindowVPos(FALSE, 0);
 
     // BGR palettes
-    PAL_setPaletteColorsDMA(0, &palette_gui);
-    PAL_setPaletteColorsDMA(16, &palette_1);
-    PAL_setPaletteColorsDMA(32, &palette_2);
-    PAL_setPaletteColorsDMA(48, &palette_3);
+    PAL_setPaletteColors(0, &palette_gui, DMA);
+    PAL_setPaletteColors(16, &palette_1, DMA);
+    PAL_setPaletteColors(32, &palette_2, DMA);
+    PAL_setPaletteColors(48, &palette_3, DMA);
 
     // Double digit font 00(--)..FF
     u16 ind;
@@ -5788,7 +5770,7 @@ void InitTracker()
                 }
                 else
                 {*/
-                    SRAM_WriteSEQ_VOL(inst, t, SEQ_VOL_SKIP);
+                    SRAM_WriteSEQ_PAR(inst, t, SEQ_SKIP);
                     SRAM_WriteSEQ_ARP(inst, t, NOTE_EMPTY);
                 //}
 
@@ -5883,7 +5865,7 @@ void InitTracker()
         channelPreviousEffectType[mtxCh][2] =
         channelArpSeqID[mtxCh] =
         channelVibratoMode[mtxCh] =
-        channelVolSeqID[mtxCh] =
+        channelParSeqID[mtxCh] =
         channelNoteCut[mtxCh] = 0;
 
         channelPreviousNote[mtxCh] = NOTE_OFF;
@@ -6186,16 +6168,18 @@ void DrawStaticHeaders()
     VDP_drawText("ARP:", 80, 26);
 }
 
-static inline u32 SRAM_ReadSampleRegionLegacy(u8 bank, u8 note, u8 byteNum)
+/*static u32 SRAM_ReadSampleRegionLegacy(u8 bank, u8 note, u8 byteNum)
 {
     return (u32)SRAMW_readByte((u32)SAMPLE_DATA + (bank * NOTES * 8) + (note * 8) + byteNum);
-}
+}*/
 
 // tool
 void Legacy()
 {
     #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
+        SRAM_WriteSEQ_PAR(0, 0, SEQ_SKIP);
+        SRAM_WriteSEQ_ARP(0, 0, NOTE_EMPTY);
         /*for (u8 bank = 0; bank < 4; bank++)
         {
             for (u8 key = 0; key < NOTES; key++)
@@ -6338,9 +6322,9 @@ void ForceResetVariables()
         channelTranspose[ch]=
         channelPreviousNote[ch]=
         channelArpSeqID[ch]=
-        channelVolSeqID[ch]=
+        channelParSeqID[ch]=
         channelCurrentRowNote[ch]=
-        channelSEQCounter_VOL[ch]=
+        channelSEQCounter_PAR[ch]=
         channelSEQCounter_ARP[ch]=
         channelPitchSlideSpeed[ch]=
         channelPitchSlideValue[ch]=
@@ -6379,10 +6363,12 @@ void ForceResetVariables()
         channelMatrixTranspose[ch]=
         channelPlayingPatternID[ch]=
         channelNoteRetriggerCounter[ch]=0;
+
+        //channelDoEffects[ch]=
         channelFlags[ch]=
-        channelArpSeqMODE[ch]=
-        channelVolSeqMODE[ch]=1;
-        channelVolSeqTYPE[ch]=0x41;
+        channelArpSeqPlayMODE[ch]=
+        channelParSeqPlayMODE[ch]=1;
+        channelParSeqTYPE[ch]=0x41;
 
         for (u8 ef=0; ef<EFFECTS_TOTAL; ef++)
         {

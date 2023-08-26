@@ -27,7 +27,7 @@
 
 #define ARP_BASE                100
 #define MICROTONE_STEPS         32
-#define SEQ_VOL_SKIP            0xFF
+#define SEQ_SKIP            0xFF
 #define SEQ_VOL_MIN_ATT         0x00
 #define SEQ_VOL_MAX_ATT         0x7F
 #define PPL_DEFAULT             4
@@ -135,8 +135,7 @@
 
 #define COMMAND_ALG     0x0A
 
-#define SEQ_TYPE_ALG    0x00
-#define SEQ_TYPE_VOL    0x50
+#define SEQ_TYPE_VOL    0x41
 
 void InitTracker();
 void DrawText(u8 plane, u8 pal, const char *str, u8 x, u8 y);
@@ -179,7 +178,7 @@ void ForceResetVariables();
 static void ReadMatrixRow();
 void Legacy();
 void FileWriteHeader();
-static inline void CountPulses();
+static void CountPulses();
 
 // temporal instrument storage
 struct Instrument
