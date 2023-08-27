@@ -66,11 +66,13 @@
             this.tcInstruments = new System.Windows.Forms.TabControl();
             this.tbInstSRM = new System.Windows.Forms.TabPage();
             this.tbInstROM = new System.Windows.Forms.TabPage();
+            this.bankAddress = new System.Windows.Forms.Label();
             this.btnAutoRange = new System.Windows.Forms.Button();
             this.txtAssignStart_ROM = new System.Windows.Forms.TextBox();
             this.txtAssignEnd_ROM = new System.Windows.Forms.TextBox();
             this.txtAssignEnd_SRM = new System.Windows.Forms.TextBox();
             this.txtAssignStart_SRM = new System.Windows.Forms.TextBox();
+            this.SampleBankAddress = new System.Windows.Forms.TextBox();
             this.btnSaveRom = new System.Windows.Forms.Button();
             this.btnOpenROM = new System.Windows.Forms.Button();
             this.txtSrmName = new System.Windows.Forms.TextBox();
@@ -254,6 +256,7 @@
             this.pnSamplesPool.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
             this.pnSamplesPool.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.pnSamplesPool.Name = "pnSamplesPool";
+            this.pnSamplesPool.Paint += new System.Windows.Forms.PaintEventHandler(this.pnSamplesPool_Paint);
             // 
             // tabPresets
             // 
@@ -337,7 +340,9 @@
             // panelOpenSave
             // 
             panelOpenSave.BackColor = System.Drawing.Color.Transparent;
+            panelOpenSave.Controls.Add(this.bankAddress);
             panelOpenSave.Controls.Add(pnAutoRange);
+            panelOpenSave.Controls.Add(this.SampleBankAddress);
             panelOpenSave.Controls.Add(this.btnSaveRom);
             panelOpenSave.Controls.Add(this.btnOpenROM);
             panelOpenSave.Controls.Add(this.txtSrmName);
@@ -349,6 +354,13 @@
             panelOpenSave.ForeColor = System.Drawing.SystemColors.AppWorkspace;
             resources.ApplyResources(panelOpenSave, "panelOpenSave");
             panelOpenSave.Name = "panelOpenSave";
+            // 
+            // bankAddress
+            // 
+            resources.ApplyResources(this.bankAddress, "bankAddress");
+            this.bankAddress.BackColor = System.Drawing.Color.DarkSlateBlue;
+            this.bankAddress.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
+            this.bankAddress.Name = "bankAddress";
             // 
             // pnAutoRange
             // 
@@ -390,6 +402,7 @@
             this.txtAssignStart_ROM.ForeColor = System.Drawing.Color.Black;
             resources.ApplyResources(this.txtAssignStart_ROM, "txtAssignStart_ROM");
             this.txtAssignStart_ROM.Name = "txtAssignStart_ROM";
+            this.txtAssignStart_ROM.TextChanged += new System.EventHandler(this.txtAssignStart_ROM_TextChanged);
             // 
             // label1
             // 
@@ -435,6 +448,12 @@
             this.txtAssignStart_SRM.ForeColor = System.Drawing.Color.Black;
             resources.ApplyResources(this.txtAssignStart_SRM, "txtAssignStart_SRM");
             this.txtAssignStart_SRM.Name = "txtAssignStart_SRM";
+            // 
+            // SampleBankAddress
+            // 
+            resources.ApplyResources(this.SampleBankAddress, "SampleBankAddress");
+            this.SampleBankAddress.Name = "SampleBankAddress";
+            this.SampleBankAddress.TextChanged += new System.EventHandler(this.SampleBankAddress_TextChanged);
             // 
             // btnSaveRom
             // 
@@ -578,6 +597,8 @@
         private System.Windows.Forms.TextBox txtPresetsSource;
         private System.Windows.Forms.Button btnAssignPreset;
         private System.Windows.Forms.Label dacDescription;
+        private System.Windows.Forms.Label bankAddress;
+        private System.Windows.Forms.TextBox SampleBankAddress;
     }
 }
 

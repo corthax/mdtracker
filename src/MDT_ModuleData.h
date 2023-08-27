@@ -136,7 +136,7 @@
 #define PATTERN_MATRIX      0x05905 // MAX_MATRIX_ROWS * 13 * 2 bytes
 #define TEMPO               0x07269 // PATTERN_MATRIX + 1964h; 2 bytes
 #define SAMPLE_DATA         0x0726B // 4 * 96 * SAMPLE_DATA_SIZE(7) bytes (3byte start + 3byte end + 1byte loop); 1byte rate is missing
-#define PATTERN_DATA        0x00007CEB // SAMPLE_DATA + A80h; 402304‬
+#define PATTERN_DATA        0x07CEB // SAMPLE_DATA + A80h; 402304‬
 #define PATTERN_COLOR       0x6A06B // PATTERN_DATA + PATTERN_SIZE * (MAX_PATTERN + 1);
 #define MATRIX_TRANSPOSE    0x6A3EC // matrix slot transpose (250*13)
 #define MUTE_CHANNEL        0x6B09E // store disabled matrix channels (13)

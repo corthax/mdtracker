@@ -61,7 +61,7 @@ Changelog:
 	Fixes:
 		A bit smoother playback.
 		Note retrigger.
-		Instrument mute/solo.		
+		Instrument mute/solo.
 	Changes:
 		Command 18xx - Channel microtone finetune. Add up to 31 (1F) microtones (1/32 semitone).
 		Command 3Exx - Channel sub-sequencer type. VOL sub-sequencer renamed to SEQ. Now it's used to sequence any FM parameter (and PSG volume). Value is FM-related command number or 41 for volume.
@@ -71,6 +71,12 @@ Changelog:
 		Removed pulses/frames per second counter. Not really helpfull.
 		PSG microtones resolution increased to 32 instead of 16. Somewhat usefull for 1-2 octaves.
 		SGDK 1.80 -> 1.90
+	MD.Tracker Editor:
+		Changes:
+			Added field for samples bank start address in rom.
+		Fixes:
+			Samples list scrolling.
+			Samples to keys range assigning.
 1.03
 	Fixes:
 		SRAM file changed to start at address 0 (same as pre 1.02).

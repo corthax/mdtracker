@@ -9,7 +9,7 @@ namespace mdteditor
 {
     public partial class mdtEditor : Form
     {
-        private const int ROM_SAMPLE_BANK = 0x0002F600; // symbol.txt sample_bank_1; check when md.tracker code is changed
+        private int ROM_SAMPLE_BANK = 0x0002E600; // symbol.txt sample_bank_1; check when md.tracker code is changed
         private const int ROM_SAMPLE_BANK_SIZE = 3399000;
 
         private const int SRM_FILE_SIZE = 524288;
@@ -234,6 +234,7 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
         {
             InitializeComponent();
 
+            SampleBankAddress.Text = ROM_SAMPLE_BANK.ToString("X");
             tabControl_SampleBanks.SelectedIndexChanged += new EventHandler(TabChanged);
 
             tcBanks[0] = pageSamplesBank1;
@@ -597,19 +598,23 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
             //int activeBank;
             //activeBank = tabControl_SampleBanks.SelectedIndex;
 
+            // samples IDs
             int.TryParse(txtAssignStart_ROM.Text, out int start);
             int.TryParse(txtAssignEnd_ROM.Text, out int end);
+            // key IDs
             int.TryParse(txtAssignStart_SRM.Text, out int startKey);
             int.TryParse(txtAssignEnd_SRM.Text, out int endKey);
 
             if (startKey < 0 || endKey < 0 || start < 0 || end < 0) return;
 
-            for (int id = start; id <= end; id++)
+            int keyId = startKey;
+
+            for (int id = start; id <= end; id++) // sample id
             {
-                int keyId = id + startKey;
-                if (id >= NOTES_TOTAL || id >= samplesCount || keyId > endKey) break;
+                if (keyId >= NOTES_TOTAL || keyId > endKey) break;
                 lsSamplesBank_ID[keyId].Text = id.ToString();
                 lsSamplesBank_Sync[keyId].PerformClick();
+                keyId++;
             }
         }
 
@@ -726,6 +731,28 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
                 }
                 presetsCount += ofd.SafeFileNames.Length;
             }
+        }
+
+        private void txtAssignStart_ROM_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void SampleBankAddress_TextChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                ROM_SAMPLE_BANK = int.Parse(SampleBankAddress.Text, System.Globalization.NumberStyles.HexNumber); ;
+            }
+            catch
+            {
+                return;
+            }
+        }
+
+        private void pnSamplesPool_Paint(object sender, PaintEventArgs e)
+        {
+
         }
 
         // mdt sram. byteswapped
@@ -940,10 +967,12 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
 
             if (ofd.ShowDialog() == DialogResult.OK)
             {
+                pnSamplesPool.VerticalScroll.Enabled = false;
+
                 for (int i = 0; i < ofd.SafeFileNames.Length; i++)
                 {
                     int id = i + samplesCount;
-                    int y = 5 + 25 * id;
+                    int y = 5 + 25 * id - pnSamplesPool.VerticalScroll.Value;
 
                     Label lbID = new Label
                     {
@@ -990,7 +1019,7 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
                     {
                         Name = string.Concat(ofd.SafeFileNames[i], "_start_", id.ToString()),
                         Text = sampleStart.ToString(),
-                        Width = 80,
+                        Width = 70,
                         Location = new Point(360, y),
                         BorderStyle = BorderStyle.FixedSingle,
                         TextAlign = ContentAlignment.MiddleRight,
@@ -1002,8 +1031,8 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
                     {
                         Name = string.Concat(ofd.SafeFileNames[i], "_end_", id.ToString()),
                         Text = sampleEnd.ToString(),
-                        Width = 80,
-                        Location = new Point(450, y),
+                        Width = 70,
+                        Location = new Point(440, y),
                         BorderStyle = BorderStyle.FixedSingle,
                         TextAlign = ContentAlignment.MiddleRight,
                         ForeColor = Color.PaleGoldenrod
@@ -1023,6 +1052,7 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
                 }
                 txtBytesUsed.Text = sampleEnd.ToString();
                 samplesCount += ofd.SafeFileNames.Length;
+                pnSamplesPool.VerticalScroll.Enabled = true;
             }
         }
     }
