@@ -135,7 +135,8 @@
 
 #define COMMAND_ALG     0x0A
 
-#define SEQ_TYPE_VOL    0x41
+#define SEQ_TYPE_VOL            0x41
+#define SEQ_TYPE_MICROTONE      0x18
 
 void InitTracker();
 void DrawText(u8 plane, u8 pal, const char *str, u8 x, u8 y);
@@ -147,7 +148,7 @@ void FillRowRight(u8 plane, u8 pal, u8 flipV, u8 flipH, u8 guiSymbol, u8 fillCou
 static void DoEngine();
 static void SetPitchFM(u8 mtxCh, u8 note);
 static void SetPitchPSG(u8 mtxCh, u8 note);
-static void PlayNote(u8 note, u8 mtxCh);
+static void PlayNote(u8 note, u8 mtxCh, u8 retrigger);
 static void PlayNoteOff(u8 mtxCh);
 static void StopChannelSound(u8 mtxCh);
 static void StopAllSound();

@@ -19,7 +19,7 @@ Works in:
 
 Emulators: 
 	PicoDrive (RetroArch) - use [mdt104] version.
-		ISSUES:
+		Possible issues:
 		PSG Noise channel wrong pitch.
 		FM CH.6 DAC pan not working.
 		FM CH.3 Special+CSM mode not working.
@@ -64,7 +64,15 @@ Changelog:
 		Instrument mute/solo.
 	Changes:
 		Command 18xx - Channel microtone finetune. Add up to 31 (1F) microtones (1/32 semitone).
-		Command 3Exx - Channel sub-sequencer type. VOL sub-sequencer renamed to SEQ. Now it's used to sequence any FM parameter (and PSG volume). Value is FM-related command number or 41 for volume.
+		Command 19xx - Channel SEQ skip step. To slow down.
+		Command 1Axx - Channel ARP skip step. To slow down.
+		Command 1Exx - Channel Note trigger mode: == 00 retrigger note, >= 01 set pitch only. (FM only)
+		Command 2Exx - Channel ARP mode: == 00 retrigger note, >= 01 set pitch only. (FM only)
+		Command 3Exx - Channel sub-sequencer type. VOL sub-sequencer renamed to SEQ. Now it's used to sequence any FM parameter (and PSG volume).
+			Values are:
+			- FM-related command number
+			- 41 for volume (default)
+			- 18 for channel microtone finetune
 		Removed non working msu-md driver.
 		Removed save upgrade from 1.00/1.01 to 1.03.
 		Added save upgrade from 1.03 to 1.04.
@@ -273,8 +281,8 @@ Instrument Editor
 	A+L/R	Change value (+-1).
 	A+U/D	Change value (+-4).
 
-	There are two 16 step sequencers there, ARP (arpeggiator) and VOL (attenuation).
-	Applied channel sequencers always reset on song stop.
+	There are two 16 step sequencers there, ARP (arpeggiator) and SEQ (command value, depending on current SEQ command).
+	Channel sequencers always reset on song stop.
 
 	Sample:
 	
@@ -299,14 +307,15 @@ Instrument Editor
 '
 
 ------
-VOL:
-Volume attenuation sequence.
-Substracted from FM slots TL or PSG max volume.
-Divided by 8 for PSG.
+SEQ:
+Value sequence.
+Default is 41 (volume attenuation):
+	Substracted from FM slots TL or PSG max volume.
+	Divided by 8 for PSG.
 ------
 	B		Set --: to skip step. 
 
-	C 		Set step to no attenuation.
+	C 		Set step value to 00.
 
 ------
 ARP:
@@ -433,6 +442,26 @@ y: Semitones;
 Channel microtone finetune
 	18xx
 xx: 00 .. 1F; Adds microtones to channel pitch.
+
+************************************************
+Channel SEQ speed
+	19xx
+xx: Skip pulses.
+
+************************************************
+Channel ARP speed
+	1Axx
+xx: Skip pulses.
+	
+************************************************	
+Channel ARP SEQ note trigger type
+	1Exx
+xx: 00 = Retrigger every note; Other values = set pitch only.
+
+************************************************
+Channel note trigger type
+	2Exx
+xx: 00 = Retrigger every note; Other values = set pitch only.
 
 ************************************************
 Channel SEQ type

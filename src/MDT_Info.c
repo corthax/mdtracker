@@ -28,12 +28,12 @@ void InitInfo()
     infoCommands[0x16] = "PCM BANK                        ";
     infoCommands[0x17] = "CHANNEL TRANSPOSE               ";
     infoCommands[0x18] = "CHANNEL FINETUNE                ";
-    infoCommands[0x19] = "";
-    infoCommands[0x1A] = "";
+    infoCommands[0x19] = "CHANNEL SEQ SPEED               ";
+    infoCommands[0x1A] = "CHANNEL ARP SPEED               ";
     infoCommands[0x1B] = "";
     infoCommands[0x1C] = "";
     infoCommands[0x1D] = "";
-    infoCommands[0x1E] = "";//IGNORE CHANNEL EFFECTS          ";
+    infoCommands[0x1E] = "NOTE TRIGGER TYPE               ";
     infoCommands[0x1F] = "";
     infoCommands[0x20] = "";//"MSU MD: CD AUDIO - PLAY ONCE    ";
     infoCommands[0x21] = "";//"MSU MD: CD AUDIO - PLAY LOOP    ";
@@ -49,7 +49,7 @@ void InitInfo()
     infoCommands[0x2B] = "";
     infoCommands[0x2C] = "";
     infoCommands[0x2D] = "";
-    infoCommands[0x2E] = "";
+    infoCommands[0x2E] = "ARP TYPE                        ";
     infoCommands[0x2F] = "ARP MACRO PLAY MODE             ";
     infoCommands[0x30] = "ARP MACRO ID                    ";
     infoCommands[0x31] = "PITCH SLIDE UP                  ";
@@ -279,7 +279,7 @@ void InitInfo()
     infoDescriptions[0x0E] = "11=C, 10=L, 01=R, FF=MUTE; 00: RESET ";
     infoDescriptions[0x0F] = "1,2,4,8,16,[32]           [DEFAULT 2]";
     infoDescriptions[0x10] = "01..08, 00: RESET                    ";
-    infoDescriptions[0x11] = ">00 DAC ON, 00: DAC OFF              ";
+    infoDescriptions[0x11] = "00: DAC OFF, 01: DAC ON              ";
     infoDescriptions[0x12] = "01=SPECIAL, 02=CSM, 00: NORMAL       ";
     infoDescriptions[0x13] = "[H-INT SKIPS] 01..FF, 00: RESET      ";
     infoDescriptions[0x14] = "X[ODD] 1..F; Y[EVEN] 1..F            ";
@@ -287,12 +287,12 @@ void InitInfo()
     infoDescriptions[0x16] = "00..03                               ";
     infoDescriptions[0x17] = "X: 1=UP, 2=DOWN; Y: SEMITONES;       ";
     infoDescriptions[0x18] = "ADD 00..1F MICROTONES TO CHANNEL     ";
-    infoDescriptions[0x19] = "";
-    infoDescriptions[0x1A] = "";
+    infoDescriptions[0x19] = "XX: PULSES TO SKIP                   ";
+    infoDescriptions[0x1A] = "XX: PULSES TO SKIP                   ";
     infoDescriptions[0x1B] = "";
     infoDescriptions[0x1C] = "";
     infoDescriptions[0x1D] = "";
-    infoDescriptions[0x1E] = "";//00=DISABLE, ELSE ENABLE   [DEFAULT 1]";
+    infoDescriptions[0x1E] = "00: RETRIGGER, 01: PITCH ONLY        ";
     infoDescriptions[0x1F] = "";
     infoDescriptions[0x20] = "";//01..63 TRACK NUMBER, 00: PAUSE       ";
     infoDescriptions[0x21] = "";//01..63 TRACK NUMBER, 00: PAUSE       ";
@@ -308,7 +308,7 @@ void InitInfo()
     infoDescriptions[0x2B] = "";
     infoDescriptions[0x2C] = "";
     infoDescriptions[0x2D] = "";
-    infoDescriptions[0x2E] = "";
+    infoDescriptions[0x2E] = "00: RETRIGGER, 01: PITCH ONLY        ";
     infoDescriptions[0x2F] = "00: LOOP, 01: ONCE                   ";
     infoDescriptions[0x30] = "[XX] INSTRUMENT; 00: DISABLE         ";
     infoDescriptions[0x31] = "01..7F, 00: OFF, FF=RESET, FE=HOLD   ";

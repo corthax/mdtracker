@@ -77,13 +77,18 @@ u8 channelPreviousEffectType[CHANNELS_TOTAL][EFFECTS_TOTAL];
 u8 channelPreviousNote[CHANNELS_TOTAL];
 u8 channelArpSeqID[CHANNELS_TOTAL];
 u8 channelArpSeqPlayMODE[CHANNELS_TOTAL];
+u8 channelArpSeqTriggerType[CHANNELS_TOTAL];
 u8 channelParSeqID[CHANNELS_TOTAL];
 u8 channelParSeqPlayMODE[CHANNELS_TOTAL];
 u8 channelParSeqTYPE[CHANNELS_TOTAL];
 u8 channelCurrentRowNote[CHANNELS_TOTAL]; // affected by channelMatrixTranspose
 u8 channelNoteAutoCut[CHANNELS_TOTAL];
+u8 channelNoteTriggerType[CHANNELS_TOTAL];
 
-//u8 channelDoEffects[CHANNELS_TOTAL];
+u8 channelSeqSkipStep[CHANNELS_TOTAL];
+u8 channelArpSkipStep[CHANNELS_TOTAL];
+u8 channelSeqSkipStepCounter[CHANNELS_TOTAL];
+u8 channelArpSkipStepCounter[CHANNELS_TOTAL];
 
 u8 channelSEQCounter_PAR[CHANNELS_TOTAL];
 u8 channelSEQCounter_ARP[CHANNELS_TOTAL];
@@ -144,7 +149,7 @@ u16 channelTremoloPhase[CHANNELS_TOTAL];
 u8 channelTremolo[CHANNELS_TOTAL];
 
 u8 channelBaseVolume[CHANNELS_TOTAL];
-u8 channelSeqAttenuation[CHANNELS_TOTAL];
+u8 channelVolumeAttenuation[CHANNELS_TOTAL];
 s16 channelAttenuation[CHANNELS_TOTAL];
 u8 channelSlotBaseLevel[CHANNELS_TOTAL][4]; // need less
 s16 channelVolumeChangeSpeed[CHANNELS_TOTAL];
@@ -660,26 +665,72 @@ static void DoEngine()
         return vib;
     }
 
-    //static u16 port = 0;    // chip port (0..1)
-    //static u8 ymCh = 0;       // chip channel (0..2)
+    /*auto void pitch_slide(u8 mtxCh)
+    {
+        // pitch slide
+        if (channelPitchSlideSpeed[mtxCh])
+        {
+            if (channelPitchSkipStepCounter[mtxCh] < 1)
+            {
+                channelMicrotone[mtxCh] += channelPitchSlideSpeed[mtxCh];
+                while(channelMicrotone[mtxCh] >= MICROTONE_STEPS) // wrap
+                {
+                    channelMicrotone[mtxCh] -= MICROTONE_STEPS;
+                    channelModNotePitch[mtxCh]++;
+                }
+                while(channelMicrotone[mtxCh] < 0) // wrap
+                {
+                    channelMicrotone[mtxCh] += MICROTONE_STEPS;
+                    channelModNotePitch[mtxCh]--;
+                }
+                channelPitchSkipStepCounter[mtxCh] = channelPitchSkipStep[mtxCh]; // skip pulses for slower pitch slide
+            }
+            channelPitchSkipStepCounter[mtxCh]--;
+        }
+    }*/
 
     auto void seq_par(u8 mtxCh) {
         if (!channelParSeqPlayMODE[mtxCh] || (channelParSeqPlayMODE[mtxCh] && (channelSEQCounter_PAR[mtxCh] < SEQ_STEP_LAST)))
         {
+            if (!channelSeqSkipStepCounter[mtxCh]) { channelSeqSkipStepCounter[mtxCh] = channelSeqSkipStep[mtxCh]; }
+            else { channelSeqSkipStepCounter[mtxCh]--; return; }
+
             _seqValue = seqParValue[channelParSeqID[mtxCh]][channelSEQCounter_PAR[mtxCh]]; channelSEQCounter_PAR[mtxCh]++;
 
             if (_seqValue != SEQ_SKIP)
             {
-                if (channelParSeqTYPE[mtxCh] == SEQ_TYPE_VOL) // common FM/PSG volume attenuation
+                switch (channelParSeqTYPE[mtxCh])
+                {
+                case SEQ_TYPE_VOL: // channel volume attenuation
+                    channelVolumeAttenuation[mtxCh] = _seqValue;
+                    SetChannelVolume(mtxCh);
+                    break;
+                case SEQ_TYPE_MICROTONE: // channel micro-tone fine tune. will work only on new note triggered
+                    if (_seqValue < 0x20) channelFineTune[mtxCh] = _seqValue;
+                    break;
+                default:
+                    if (mtxCh < CHANNEL_PSG1) // FM commands only
+                    {
+                        bWriteRegs = TRUE;
+                        ApplyCommand_FM(mtxCh, channelPreviousInstrument[mtxCh], channelParSeqTYPE[mtxCh], _seqValue);
+                    }
+                    break;
+                }
+
+                /*if (channelParSeqTYPE[mtxCh] == SEQ_TYPE_VOL) // common FM/PSG volume attenuation
                 {
                     channelSeqAttenuation[mtxCh] = _seqValue;
                     SetChannelVolume(mtxCh);
+                }
+                else if (channelParSeqTYPE[mtxCh] == SEQ_TYPE_MICROTONE)
+                {
+                    channelMicrotone[mtxCh] = _seqValue;
                 }
                 else if (mtxCh < CHANNEL_PSG1) // FM commands only
                 {
                     bWriteRegs = TRUE;
                     ApplyCommand_FM(mtxCh, channelPreviousInstrument[mtxCh], channelParSeqTYPE[mtxCh], _seqValue);
-                }
+                }*/
             }
         }
         if (!channelParSeqPlayMODE[mtxCh] && (channelSEQCounter_PAR[mtxCh] > SEQ_STEP_LAST)) channelSEQCounter_PAR[mtxCh] = 0;
@@ -688,7 +739,11 @@ static void DoEngine()
     auto void seq_arp(u8 mtxCh) {
         if (!channelArpSeqPlayMODE[mtxCh] || (channelArpSeqPlayMODE[mtxCh] && (channelSEQCounter_ARP[mtxCh] < SEQ_STEP_LAST)))
         {
+            if (!channelArpSkipStepCounter[mtxCh]) { channelArpSkipStepCounter[mtxCh] = channelArpSkipStep[mtxCh]; }
+            else { channelArpSkipStepCounter[mtxCh]--; return; }
+
             _seqValue = seqArpValue[channelArpSeqID[mtxCh]][channelSEQCounter_ARP[mtxCh]]; channelSEQCounter_ARP[mtxCh]++;
+
             if (!pulseCounter)
             {
                 if (_seqValue != NOTE_EMPTY)
@@ -706,7 +761,7 @@ static void DoEngine()
                     else if (_seqValue < ARP_BASE) channelArp[mtxCh] = channelPreviousNote[mtxCh] - (ARP_BASE - _seqValue);
                     if (channelArp[mtxCh] < 0 || channelArp[mtxCh] > NOTE_MAX || _seqValue == ARP_BASE)
                         channelArp[mtxCh] = channelPreviousNote[mtxCh];
-                    PlayNote(channelArp[mtxCh], mtxCh);
+                    PlayNote(channelArp[mtxCh], mtxCh, channelArpSeqTriggerType[mtxCh]);
                 }
             }
         }
@@ -886,7 +941,7 @@ static void DoEngine()
                 //{
                     //if (instrumentIsMuted[_inst] == INST_MUTE) _key = NOTE_OFF;
 
-                    PlayNote((u8)_key, mtxCh);
+                    PlayNote((u8)_key, mtxCh, channelNoteTriggerType[mtxCh]);
                 //}
             }
             else // no note
@@ -913,7 +968,7 @@ static void DoEngine()
                 //channelNoteDelayCounter[mtxCh] = 0; // disable delay
                 if (channelNoteRetriggerCounter[mtxCh] == channelNoteRetrigger[mtxCh])
                 {
-                    PlayNote(channelPreviousNote[mtxCh], mtxCh);
+                    PlayNote(channelPreviousNote[mtxCh], mtxCh, TRUE);
                     channelNoteRetriggerCounter[mtxCh] = 0;
                     channelSEQCounter_PAR[mtxCh] = 0; channelSEQCounter_ARP[mtxCh] = 0;
                 }
@@ -924,7 +979,7 @@ static void DoEngine()
             {
                 if (channelNoteDelayCounter[mtxCh] == 1)
                 {
-                    PlayNote(channelPreviousNote[mtxCh], mtxCh);
+                    PlayNote(channelPreviousNote[mtxCh], mtxCh, TRUE);
                     channelNoteDelayCounter[mtxCh] = 0;
                 } else channelNoteDelayCounter[mtxCh]--;
             }
@@ -960,6 +1015,7 @@ static void DoEngine()
             if (channelPitchSlideSpeed[mtxCh] || (channelVibratoDepth[mtxCh] && channelVibratoSpeed[mtxCh]))
             {
                 // pitch slide
+                //pitch_slide(mtxCh);
                 if (channelPitchSlideSpeed[mtxCh])
                 {
                     if (channelPitchSkipStepCounter[mtxCh] < 1)
@@ -3636,7 +3692,7 @@ static void SetChannelVolume(u8 mtxCh)
             vol[3] =
                 channelSlotBaseLevel[mtxCh][3] +
                 channelAttenuation[mtxCh] +
-                channelSeqAttenuation[mtxCh] +
+                channelVolumeAttenuation[mtxCh] +
                 channelTremolo[mtxCh];
             if (vol[3] > 0x7F) vol[3] = 0x7F;
 
@@ -3651,14 +3707,14 @@ static void SetChannelVolume(u8 mtxCh)
             vol[2] =
                 channelSlotBaseLevel[mtxCh][2] +
                 channelAttenuation[mtxCh] +
-                channelSeqAttenuation[mtxCh] +
+                channelVolumeAttenuation[mtxCh] +
                 channelTremolo[mtxCh];
             if (vol[2] > 0x7F) vol[2] = 0x7F;
 
             vol[3] =
                 channelSlotBaseLevel[mtxCh][3] +
                 channelAttenuation[mtxCh] +
-                channelSeqAttenuation[mtxCh] +
+                channelVolumeAttenuation[mtxCh] +
                 channelTremolo[mtxCh];
             if (vol[3] > 0x7F) vol[3] = 0x7F;
 
@@ -3675,21 +3731,21 @@ static void SetChannelVolume(u8 mtxCh)
             vol[1] =
                 channelSlotBaseLevel[mtxCh][1] +
                 channelAttenuation[mtxCh] +
-                channelSeqAttenuation[mtxCh] +
+                channelVolumeAttenuation[mtxCh] +
                 channelTremolo[mtxCh];
             if (vol[1] > 0x7F) vol[1] = 0x7F;
 
             vol[2] =
                 channelSlotBaseLevel[mtxCh][2] +
                 channelAttenuation[mtxCh] +
-                channelSeqAttenuation[mtxCh] +
+                channelVolumeAttenuation[mtxCh] +
                 channelTremolo[mtxCh];
             if (vol[2] > 0x7F) vol[2] = 0x7F;
 
             vol[3] =
                 channelSlotBaseLevel[mtxCh][3] +
                 channelAttenuation[mtxCh] +
-                channelSeqAttenuation[mtxCh] +
+                channelVolumeAttenuation[mtxCh] +
                 channelTremolo[mtxCh];
             if (vol[3] > 0x7F) vol[3] = 0x7F;
 
@@ -3708,28 +3764,28 @@ static void SetChannelVolume(u8 mtxCh)
             vol[0] =
                 channelSlotBaseLevel[mtxCh][0] +
                 channelAttenuation[mtxCh] +
-                channelSeqAttenuation[mtxCh] +
+                channelVolumeAttenuation[mtxCh] +
                 channelTremolo[mtxCh];
             if (vol[0] > 0x7F) vol[0] = 0x7F;
 
             vol[1] =
                 channelSlotBaseLevel[mtxCh][1] +
                 channelAttenuation[mtxCh] +
-                channelSeqAttenuation[mtxCh] +
+                channelVolumeAttenuation[mtxCh] +
                 channelTremolo[mtxCh];
             if (vol[1] > 0x7F) vol[1] = 0x7F;
 
             vol[2] =
                 channelSlotBaseLevel[mtxCh][2] +
                 channelAttenuation[mtxCh] +
-                channelSeqAttenuation[mtxCh] +
+                channelVolumeAttenuation[mtxCh] +
                 channelTremolo[mtxCh];
             if (vol[2] > 0x7F) vol[2] = 0x7F;
 
             vol[3] =
                 channelSlotBaseLevel[mtxCh][3] +
                 channelAttenuation[mtxCh] +
-                channelSeqAttenuation[mtxCh] +
+                channelVolumeAttenuation[mtxCh] +
                 channelTremolo[mtxCh];
             if (vol[3] > 0x7F) vol[3] = 0x7F;
 
@@ -3757,7 +3813,7 @@ static void SetChannelVolume(u8 mtxCh)
             vol[3] =
                 channelSlotBaseLevel[CHANNEL_FM3_OP4][3] +
                 channelAttenuation[CHANNEL_FM3_OP4] +
-                channelSeqAttenuation[CHANNEL_FM3_OP4] +
+                channelVolumeAttenuation[CHANNEL_FM3_OP4] +
                 channelTremolo[CHANNEL_FM3_OP4];
             if (vol[3] > 0x7F) vol[3] = 0x7F;
 
@@ -3768,7 +3824,7 @@ static void SetChannelVolume(u8 mtxCh)
             vol[2] =
                 channelSlotBaseLevel[CHANNEL_FM3_OP4][2] +
                 channelAttenuation[CHANNEL_FM3_OP3] +
-                channelSeqAttenuation[CHANNEL_FM3_OP3] +
+                channelVolumeAttenuation[CHANNEL_FM3_OP3] +
                 channelTremolo[CHANNEL_FM3_OP3];
             if (vol[2] > 0x7F) vol[2] = 0x7F;
 
@@ -3779,7 +3835,7 @@ static void SetChannelVolume(u8 mtxCh)
             vol[1] =
                 channelSlotBaseLevel[CHANNEL_FM3_OP4][1] +
                 channelAttenuation[CHANNEL_FM3_OP2] +
-                channelSeqAttenuation[CHANNEL_FM3_OP2] +
+                channelVolumeAttenuation[CHANNEL_FM3_OP2] +
                 channelTremolo[CHANNEL_FM3_OP2];
             if (vol[1] > 0x7F) vol[1] = 0x7F;
 
@@ -3790,7 +3846,7 @@ static void SetChannelVolume(u8 mtxCh)
             vol[0] =
                 channelSlotBaseLevel[CHANNEL_FM3_OP4][0] +
                 channelAttenuation[CHANNEL_FM3_OP1] +
-                channelSeqAttenuation[CHANNEL_FM3_OP1] +
+                channelVolumeAttenuation[CHANNEL_FM3_OP1] +
                 channelTremolo[CHANNEL_FM3_OP1];
             if (vol[0] > 0x7F) vol[0] = 0x7F;
 
@@ -3827,9 +3883,9 @@ static void SetChannelVolume(u8 mtxCh)
         vol[0] =
         (
             channelAttenuation[mtxCh] +
-            channelSeqAttenuation[mtxCh] +
+            channelVolumeAttenuation[mtxCh] +
             channelTremolo[mtxCh]
-        ) / 8;
+        ) >> 3; // / 8;
 
         if (vol[0] > PSG_ENVELOPE_MIN) vol[0] = PSG_ENVELOPE_MIN;
         if (bPsgIsPlayingNote[psgCh]) PSG_setEnvelope(psgCh, (u8)vol[0]);
@@ -3917,15 +3973,13 @@ static void SetPitchFM(u8 mtxCh, u8 note)
     static u8 part1 = 0, part2 = 0;
     static s8 key = 0;
 
-    key = note + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh];
+    /*key = note + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh];
     channelFinalPitch[mtxCh] += channelFineTune[mtxCh];
-    if (channelFinalPitch[mtxCh] > 31) { key++; channelFinalPitch[mtxCh] -= 32; }
+    if (channelFinalPitch[mtxCh] > 31) { key++; channelFinalPitch[mtxCh] -= 32; }*/
 
-    auto void set_key()
+    auto void set_key(u8 n)
     {
-        key = note + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh];
-        channelFinalPitch[mtxCh] += channelFineTune[mtxCh];
-        if (channelFinalPitch[mtxCh] > 31) { key++; channelFinalPitch[mtxCh] -= 32; }
+        key = n + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh];
     }
 
     // CSM
@@ -3933,15 +3987,18 @@ static void SetPitchFM(u8 mtxCh, u8 note)
     {
         switch (mtxCh)
         {
-            case CHANNEL_FM3_OP4: key = FM_CH3_OpFreq[0] + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh]; break;
-            case CHANNEL_FM3_OP3: key = FM_CH3_OpFreq[1] + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh]; break;
-            case CHANNEL_FM3_OP2: key = FM_CH3_OpFreq[2] + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh]; break;
-            case CHANNEL_FM3_OP1: key = FM_CH3_OpFreq[3] + channelModNotePitch[mtxCh] + channelModNoteVibrato[mtxCh]; break;
-            default: set_key(); break;
+            case CHANNEL_FM3_OP4: set_key(FM_CH3_OpFreq[0]); break;
+            case CHANNEL_FM3_OP3: set_key(FM_CH3_OpFreq[1]); break;
+            case CHANNEL_FM3_OP2: set_key(FM_CH3_OpFreq[2]); break;
+            case CHANNEL_FM3_OP1: set_key(FM_CH3_OpFreq[3]); break;
+            default: set_key(note); break;
         }
     }
     // Normal or Special
-    else set_key();
+    else set_key(note);
+
+    channelFinalPitch[mtxCh] += channelFineTune[mtxCh]; // 31 max
+    if (channelFinalPitch[mtxCh] > 31) { key++; channelFinalPitch[mtxCh] -= MICROTONE_STEPS; }
 
     if ((key > -1) && (key < NOTES))
     {
@@ -4092,12 +4149,12 @@ static void PlayNoteOff(u8 mtxCh)
         StopEffects(mtxCh);
 }
 
-static void PlayNote(u8 note, u8 mtxCh)
+static void PlayNote(u8 note, u8 mtxCh, u8 retrigger) // FALSE == retrigger
 {
     if (mtxCh < CHANNEL_PSG1) // FM
     {
         // S1>S3>S2>S4 for common registers and S4>S3>S1>S2 for CH3 frequencies
-        StopChannelSound(mtxCh); // need to stop current playing note to write new data
+        if (!retrigger) StopChannelSound(mtxCh); // need to stop current playing note to write new data
         SetPitchFM(mtxCh, note); // set pitch (or dac), trigger note
     }
     else // PSG
@@ -4238,9 +4295,10 @@ static void StopAllSound()
         StopEffects(mtxCh);
 
         // only at playback stop, so note OFF is not affected
+        //channelFineTune[mtxCh] = 0;
         channelVolumeChangeSpeed[mtxCh] = 0;
 
-        channelSeqAttenuation[mtxCh] = SEQ_VOL_MIN_ATT;
+        channelVolumeAttenuation[mtxCh] = SEQ_VOL_MIN_ATT;
         channelCurrentRowNote[mtxCh] = channelPreviousNote[mtxCh] = NOTE_OFF;
         /*if (mtxCh < CHANNEL_PSG1) channelPreviousNote[mtxCh] = NOTE_EMPTY;
         else channelPreviousNote[mtxCh] = NOTE_OFF;*/
@@ -4646,10 +4704,25 @@ static void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
         if (fxValue < 32) channelFineTune[mtxCh] = fxValue;
         break;
 
-    // ENABLE/DISABLE CHANNEL SUBTICKS PROCESSING TO SAVE CPU
-    /*case 0x1E:
-        channelDoEffects[mtxCh] = fxValue;
-        break;*/
+     // CHANNEL SEQ SPEED
+    case 0x19:
+        channelSeqSkipStep[mtxCh] = fxValue;
+        break;
+
+    // CHANNEL ARP SPEED
+    case 0x1A:
+        channelArpSkipStep[mtxCh] = fxValue;
+        break;
+
+    // CHANNEL NOTE TRIGGER TYPE
+    case 0x1E:
+        channelNoteTriggerType[mtxCh] = fxValue;
+        break;
+
+    // CHANNEL ARP TRIGGER TYPE
+    case 0x2E:
+        channelArpSeqTriggerType[mtxCh] = fxValue;
+        break;
 
     // ARP SEQUENCE MODE
     case 0x2F:
@@ -4771,7 +4844,7 @@ static void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
     // VOLUME SEQUENCE
     case 0x40:
         channelParSeqID[mtxCh] = fxValue;
-        if (!fxValue) channelSeqAttenuation[mtxCh] = 0;
+        if (!fxValue) channelVolumeAttenuation[mtxCh] = 0;
         //channelVolumeChangeSpeed[mtxCh] = 0;
         break;
 
@@ -6347,7 +6420,7 @@ void ForceResetVariables()
         channelTremoloPhase[ch]=
         channelTremolo[ch]=
         channelBaseVolume[ch]=
-        channelSeqAttenuation[ch]=
+        channelVolumeAttenuation[ch]=
         channelAttenuation[ch]=
         channelSlotBaseLevel[ch][0]=
         channelSlotBaseLevel[ch][1]=
@@ -6362,6 +6435,10 @@ void ForceResetVariables()
         channelNoteAutoCut[ch]=
         channelMatrixTranspose[ch]=
         channelPlayingPatternID[ch]=
+        channelArpSeqTriggerType[ch]=
+        channelNoteTriggerType[ch]=
+        channelSeqSkipStep[ch]=
+        channelArpSkipStep[ch]=
         channelNoteRetriggerCounter[ch]=0;
 
         //channelDoEffects[ch]=

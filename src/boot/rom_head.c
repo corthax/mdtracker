@@ -57,26 +57,26 @@ const ROMHeader rom_header = {
 
 #endif
 
-    "(C)Corthax 2022 ",
+    "(C)Corthax 2023 ",
 
 #if (MDT_VERSION == 0)
 
-    "MD.Tracker (1.2)                                ",
+    "MD.Tracker (1.4)                                ",
     "MD.Tracker for MEGA EVERDRIVE PRO               ",
 
 #elif (MDT_VERSION == 1)
 
-    "MD.Tracker (1.2)                                ",
+    "MD.Tracker (1.4)                                ",
     "MD.Tracker for BlastEm                          ",
 
 #elif (MDT_VERSION == 2)
 
-    "MD.Tracker (1.2)                                ",
+    "MD.Tracker (1.4)                                ",
     "MD.Tracker for PicoDrive                        ",
 
 #elif (MDT_VERSION == 3)
 
-    "MD.Tracker (1.2)                                ",
+    "MD.Tracker (1.4)                                ",
     "MD.Tracker for MEGA EVERDRIVE X7                ",
 
 #endif
