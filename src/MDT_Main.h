@@ -1,8 +1,10 @@
+#include "MDT_Version.h"
+
 #ifndef MDT_MAIN_H_INCLUDED
 #define MDT_MAIN_H_INCLUDED
 
 //-------------------------------
-//#define MDT_VERSION 0
+//#define MDT_VERSION 3
 //-------------------------------
 
 // bit help

@@ -24,12 +24,24 @@
 #ifndef _SRAM_H_
 #define _SRAM_H_
 
-
 #include "mapper.h"
+#include "MDT_Version.h"
 
+//-------------------------------
+//#define MDT_VERSION 3
+//-------------------------------
 
 #define SRAM_CONTROL    MAPPER_BASE
-#define SRAM_BASE       0x380000
+
+#if (MDT_VERSION == 3)
+
+    #define SRAM_BASE       0x3C0000
+
+#else
+
+    #define SRAM_BASE       0x380000
+
+#endif
 
 
 /**

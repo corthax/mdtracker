@@ -1,10 +1,15 @@
 #include <genesis.h>
 #include <sram.h>
 #include "MDT_Version.h"
+#include "MDT_SRAM.h"
 
 //! change SRAM_BASE to 0x380000
 
 //! offset must be > 1
+
+//-------------------------------
+//#define MDT_VERSION 3
+//-------------------------------
 
 u8 SRAMW_readByte(u32 offset)
 {
@@ -15,12 +20,16 @@ u8 SRAMW_readByte(u32 offset)
 
     #elif (MDT_VERSION == 3)
 
-    return SRAM_readByte(offset);
+    //return SRAM_readByte(offset);
+    return SRAM_readByte_Odd(offset);
+
+    /*if (offset & 1) offset -= 2;
+    return *(vu8*)(SRAM_BASE + offset);*/
 
     #endif
 }
 
-// default are even. these are odd
+// default is even
 u8 SRAM_readByte_Odd(u32 offset)
 {
     return *(vu8*)(SRAM_BASE + (offset * 2));
@@ -41,7 +50,11 @@ void SRAMW_writeByte(u32 offset, u8 val)
 
     #elif (MDT_VERSION == 3)
 
-    SRAM_writeByte(offset, val);
+    /*if (offset & 1) offset -= 2;
+    *(vu8*)(SRAM_BASE + offset) = val;*/
+
+    //SRAM_writeByte(offset, val);
+    SRAM_writeByte_Odd(offset, val);
 
     #endif
 }

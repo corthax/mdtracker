@@ -23,7 +23,7 @@
 #include "MDT_Version.h"
 
 //-------------------------------
-//#define MDT_VERSION 0
+//#define MDT_VERSION 3
 //-------------------------------
 
 #define MDT_HEADER              "MDT104"
@@ -5667,44 +5667,44 @@ void ReColorsAndTranspose() // on color change
 }
 
 // instrument
-static u8 SRAM_ReadInstrument(u8 id, u16 param) { return SRAMW_readByte((u32)INSTRUMENT_DATA + (id * INST_SIZE) + param); }
+u8 SRAM_ReadInstrument(u8 id, u16 param) { return SRAMW_readByte((u32)INSTRUMENT_DATA + (id * INST_SIZE) + param); }
 void SRAM_WriteInstrument(u8 id, u16 param, u8 data) { SRAMW_writeByte((u32)INSTRUMENT_DATA + (id * INST_SIZE) + param, data); }
 
 // seq
-static u8 SRAM_ReadSEQ_PAR(u8 id, u8 step) { return SRAMW_readByte((u32)SEQ_VOL_START + (id*SEQ_STEPS) + step); }
+u8 SRAM_ReadSEQ_PAR(u8 id, u8 step) { return SRAMW_readByte((u32)SEQ_VOL_START + (id*SEQ_STEPS) + step); }
 void SRAM_WriteSEQ_PAR(u8 id, u8 step, u8 data) { SRAMW_writeByte((u32)SEQ_VOL_START + (id*SEQ_STEPS) + step, data); }
-static u8 SRAM_ReadSEQ_ARP(u8 id, u8 step) { return SRAMW_readByte((u32)SEQ_ARP_START + (id*SEQ_STEPS) + step); }
+u8 SRAM_ReadSEQ_ARP(u8 id, u8 step) { return SRAMW_readByte((u32)SEQ_ARP_START + (id*SEQ_STEPS) + step); }
 void SRAM_WriteSEQ_ARP(u8 id, u8 step, u8 data) { SRAMW_writeByte((u32)SEQ_ARP_START + (id*SEQ_STEPS) + step, data); }
 
 // pattern
-static u8 SRAM_ReadPattern(u16 id, u8 line, u8 param) { return SRAMW_readByte(PATTERN_DATA + (id * PATTERN_SIZE) + (line * PATTERN_COLUMNS) + param); }
+u8 SRAM_ReadPattern(u16 id, u8 line, u8 param) { return SRAMW_readByte(PATTERN_DATA + (id * PATTERN_SIZE) + (line * PATTERN_COLUMNS) + param); }
 void SRAM_WritePattern(u16 id, u8 line, u8 param, u8 data) { SRAMW_writeByte((u32)PATTERN_DATA + (id * PATTERN_SIZE) + (line * PATTERN_COLUMNS) + param, data); }
 
 u8 SRAM_ReadPatternColor(u16 id) { return SRAMW_readByte((u32)PATTERN_COLOR + id); }
 void SRAM_WritePatternColor(u16 id, u8 color) { SRAMW_writeByte((u32)PATTERN_COLOR + id, color); }
 
 // matrix
-static u16 SRAM_ReadMatrix(u8 channel, u8 line) { return SRAMW_readWord((u32)PATTERN_MATRIX + ((channel * MATRIX_ROWS) + line) * 2); }
+u16 SRAM_ReadMatrix(u8 channel, u8 line) { return SRAMW_readWord((u32)PATTERN_MATRIX + ((channel * MATRIX_ROWS) + line) * 2); }
 void SRAM_WriteMatrix(u8 channel, u8 line, u16 data) { SRAMW_writeWord((u32)PATTERN_MATRIX + ((channel * MATRIX_ROWS) + line) * 2, data); }
 
-static s8 SRAM_ReadMatrixTranspose(u8 channel, u8 line) { return SRAMW_readByte((u32)MATRIX_TRANSPOSE + ((channel * MATRIX_ROWS) + line)); }
+s8 SRAM_ReadMatrixTranspose(u8 channel, u8 line) { return SRAMW_readByte((u32)MATRIX_TRANSPOSE + ((channel * MATRIX_ROWS) + line)); }
 void SRAM_WriteMatrixTranspose(u8 channel, u8 line, s8 transpose) { SRAMW_writeByte((u32)MATRIX_TRANSPOSE + ((channel * MATRIX_ROWS) + line), transpose); }
 
-static u8 SRAM_ReadMatrixChannelEnabled(u8 channel) { return SRAMW_readByte((u32)MUTE_CHANNEL + channel); }
+u8 SRAM_ReadMatrixChannelEnabled(u8 channel) { return SRAMW_readByte((u32)MUTE_CHANNEL + channel); }
 void SRAM_WriteMatrixChannelEnabled(u8 channel, u8 state) { SRAMW_writeByte((u32)MUTE_CHANNEL + channel, state); }
 
 // pcm
-static u32 SRAM_ReadSampleRegion(u8 bank, u8 note, u8 byteNum) { return (u32)SRAMW_readByte((u32)SAMPLE_DATA + (bank * NOTES * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum); }
+u32 SRAM_ReadSampleRegion(u8 bank, u8 note, u8 byteNum) { return (u32)SRAMW_readByte((u32)SAMPLE_DATA + (bank * NOTES * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum); }
 void SRAM_WriteSampleRegion(u8 bank, u8 note, u8 byteNum, u8 data) { SRAMW_writeByte((u32)SAMPLE_DATA + (bank * NOTES * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum, data); }
 
-static u8 SRAM_ReadSamplePan(u8 bank, u8 note){ return SRAMW_readByte((u32)SAMPLE_PAN + (bank * NOTES) + note); }
+u8 SRAM_ReadSamplePan(u8 bank, u8 note){ return SRAMW_readByte((u32)SAMPLE_PAN + (bank * NOTES) + note); }
 void SRAM_WriteSamplePan(u8 bank, u8 note, u8 data) { SRAMW_writeByte((u32)SAMPLE_PAN + (bank * NOTES) + note, data); }
 
-static u8 SRAM_ReadSampleRate(u8 bank, u8 note){ return SRAMW_readByte((u32)SAMPLE_RATE + (bank * NOTES) + note); }
+u8 SRAM_ReadSampleRate(u8 bank, u8 note){ return SRAMW_readByte((u32)SAMPLE_RATE + (bank * NOTES) + note); }
 void SRAM_WriteSampleRate(u8 bank, u8 note, u8 data) { SRAMW_writeByte((u32)SAMPLE_RATE + (bank * NOTES) + note, data); }
 
 // other
-static void YM2612_writeRegZ80(u16 part, u8 reg, u8 data)
+void YM2612_writeRegZ80(u16 part, u8 reg, u8 data)
 {
     RequestZ80();
     YM2612_writeReg(part, reg, data);

@@ -1,8 +1,10 @@
+#include "MDT_Version.h"
+
 #ifndef MDT_GUI_H_INCLUDED
 #define MDT_GUI_H_INCLUDED
 
 //-------------------------------
-//#define MDT_VERSION 0
+//#define MDT_VERSION 3
 //-------------------------------
 
 #define GUI_INST_PARAM_ALG          0

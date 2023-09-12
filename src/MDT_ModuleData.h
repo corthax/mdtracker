@@ -1,8 +1,10 @@
+#include "MDT_Version.h"
+
 #ifndef MDT_MODULEDATA_H_INCLUDED
 #define MDT_MODULEDATA_H_INCLUDED
 
 //-------------------------------
-//#define MDT_VERSION 0
+//#define MDT_VERSION 3
 //-------------------------------
 
 //{ Instrument data SRAM offsets
@@ -141,7 +143,6 @@
 #define MATRIX_TRANSPOSE    0x6A3EC // matrix slot transpose (250*13)
 #define MUTE_CHANNEL        0x6B09E // store disabled matrix channels (13)
 #define SAMPLE_PAN          0x6B0AB // default sample pan (4 * 96)
-//#define SONG_TRANSPOSE      0x6B22B // 1 byte
 #define SEQ_VOL_START       0x6B230 // 32 steps vol seq start
 #define SEQ_ARP_START       0x6D230 // SEQ_VOL_START + 2000; 32 steps arp seq start
 #define SAMPLE_RATE         0x6f230 // SEQ_ARP_START + 2000; default sample rate (4 * 96)

@@ -2,7 +2,7 @@
 #include "../MDT_Version.h"
 
 //-------------------------------
-//#define MDT_VERSION 0
+//#define MDT_VERSION 3
 //-------------------------------
 
 __attribute__((externally_visible))
@@ -53,7 +53,7 @@ const ROMHeader rom_header = {
 
 #elif (MDT_VERSION == 3)
 
-    "SEGA EVERDRIVE  ", // Mega Everdrive X7
+    "SEGA SSF        ", // Mega Everdrive X7
 
 #endif
 
@@ -126,6 +126,7 @@ const ROMHeader rom_header = {
 #elif (MDT_VERSION == 3)
 
     0xF820,     // 8 bit SRAM mode
+    //0xE020,     // 16 bit SRAM mode
 
 #endif
 
