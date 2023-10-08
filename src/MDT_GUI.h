@@ -210,8 +210,8 @@
 #define GUI_PATTERN_COLORS_MAX          13
 
 void DrawMute(u8 mtxCh);
-void DrawStaticHeaders();
-void DrawPP();
+void DrawStaticGUI();
+void DrawInfo();
 void DisplayPatternMatrix();
 void DisplayPatternEditor();
 void DisplayInstrumentEditor();

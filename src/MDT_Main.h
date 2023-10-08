@@ -172,8 +172,6 @@ static void ChangeMatrixValue(s16 mod);
 static void RequestZ80();
 static void ReleaseZ80();
 static void JoyEvent(u16 joy, u16 changed, u16 state);
-//void hIntCallback();
-//void vIntCallback();
 static void YM2612_writeRegZ80(u16 part, u8 reg, u8 data);
 static s16 FindUnusedPattern();
 void CalculateCombined(u8 mtxCh, u8 reg);
@@ -181,7 +179,7 @@ void ForceResetVariables();
 static void ReadMatrixRow();
 void Legacy();
 void FileWriteHeader();
-static void CountPulses();
+//static void CountPulses();
 
 // temporal instrument storage
 struct Instrument

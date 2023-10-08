@@ -4,6 +4,7 @@
 
 // krikzz
 #include <ssf.h>
+//#include "ext/everdrive.h"
 
 // res
 #include "fontdata.h"
@@ -34,7 +35,7 @@
 #define TICK_SKIP_MIN           0x01       // fast tempo limit, 1 tick = H_INT_SKIP h-Blanks; 6
 #define TICK_SKIP_MAX           0xFF    // slow tempo limit; 128
 
-u8 H_INT_SKIP = 2;       // 1 == no skip
+u8 H_INT_CALLS_SKIP = 2;       // 1 == no skip
 
 bool bWriteRegs = TRUE;
 
@@ -194,8 +195,8 @@ s8 patternCopyRangeStart = NOTHING;
 s8 patternCopyRangeEnd = NOTHING;
 
 u16 hIntToSkip = 0;
-u16 hIntCounter = 0;
-bool bDoPulse = FALSE;
+s16 hIntCounter = 0;
+//bool bDoPulse = FALSE;
 
 u16 bgBaseTileIndex[4];
 u16 asciiBaseLetters, asciiBaseNumbers;
@@ -212,7 +213,7 @@ u8 FM_CH6_DAC_Pan = SOUND_PAN_CENTER;
 u32 frames_counter = 0; // to measure fps
 u32 BPM = 0; // rough beats per minute
 f32 fBPM = 0; // very bad precision
-u32 PPS = 0; // pulses per second needed
+//u32 PPS = 0; // pulses per second needed
 
 u8 patternSize = 0x1F;
 
@@ -368,7 +369,7 @@ int main(bool hardReset)
 	return(0);
 }
 
-FORCE_INLINE static inline void CountPulses()
+/*FORCE_INLINE static inline void CountPulses()
 {
     hIntCounter--;
     if (!hIntCounter)
@@ -376,18 +377,20 @@ FORCE_INLINE static inline void CountPulses()
         bDoPulse = TRUE;
         hIntCounter = hIntToSkip;
     }
-}
+}*/
 
 HINTERRUPT_CALLBACK hIntCallback()
 {
-    CountPulses();
+    //CountPulses();
+    hIntCounter--;
 }
 
 void vIntCallback()
 {
-    VDP_setHInterrupt(FALSE);
+    //VDP_setHInterrupt(FALSE);
     SYS_doVBlankProcessEx(IMMEDIATELY);
-    CountPulses();
+    //CountPulses();
+
     /*
     static u8 _vInts_counter;
     _vInts_counter++;
@@ -429,7 +432,7 @@ void vIntCallback()
         }
     }
 
-    VDP_setHInterrupt(TRUE);
+    //VDP_setHInterrupt(TRUE);
 }
 
 // -------------------------------------------------------------------------------------------------------------
@@ -1078,6 +1081,7 @@ static void DoEngine()
     {
         if (_bBeginPlay)
         {
+            ssf_led_on();
             SYS_disableInts();
             _bBeginPlay = FALSE;
             ReadMatrixRow();
@@ -1208,16 +1212,23 @@ static void DoEngine()
 
             DrawMatrixPlaybackCursor(FALSE);
             hIntCounter = hIntToSkip; // reset h-int counter
-            bDoPulse = FALSE;
+            //bDoPulse = FALSE;
             pulseCounter = 0;
             matrixRowJumpTo = OXFF;
             patternRowJumpTo = OXFF;
 
             SYS_enableInts();
+            VDP_setHInterrupt(TRUE);
         }
 
-        if (bDoPulse)
+        if (hIntCounter < 1)
         {
+            //bDoPulse = TRUE;
+            hIntCounter = hIntToSkip;
+
+        //if (bDoPulse)
+        //{
+            //bDoPulse = FALSE;
             if (!pulseCounter) // row first pulse; prepare command, note, instrument, draw cursor
             {
                 // main slowdown!
@@ -1311,21 +1322,29 @@ static void DoEngine()
                 if (playingPatternRow & 1) maxPulse = ppl_1; else maxPulse = ppl_2;
                 pulseCounter = 0;
             }
+
             frames_counter++;
 
-            bDoPulse = FALSE;
+            /*if (bDoPulse)
+            {
+                VDP_drawText("OVL", 16, 27);
+            }*/
         }
     }
     else if (!_bBeginPlay) // need to run only once at playback stopped
     {
-        SYS_disableInts();
         _bBeginPlay = TRUE;
+        ssf_led_off();
+
+        SYS_disableInts();
         // bb: Mode, ResetB ResetA, EnableB EnableA, LoadB LoadA
         //YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00000000);
         StopAllSound();
         ClearPatternPlaybackCursor();
         DrawMatrixPlaybackCursor(TRUE);
+        //VDP_drawText("   ", 16, 27);
         SYS_enableInts();
+        VDP_setHInterrupt(FALSE);
     }
 }
 
@@ -1360,7 +1379,6 @@ static s16 FindUnusedPattern()
 
 static void SetBPM(u16 tempo)
 {
-    //static u32 microseconds = 0;
     static f32 mcs = 0;
 
     if (!tempo)
@@ -1376,13 +1394,13 @@ static void SetBPM(u16 tempo)
     // GUI
     if (IS_PAL_SYSTEM)
     {
-        //microseconds = H_INT_DURATION_PAL * H_INT_SKIP * hIntToSkip; // h-blank = 1/11200 sec;  8.928571428571429e-5; 89.2857 microseconds;
-        mcs = fix32Div(FIX32(1.0), FIX32(1.120)) * H_INT_SKIP * hIntToSkip;
+        //mcs = H_INT_DURATION_PAL * H_INT_CALLS_SKIP * hIntToSkip; // h-blank = 1/11200 sec;  8.928571428571429e-5; 89.2857 microseconds;
+        mcs = fix32Div(FIX32(1.0), FIX32(1.120)) * H_INT_CALLS_SKIP * hIntToSkip;
     }
     else
     {
-        //microseconds = H_INT_DURATION_NTSC * H_INT_SKIP * hIntToSkip; // h-blank = 1/13440 sec; 7.44047619047619e-5; 74.4047 microseconds; 224 * 60
-        mcs = fix32Div(FIX32(1.0), FIX32(1.344)) * H_INT_SKIP * hIntToSkip; //193, 140, 0.74404761904761904761904761904762
+        //mcs = H_INT_DURATION_NTSC * H_INT_CALLS_SKIP * hIntToSkip; // h-blank = 1/13440 sec; 7.44047619047619e-5; 74.4047 microseconds; 224 * 60
+        mcs = fix32Div(FIX32(1.0), FIX32(1.344)) * H_INT_CALLS_SKIP * hIntToSkip; //193, 140, 0.74404761904761904761904761904762
     }
 
     // precise BPM: 600000000000 / (1/13440) * 2 * hIntToSkip)) / ppb
@@ -1390,16 +1408,60 @@ static void SetBPM(u16 tempo)
     u8 ppb = (ppl_1 + ppl_2) * 2; // pulses per beat
 
     // beat per minute
-    //BPM = (600000000 / microseconds) / ppb;
+    //BPM = (600000000 / mcs) / ppb;
 
     // beat per minute (fractional)
     fBPM = (fix32Div(FIX32(60000.0), mcs) / ppb) * 10;
-    //BPM = fix32ToRoundedInt(fBPM);
     BPM = fix32ToInt(fix32Int(fBPM));
     fBPM = fix32Frac(fBPM);
 
-    PPS = (((BPM * 1000) / 6) * ppb) / 10000; // pulse per second
-    DrawPP();
+    //PPS = (((BPM * 1000) / 6) * ppb) / 10000; // pulse per second
+    DrawInfo();
+}
+
+void DrawInfo()
+{
+    // BPM
+    if (BPM < 1000)
+    {
+        fix32ToStr(fBPM, str, 2);
+        VDP_setTextPalette(PAL2);
+        VDP_drawTextBG(BG_A, str, 5, 27);
+        VDP_drawTextBG(BG_A, str, 45, 27);
+
+        uintToStr(BPM, str, 3);
+        DrawNum(BG_A, PAL0, str, 3, 27);
+        DrawNum(BG_A, PAL1, str, 43, 27);
+    }
+    else { VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "OUT    ", 3, 27); VDP_drawTextBG(BG_A, "OUT    ", 43, 27); }
+
+    // PPS
+    /*if (PPS < 1000) { uintToStr(PPS, str, 3); DrawNum(BG_A, PAL1, str, 21, 27); DrawNum(BG_A, PAL1, str, 61, 27); }
+    else { VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "OUT", 21, 27); VDP_drawTextBG(BG_A, "OUT", 61, 27); }*/
+
+    // PPL
+    DrawHex(PAL1, ppl_1, 12, 27); DrawHex(PAL1, ppl_2, 14, 27);
+    DrawHex(PAL1, ppl_1, 52, 27); DrawHex(PAL1, ppl_2, 54, 27);
+
+    // transpose
+    /*if (!channelTranspose)
+    {
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_BIGDOT), 10, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_BIGDOT), 50, 27);
+    }
+    else if (channelTranspose > 0)
+    {
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_PLUS), 10, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_PLUS), 50, 27);
+    }
+    else
+    {
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_MINUS), 10, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_MINUS), 50, 27);
+    }
+
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[0] + channelTranspose), 11, 27);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[0] + channelTranspose), 51, 27);*/
 }
 
 // cursors
@@ -4621,60 +4683,15 @@ static void WriteYM2612(u8 mtxCh)
     }
 }
 
-void DrawPP()
-{
-    // BPM
-    if (BPM < 1000)
-    {
-        fix32ToStr(fBPM, str, 2);
-        VDP_setTextPalette(PAL2);
-        VDP_drawTextBG(BG_A, str, 5, 27);
-        VDP_drawTextBG(BG_A, str, 45, 27);
-
-        uintToStr(BPM, str, 3);
-        DrawNum(BG_A, PAL0, str, 3, 27);
-        DrawNum(BG_A, PAL1, str, 43, 27);
-    }
-    else { VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "OUT    ", 3, 27); VDP_drawTextBG(BG_A, "OUT    ", 43, 27); }
-
-    // PPS
-    if (PPS < 1000) { uintToStr(PPS, str, 3); DrawNum(BG_A, PAL1, str, 21, 27); DrawNum(BG_A, PAL1, str, 61, 27); }
-    else { VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "OUT", 21, 27); VDP_drawTextBG(BG_A, "OUT", 61, 27); }
-
-    // PPL
-    DrawHex(PAL1, ppl_1, 27, 27); DrawHex(PAL1, ppl_2, 29, 27);
-    DrawHex(PAL1, ppl_1, 67, 27); DrawHex(PAL1, ppl_2, 69, 27);
-
-    // transpose
-    /*if (!channelTranspose)
-    {
-        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_BIGDOT), 10, 27);
-        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_BIGDOT), 50, 27);
-    }
-    else if (channelTranspose > 0)
-    {
-        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_PLUS), 10, 27);
-        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_PLUS), 50, 27);
-    }
-    else
-    {
-        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_MINUS), 10, 27);
-        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_MINUS), 50, 27);
-    }
-
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[0] + channelTranspose), 11, 27);
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[0] + channelTranspose), 51, 27);*/
-}
-
 static void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
 {
     switch (fxParam)
     {
     // H-INT callback skip
     case 0x0F:
-        if (fxValue) H_INT_SKIP = fxValue; else H_INT_SKIP = 2;
-        VDP_setHIntCounter(H_INT_SKIP-1);
-        SetBPM(0);
+        if (fxValue) H_INT_CALLS_SKIP = fxValue; else H_INT_CALLS_SKIP = 2;
+        VDP_setHIntCounter(H_INT_CALLS_SKIP-1);
+        SetBPM(NULL);
         break;
     // TEMPO
     case 0x13:
@@ -5757,7 +5774,7 @@ void InitTracker()
     VDP_init();
     VDP_setDMAEnabled(TRUE);
     VDP_setHInterrupt(TRUE);
-    VDP_setHIntCounter(H_INT_SKIP-1);
+    VDP_setHIntCounter(H_INT_CALLS_SKIP-1);
     VDP_setScreenWidth320();
     VDP_setScreenHeight224();
     VDP_setHilightShadow(FALSE);
@@ -5987,7 +6004,7 @@ void InitTracker()
         instrumentIsMuted[id] = INST_PLAY;
     }
 
-    DrawStaticHeaders();
+    DrawStaticGUI();
     VDP_waitDMACompletion();
 
     SYS_enableInts();
@@ -6012,7 +6029,7 @@ void FileWriteHeader()
     }
 }
 
-void DrawStaticHeaders()
+void DrawStaticGUI()
 {
     // draw default initial brackets
     currentScreen = 2; DrawSelectionCursor(0, 0, 0); // instrument
@@ -6076,22 +6093,22 @@ void DrawStaticHeaders()
     /*VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_FPS), 13, 27);
         VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_FPS + 1), 14, 27);
             DrawNum(BG_A, PAL1, "999", 15, 27); // default FPS*/
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPS), 19, 27);
-        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPS + 1), 20, 27);
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPL), 25, 27);
-        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPL + 1), 26, 27);
-        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SLASH), 28, 27);
+    /*VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPS), 19, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPS + 1), 20, 27);*/
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPL), 10, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPL + 1), 11, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SLASH), 13, 27);
 
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_BPM), 41, 27);
         VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_BPM + 1), 42, 27);
     /*VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_FPS), 53, 27);
         VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_FPS + 1), 54, 27);
             DrawNum(BG_A, PAL1, "999", 55, 27); // default FPS*/
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPS), 59, 27);
-        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPS + 1), 60, 27);
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPL), 65, 27);
-        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPL + 1), 66, 27);
-        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SLASH), 68, 27);
+    /*VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPS), 59, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPS + 1), 60, 27);*/
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPL), 50, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_PPL + 1), 51, 27);
+        VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SLASH), 53, 27);
 
 
     //! for (u8 y=2; y<27; y++) VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 27, y); // fm/psg
@@ -6341,7 +6358,7 @@ void ForceResetVariables()
     activeSampleBank=
     hIntToSkip=
     hIntCounter=
-    bDoPulse=
+    //bDoPulse=
     asciiBaseLetters=
     asciiBaseNumbers=
     bDoCount=
@@ -6360,7 +6377,7 @@ void ForceResetVariables()
     updateCursor=
     selectedInstrumentID=1;
 
-    H_INT_SKIP = 2;
+    H_INT_CALLS_SKIP = 32;
 
     patternRowToRefresh=
     instrumentParameterToRefresh=

@@ -50,7 +50,7 @@ To save as new song just rename the rom, or move/rename your save file.
 
 If your goal is to make a VGM file, then go with standalone BlastEm (latest 0.6.3+) as it has vgm logging (press 'M' to start/stop it).
 VGM File then can be edited and optimized with VGM TOOLS and optvgm (http://project2612.org/optvgm.zip)
-Use overclocking for best performance =^..^=
+Use overclocking for best performance if song tick rate is set high =^..^=
 
 //////////////////
 
@@ -58,6 +58,9 @@ Use overclocking for best performance =^..^=
 Changelog:
 ----------------
 1.04
+	Bugs:
+		BMP is not precise, but close.
+		FM CH6 DAC sample playback make occasional garbage noises.
 	Fixes:
 		A bit smoother playback.
 		Note retrigger.

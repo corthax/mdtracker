@@ -9,8 +9,8 @@
 3 = Mega Everdrive X7
 */
 
-#define MDT_VERSION 3 // REBUILD if changed!
-#define MDT_CHECKER 0xDEAD
+#define MDT_VERSION 1 // REBUILD if changed!
+#define MDT_CHECKER 0xDEAD // DEAD INSIDE
 
 const char *MDT_HEADER;
 
