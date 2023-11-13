@@ -166,7 +166,7 @@ static void ApplyCommand_FM3_SP(u8 mtxCh, u8 fxParam, u8 fxValue);
 static void ApplyCommand_DAC(u8 fxParam, u8 fxValue);
 static void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue);
 static void ApplyCommand_PSG(u8 fxParam, u8 fxValue);
-static void ChangeInstrumentParameter(s8 modifier);
+static void ChangeInstrumentParameter(s8 modifier, u8 changeAll);
 static void ChangePatternParameter(s8 note, s8 par);
 static void ChangeMatrixValue(s16 mod);
 static void RequestZ80();

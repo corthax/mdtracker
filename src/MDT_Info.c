@@ -277,9 +277,9 @@ void InitInfo()
     infoDescriptions[0x0C] = "00..03; >03: RESET                   ";
     infoDescriptions[0x0D] = "00..07; >07: RESET                   ";
     infoDescriptions[0x0E] = "11=C, 10=L, 01=R, FF=MUTE; 00: RESET ";
-    infoDescriptions[0x0F] = "1,2,4,8,16,[32]           [DEFAULT 2]";
-    infoDescriptions[0x10] = "01..08, 00: RESET                    ";
-    infoDescriptions[0x11] = "00: DAC OFF, 01: DAC ON              ";
+    infoDescriptions[0x0F] = "01..E1|F1, 00: RESET     [DEFAULT 20]";
+    infoDescriptions[0x10] = "01..08, 00: NO LFO                   ";
+    infoDescriptions[0x11] = "00: DAC OFF, 01: DAC ON  [DEFAULT ON]";
     infoDescriptions[0x12] = "01=SPECIAL, 02=CSM, 00: NORMAL       ";
     infoDescriptions[0x13] = "[H-INT SKIPS] 01..FF, 00: RESET      ";
     infoDescriptions[0x14] = "X[ODD] 1..F; Y[EVEN] 1..F            ";
@@ -346,7 +346,7 @@ void InitInfo()
     infoDescriptions[0x51] = "AFTER [XX] PULSES                    ";
     infoDescriptions[0x52] = "00..FA MATRIX ROW TO JUMP            ";
     infoDescriptions[0x53] = "00..1F PATTERN ROW TO JUMP           ";
-    infoDescriptions[0x54] = "BY [XX] PULSES; 00: NOTHING          ";
+    infoDescriptions[0x54] = "BY [XX] PULSES                       ";
     infoDescriptions[0x55] = "09..5F 'FILTER' EFFECT; 00: NOTHING  ";
     infoDescriptions[0x56] = "01..0F TICKS<PPL; 00: DISABLE        ";
     infoDescriptions[0x57] = "";

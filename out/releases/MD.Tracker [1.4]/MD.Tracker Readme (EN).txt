@@ -61,6 +61,7 @@ Changelog:
 	Bugs:
 		BMP is not precise, but close.
 		FM CH6 DAC sample playback make occasional garbage noises.
+		Not tested in PAL mode, so may be broken.
 	Fixes:
 		A bit smoother playback.
 		Note retrigger.
@@ -154,8 +155,6 @@ From Instrument Editor [IE] - no special.
 	Mode	Play song from position of selected pattern in the matrix + selected row in pattern editor.
 	
 BPM: Displays current BPM. Not precise.
-FPS: Pulses (frames) processed last second. Not precise. If FPS is much less than PPS that means cpu can't handle current load.
-PPS: Pulses (frames) per second required by current tempo and PPL settings. Not redrawn if higher than 1000.
 PPL: Pulses per odd | even lines. Higher values will increase presicion, but needs more cpu. Less than 4 is recommended for non overclocked hardware/emulator.
 
 ----------------
@@ -273,19 +272,21 @@ Instrument Editor
 	
 	Edit:
 	
-	A+R		Change value (+1).
-	A+L		Change value (-1).
-	A+U		Change value (+4).
-	A+D		Change value (-4).
+	Change value:
+	A+R		+1
+	A+L		-1
+	A+U		+8
+	A+D		-8
+	
+	Change all values: all SEQ/ARP steps (except empty), all 4 FM operators:
+	(A+B)+R		+1
+	(A+B)+L		-1
+	(A+B)+U		+8
+	(A+B)+D		-8
+
 
 	Y+L/R	Select instrument for editing (+-1).
 	Y+U/D	Select instrument for editing (+-16).
-
-	A+L/R	Change value (+-1).
-	A+U/D	Change value (+-4).
-
-	There are two 16 step sequencers there, ARP (arpeggiator) and SEQ (command value, depending on current SEQ command).
-	Channel sequencers always reset on song stop.
 
 	Sample:
 	
@@ -349,13 +350,16 @@ Commands are applied from left to right.
 ------------------------------------------------
 
 ************************************************
-H-INT callback skip (Tempo divider. Higher = slower tempo and less BPM precision, but also less CPU load) !!! V-INT always counts a pulse (every 1/50 or 1/60 sec). !!!
+H-INT callback skip (Tempo divider. Higher = slower tempo and less BPM precision, but also less CPU load)
 	0Fxx
 xx: 00..FF; Recommended values (whole divisions of scanlines number):
-	NTSC 224: 1,2,4,8,16,32
-	PAL  240: 1,2,4,8,16
+	NTSC 224: 01,02,04,08,10,20
+	PAL  240: 01,02,04,08,10
 	1 = no skips, 2 = every second scanline, 4 = every 4th scanline, etc.
-00: Set	to default (2)
+	Maximum values for NTSC/PAL are 225(0xE1)/241(0xF1), setting it higher breaking playback.
+	Usefull up to 112(0x70).
+	Can result in slower tempo if set too big ("lazy" counter) or too small (lots of H-INT callbacks per song tick).
+00: Set	to default (20)
 	
 ************************************************	
 Global LFO

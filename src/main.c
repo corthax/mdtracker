@@ -195,7 +195,7 @@ s8 patternCopyRangeStart = NOTHING;
 s8 patternCopyRangeEnd = NOTHING;
 
 u16 hIntToSkip = 0;
-s16 hIntCounter = 0;
+u16 hIntCounter = 0;
 //bool bDoPulse = FALSE;
 
 u16 bgBaseTileIndex[4];
@@ -222,12 +222,16 @@ Instrument chInst[CHANNELS_TOTAL]; // to apply commands; FM only
 
 u8 midiPreset = 0;
 
-/*u16 msu_drv();
+/*
+u16 msu_drv();
 vu16 *mcd_cmd = (vu16 *) 0xA12010;  // command
 vu32 *mcd_arg = (vu32 *) 0xA12012;  // argument
 vu8 *mcd_cmd_ck = (vu8 *) 0xA1201F; // increment for command execution
 vu8 *mcd_stat = (vu8 *) 0xA12020;   // Driver ready for commands processing when 0xA12020 sets to 0
-u16 msu_resp;*/
+u16 msu_resp;
+*/
+
+//const u8 dualpcm_drv();
 
 static const u8 GUI_PATTERNCOLORS[14] = { 42, 43, 44, 45, 46, 47, 56, 57, 58, 59, 60, 61, 62, 63 };
 
@@ -382,7 +386,7 @@ int main(bool hardReset)
 HINTERRUPT_CALLBACK hIntCallback()
 {
     //CountPulses();
-    hIntCounter--;
+    hIntCounter++;
 }
 
 void vIntCallback()
@@ -940,12 +944,11 @@ static void DoEngine()
                 channelSEQCounter_PAR[mtxCh] = 0; channelSEQCounter_ARP[mtxCh] = 0;
                 seq_par(mtxCh); seq_arp(mtxCh);
 
-                //if (!channelNoteDelayCounter[mtxCh] && !channelNoteRetrigger[mtxCh]) // re-triggered from do_effects
-                //{
+                if (!channelNoteDelayCounter[mtxCh] /*&& !channelNoteRetrigger[mtxCh]*/) // re-triggered from do_effects
+                {
                     //if (instrumentIsMuted[_inst] == INST_MUTE) _key = NOTE_OFF;
-
                     PlayNote((u8)_key, mtxCh, channelNoteTriggerType[mtxCh]);
-                //}
+                }
             }
             else // no note
             {
@@ -1221,10 +1224,10 @@ static void DoEngine()
             VDP_setHInterrupt(TRUE);
         }
 
-        if (hIntCounter < 1)
+        if (hIntCounter >= hIntToSkip)
         {
             //bDoPulse = TRUE;
-            hIntCounter = hIntToSkip;
+            hIntCounter = 0;
 
         //if (bDoPulse)
         //{
@@ -1325,7 +1328,7 @@ static void DoEngine()
 
             frames_counter++;
 
-            /*if (bDoPulse)
+            /*if (hIntCounter < 1)
             {
                 VDP_drawText("OVL", 16, 27);
             }*/
@@ -2442,27 +2445,49 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 switch (changed)
                 {
                 case BUTTON_RIGHT:
-                    ChangeInstrumentParameter(1);
+                    ChangeInstrumentParameter(1, FALSE);
                     break;
 
                 case BUTTON_LEFT:
-                    ChangeInstrumentParameter(-1);
+                    ChangeInstrumentParameter(-1, FALSE);
                     break;
 
                 case BUTTON_UP:
-                    ChangeInstrumentParameter(8);
+                    ChangeInstrumentParameter(8, FALSE);
                     break;
 
                 case BUTTON_DOWN:
-                    ChangeInstrumentParameter(-8);
+                    ChangeInstrumentParameter(-8, FALSE);
                     break;
                 }
                 break;
+
+            case BUTTON_A | BUTTON_B:
+                // (A + B) + D-Pad: change same parameters value
+                switch (changed)
+                {
+                case BUTTON_RIGHT:
+                    ChangeInstrumentParameter(1, TRUE);
+                    break;
+
+                case BUTTON_LEFT:
+                    ChangeInstrumentParameter(-1, TRUE);
+                    break;
+
+                case BUTTON_UP:
+                    ChangeInstrumentParameter(8, TRUE);
+                    break;
+
+                case BUTTON_DOWN:
+                    ChangeInstrumentParameter(-8, TRUE);
+                    break;
+                }
+                break;
+
             // navigate parameters
             case BUTTON_LEFT: case BUTTON_RIGHT: case BUTTON_UP: case BUTTON_DOWN:
                 NavigateInstrument(state);
                 break;
-
             // ARP and VOL step on/off
             case BUTTON_C:
                 if (selectedInstrumentParameter == GUI_INST_PARAM_PARSEQ)
@@ -3143,7 +3168,7 @@ void DisplayPatternEditor()
     }
 }
 // ------------------------------ INSTRUMENT EDITOR
-static void ChangeInstrumentParameter(s8 modifier)
+static void ChangeInstrumentParameter(s8 modifier, u8 changeAll)
 {
     static s16 value = 0;
 
@@ -3174,31 +3199,40 @@ static void ChangeInstrumentParameter(s8 modifier)
     {
     case GUI_INST_PARAM_ALG:
         value = SRAM_ReadInstrument(selectedInstrumentID, INST_ALG) + modifier;
-        if (value < 0) value = 0; else if (value > 7) value = 7;
+        if (value < 0) value = 7; else if (value > 7) value = 0;
         SRAM_WriteInstrument(selectedInstrumentID, INST_ALG, value);
         break;
     case GUI_INST_PARAM_FMS:
         value = SRAM_ReadInstrument(selectedInstrumentID, INST_FMS) + modifier;
-        if (value < 0) value = 0; else if (value > 7) value = 7;
+        if (value < 0) value = 7; else if (value > 7) value = 0;
         SRAM_WriteInstrument(selectedInstrumentID, INST_FMS, value);
         break;
     case GUI_INST_PARAM_AMS:
         value = SRAM_ReadInstrument(selectedInstrumentID, INST_AMS) + modifier;
-        if (value < 0) value = 0; else if (value > 3) value = 3;
+        if (value < 0) value = 3; else if (value > 3) value = 0;
         SRAM_WriteInstrument(selectedInstrumentID, INST_AMS, value);
         break;
     case GUI_INST_PARAM_PAN:
         value = SRAM_ReadInstrument(selectedInstrumentID, INST_PAN) + modifier;
-        if (value < 0) value = 0; else if (value > 3) value = 3;
+        if (value < 0) value = 3; else if (value > 3) value = 0;
         SRAM_WriteInstrument(selectedInstrumentID, INST_PAN, value);
         break;
     case GUI_INST_PARAM_FB:
         value = SRAM_ReadInstrument(selectedInstrumentID, INST_FB) + modifier;
-        if (value < 0) value = 0; else if (value > 7) value = 7;
+        if (value < 0) value = 7; else if (value > 7) value = 0;
         SRAM_WriteInstrument(selectedInstrumentID, INST_FB, value);
         break;
     case GUI_INST_PARAM_TL:
-        if (selectedInstrumentOperator < 4)
+        if (changeAll)
+        {
+            for (u8 i = 0; i < 4; i++)
+            {
+                value = SRAM_ReadInstrument(selectedInstrumentID, INST_TL1 + i) + modifier;
+                if (value < 0) value = 0x7F; else if (value > 0x7F) value = 0;
+                SRAM_WriteInstrument(selectedInstrumentID, INST_TL1 + i, value);
+            }
+        }
+        else
         {
             value = SRAM_ReadInstrument(selectedInstrumentID, INST_TL1 + selectedInstrumentOperator) + modifier;
             if (value < 0) value = 0x7F; else if (value > 0x7F) value = 0;
@@ -3206,66 +3240,138 @@ static void ChangeInstrumentParameter(s8 modifier)
         }
         break;
     case GUI_INST_PARAM_RS:
-        if (selectedInstrumentOperator < 4)
+        if (changeAll)
+        {
+            for (u8 i = 0; i < 4; i++)
+            {
+                value = SRAM_ReadInstrument(selectedInstrumentID, INST_RS1 + i) + modifier;
+                if (value < 0) value = 3; else if (value > 3) value = 0;
+                SRAM_WriteInstrument(selectedInstrumentID, INST_RS1 + i, value);
+            }
+        }
+        else
         {
             value = SRAM_ReadInstrument(selectedInstrumentID, INST_RS1 + selectedInstrumentOperator) + modifier;
-            if (value < 0) value = 0; else if (value > 3) value = 3;
+            if (value < 0) value = 3; else if (value > 3) value = 0;
             SRAM_WriteInstrument(selectedInstrumentID, INST_RS1 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_MUL:
-        if (selectedInstrumentOperator < 4)
+        if (changeAll)
+        {
+            for (u8 i = 0; i < 4; i++)
+            {
+                value = SRAM_ReadInstrument(selectedInstrumentID, INST_MUL1 + i) + modifier;
+                if (value < 0) value = 15; else if (value > 15) value = 0;
+                SRAM_WriteInstrument(selectedInstrumentID, INST_MUL1 + i, value);
+            }
+        }
+        else
         {
             value = SRAM_ReadInstrument(selectedInstrumentID, INST_MUL1 + selectedInstrumentOperator) + modifier;
-            if (value < 0) value = 0; else if (value > 15) value = 15;
+            if (value < 0) value = 15; else if (value > 15) value = 0;
             SRAM_WriteInstrument(selectedInstrumentID, INST_MUL1 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_DT:
-        if (selectedInstrumentOperator < 4)
+        if (changeAll)
+        {
+            for (u8 i = 0; i < 4; i++)
+            {
+                value = SRAM_ReadInstrument(selectedInstrumentID, INST_DT1 + i) + modifier;
+                if (value < 1) value = 7; else if (value > 7) value = 1;
+                SRAM_WriteInstrument(selectedInstrumentID, INST_DT1 + i, value);
+            }
+        }
+        else
         {
             value = SRAM_ReadInstrument(selectedInstrumentID, INST_DT1 + selectedInstrumentOperator) + modifier;
-            if (value < 1) value = 1; else if (value > 7) value = 7;
+            if (value < 1) value = 7; else if (value > 7) value = 1;
             SRAM_WriteInstrument(selectedInstrumentID, INST_DT1 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_AR:
-        if (selectedInstrumentOperator < 4)
+        if (changeAll)
+        {
+            for (u8 i = 0; i < 4; i++)
+            {
+                value = SRAM_ReadInstrument(selectedInstrumentID, INST_AR1 + i) + modifier;
+                if (value < 0) value = 31; else if (value > 31) value = 0;
+                SRAM_WriteInstrument(selectedInstrumentID, INST_AR1 + i, value);
+            }
+        }
+        else
         {
             value = SRAM_ReadInstrument(selectedInstrumentID, INST_AR1 + selectedInstrumentOperator) + modifier;
-            if (value < 0) value = 0; else if (value > 31) value = 31;
+            if (value < 0) value = 31; else if (value > 31) value = 0;
             SRAM_WriteInstrument(selectedInstrumentID, INST_AR1 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_D1R:
-        if (selectedInstrumentOperator < 4)
+        if (changeAll)
+        {
+            for (u8 i = 0; i < 4; i++)
+            {
+                value = SRAM_ReadInstrument(selectedInstrumentID, INST_D1R1 + i) + modifier;
+                if (value < 0) value = 31; else if (value > 31) value = 0;
+                SRAM_WriteInstrument(selectedInstrumentID, INST_D1R1 + i, value);
+            }
+        }
+        else
         {
             value = SRAM_ReadInstrument(selectedInstrumentID, INST_D1R1 + selectedInstrumentOperator) + modifier;
-            if (value < 0) value = 0; else if (value > 31) value = 31;
+            if (value < 0) value = 31; else if (value > 31) value = 0;
             SRAM_WriteInstrument(selectedInstrumentID, INST_D1R1 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_D1L:
-        if (selectedInstrumentOperator < 4)
+        if (changeAll)
+        {
+            for (u8 i = 0; i < 4; i++)
+            {
+                value = SRAM_ReadInstrument(selectedInstrumentID, INST_D1L1 + i) + modifier;
+                if (value < 0) value = 15; else if (value > 15) value = 0;
+                SRAM_WriteInstrument(selectedInstrumentID, INST_D1L1 + i, value);
+            }
+        }
+        else
         {
             value = SRAM_ReadInstrument(selectedInstrumentID, INST_D1L1 + selectedInstrumentOperator) + modifier;
-            if (value < 0) value = 0; else if (value > 15) value = 15;
+            if (value < 0) value = 15; else if (value > 15) value = 0;
             SRAM_WriteInstrument(selectedInstrumentID, INST_D1L1 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_D2R:
-        if (selectedInstrumentOperator < 4)
+        if (changeAll)
+        {
+            for (u8 i = 0; i < 4; i++)
+            {
+                value = SRAM_ReadInstrument(selectedInstrumentID, INST_D2R1 + i) + modifier;
+                if (value < 0) value = 31; else if (value > 31) value = 0;
+                SRAM_WriteInstrument(selectedInstrumentID, INST_D2R1 + i, value);
+            }
+        }
+        else
         {
             value = SRAM_ReadInstrument(selectedInstrumentID, INST_D2R1 + selectedInstrumentOperator) + modifier;
-            if (value < 0) value = 0; else if (value > 31) value = 31;
+            if (value < 0) value = 31; else if (value > 31) value = 0;
             SRAM_WriteInstrument(selectedInstrumentID, INST_D2R1 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_RR:
-        if (selectedInstrumentOperator < 4)
+        if (changeAll)
+        {
+            for (u8 i = 0; i < 4; i++)
+            {
+                value = SRAM_ReadInstrument(selectedInstrumentID, INST_RR1 + i) + modifier;
+                if (value < 0) value = 15; else if (value > 15) value = 0;
+                SRAM_WriteInstrument(selectedInstrumentID, INST_RR1 + i, value);
+            }
+        }
+        else
         {
             value = SRAM_ReadInstrument(selectedInstrumentID, INST_RR1 + selectedInstrumentOperator) + modifier;
-            if (value < 0) value = 0; else if (value > 15) value = 15;
+            if (value < 0) value = 15; else if (value > 15) value = 0;
             SRAM_WriteInstrument(selectedInstrumentID, INST_RR1 + selectedInstrumentOperator, value);
         }
         break;
@@ -3280,47 +3386,54 @@ static void ChangeInstrumentParameter(s8 modifier)
         if (selectedInstrumentOperator < 4)
         {
             value = SRAM_ReadInstrument(selectedInstrumentID, INST_SSGEG1 + selectedInstrumentOperator) + modifier;
-            if (value < 7) value = 7; else if (value > 15) value = 15;
+            if (value < 7) value = 15; else if (value > 15) value = 7;
             SRAM_WriteInstrument(selectedInstrumentID, INST_SSGEG1 + selectedInstrumentOperator, value);
         }
         break;
     case GUI_INST_PARAM_LFO:
         value = SRAMW_readByte(GLOBAL_LFO) + modifier;
-        if (value < 7) value = 7; else if (value > 15) value = 15;
+        if (value < 7) value = 15; else if (value > 15) value = 7;
         SRAMW_writeByte(GLOBAL_LFO, value); SetGlobalLFO(value);
         break;
     case GUI_INST_PARAM_PARSEQ:
-        //value = SRAM_ReadInstrument(selectedInstrumentID, INST_VOL_TICK_01 + selectedInstrumentOperator);
-        value = SRAM_ReadSEQ_PAR(selectedInstrumentID, selectedInstrumentOperator);
-        // align step by 8
-        /*if (value == SEQ_VOL_MIN_ATT)
+        if (changeAll)
         {
-            if (modifier == -8) modifier = -7;
-            else if (modifier == 8) modifier = 7;
-        }*/
-        value += modifier;
-        /*if (value < SEQ_VOL_MIN_ATT)
-        {
-            if (modifier > 1 ) value = SEQ_VOL_MIN_ATT; else value = SEQ_VOL_MAX_ATT;
+            for (u8 i = 0; i < SEQ_STEPS; i++)
+            {
+                value = SRAM_ReadSEQ_PAR(selectedInstrumentID, i);
+                if (value != SEQ_SKIP) value += modifier; else continue;
+                if (value > 0x7F) value = 0; else if (value < 0) value = 0x7F;
+                SRAM_WriteSEQ_PAR(selectedInstrumentID, i, value);
+            }
         }
-        else if (value > SEQ_VOL_MAX_ATT)
+        else
         {
-            if (modifier < -1) value = SEQ_VOL_MAX_ATT; else value = SEQ_VOL_MIN_ATT;
-        }*/
-        if (value > 0x7F) value = 0;
-        else if (value < 0) value = 0x7F;
-        //SRAM_WriteInstrument(selectedInstrumentID, INST_VOL_TICK_01 + selectedInstrumentOperator, value);
-        SRAM_WriteSEQ_PAR(selectedInstrumentID, selectedInstrumentOperator, value);
+            value = SRAM_ReadSEQ_PAR(selectedInstrumentID, selectedInstrumentOperator);
+            value += modifier;
+            if (value > 0x7F) value = 0; else if (value < 0) value = 0x7F;
+            SRAM_WriteSEQ_PAR(selectedInstrumentID, selectedInstrumentOperator, value);
+        }
         break;
     case GUI_INST_PARAM_ARPSEQ:
-        //value = SRAM_ReadInstrument(selectedInstrumentID, INST_ARP_TICK_01 + selectedInstrumentOperator); // need to check first
-        value = SRAM_ReadSEQ_ARP(selectedInstrumentID, selectedInstrumentOperator);
-        if (value != NOTE_EMPTY)
+        if (changeAll)
         {
-            value += modifier;
-            if (value < 76) value = 76; else if (value > 124) value = 124; // +- 24 semitones
-            //SRAM_WriteInstrument(selectedInstrumentID, INST_ARP_TICK_01 + selectedInstrumentOperator, value);
-            SRAM_WriteSEQ_ARP(selectedInstrumentID, selectedInstrumentOperator, value);
+            for (u8 i = 0; i < SEQ_STEPS; i++)
+            {
+                value = SRAM_ReadSEQ_ARP(selectedInstrumentID, i);
+                if (value != NOTE_EMPTY) value += modifier; else continue;
+                if (value < 76) value = 124; else if (value > 124) value = 76; // +- 24 semitones
+                SRAM_WriteSEQ_ARP(selectedInstrumentID, i, value);
+            }
+        }
+        else
+        {
+            value = SRAM_ReadSEQ_ARP(selectedInstrumentID, selectedInstrumentOperator);
+            if (value != NOTE_EMPTY)
+            {
+                value += modifier;
+                if (value < 76) value = 124; else if (value > 124) value = 76; // +- 24 semitones
+                SRAM_WriteSEQ_ARP(selectedInstrumentID, selectedInstrumentOperator, value);
+            }
         }
         break;
     case GUI_INST_PARAM_NAME:
@@ -3330,8 +3443,8 @@ static void ChangeInstrumentParameter(s8 modifier)
         break;
     case GUI_INST_PARAM_PCM_BANK:
         value = selectedSampleBank + modifier;
-        if (value > 3) value = 3;
-        else if (value < 0) value = 0;
+        if (value > 3) value = 0;
+        else if (value < 0) value = 3;
         selectedSampleBank = value;
         break;
     case GUI_INST_PARAM_PCM_NOTE:
@@ -4380,6 +4493,9 @@ static void StopAllSound()
 
 static void SetGlobalLFO(u8 freq)
 {
+    // global LFO frequency (0..7) 3.98 5.56 6.02 6.37 6.88 9.63 48.1 72.2
+    // 0000 - unused, 0 - enable, 000 - frequency
+    // 8< - disable; 9..15 enable and set frequency
     YM2612_writeRegZ80(PORT_1, YM2612REG_GLOBAL_LFO, freq);
 }
 
@@ -4689,7 +4805,8 @@ static void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
     {
     // H-INT callback skip
     case 0x0F:
-        if (fxValue) H_INT_CALLS_SKIP = fxValue; else H_INT_CALLS_SKIP = 2;
+        if ((fxValue < 0xE2 || (IS_PAL_SYSTEM && fxValue < 0xF2)) && fxValue > 0) H_INT_CALLS_SKIP = fxValue;
+        else H_INT_CALLS_SKIP = 32;
         VDP_setHIntCounter(H_INT_CALLS_SKIP-1);
         SetBPM(NULL);
         break;
@@ -5835,6 +5952,24 @@ void InitTracker()
 */
     Z80_loadDriver(Z80_DRIVER_PCM, TRUE);
 
+    //Z80_loadCustomDriver((u8*)0x61E, 0x1B36); // dualpcm_drv in symbols.txt, bin file size
+
+    /*asm(
+        "                       align $8000"
+        "                       dcb.b $18*$10,$00"
+        "SWF_MuteSample:        dcb.b $8000-(($18*$10)*2),$80"
+        "SWF_MuteSample_Rev:    dcb.b $18*$10,$00"
+    );*/
+
+    /*asm(
+        "MuteSample:        dc.b ((SWF_MuteSample)&$FF)"
+        "                   dc.b ((((SWF_MuteSample)>>$08)&$7F)|$80)"
+        "                   dc.b (((SWF_MuteSample)&$7F8000)>>$0F)"
+        "                   dc.b ((SWF_MuteSample_Rev)&$FF)"
+        "                   dc.b ((((SWF_MuteSample_Rev)>>$08)&$7F)|$80)"
+        "                   dc.b (((SWF_MuteSample_Rev)&$7F8000)>>$0F)"
+    );*/
+
     Z80_setForceDelayDMA(TRUE);
 
     JOY_setSupport(PORT_1, JOY_SUPPORT_6BTN);
@@ -5969,11 +6104,7 @@ void InitTracker()
     }
 
     sampleBankSize = sizeof(sample_bank_1);
-
-    // global LFO frequency (0..7) 3.98 5.56 6.02 6.37 6.88 9.63 48.1 72.2
-    // 0000 - unused, 0 - enable, 000 - frequency
-    // 8< - disable; 9..15 enable and set frequency
-    YM2612_writeRegZ80(PORT_1, YM2612REG_GLOBAL_LFO, SRAMW_readByte(GLOBAL_LFO));
+    SetGlobalLFO(SRAMW_readByte(GLOBAL_LFO));
 
     // CH3 mode:
     //|Mode| Behavior
