@@ -939,7 +939,9 @@ static void DoEngine()
                     }
                 } else _key = channelPreviousNote[mtxCh] = channelArp[mtxCh] = channelCurrentRowNote[mtxCh];
 
-                if (channelRowShift[mtxCh][playingPatternRow]) channelNoteDelayCounter[mtxCh] = channelRowShift[mtxCh][playingPatternRow];
+                // shift row playback by some pulses if set on channel. re-trigger will ignore it
+                if (channelRowShift[mtxCh][playingPatternRow] && !channelNoteRetrigger[mtxCh])
+                    channelNoteDelayCounter[mtxCh] = channelRowShift[mtxCh][playingPatternRow];
 
                 channelSEQCounter_PAR[mtxCh] = 0; channelSEQCounter_ARP[mtxCh] = 0;
                 seq_par(mtxCh); seq_arp(mtxCh);
@@ -974,9 +976,10 @@ static void DoEngine()
                 //channelNoteDelayCounter[mtxCh] = 0; // disable delay
                 if (channelNoteRetriggerCounter[mtxCh] == channelNoteRetrigger[mtxCh])
                 {
-                    PlayNote(channelPreviousNote[mtxCh], mtxCh, TRUE);
                     channelNoteRetriggerCounter[mtxCh] = 0;
+                    channelNoteDelayCounter[mtxCh] = 0; // disable delay
                     channelSEQCounter_PAR[mtxCh] = 0; channelSEQCounter_ARP[mtxCh] = 0;
+                    PlayNote(channelPreviousNote[mtxCh], mtxCh, channelNoteTriggerType[mtxCh]);
                 }
                 channelNoteRetriggerCounter[mtxCh]++;
             }
@@ -985,8 +988,8 @@ static void DoEngine()
             {
                 if (channelNoteDelayCounter[mtxCh] == 1)
                 {
-                    PlayNote(channelPreviousNote[mtxCh], mtxCh, TRUE);
                     channelNoteDelayCounter[mtxCh] = 0;
+                    PlayNote(channelPreviousNote[mtxCh], mtxCh, channelNoteTriggerType[mtxCh]);
                 } else channelNoteDelayCounter[mtxCh]--;
             }
             // volume effects
