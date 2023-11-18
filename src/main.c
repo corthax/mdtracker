@@ -91,8 +91,8 @@ u8 channelArpSkipStep[CHANNELS_TOTAL];
 u8 channelSeqSkipStepCounter[CHANNELS_TOTAL];
 u8 channelArpSkipStepCounter[CHANNELS_TOTAL];
 
-u8 channelSEQCounter_PAR[CHANNELS_TOTAL];
-u8 channelSEQCounter_ARP[CHANNELS_TOTAL];
+s8 channelSEQCounter_PAR[CHANNELS_TOTAL];
+s8 channelSEQCounter_ARP[CHANNELS_TOTAL];
 
 u8 channelRowShift[CHANNELS_TOTAL][PATTERN_ROWS];
 
@@ -210,7 +210,7 @@ u8 navigationDirection = BUTTON_RIGHT;
 
 u8 FM_CH6_DAC_Pan = SOUND_PAN_CENTER;
 
-u32 frames_counter = 0; // to measure fps
+//u32 frames_counter = 0; // to measure fps
 u32 BPM = 0; // rough beats per minute
 f32 fBPM = 0; // very bad precision
 //u32 PPS = 0; // pulses per second needed
@@ -429,7 +429,7 @@ void vIntCallback()
             switch (currentScreen)
             {
             case SCREEN_MATRIX: NavigateMatrix(navigationDirection); break;
-            case SCREEN_PATTERN: NavigatePattern(navigationDirection); break;
+            case SCREEN_PATTERN: NavigatePattern(navigationDirection); PrintSelectedPositionInfo(); break;
             case SCREEN_INSTRUMENT: NavigateInstrument(navigationDirection); break;
             default: break;
             }
@@ -697,12 +697,12 @@ static void DoEngine()
     }*/
 
     auto void seq_par(u8 mtxCh) {
-        if (!channelParSeqPlayMODE[mtxCh] || (channelParSeqPlayMODE[mtxCh] && (channelSEQCounter_PAR[mtxCh] < SEQ_STEP_LAST)))
+        if (!channelParSeqPlayMODE[mtxCh] || (channelParSeqPlayMODE[mtxCh] && (channelSEQCounter_PAR[mtxCh] <= SEQ_STEP_LAST)))
         {
             if (!channelSeqSkipStepCounter[mtxCh]) { channelSeqSkipStepCounter[mtxCh] = channelSeqSkipStep[mtxCh]; }
             else { channelSeqSkipStepCounter[mtxCh]--; return; }
 
-            _seqValue = seqParValue[channelParSeqID[mtxCh]][channelSEQCounter_PAR[mtxCh]]; channelSEQCounter_PAR[mtxCh]++;
+            _seqValue = seqParValue[channelParSeqID[mtxCh]][(u8)channelSEQCounter_PAR[mtxCh]]; channelSEQCounter_PAR[mtxCh]++;
 
             if (_seqValue != SEQ_SKIP)
             {
@@ -743,24 +743,42 @@ static void DoEngine()
         if (!channelParSeqPlayMODE[mtxCh] && (channelSEQCounter_PAR[mtxCh] > SEQ_STEP_LAST)) channelSEQCounter_PAR[mtxCh] = 0;
     }
 
+    auto void seq_arp_modify_key(u8 mtxCh)
+    {
+        _seqValue = seqArpValue[channelArpSeqID[mtxCh]][0];
+        if (_seqValue > ARP_BASE) _key = channelCurrentRowNote[mtxCh] + (_seqValue - ARP_BASE);
+        else if (_seqValue < ARP_BASE) _key = channelCurrentRowNote[mtxCh] - (ARP_BASE - _seqValue);
+        if (_key < 0 || _key > NOTE_MAX || _seqValue == ARP_BASE) _key = channelCurrentRowNote[mtxCh];
+    }
+
     auto void seq_arp(u8 mtxCh) {
-        if (!channelArpSeqPlayMODE[mtxCh] || (channelArpSeqPlayMODE[mtxCh] && (channelSEQCounter_ARP[mtxCh] < SEQ_STEP_LAST)))
+        if (channelSEQCounter_ARP[mtxCh] < 0)
         {
+            //channelSEQCounter_ARP[mtxCh]++;
+            return;
+        }
+
+        if (!channelArpSeqPlayMODE[mtxCh] || (channelArpSeqPlayMODE[mtxCh] && (channelSEQCounter_ARP[mtxCh] <= SEQ_STEP_LAST)))
+        {
+            // make seq slower if set
             if (!channelArpSkipStepCounter[mtxCh]) { channelArpSkipStepCounter[mtxCh] = channelArpSkipStep[mtxCh]; }
             else { channelArpSkipStepCounter[mtxCh]--; return; }
 
-            _seqValue = seqArpValue[channelArpSeqID[mtxCh]][channelSEQCounter_ARP[mtxCh]]; channelSEQCounter_ARP[mtxCh]++;
+            _seqValue = seqArpValue[channelArpSeqID[mtxCh]][(u8)channelSEQCounter_ARP[mtxCh]]; channelSEQCounter_ARP[mtxCh]++;
 
-            if (!pulseCounter)
+            if (!pulseCounter) // first tick only
             {
                 if (_seqValue != NOTE_EMPTY)
                 {
-                    if (_seqValue > ARP_BASE) _key = channelCurrentRowNote[mtxCh] + (_seqValue - ARP_BASE);
-                    else if (_seqValue < ARP_BASE) _key = channelCurrentRowNote[mtxCh] - (ARP_BASE - _seqValue);
-                    if (_key < 0 || _key > NOTE_MAX || _seqValue == ARP_BASE) _key = channelCurrentRowNote[mtxCh];
+                    if (_seqValue > ARP_BASE) _key = channelPreviousNote[mtxCh] + (_seqValue - ARP_BASE);
+                    else if (_seqValue < ARP_BASE) _key = channelPreviousNote[mtxCh] - (ARP_BASE - _seqValue);
+                    if (_key < 0 || _key > NOTE_MAX || _seqValue == ARP_BASE) _key = channelPreviousNote[mtxCh];
+
+                    if (channelCurrentRowNote[mtxCh] == NOTE_EMPTY)
+                        PlayNote(_key, mtxCh, channelArpSeqTriggerType[mtxCh]);
                 }
             }
-            else
+            else // other ticks
             {
                 if (_seqValue != NOTE_EMPTY)
                 {
@@ -772,6 +790,7 @@ static void DoEngine()
                 }
             }
         }
+        // loop mode
         if (!channelArpSeqPlayMODE[mtxCh] && (channelSEQCounter_ARP[mtxCh] > SEQ_STEP_LAST)) channelSEQCounter_ARP[mtxCh] = 0;
     }
 
@@ -943,19 +962,26 @@ static void DoEngine()
                 if (channelRowShift[mtxCh][playingPatternRow] && !channelNoteRetrigger[mtxCh])
                     channelNoteDelayCounter[mtxCh] = channelRowShift[mtxCh][playingPatternRow];
 
-                channelSEQCounter_PAR[mtxCh] = 0; channelSEQCounter_ARP[mtxCh] = 0;
-                seq_par(mtxCh); seq_arp(mtxCh);
+                seq_arp_modify_key(mtxCh);
+                channelSEQCounter_PAR[mtxCh] = channelSEQCounter_ARP[mtxCh] = -channelNoteDelayCounter[mtxCh];
 
                 if (!channelNoteDelayCounter[mtxCh] /*&& !channelNoteRetrigger[mtxCh]*/) // re-triggered from do_effects
                 {
                     //if (instrumentIsMuted[_inst] == INST_MUTE) _key = NOTE_OFF;
+                    //channelSEQCounter_PAR[mtxCh] = channelSEQCounter_ARP[mtxCh] = 0; // restart SEQ counters on new note
                     PlayNote((u8)_key, mtxCh, channelNoteTriggerType[mtxCh]);
                 }
+                /*else
+                {
+                    channelSEQCounter_PAR[mtxCh] = channelSEQCounter_ARP[mtxCh] = -channelNoteDelayCounter[mtxCh];
+                }*/
             }
-            else // no note
+            else //if (channelCurrentRowNote[mtxCh] == NOTE_EMPTY) // no note
             {
-                _key = NOTE_EMPTY; // empty row
-                //PlayNote(NOTE_EMPTY, mtxCh); //?
+                //channelPreviousNote[mtxCh] = _key;
+                //_key = NOTE_EMPTY; // empty row
+                //seq_par(mtxCh); seq_arp(mtxCh); // prepare _key
+                //PlayNote(30, mtxCh, channelNoteTriggerType[mtxCh]); //?
             }
         }
     }
@@ -964,12 +990,10 @@ static void DoEngine()
         if (/*channelDoEffects[mtxCh] && */channelFlags[mtxCh] && channelPreviousNote[mtxCh] != NOTE_OFF)
         //if (channelFlags[mtxCh] && channelPreviousNote[mtxCh] != NOTE_OFF)
         {
-            if (pulseCounter) // only do at sub-pulses; 0th seq pulse handled in do_row to modify note before it's played
-            {
-                seq_par(mtxCh);
-                //if (channelPreviousNote[mtxCh] != NOTE_OFF)
-                    seq_arp(mtxCh);
-            }
+            //if (pulseCounter) // only do at sub-pulses; 0th seq pulse handled in do_row to modify note before it's played
+            //{
+                seq_par(mtxCh); seq_arp(mtxCh);
+            //}
 
             if (channelNoteRetrigger[mtxCh])
             {
@@ -989,6 +1013,7 @@ static void DoEngine()
                 if (channelNoteDelayCounter[mtxCh] == 1)
                 {
                     channelNoteDelayCounter[mtxCh] = 0;
+                    channelSEQCounter_PAR[mtxCh] = channelSEQCounter_ARP[mtxCh] = 0;
                     PlayNote(channelPreviousNote[mtxCh], mtxCh, channelNoteTriggerType[mtxCh]);
                 } else channelNoteDelayCounter[mtxCh]--;
             }
@@ -1235,7 +1260,7 @@ static void DoEngine()
         //if (bDoPulse)
         //{
             //bDoPulse = FALSE;
-            if (!pulseCounter) // row first pulse; prepare command, note, instrument, draw cursor
+            if (pulseCounter == 0) // row first pulse; prepare command, note, instrument, draw cursor
             {
                 // main slowdown!
                 do_row(CHANNEL_FM1);
@@ -1304,7 +1329,7 @@ static void DoEngine()
 
                 if (currentScreen == SCREEN_PATTERN) DrawPatternPlaybackCursor();
 
-                pulseCounter = -1; // to run this part only once when timer expires, not at every while loop tick.
+                //pulseCounter = -1; // to run this part only once when timer expires, not at every while loop tick.
             }
 
             do_effects(CHANNEL_FM1);
@@ -1321,15 +1346,16 @@ static void DoEngine()
             do_effects(CHANNEL_PSG3);
             do_effects(CHANNEL_PSG4_NOISE);
 
-            if (pulseCounter == -1) pulseCounter = 1;
-            else pulseCounter++; // count row sub-pulses
-            if (pulseCounter == maxPulse)
+            //if (pulseCounter == -1) pulseCounter = 1;
+            //else
+                pulseCounter++; // count row sub-pulses
+            if (pulseCounter >= maxPulse)
             {
                 if (playingPatternRow & 1) maxPulse = ppl_1; else maxPulse = ppl_2;
                 pulseCounter = 0;
             }
 
-            frames_counter++;
+            //frames_counter++;
 
             /*if (hIntCounter < 1)
             {
@@ -1991,6 +2017,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
 
             case BUTTON_Y:
                 NavigatePattern(PATTERN_JUMPSIDETRIGGER);
+                PrintSelectedPositionInfo();
                 break;
 
             /*case BUTTON_Z:
@@ -2023,18 +2050,22 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 // modify selected parameter
                 case BUTTON_RIGHT:
                     ChangePatternParameter(1, 1);
+                    PrintSelectedPositionInfo();
                     break;
 
                 case BUTTON_LEFT:
                     ChangePatternParameter(-1, -1);
+                    PrintSelectedPositionInfo();
                     break;
 
                 case BUTTON_UP:
                     ChangePatternParameter(12, 16);
+                    PrintSelectedPositionInfo();
                     break;
 
                 case BUTTON_DOWN:
                     ChangePatternParameter(-12, -16);
+                    PrintSelectedPositionInfo();
                     break;
 
                 // paste all data from selection
@@ -2069,6 +2100,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                             }
                         }
                         inc = 0; bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
+                        PrintSelectedPositionInfo();
                     }
                     break;
 
@@ -2185,6 +2217,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                             }
                         }
                         inc = 0; bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
+                        PrintSelectedPositionInfo();
                     }
                     break;
                 }
@@ -2192,6 +2225,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
             // navigate line
             case BUTTON_LEFT: case BUTTON_RIGHT: case BUTTON_UP: case BUTTON_DOWN:
                 NavigatePattern(state);
+                PrintSelectedPositionInfo();
                 break;
             // copy/paste
             case BUTTON_B:
@@ -2276,6 +2310,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     }
                     break;
                 }
+                PrintSelectedPositionInfo();
                 break;
             // clear
             case BUTTON_C:
@@ -2356,7 +2391,6 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     break;
 
                 #endif
-
                 }
 
                 switch (changed)
@@ -2373,6 +2407,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     }
                     break;
                 }
+                PrintSelectedPositionInfo();
                 break;
             }
         break;
@@ -2903,6 +2938,67 @@ void DisplayPatternMatrix()
     }
 }
 // ------------------------------ PATTERN EDITOR
+static void PrintSelectedPositionInfo()
+{
+    switch (selectedPatternColumn)
+    {
+        case DATA_NOTE: break;
+        case DATA_NOTE+PATTERN_COLUMNS: break;
+        case DATA_INSTRUMENT:
+            PrintInstrumentInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_INSTRUMENT)); break;
+        case DATA_INSTRUMENT+PATTERN_COLUMNS:
+            PrintInstrumentInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow+PATTEN_ROWS_PER_SIDE, DATA_INSTRUMENT)); break;
+        case DATA_FX1_TYPE: case DATA_FX1_VALUE:
+            PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_FX1_TYPE)); break;
+        case DATA_FX2_TYPE: case DATA_FX2_VALUE:
+            PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_FX2_TYPE)); break;
+        case DATA_FX3_TYPE: case DATA_FX3_VALUE:
+            PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_FX3_TYPE)); break;
+        case DATA_FX4_TYPE: case DATA_FX4_VALUE:
+            PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_FX4_TYPE)); break;
+        case DATA_FX5_TYPE: case DATA_FX5_VALUE:
+            PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_FX5_TYPE)); break;
+        case DATA_FX6_TYPE: case DATA_FX6_VALUE:
+            PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_FX6_TYPE)); break;
+        case DATA_FX1_TYPE+PATTERN_COLUMNS: case DATA_FX1_VALUE+PATTERN_COLUMNS:
+            PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow+PATTEN_ROWS_PER_SIDE, DATA_FX1_TYPE)); break;
+        case DATA_FX2_TYPE+PATTERN_COLUMNS: case DATA_FX2_VALUE+PATTERN_COLUMNS:
+            PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow+PATTEN_ROWS_PER_SIDE, DATA_FX2_TYPE)); break;
+        case DATA_FX3_TYPE+PATTERN_COLUMNS: case DATA_FX3_VALUE+PATTERN_COLUMNS:
+            PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow+PATTEN_ROWS_PER_SIDE, DATA_FX3_TYPE)); break;
+        case DATA_FX4_TYPE+PATTERN_COLUMNS: case DATA_FX4_VALUE+PATTERN_COLUMNS:
+            PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow+PATTEN_ROWS_PER_SIDE, DATA_FX4_TYPE)); break;
+        case DATA_FX5_TYPE+PATTERN_COLUMNS: case DATA_FX5_VALUE+PATTERN_COLUMNS:
+            PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow+PATTEN_ROWS_PER_SIDE, DATA_FX5_TYPE)); break;
+        case DATA_FX6_TYPE+PATTERN_COLUMNS: case DATA_FX6_VALUE+PATTERN_COLUMNS:
+            PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow+PATTEN_ROWS_PER_SIDE, DATA_FX6_TYPE)); break;
+    }
+}
+
+static void PrintCommandInfo(u8 id)
+{
+    if (!strcmp(infoCommands[id], STRING_EMPTY))
+    {
+        VDP_clearTextArea(GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y, 39, 2);
+    }
+    else
+    {
+        VDP_setTextPalette(PAL0); VDP_drawText(infoCommands[id], GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y);
+        VDP_setTextPalette(PAL1); VDP_drawText(infoDescriptions[id], GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y + 1);
+    }
+}
+
+static void PrintInstrumentInfo(u8 id)
+{
+    if (!id) return;
+    for (u8 i = 0; i < 8; i++)
+    {
+        VDP_setTileMapXY(BG_A,
+            TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_ALPHABET[SRAM_ReadInstrument(id, INST_NAME_1 + i)]),
+            GUI_INFO_PRINT_INST_X + i, GUI_INFO_PRINT_INST_Y);
+    }
+}
+
 static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
 {
     static s16 value = 0;
@@ -2948,12 +3044,12 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
         }
 
         // print info: instrument name
-        for (u8 i = 0; i < 8; i++)
+        /*for (u8 i = 0; i < 8; i++)
         {
             VDP_setTileMapXY(BG_A,
                 TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_ALPHABET[SRAM_ReadInstrument(lastEnteredInstrumentID, INST_NAME_1 + i)]),
                 GUI_INFO_PRINT_INST_X + i, GUI_INFO_PRINT_INST_Y);
-        }
+        }*/
     }
 
     auto void write_fx_type(u8 id, u8 column)
@@ -2975,7 +3071,7 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
         }
 
         // print info: last entered effect description
-        if (!strcmp(infoCommands[lastEnteredEffect], STRING_EMPTY))
+        /*if (!strcmp(infoCommands[lastEnteredEffect], STRING_EMPTY))
         {
             VDP_clearTextArea(GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y, 39, 2);
         }
@@ -2983,7 +3079,7 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
         {
             VDP_setTextPalette(PAL0); VDP_drawText(infoCommands[lastEnteredEffect], GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y);
             VDP_setTextPalette(PAL1); VDP_drawText(infoDescriptions[lastEnteredEffect], GUI_INFO_PRINT_X, GUI_INFO_PRINT_Y + 1);
-        }
+        }*/
     }
 
     auto void write_fx_value(u8 id, u8 column)
@@ -4471,6 +4567,7 @@ static void StopAllSound()
     {
         StopChannelSound(mtxCh);
         StopEffects(mtxCh);
+
 
         // only at playback stop, so note OFF is not affected
         //channelFineTune[mtxCh] = 0;
@@ -6257,15 +6354,20 @@ void DrawStaticGUI()
 
     for (u8 y=4; y<20; y++) // pattern effects separator dots, numbers
     {
-        u8 pal;
+        u8 pal; u8 pal_2;
+        #if (MDT_VERSION == 3)
+            pal_2 = PAL0;
+        #else
+            pal_2 = PAL2;
+        #endif
         if (y%4) pal = PAL3; else pal = PAL0;
         VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(pal, 1, FALSE, FALSE, bgBaseTileIndex[0] + y-4), 44, y);
         VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(pal, 1, FALSE, FALSE, bgBaseTileIndex[0] + y+12), 64, y);
 
         for (u8 x=49; x<59; x+=2)
         {
-            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SEPARATOR), x, y);
-            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SEPARATOR), x + 20, y);
+            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(pal_2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SEPARATOR), x, y);
+            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(pal_2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SEPARATOR), x + 20, y);
         }
     };
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[3] + GUI_00), 44, 4); // 00

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Text;
 using System.Windows.Forms;
-using System.IO;
 
 namespace mdteditor
 {
@@ -30,128 +30,134 @@ namespace mdteditor
         private const byte VGI_SIZE = 43;
         private const byte TFI_SIZE = 42;
 
-/*
-TFI (TFM Maker format)
+        /*
+        TFI (TFM Maker format)
 
-TFM Maker instruments have the ".tfi" file extension and consist of 42 bytes. The first two bytes are:
-TFI format initial bytes Size	Description	Range
-1 byte	Algorithm	0 to 7
-1 byte	Feedback	0 to 7
-    1 byte	PAN FMS AMS ($B4+ from the YM2612) .vgi
+        TFM Maker instruments have the ".tfi" file extension and consist of 42 bytes. The first two bytes are:
+        TFI format initial bytes Size	Description	Range
+        1 byte	Algorithm	0 to 7
+        1 byte	Feedback	0 to 7
+            1 byte	PAN FMS AMS ($B4+ from the YM2612) .vgi
 
-The following 40 bytes are for the operators, with each group of 10 bytes being an operator. Operators come in S1, S3, S2, S4 order.
-These bytes are as follows (repeat for each operator):
-Data for each operator Size	Description	Range
-1 byte	Multiplier	    0 to 15
-1 byte	Detune	        0 to 6
-1 byte	Total level	    0 to 127
-1 byte	Rate scaling	0 to 3
-1 byte	Attack rate	    0 to 31
-1 byte	Decay rate	    0 to 31
-1 byte	Sustain rate	0 to 31
-1 byte	Release rate	0 to 15
-1 byte	Sustain level	0 to 15
-1 byte	SSG-EG	        0 to 15
+        The following 40 bytes are for the operators, with each group of 10 bytes being an operator. Operators come in S1, S3, S2, S4 order.
+        These bytes are as follows (repeat for each operator):
+        Data for each operator Size	Description	Range
+        1 byte	Multiplier	    0 to 15
+        1 byte	Detune	        0 to 6
+        1 byte	Total level	    0 to 127
+        1 byte	Rate scaling	0 to 3
+        1 byte	Attack rate	    0 to 31
+        1 byte	Decay rate	    0 to 31
+        1 byte	Sustain rate	0 to 31
+        1 byte	Release rate	0 to 15
+        1 byte	Sustain level	0 to 15
+        1 byte	SSG-EG	        0 to 15
 
-All values use the same format as the corresponding YM2612 registers, except for detune.
-        In order to get the detune, substract 3 (to put it in the -3 to +3 range),
-        then convert that to the format the YM2612 wants.
+        All values use the same format as the corresponding YM2612 registers, except for detune.
+                In order to get the detune, substract 3 (to put it in the -3 to +3 range),
+                then convert that to the format the YM2612 wants.
 
-VGM Maker instruments have the ".vgi" file extension and consist of 43 bytes.
-It's almost identical to TFI files, except that an extra byte follows feedback,
-which includes FMS and AMS (in the same format as register $B4+ from the YM2612). 
-*/
-/*  MD.Tracker srm
-#define INSTRUMENT_DATA     0x00002 // 89 * 256 bytes
-#define GLOBAL_LFO          0x05902 // INSTRUMENT_DATA + 5900h; 1 byte
-#define FILE_CHECKER        0x05903 // DEAD. To check if SRAM file exists; 2 bytes
-#define PATTERN_MATRIX      0x05905 // MAX_MATRIX_ROWS * 13 * 2 bytes
-#define TEMPO               0x07269 // PATTERN_MATRIX + 1964h; 2 bytes
-#define SAMPLE_DATA         0x0726B // 4 * 96 * SAMPLE_DATA_SIZE(7) bytes (3byte start + 3byte end + 1byte loop); 1byte rate is missing
-#define PATTERN_DATA        0x07CEB // SAMPLE_DATA + A80h;
-#define PATTERN_COLOR       0x6A06B // PATTERN_DATA + PATTERN_SIZE * (MAX_PATTERN + 1);
-#define MATRIX_TRANSPOSE    0x6A3EC // matrix slot transpose (250*13)
-#define MUTE_CHANNEL        0x6B09E // store disabled matrix channels (13)
-#define SAMPLE_PAN          0x6B0AB // default sample pan (4 * 96)
-//#define SONG_TRANSPOSE      0x6B22B // 1 byte
-#define SEQ_VOL_START       0x6B230 // 32 steps vol seq start
-#define SEQ_ARP_START       0x6D230 // SEQ_VOL_START + 2000; 32 steps arp seq start
-#define SAMPLE_RATE         0x6F230 // SEQ_ARP_START + 2000; default sample rate (4 * 96)
-//0x71230
-// ...
-//0x80000 // eof
-*/
-/*
-#define INST_ALG 0 // 1 byte ..
-#define INST_FMS 1
-#define INST_AMS 2
-#define INST_PAN 3
-#define INST_FB 4
+        VGM Maker instruments have the ".vgi" file extension and consist of 43 bytes.
+        It's almost identical to TFI files, except that an extra byte follows feedback,
+        which includes FMS and AMS (in the same format as register $B4+ from the YM2612). 
+        */
+        /*  MD.Tracker srm
+        #define INSTRUMENT_DATA     0x00002 // 89 * 256 bytes
+        #define GLOBAL_LFO          0x05902 // INSTRUMENT_DATA + 5900h; 1 byte
+        #define FILE_CHECKER        0x05903 // DEAD. To check if SRAM file exists; 2 bytes
+        #define PATTERN_MATRIX      0x05905 // MAX_MATRIX_ROWS * 13 * 2 bytes
+        #define TEMPO               0x07269 // PATTERN_MATRIX + 1964h; 2 bytes
+        #define SAMPLE_DATA         0x0726B // 4 * 96 * SAMPLE_DATA_SIZE(7) bytes (3byte start + 3byte end + 1byte loop); 1byte rate is missing
+        #define PATTERN_DATA        0x07CEB // SAMPLE_DATA + A80h;
+        #define PATTERN_COLOR       0x6A06B // PATTERN_DATA + PATTERN_SIZE * (MAX_PATTERN + 1);
+        #define MATRIX_TRANSPOSE    0x6A3EC // matrix slot transpose (250*13)
+        #define MUTE_CHANNEL        0x6B09E // store disabled matrix channels (13)
+        #define SAMPLE_PAN          0x6B0AB // default sample pan (4 * 96)
+        //#define SONG_TRANSPOSE      0x6B22B // 1 byte
+        #define SEQ_VOL_START       0x6B230 // 32 steps vol seq start
+        #define SEQ_ARP_START       0x6D230 // SEQ_VOL_START + 2000; 32 steps arp seq start
+        #define SAMPLE_RATE         0x6F230 // SEQ_ARP_START + 2000; default sample rate (4 * 96)
+        //0x71230
+        // ...
+        //0x80000 // eof
+        */
+        /*
+        #define INST_ALG 0 // 1 byte ..
+        #define INST_FMS 1
+        #define INST_AMS 2
+        #define INST_PAN 3
+        #define INST_FB 4
 
-#define INST_TL1 5
-#define INST_TL2 6
-#define INST_TL3 7
-#define INST_TL4 8
+        #define INST_TL1 5
+        #define INST_TL2 6
+        #define INST_TL3 7
+        #define INST_TL4 8
 
-#define INST_RS1 9
-#define INST_RS2 10
-#define INST_RS3 11
-#define INST_RS4 12
+        #define INST_RS1 9
+        #define INST_RS2 10
+        #define INST_RS3 11
+        #define INST_RS4 12
 
-#define INST_MUL1 13
-#define INST_MUL2 14
-#define INST_MUL3 15
-#define INST_MUL4 16
+        #define INST_MUL1 13
+        #define INST_MUL2 14
+        #define INST_MUL3 15
+        #define INST_MUL4 16
 
-#define INST_DT1 17
-#define INST_DT2 18
-#define INST_DT3 19
-#define INST_DT4 20
+        #define INST_DT1 17
+        #define INST_DT2 18
+        #define INST_DT3 19
+        #define INST_DT4 20
 
-#define INST_AR1 21
-#define INST_AR2 22
-#define INST_AR3 23
-#define INST_AR4 24
+        #define INST_AR1 21
+        #define INST_AR2 22
+        #define INST_AR3 23
+        #define INST_AR4 24
 
-#define INST_D1R1 25
-#define INST_D1R2 26
-#define INST_D1R3 27
-#define INST_D1R4 28
+        #define INST_D1R1 25
+        #define INST_D1R2 26
+        #define INST_D1R3 27
+        #define INST_D1R4 28
 
-#define INST_D1L1 29
-#define INST_D1L2 30
-#define INST_D1L3 31
-#define INST_D1L4 32
+        #define INST_D1L1 29
+        #define INST_D1L2 30
+        #define INST_D1L3 31
+        #define INST_D1L4 32
 
-#define INST_D2R1 33
-#define INST_D2R2 34
-#define INST_D2R3 35
-#define INST_D2R4 36
+        #define INST_D2R1 33
+        #define INST_D2R2 34
+        #define INST_D2R3 35
+        #define INST_D2R4 36
 
-#define INST_RR1 37
-#define INST_RR2 38
-#define INST_RR3 39
-#define INST_RR4 40
+        #define INST_RR1 37
+        #define INST_RR2 38
+        #define INST_RR3 39
+        #define INST_RR4 40
 
-#define INST_AM1 41
-#define INST_AM2 42
-#define INST_AM3 43
-#define INST_AM4 44
+        #define INST_AM1 41
+        #define INST_AM2 42
+        #define INST_AM3 43
+        #define INST_AM4 44
 
-#define INST_SSGEG1 45
-#define INST_SSGEG2 46
-#define INST_SSGEG3 47
-#define INST_SSGEG4 48
+        #define INST_SSGEG1 45
+        #define INST_SSGEG2 46
+        #define INST_SSGEG3 47
+        #define INST_SSGEG4 48
 
-// 49..80 (32 bytes) unused!
-//#define INST_VOL_TICK_01 49
-//#define INST_VOL_TICK_16 64
-//#define INST_ARP_TICK_01 65
-//#define INST_ARP_TICK_16 80
+        // 49..80 (32 bytes) unused!
+        //#define INST_VOL_TICK_01 49
+        //#define INST_VOL_TICK_16 64
+        //#define INST_ARP_TICK_01 65
+        //#define INST_ARP_TICK_16 80
 
-#define INST_NAME_1 81
-#define INST_NAME_8 88
-*/
+        #define INST_NAME_1 81
+        #define INST_NAME_8 88
+        */
+
+        private string settings_PATH = @".\\settings.ini";
+
+        private string settings_ROM_PATH = AppDomain.CurrentDomain.BaseDirectory;
+        private string settings_SRM_PATH = AppDomain.CurrentDomain.BaseDirectory;
+        private string settings_SAMPLES_PATH = AppDomain.CurrentDomain.BaseDirectory;
 
         private byte[] srmFile = new byte[SRM_FILE_SIZE];
         private List<Button> lsSamplesBank_Sync = new List<Button>();
@@ -234,7 +240,7 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
         {
             InitializeComponent();
 
-            SampleBankAddress.Text = ROM_SAMPLE_BANK.ToString("X");
+            //SampleBankAddress.Text = ROM_SAMPLE_BANK.ToString("X");
             tabControl_SampleBanks.SelectedIndexChanged += new EventHandler(TabChanged);
 
             tcBanks[0] = pageSamplesBank1;
@@ -245,7 +251,27 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
             /*for (int l = 0; l < 4; l++)
             {
                 if (tabControl_SampleBanks.SelectedIndex == l) tcBanks[l].ResumeLayout(); else tcBanks[l].SuspendLayout();
-            }*/
+            }*/             
+
+            if (!File.Exists(settings_PATH)) SettingsSave(); else SettingsRead();
+        }
+
+        private void SettingsSave()
+        {
+            File.WriteAllText(settings_PATH, string.Concat(
+                settings_ROM_PATH, Environment.NewLine,
+                settings_SRM_PATH, Environment.NewLine, 
+                settings_SAMPLES_PATH, Environment.NewLine,
+                SampleBankAddress.Text, Environment.NewLine));
+        }
+
+        private void SettingsRead()
+        {
+            var lines = File.ReadAllLines(settings_PATH);
+            settings_ROM_PATH = lines[0];
+            settings_SRM_PATH = lines[1];
+            settings_SAMPLES_PATH = lines[2];
+            SampleBankAddress.Text = lines[3];
         }
 
         private void TabChanged(object sender, EventArgs e)
@@ -742,7 +768,8 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
         {
             try
             {
-                ROM_SAMPLE_BANK = int.Parse(SampleBankAddress.Text, System.Globalization.NumberStyles.HexNumber); ;
+                ROM_SAMPLE_BANK = int.Parse(SampleBankAddress.Text, System.Globalization.NumberStyles.HexNumber);
+                SettingsSave();
             }
             catch
             {
@@ -766,18 +793,20 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
         // open ROM
         private void btnOpenROM_Click(object sender, EventArgs e)
         {
-            OpenFileDialog ofdROM = new OpenFileDialog();
-            ofdROM.Filter = "MD.Tracker ROM (*.bin)|*.bin|Any File (*.*)|*.*";
-            ofdROM.Multiselect = false;
-            ofdROM.Title = "Open ROM";
-            if (ofdROM.ShowDialog() == DialogResult.OK)
+            OpenFileDialog ofd = new OpenFileDialog();
+            if (settings_ROM_PATH != "") ofd.InitialDirectory = settings_ROM_PATH;
+            ofd.Filter = "MD.Tracker ROM (*.bin)|*.bin|Any File (*.*)|*.*";
+            ofd.Multiselect = false;
+            ofd.Title = "Open ROM";
+            if (ofd.ShowDialog() == DialogResult.OK)
             {
-                txtRomName.Text = ofdROM.FileName;
-                FileStream fs = new FileStream(ofdROM.FileName, FileMode.Open, FileAccess.Read);
+                txtRomName.Text = ofd.FileName;
+                FileStream fs = new FileStream(ofd.FileName, FileMode.Open, FileAccess.Read);
                 BinaryReader br = new BinaryReader(fs);
 
                 // load presets from rom
-
+                settings_ROM_PATH = Path.GetDirectoryName(ofd.FileName);
+                SettingsSave();
                 br.Close(); fs.Close();
             }
         }
@@ -827,6 +856,7 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
         private void btnOpenSRM_Click(object sender, EventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog();
+            if (settings_SRM_PATH != "") ofd.InitialDirectory = settings_SRM_PATH;
             ofd.Filter =
                 "MD.Tracker Save (*.sram)|*.sram|" +
                 "MD.Tracker Save (*.srm)|*.srm|" +
@@ -887,6 +917,8 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
                         lsSamplesBank_Loop[i].Checked = Convert.ToBoolean(val);
                 }
 
+                settings_SRM_PATH = Path.GetDirectoryName(ofd.FileName);
+                SettingsSave();
                 br.Close(); fs.Close();
             }
         }
@@ -964,6 +996,7 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
                 Title = "Add Samples",
                 FilterIndex = 2
             };
+            if (settings_SAMPLES_PATH != "") ofd.InitialDirectory = settings_SAMPLES_PATH;
 
             if (ofd.ShowDialog() == DialogResult.OK)
             {
@@ -1053,6 +1086,9 @@ which includes FMS and AMS (in the same format as register $B4+ from the YM2612)
                 txtBytesUsed.Text = sampleEnd.ToString();
                 samplesCount += ofd.SafeFileNames.Length;
                 pnSamplesPool.VerticalScroll.Enabled = true;
+
+                settings_SAMPLES_PATH = Path.GetDirectoryName(ofd.FileName);
+                SettingsSave();
             }
         }
     }
