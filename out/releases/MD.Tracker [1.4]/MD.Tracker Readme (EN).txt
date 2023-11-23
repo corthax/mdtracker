@@ -239,14 +239,17 @@ Current pattern is looped when pattern or instrument editor is active.
 	C		Clear value.
 	C+B		Set note OFF on note column.
 	
-	[!!! Will squish all notes to octave 0 or 7 !!!] When note column is selected:
-	B+L     Whole pattern octave down.	 
-	B+R     Whole pattern octave up.
+	When note column is selected, whole pattern or selected range: (non-destructive, will stop at lowest and highest notes possible)
+	B+R     semitone +1
+	B+L     semitone -1	 
+	B+U     semitone +12	 
+	B+D     semitone -12
+
 	
 	Copy/Paste:
 
-	B+D		Select range, in current pattern, starting from selected row and below. Pressing B always clears selection range.
-	B+U 	Select all;
+	Z+D		Select range, in current pattern, starting from selected row and below. Pressing Z always clears selection range.
+	Z+U 	Select all;
 
 	A+C 	Copy and Paste data from previously selected range into selected column of current pattern, starting from selected row.
 	A+B 	Same as above, but paste all data columns.

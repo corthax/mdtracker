@@ -965,7 +965,7 @@ static void DoEngine()
                 seq_arp_modify_key(mtxCh);
                 channelSEQCounter_PAR[mtxCh] = channelSEQCounter_ARP[mtxCh] = -channelNoteDelayCounter[mtxCh];
 
-                if (!channelNoteDelayCounter[mtxCh] /*&& !channelNoteRetrigger[mtxCh]*/) // re-triggered from do_effects
+                if (!channelNoteDelayCounter[mtxCh] && !channelNoteRetriggerCounter[mtxCh]) // re-triggered from do_effects
                 {
                     //if (instrumentIsMuted[_inst] == INST_MUTE) _key = NOTE_OFF;
                     //channelSEQCounter_PAR[mtxCh] = channelSEQCounter_ARP[mtxCh] = 0; // restart SEQ counters on new note
@@ -997,11 +997,10 @@ static void DoEngine()
 
             if (channelNoteRetrigger[mtxCh])
             {
-                //channelNoteDelayCounter[mtxCh] = 0; // disable delay
                 if (channelNoteRetriggerCounter[mtxCh] == channelNoteRetrigger[mtxCh])
                 {
                     channelNoteRetriggerCounter[mtxCh] = 0;
-                    channelNoteDelayCounter[mtxCh] = 0; // disable delay
+                    //channelNoteDelayCounter[mtxCh] = 0; // disable delay
                     channelSEQCounter_PAR[mtxCh] = 0; channelSEQCounter_ARP[mtxCh] = 0;
                     PlayNote(channelPreviousNote[mtxCh], mtxCh, channelNoteTriggerType[mtxCh]);
                 }
@@ -1010,12 +1009,19 @@ static void DoEngine()
             //! delay (not works with seq)
             else if (channelNoteDelayCounter[mtxCh])
             {
-                if (channelNoteDelayCounter[mtxCh] == 1)
+                /*if (channelNoteDelayCounter[mtxCh] == 1)
                 {
                     channelNoteDelayCounter[mtxCh] = 0;
                     channelSEQCounter_PAR[mtxCh] = channelSEQCounter_ARP[mtxCh] = 0;
                     PlayNote(channelPreviousNote[mtxCh], mtxCh, channelNoteTriggerType[mtxCh]);
-                } else channelNoteDelayCounter[mtxCh]--;
+                } else channelNoteDelayCounter[mtxCh]--;*/
+
+                channelNoteDelayCounter[mtxCh]--;
+                if (!channelNoteDelayCounter[mtxCh])
+                {
+                    channelSEQCounter_PAR[mtxCh] = channelSEQCounter_ARP[mtxCh] = 0;
+                    PlayNote(channelPreviousNote[mtxCh], mtxCh, channelNoteTriggerType[mtxCh]);
+                }
             }
             // volume effects
             // volume slide (set only by counter)
@@ -1640,6 +1646,10 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
     static s8 col = 0; // pattern color slot
     static s8 transpose = 0; // matrix slot transpose
 
+    // selection transpose
+    u8 _rangeStart = 0;
+    u8 _rangeEnd = PATTERN_ROWS;
+
     u8 muted;
 
     if (selectedMatrixScreenRow < MATRIX_ROWS_ONPAGE)
@@ -1702,6 +1712,15 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
         VDP_setHorizontalScroll(BG_A, 0);
         VDP_setHorizontalScroll(BG_B, 0);
         matrixRowToRefresh = OXFFFF;
+    }
+
+    auto void set_range()
+    {
+        if (patternCopyRangeStart != NOTHING)
+        {
+            _rangeStart = patternCopyRangeStart;
+            _rangeEnd = patternCopyRangeEnd;
+        }
     }
 
     //if (joy == JOY_1 || joy == JOY_2) // any joy really
@@ -2227,12 +2246,111 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 NavigatePattern(state);
                 PrintSelectedPositionInfo();
                 break;
-            // copy/paste
+
             case BUTTON_B:
                 switch (changed)
                 {
+                // octave -
+                case BUTTON_DOWN:
+                    switch (selectedPatternColumn)
+                    {
+                    case DATA_NOTE: case (DATA_NOTE + PATTERN_COLUMNS):
+                        set_range();
+                        for (u8 row = _rangeStart; row < _rangeEnd; row++)
+                        {
+                            u8 note = SRAM_ReadPattern(selectedPatternID, row, DATA_NOTE);
+                            if (note == NOTE_OFF || note == NOTE_EMPTY) continue;
+                            if (note < OCTAVE) return; // safe transpose
+                        }
+                        for (u8 row = _rangeStart; row < _rangeEnd; row++)
+                        {
+                            u8 note = SRAM_ReadPattern(selectedPatternID, row, DATA_NOTE);
+                            if (note == NOTE_OFF || note == NOTE_EMPTY) continue;
+                            note -= OCTAVE;
+                            SRAM_WritePattern(selectedPatternID, row, DATA_NOTE, note);
+                        }
+                        bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
+                        break;
+                    }
+                    break;
+                // octave +
+                case BUTTON_UP:
+                    switch (selectedPatternColumn)
+                    {
+                    case DATA_NOTE: case (DATA_NOTE + PATTERN_COLUMNS):
+                        set_range();
+                        for (u8 row = _rangeStart; row < _rangeEnd; row++)
+                        {
+                            u8 note = SRAM_ReadPattern(selectedPatternID, row, DATA_NOTE);
+                            if (note == NOTE_OFF || note == NOTE_EMPTY) continue;
+                            if (note > NOTE_MAX-OCTAVE) return; // safe transpose
+                        }
+                        for (u8 row = _rangeStart; row < _rangeEnd; row++)
+                        {
+                            u8 note = SRAM_ReadPattern(selectedPatternID, row, DATA_NOTE);
+                            if (note == NOTE_OFF || note == NOTE_EMPTY) continue;
+                            note += OCTAVE;
+                            SRAM_WritePattern(selectedPatternID, row, DATA_NOTE, note);
+                        }
+                        bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
+                        break;
+                    }
+                    break;
+                // semitone -
+                case BUTTON_LEFT:
+                    switch (selectedPatternColumn)
+                    {
+                    case DATA_NOTE: case (DATA_NOTE + PATTERN_COLUMNS):
+                        set_range();
+                        for (u8 row = _rangeStart; row < _rangeEnd; row++)
+                        {
+                            u8 note = SRAM_ReadPattern(selectedPatternID, row, DATA_NOTE);
+                            if (note == NOTE_OFF || note == NOTE_EMPTY) continue;
+                            if (note == 0) return; // safe transpose
+                        }
+                        for (u8 row = _rangeStart; row < _rangeEnd; row++)
+                        {
+                            u8 note = SRAM_ReadPattern(selectedPatternID, row, DATA_NOTE);
+                            if (note == NOTE_OFF || note == NOTE_EMPTY) continue;
+                            note -= SEMITONE;
+                            SRAM_WritePattern(selectedPatternID, row, DATA_NOTE, note);
+                        }
+                        bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
+                        break;
+                    }
+                    break;
+                // semitone +
+                case BUTTON_RIGHT:
+                    switch (selectedPatternColumn)
+                    {
+                    case DATA_NOTE: case (DATA_NOTE + PATTERN_COLUMNS):
+                        set_range();
+                        for (u8 row = _rangeStart; row < _rangeEnd; row++)
+                        {
+                            u8 note = SRAM_ReadPattern(selectedPatternID, row, DATA_NOTE);
+                            if (note == NOTE_OFF || note == NOTE_EMPTY) continue;
+                            if (note == NOTE_MAX) return; // safe transpose
+                        }
+                        for (u8 row = _rangeStart; row < _rangeEnd; row++)
+                        {
+                            u8 note = SRAM_ReadPattern(selectedPatternID, row, DATA_NOTE);
+                            if (note == NOTE_OFF || note == NOTE_EMPTY) continue;
+                            note += SEMITONE;
+                            SRAM_WritePattern(selectedPatternID, row, DATA_NOTE, note);
+                        }
+                        bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
+                        break;
+                    }
+                    break;
+                }
+                break;
+
+            // copy/paste
+            case BUTTON_Z:
+                switch (changed)
+                {
                 // selected to nothing
-                case BUTTON_B: // pressed
+                case BUTTON_Z: // pressed
                     inc = 0;
                     if (patternCopyRangeStart != NOTHING) { selection_clear(); }
                     patternCopyRangeStart = patternCopyRangeEnd = NOTHING;
@@ -2277,36 +2395,6 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                             else VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 64, patternCopyRangeEnd-12);
                             patternCopyRangeEnd++;
                         }
-                    }
-                    break;
-                // octave -
-                case BUTTON_LEFT:
-                    switch (selectedPatternColumn)
-                    {
-                    case DATA_NOTE: case (DATA_NOTE + PATTERN_COLUMNS):
-                        for (u8 row = 0; row < PATTERN_ROWS; row++)
-                        {
-                            u8 note = SRAM_ReadPattern(selectedPatternID, row, DATA_NOTE);
-                            if (note < NOTES && note > 11) note -= 12;
-                            SRAM_WritePattern(selectedPatternID, row, DATA_NOTE, note);
-                        }
-                        bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
-                        break;
-                    }
-                    break;
-                // octave +
-                case BUTTON_RIGHT:
-                    switch (selectedPatternColumn)
-                    {
-                    case DATA_NOTE: case (DATA_NOTE + PATTERN_COLUMNS):
-                        for (u8 row = 0; row < PATTERN_ROWS; row++)
-                        {
-                            u8 note = SRAM_ReadPattern(selectedPatternID, row, DATA_NOTE);
-                            if (note < NOTES && note < NOTES-11) note += 12;
-                            SRAM_WritePattern(selectedPatternID, row, DATA_NOTE, note);
-                        }
-                        bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
-                        break;
                     }
                     break;
                 }
@@ -5146,7 +5234,7 @@ static void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
 
     // NOTE DELAY
     case 0x54:
-        channelNoteDelayCounter[mtxCh] = fxValue;
+        channelNoteDelayCounter[mtxCh] = fxValue + 1;
         break;
 
     // NOTE AUTO CUT
@@ -5940,7 +6028,9 @@ void SRAM_WriteSampleRate(u8 bank, u8 note, u8 data) { SRAMW_writeByte((u32)SAMP
 // other
 void YM2612_writeRegZ80(u16 part, u8 reg, u8 data)
 {
-    RequestZ80();
+    //RequestZ80();
+    Z80_requestBus(TRUE);
+    //Z80_getAndRequestBus(TRUE);
     YM2612_writeReg(part, reg, data);
     ReleaseZ80();
 }
@@ -6071,6 +6161,7 @@ void InitTracker()
     );*/
 
     Z80_setForceDelayDMA(TRUE);
+    //Z80_enableBusProtection(); // for XGM
 
     JOY_setSupport(PORT_1, JOY_SUPPORT_6BTN);
     JOY_setSupport(PORT_2, JOY_SUPPORT_6BTN);

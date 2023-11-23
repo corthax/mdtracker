@@ -73,6 +73,8 @@
 #define NOTE_MAX                95
 #define NOTES                   96
 #define OCTAVE_MAX              7
+#define OCTAVE                  12
+#define SEMITONE                1
 
 #define CH3_SPECIAL             0b01000000
 #define CH3_SPECIAL_CSM         0b10000000
