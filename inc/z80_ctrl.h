@@ -318,6 +318,7 @@ void Z80_unloadDriver(void);
  *      Wait for driver to be ready.
  */
 void Z80_loadDriver(const u16 driver, const bool waitReady);
+void Z80_loadDriver_Unsafe(const u16 driver);
 /**
  *  \brief
  *      Load a custom Z80 driver.

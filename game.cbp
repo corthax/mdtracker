@@ -113,6 +113,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/boot/sega.s" />
+		<Unit filename="src/dualpcm.s">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
 		<Unit filename="src/main.c">
 			<Option compilerVar="CC" />
 		</Unit>
