@@ -216,6 +216,7 @@ u8 SND_isPlaying_2ADPCM(const u16 channel_mask);
  *      If non zero then the sample will be played in loop (else sample is played only once).
  */
 void SND_startPlay_2ADPCM(const u8 *sample, const u32 len, const u16 channel, const u8 loop);
+//void SND_startPlay_2ADPCM(const u8 *sample, const u32 len, const u16 channel, const u8 loop, const u8 rate, const u8 pan);
 /**
  *  \brief
  *      Stop playing the specified channel (2 channels ADPCM player driver).<br>

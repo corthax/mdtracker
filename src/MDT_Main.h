@@ -152,7 +152,7 @@ void FillRowRight(u8 plane, u8 pal, u8 flipV, u8 flipH, u8 guiSymbol, u8 fillCou
 static void DoEngine();
 static void SetPitchFM(u8 mtxCh, u8 note);
 static void SetPitchPSG(u8 mtxCh, u8 note);
-static void PlayNote(u8 note, u8 mtxCh, u8 retrigger);
+static void PlayNote(u8 note, u8 mtxCh, u8 glide);
 static void PlayNoteOff(u8 mtxCh);
 static void StopChannelSound(u8 mtxCh);
 static void StopAllSound();

@@ -19,7 +19,7 @@
 	
 ---
 
-SGDK 1.80 (https://github.com/Stephane-D/SGDK/wiki/Setup-SGDK-with-CodeBlocks)
+SGDK (https://github.com/Stephane-D/SGDK/wiki/Setup-SGDK-with-CodeBlocks)
 
 Code::Blocks 20.03
 
@@ -31,9 +31,9 @@ Code::Blocks 20.03
 
 	rom-pro.bin - Main version for Mega Everdrive Pro. Also should work in RetroArch (BlastEm core).
 
-	rom-x7.bin - Stripped down version for Mega Everdrive X7. [wip, not tested]
+	rom-x7.bin - Stripped down version for Mega Everdrive X7. [wip]
 
-	rom-blastem.bin - Version for standalone BlastEm emulator (modified rom header). [currently doesn't work]
+	rom-blastem.bin - Version for standalone BlastEm emulator (modified rom header).
 	
 	/releases - All releases. Also the newest wip release preparation goes there.
 	

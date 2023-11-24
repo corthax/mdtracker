@@ -815,7 +815,8 @@ static void DoEngine()
                     case CHANNEL_FM6_DAC:
                         //if (Z80_getLoadedDriver() == Z80_DRIVER_4PCM) pcmNote[0] = pcmNote[1] = pcmNote[2] = pcmNote[3] = NOTE_EMPTY;
                         ApplyCommand_DAC(_fxType, _fxValue);
-                        if (!bDAC_enable) ApplyCommand_FM(CHANNEL_FM6_DAC, channelPreviousInstrument[CHANNEL_FM6_DAC], _fxType, _fxValue);
+                        //if (!bDAC_enable)
+                        ApplyCommand_FM(mtxCh, channelPreviousInstrument[mtxCh], _fxType, _fxValue);
                         break;
                     case CHANNEL_FM3_OP1: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP3:
                         ApplyCommand_FM3_SP(mtxCh, _fxType, _fxValue);
@@ -838,10 +839,8 @@ static void DoEngine()
                     case CHANNEL_FM6_DAC:
                         //if (Z80_getLoadedDriver() == Z80_DRIVER_4PCM) pcmNote[0] = pcmNote[1] = pcmNote[2] = pcmNote[3] = NOTE_EMPTY;
                         ApplyCommand_DAC(channelPreviousEffectType[CHANNEL_FM6_DAC][effect], _fxValue);
-                        if (!bDAC_enable) ApplyCommand_FM(
-                                                          CHANNEL_FM6_DAC,
-                                                          channelPreviousInstrument[CHANNEL_FM6_DAC],
-                                                          channelPreviousEffectType[CHANNEL_FM6_DAC][effect], _fxValue);
+                        //if (!bDAC_enable)
+                        ApplyCommand_FM(mtxCh, channelPreviousInstrument[mtxCh], channelPreviousEffectType[mtxCh][effect], _fxValue);
                         break;
                     case CHANNEL_FM3_OP1: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP3:
                         ApplyCommand_FM3_SP(mtxCh, channelPreviousEffectType[mtxCh][effect], _fxValue); // currently useless
@@ -2270,9 +2269,9 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                             note -= OCTAVE;
                             SRAM_WritePattern(selectedPatternID, row, DATA_NOTE, note);
                         }
-                        bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
                         break;
                     }
+                    bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
                     break;
                 // octave +
                 case BUTTON_UP:
@@ -2293,9 +2292,9 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                             note += OCTAVE;
                             SRAM_WritePattern(selectedPatternID, row, DATA_NOTE, note);
                         }
-                        bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
                         break;
                     }
+                    bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
                     break;
                 // semitone -
                 case BUTTON_LEFT:
@@ -2316,9 +2315,9 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                             note -= SEMITONE;
                             SRAM_WritePattern(selectedPatternID, row, DATA_NOTE, note);
                         }
-                        bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
                         break;
                     }
+                    bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
                     break;
                 // semitone +
                 case BUTTON_RIGHT:
@@ -2339,9 +2338,9 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                             note += SEMITONE;
                             SRAM_WritePattern(selectedPatternID, row, DATA_NOTE, note);
                         }
-                        bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
                         break;
                     }
+                    bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
                     break;
                 }
                 break;
@@ -4473,40 +4472,6 @@ static void SetPitchFM(u8 mtxCh, u8 note)
             {
                 switch (Z80_getLoadedDriver())
                 {
-                case Z80_DRIVER_4PCM:
-                    /*if (pcmNote[0] < NOTES)
-                    {
-                         SND_startPlay_4PCM(
-                            sampleStart[activeSampleBank][pcmNote[0]],
-                            sampleLength[activeSampleBank][pcmNote[0]],
-                            SOUND_PCM_CH1,
-                            sampleLoop[activeSampleBank][pcmNote[0]]);
-                    }
-                    if (pcmNote[1] < NOTES)
-                    {
-                         SND_startPlay_4PCM(
-                            sampleStart[activeSampleBank][pcmNote[1]],
-                            sampleLength[activeSampleBank][pcmNote[1]],
-                            SOUND_PCM_CH2,
-                            sampleLoop[activeSampleBank][pcmNote[1]]);
-                    }
-                    if (pcmNote[2] < NOTES)
-                    {
-                         SND_startPlay_4PCM(
-                            sampleStart[activeSampleBank][pcmNote[2]],
-                            sampleLength[activeSampleBank][pcmNote[2]],
-                            SOUND_PCM_CH3,
-                            sampleLoop[activeSampleBank][pcmNote[2]]);
-                    }
-                    if (pcmNote[3] < NOTES)
-                    {
-                         SND_startPlay_4PCM(
-                            sampleStart[activeSampleBank][pcmNote[3]],
-                            sampleLength[activeSampleBank][pcmNote[3]],
-                            SOUND_PCM_CH4,
-                            sampleLoop[activeSampleBank][pcmNote[3]]);
-                    }*/
-                    break;
                 case Z80_DRIVER_PCM:
                     if (!FM_CH6_DAC_Pan)
                     {
@@ -4515,16 +4480,6 @@ static void SetPitchFM(u8 mtxCh, u8 note)
                                         sampleRate[activeSampleBank][note],
                                         samplePan[activeSampleBank][note],
                                         sampleLoop[activeSampleBank][note]);
-                        /*SND_startPlay_2ADPCM(sampleStart[activeSampleBank][note],
-                                        sampleLength[activeSampleBank][note],
-                                        SOUND_PCM_CH_AUTO,
-                                        sampleLoop[activeSampleBank][note]);*/
-                        /*XGM_setPCMFast(64,//sampleID[[activeSampleBank][note]], // 64..255
-                            sampleStart[activeSampleBank][note],
-                            sampleLength[activeSampleBank][note]);
-                        XGM_startPlayPCM(64,//sampleID[[activeSampleBank][note]],
-                            15,
-                            SOUND_PCM_CH1);*/
                     }
                     else
                     {
@@ -4534,6 +4489,24 @@ static void SetPitchFM(u8 mtxCh, u8 note)
                                       FM_CH6_DAC_Pan,
                                       sampleLoop[activeSampleBank][note]);
                     }
+                    break;
+
+                case Z80_DRIVER_4PCM:
+                        SND_startPlay_4PCM(
+                                        sampleStart[activeSampleBank][note],
+                                        sampleLength[activeSampleBank][note],
+                                        SOUND_PCM_CH_AUTO,
+                                        sampleLoop[activeSampleBank][note]);
+                    break;
+
+                case Z80_DRIVER_2ADPCM:
+                        SND_startPlay_2ADPCM(
+                                        sampleStart[activeSampleBank][note],
+                                        sampleLength[activeSampleBank][note],
+                                        SOUND_PCM_CH_AUTO,
+                                        sampleLoop[activeSampleBank][note]);
+                                        //sampleRate[activeSampleBank][note],
+                                        //samplePan[activeSampleBank][note]);
                     break;
                 }
             }
@@ -4560,17 +4533,14 @@ static void PlayNoteOff(u8 mtxCh)
         StopEffects(mtxCh);
 }
 
-static void PlayNote(u8 note, u8 mtxCh, u8 retrigger) // FALSE == retrigger, TRUE = set pitch only
+static void PlayNote(u8 note, u8 mtxCh, u8 glide) // FALSE == retrigger, TRUE = set pitch only
 {
     if (mtxCh < CHANNEL_PSG1) // FM
     {
         // S1>S3>S2>S4 for common registers and S4>S3>S1>S2 for CH3 frequencies
-        if (mtxCh == CHANNEL_FM6_DAC && bDAC_enable) SetPitchFM(mtxCh, note);
-        else if (!retrigger)
-        {
+        if (!glide && !(mtxCh == CHANNEL_FM6_DAC && bDAC_enable))
             StopChannelSound(mtxCh); // need to stop current playing note to write new data
-            SetPitchFM(mtxCh, note); // set pitch (or dac), trigger note
-        }
+        SetPitchFM(mtxCh, note); // set pitch (or dac), trigger note
     }
     else // PSG
     {
@@ -4685,6 +4655,10 @@ static void StopChannelSound(u8 mtxCh)
             if (SND_isPlaying_4PCM(SOUND_PCM_CH2_MSK)) SND_stopPlay_4PCM(SOUND_PCM_CH2);
             if (SND_isPlaying_4PCM(SOUND_PCM_CH3_MSK)) SND_stopPlay_4PCM(SOUND_PCM_CH3);
             if (SND_isPlaying_4PCM(SOUND_PCM_CH4_MSK)) SND_stopPlay_4PCM(SOUND_PCM_CH4);
+            break;
+        case Z80_DRIVER_2ADPCM:
+            if (SND_isPlaying_2ADPCM(SOUND_PCM_CH1_MSK)) SND_stopPlay_2ADPCM(SOUND_PCM_CH1);
+            if (SND_isPlaying_2ADPCM(SOUND_PCM_CH2_MSK)) SND_stopPlay_2ADPCM(SOUND_PCM_CH2);
             break;
         }
         break;
@@ -5445,6 +5419,13 @@ static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
                 Z80_loadDriver(Z80_DRIVER_4PCM, FALSE);
             }
             break;
+        case 2:
+            if (Z80_getLoadedDriver() != Z80_DRIVER_2ADPCM)
+            {
+                StopChannelSound(CHANNEL_FM6_DAC);
+                Z80_loadDriver(Z80_DRIVER_2ADPCM, FALSE);
+            }
+            break;
         default:
             break;
         }
@@ -5455,7 +5436,6 @@ static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
         {
             if (fxValue < NOTES)
             {
-                //pcmNote[0] = fxValue;
                 SND_startPlay_4PCM(
                     sampleStart[activeSampleBank][fxValue],
                     sampleLength[activeSampleBank][fxValue],
@@ -5463,6 +5443,20 @@ static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
                     sampleLoop[activeSampleBank][fxValue]);
             }
             else if (SND_isPlaying_4PCM(SOUND_PCM_CH1_MSK) && fxValue == NOTE_OFF) SND_stopPlay_4PCM(SOUND_PCM_CH1);
+        }
+        else if (Z80_getLoadedDriver() == Z80_DRIVER_2ADPCM)
+        {
+            if (fxValue < NOTES)
+            {
+                SND_startPlay_2ADPCM(
+                    sampleStart[activeSampleBank][fxValue],
+                    sampleLength[activeSampleBank][fxValue],
+                    SOUND_PCM_CH1,
+                    sampleLoop[activeSampleBank][fxValue]);
+                    //sampleRate[activeSampleBank][fxValue],
+                    //samplePan[activeSampleBank][fxValue]);
+            }
+            else if (SND_isPlaying_2ADPCM(SOUND_PCM_CH1_MSK) && fxValue == NOTE_OFF) SND_stopPlay_2ADPCM(SOUND_PCM_CH1);
         }
         break;
     // 4PCM CH2 PLAY
@@ -5479,6 +5473,20 @@ static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
                     sampleLoop[activeSampleBank][fxValue]);
             }
             else if (SND_isPlaying_4PCM(SOUND_PCM_CH2_MSK) && fxValue == NOTE_OFF) SND_stopPlay_4PCM(SOUND_PCM_CH2);
+        }
+        else if (Z80_getLoadedDriver() == Z80_DRIVER_2ADPCM)
+        {
+            if (fxValue < NOTES)
+            {
+                SND_startPlay_2ADPCM(
+                    sampleStart[activeSampleBank][fxValue],
+                    sampleLength[activeSampleBank][fxValue],
+                    SOUND_PCM_CH2,
+                    sampleLoop[activeSampleBank][fxValue]);
+                    //sampleRate[activeSampleBank][fxValue],
+                    //samplePan[activeSampleBank][fxValue]);
+            }
+            else if (SND_isPlaying_2ADPCM(SOUND_PCM_CH2_MSK) && fxValue == NOTE_OFF) SND_stopPlay_2ADPCM(SOUND_PCM_CH2);
         }
         break;
     // 4PCM CH3 PLAY

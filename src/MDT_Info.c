@@ -115,7 +115,7 @@ void InitInfo()
     infoCommands[0x6D] = "";
     infoCommands[0x6E] = "";
     infoCommands[0x6F] = "";
-    infoCommands[0x70] = "DAC LOAD PCM DRIVER             ";
+    infoCommands[0x70] = "LOAD PCM DRIVER (NOT REALTIME)  ";
     infoCommands[0x71] = "DAC PLAY 4PCM CH1               ";
     infoCommands[0x72] = "DAC PLAY 4PCM CH2               ";
     infoCommands[0x73] = "DAC PLAY 4PCM CH3               ";
@@ -374,7 +374,7 @@ void InitInfo()
     infoDescriptions[0x6D] = "";
     infoDescriptions[0x6E] = "";
     infoDescriptions[0x6F] = "";
-    infoDescriptions[0x70] = "0:PCM 1:4PCM                         ";
+    infoDescriptions[0x70] = "0:PCM 1:4PCM 2:2ADPCM                ";
     infoDescriptions[0x71] = "XX : NOTE NUMBER. 60+ = CH1 NOTE OFF ";
     infoDescriptions[0x72] = "XX : NOTE NUMBER. 60+ = CH2 NOTE OFF ";
     infoDescriptions[0x73] = "XX : NOTE NUMBER. 60+ = CH3 NOTE OFF ";

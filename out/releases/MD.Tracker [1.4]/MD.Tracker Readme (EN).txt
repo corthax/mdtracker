@@ -64,19 +64,31 @@ Changelog:
 		Not tested in PAL mode, so may be broken.
 	Fixes:
 		A bit smoother playback.
-		Note retrigger.
+		Note retrigger/delay.
 		Instrument mute/solo.
+		SEQ timing fix.
 	Changes:
 		Command 18xx - Channel microtone finetune. Add up to 31 (1F) microtones (1/32 semitone).
 		Command 19xx - Channel SEQ skip step. To slow down.
 		Command 1Axx - Channel ARP skip step. To slow down.
 		Command 1Exx - Channel Note trigger mode: == 00 retrigger note, >= 01 set pitch only. (FM only)
-		Command 2Exx - Channel ARP mode: == 00 retrigger note, >= 01 set pitch only. (FM only)
+		Command 2Exx - Channel ARP mode: 00 retrigger note, >= 01 set pitch only. (FM only)
 		Command 3Exx - Channel sub-sequencer type. VOL sub-sequencer renamed to SEQ. Now it's used to sequence any FM parameter (and PSG volume).
 			Values are:
 			- FM-related command number
 			- 41 for volume (default)
 			- 18 for channel microtone finetune
+		Command 70xx - Load PCM driver (00 = PCM, 01 = 4PCM, 02 = 2ADPCM).
+        Command 71xx - Play 4PCM channel 1 (note number up to 5F, FF = NOTE OFF).
+        Command 72xx - Play 4PCM channel 2 (note number up to 5F, FF = NOTE OFF).
+        Command 73xx - Play 4PCM channel 3 (note number up to 5F, FF = NOTE OFF).
+        Command 74xx - Play 4PCM channel 4 (note number up to 5F, FF = NOTE OFF). 
+			
+		Pattern range selection to button Z + U/D.
+        B + D-Pad - whole pattern/selection transpose +/- octave/semitone. Will not destroy melody if one of resulted notes goes out of range.
+        Print currently highlighted pattern command description and instrument name, instead of last entered.
+        (A+B) + D-Pad - Change all values in ARP/SEQ (Skip empty steps), FM Operators.
+		
 		Removed non working msu-md driver.
 		Removed save upgrade from 1.00/1.01 to 1.03.
 		Added save upgrade from 1.03 to 1.04.
@@ -86,6 +98,7 @@ Changelog:
 	MD.Tracker Editor:
 		Changes:
 			Added field for samples bank start address in rom.
+			Last opened paths, rom samples region start address - saved to settings.ini.
 		Fixes:
 			Samples list scrolling.
 			Samples to keys range assigning.
@@ -375,6 +388,34 @@ DAC (enabled by default)
 	11xx	
 xx: 01 = Enable DAC.
 00: to disable DAC.
+
+Load PCM driver.
+xx:
+00 = PCM (1 channel pcm 8kHz .. 32kHz)
+01 = 4PCM (4 channel pcm at 16kHz.)
+02 = 2ADPCM (2 channel adpcm at 22050Hz.)
+
+//////////////////
+WARNING
+	Changing driver will introduce small hickup in playback, not for realtime usage!
+	Uncheck "Replace FF with 00" in MD.Tracker Editor when adding 2ADPCM samples into rom!
+//////////////////
+
+Play DAC sample at CH1 (4PCM, 2ADPCM)
+	71xx
+xx: note, up to 5F; FF = NOTE OFF
+
+Play DAC sample at CH2 (4PCM, 2ADPCM)
+	72xx
+xx: note, up to 5F; FF = NOTE OFF
+
+Play DAC sample at CH3 (4PCM)
+	73xx
+xx: note, up to 5F; FF = NOTE OFF
+
+Play DAC sample at CH4 (4PCM)
+	74xx
+xx: note, up to 5F; FF = NOTE OFF
 
 //////////////////
 WARNING
