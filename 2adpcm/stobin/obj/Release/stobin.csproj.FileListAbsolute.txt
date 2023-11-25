@@ -1,0 +1,8 @@
+D:\gamedev\sega\project\mdtracker\2adpcm\stobin\obj\Release\stobin.csproj.AssemblyReference.cache
+D:\gamedev\sega\project\mdtracker\2adpcm\stobin\obj\Release\stobin.csproj.SuggestedBindingRedirects.cache
+D:\gamedev\sega\project\mdtracker\2adpcm\stobin\obj\Release\stobin.csproj.CoreCompileInputs.cache
+D:\gamedev\sega\project\mdtracker\2adpcm\stobin\bin\Release\wav2pcm.exe.config
+D:\gamedev\sega\project\mdtracker\2adpcm\stobin\bin\Release\wav2pcm.exe
+D:\gamedev\sega\project\mdtracker\2adpcm\stobin\bin\Release\wav2pcm.pdb
+D:\gamedev\sega\project\mdtracker\2adpcm\stobin\obj\Release\wav2pcm.exe
+D:\gamedev\sega\project\mdtracker\2adpcm\stobin\obj\Release\wav2pcm.pdb
