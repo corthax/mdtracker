@@ -163,8 +163,6 @@
             // chkReplaceFF
             // 
             resources.ApplyResources(this.chkReplaceFF, "chkReplaceFF");
-            this.chkReplaceFF.Checked = true;
-            this.chkReplaceFF.CheckState = System.Windows.Forms.CheckState.Checked;
             this.chkReplaceFF.Name = "chkReplaceFF";
             this.chkReplaceFF.UseVisualStyleBackColor = true;
             // 

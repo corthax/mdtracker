@@ -24,6 +24,14 @@ namespace stobin
                 Console.ReadKey();
                 return;
             }
+
+            if (!File.Exists(@"rescomp.jar"))
+            {
+                Console.WriteLine("ERROR: No SGDK 'rescomp.jar' found! Exit.");
+                Console.ReadKey();
+                return;
+            }
+
             Console.WriteLine();
             Console.WriteLine("Choose format:");
             Console.WriteLine("1. Convert to 2ADPCM (*.2adpcm)");
@@ -88,7 +96,7 @@ namespace stobin
 
             foreach (var wavFile in wavFiles)
             {
-                string fileName = Path.GetFileNameWithoutExtension(wavFile);
+                string fileName = Path.GetFileNameWithoutExtension(wavFile).Replace(" ", "").ToLower();
 
                 // Create .res file
 
@@ -111,7 +119,7 @@ namespace stobin
                 string inputFilePath = $"{fileName}.s";
                 string outputFilePath = $"{outFolder}{fileName}.{fileExtention}";
 
-                //while (!File.Exists(inputFilePath)) { } // Wait for rescomp
+                while (!File.Exists(inputFilePath)) { } // Wait for rescomp
                 while (!process.HasExited) { }
 
                 string inputText = File.ReadAllText(inputFilePath);

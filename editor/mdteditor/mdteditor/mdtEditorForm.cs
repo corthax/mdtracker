@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 
@@ -155,6 +156,8 @@ namespace mdteditor
 
         private string settings_PATH = @".\\settings.ini";
 
+        private static string ext_2adpcm = ".2adpcm";
+
         private string settings_ROM_PATH = AppDomain.CurrentDomain.BaseDirectory;
         private string settings_SRM_PATH = AppDomain.CurrentDomain.BaseDirectory;
         private string settings_SAMPLES_PATH = AppDomain.CurrentDomain.BaseDirectory;
@@ -168,6 +171,7 @@ namespace mdteditor
         private List<long> lsSamplesPool_Start, lsSamplesPool_End;
         private Dictionary<int, byte[]> dicSamplesPool_File = new Dictionary<int, byte[]>();
         private Dictionary<int, byte[]> dicPresetsPool_File = new Dictionary<int, byte[]>();
+        private Dictionary<int, string> dicSamplesPool_FileName = new Dictionary<int, string>();
         private List<int> lsSamplesPool_Size;
 
         private TabPage[] tcBanks = new TabPage[4];
@@ -820,8 +824,9 @@ namespace mdteditor
             for (int id = 0; id < samplesCount; id++)
             {
                 dicSamplesPool_File.TryGetValue(id, out byte[] sample);
+                dicSamplesPool_FileName.TryGetValue(id, out string fileName);
 
-                if (chkReplaceFF.Checked)
+                if (chkReplaceFF.Checked && !fileName.EndsWith(ext_2adpcm))
                 {
                     for(int i = 0; i < sample.Length; i++)
                     {
@@ -1079,6 +1084,7 @@ namespace mdteditor
                     fs.Read(file, 0, file.Length);
 
                     dicSamplesPool_File.Add(id, file);
+                    dicSamplesPool_FileName.Add(id, ofd.SafeFileNames[i]);
                     lsSamplesPool_Size.Add(file.Length);
 
                     br.Close(); fs.Close();

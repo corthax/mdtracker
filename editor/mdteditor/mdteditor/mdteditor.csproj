@@ -7,7 +7,7 @@
     <ProjectGuid>{C565F6C4-2AC0-4754-A49A-9D2BE7FE2591}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <RootNamespace>mdteditor</RootNamespace>
-    <AssemblyName>mdteditor</AssemblyName>
+    <AssemblyName>MD.Tracker Editor %281.4%29</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

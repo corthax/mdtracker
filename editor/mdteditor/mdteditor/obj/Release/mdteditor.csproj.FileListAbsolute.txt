@@ -1,11 +1,11 @@
-D:\gamedev\sega\project\mdtracker\editor\mdteditor\mdteditor\bin\Release\mdteditor.exe.config
-D:\gamedev\sega\project\mdtracker\editor\mdteditor\mdteditor\bin\Release\mdteditor.exe
-D:\gamedev\sega\project\mdtracker\editor\mdteditor\mdteditor\bin\Release\mdteditor.pdb
 D:\gamedev\sega\project\mdtracker\editor\mdteditor\mdteditor\obj\Release\mdteditor.csproj.AssemblyReference.cache
 D:\gamedev\sega\project\mdtracker\editor\mdteditor\mdteditor\obj\Release\mdteditor.csproj.SuggestedBindingRedirects.cache
 D:\gamedev\sega\project\mdtracker\editor\mdteditor\mdteditor\obj\Release\mdteditor.mdtEditor.resources
 D:\gamedev\sega\project\mdtracker\editor\mdteditor\mdteditor\obj\Release\mdteditor.Properties.Resources.resources
 D:\gamedev\sega\project\mdtracker\editor\mdteditor\mdteditor\obj\Release\mdteditor.csproj.GenerateResource.cache
 D:\gamedev\sega\project\mdtracker\editor\mdteditor\mdteditor\obj\Release\mdteditor.csproj.CoreCompileInputs.cache
-D:\gamedev\sega\project\mdtracker\editor\mdteditor\mdteditor\obj\Release\mdteditor.exe
-D:\gamedev\sega\project\mdtracker\editor\mdteditor\mdteditor\obj\Release\mdteditor.pdb
+D:\gamedev\sega\project\mdtracker\editor\mdteditor\mdteditor\bin\Release\MD.Tracker Editor (1.4).exe.config
+D:\gamedev\sega\project\mdtracker\editor\mdteditor\mdteditor\bin\Release\MD.Tracker Editor (1.4).exe
+D:\gamedev\sega\project\mdtracker\editor\mdteditor\mdteditor\bin\Release\MD.Tracker Editor (1.4).pdb
+D:\gamedev\sega\project\mdtracker\editor\mdteditor\mdteditor\obj\Release\MD.Tracker Editor (1.4).exe
+D:\gamedev\sega\project\mdtracker\editor\mdteditor\mdteditor\obj\Release\MD.Tracker Editor (1.4).pdb

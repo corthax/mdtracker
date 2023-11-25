@@ -55,80 +55,6 @@ Use overclocking for best performance if song tick rate is set high =^..^=
 //////////////////
 
 ----------------
-Changelog:
-----------------
-1.04
-	Bugs:
-		BMP is not precise, but close.
-		FM CH6 DAC sample playback make occasional garbage noises.
-		Not tested in PAL mode, so may be broken.
-	Fixes:
-		A bit smoother playback.
-		Note retrigger/delay.
-		Instrument mute/solo.
-		SEQ timing fix.
-	Changes:
-		Command 18xx - Channel microtone finetune. Add up to 31 (1F) microtones (1/32 semitone).
-		Command 19xx - Channel SEQ skip step. To slow down.
-		Command 1Axx - Channel ARP skip step. To slow down.
-		Command 1Exx - Channel Note trigger mode: == 00 retrigger note, >= 01 set pitch only. (FM only)
-		Command 2Exx - Channel ARP mode: 00 retrigger note, >= 01 set pitch only. (FM only)
-		Command 3Exx - Channel sub-sequencer type. VOL sub-sequencer renamed to SEQ. Now it's used to sequence any FM parameter (and PSG volume).
-			Values are:
-			- FM-related command number
-			- 41 for volume (default)
-			- 18 for channel microtone finetune
-		Command 70xx - Load PCM driver (00 = PCM, 01 = 4PCM, 02 = 2ADPCM).
-        Command 71xx - Play 4PCM channel 1 (note number up to 5F, FF = NOTE OFF).
-        Command 72xx - Play 4PCM channel 2 (note number up to 5F, FF = NOTE OFF).
-        Command 73xx - Play 4PCM channel 3 (note number up to 5F, FF = NOTE OFF).
-        Command 74xx - Play 4PCM channel 4 (note number up to 5F, FF = NOTE OFF). 
-			
-		Pattern range selection to button Z + U/D.
-        B + D-Pad - whole pattern/selection transpose +/- octave/semitone. Will not destroy melody if one of resulted notes goes out of range.
-        Print currently highlighted pattern command description and instrument name, instead of last entered.
-        (A+B) + D-Pad - Change all values in ARP/SEQ (Skip empty steps), FM Operators.
-		
-		Removed non working msu-md driver.
-		Removed save upgrade from 1.00/1.01 to 1.03.
-		Added save upgrade from 1.03 to 1.04.
-		Removed pulses/frames per second counter. Not really helpfull.
-		PSG microtones resolution increased to 32 instead of 16. Somewhat usefull for 1-2 octaves.
-		SGDK 1.80 -> 1.90
-	MD.Tracker Editor:
-		Changes:
-			Added field for samples bank start address in rom.
-			Last opened paths, rom samples region start address - saved to settings.ini.
-		Fixes:
-			Samples list scrolling.
-			Samples to keys range assigning.
-1.03
-	Fixes:
-		SRAM file changed to start at address 0 (same as pre 1.02).
-		Editor tool now auto align sample length to 256 bytes, as required by SGDK driver. IDK if it improves anything.
-		FPS counter now displays amount of frames being processed last second.
-		Auto save upgrade from 1.00/1.01 to 1.03.
-1.02 [Don't use 1.02, it's messed up! Will break save file.]
-	Fixes:
-		4th sample bank having not enought space to save sattings, leading to minor data corruption.
-		Now works both in BlastEm Standalone and RetroArch.
-	Changes:
-		Auto save upgrade from 1.01 to 1.02.
-		Tool for adding PCM samples into rom.
-		SGDK 1.70 -> 1.80
-1.01
-	Fixes:
-		Wrong ARP 16..32 values init when new empty song save file is created.
-		Global AM LFO zero value GUI placement.
-		Instrument 0 (empty, uneditable) also must have correct default ARP values.
-	Changes:
-		Removed beta file upgrade feature.
-		SGDK 1.65 -> 1.70
-1.00
-	Initial release. Use ONLY this version for upgrading beta files to 1.00.
-		SGDK 1.41 -> 1.50 -> 1.51 -> 1.60 -> 1.62 -> 1.65
-
-----------------
 Features
 ----------------
 
@@ -397,8 +323,8 @@ xx:
 
 //////////////////
 WARNING
-	Changing driver will introduce small hickup in playback, not for realtime usage!
-	Uncheck "Replace FF with 00" in MD.Tracker Editor when adding 2ADPCM samples into rom!
+//////////////////
+	Changing driver will reset YM and PSG, not really meant for a realtime usage!
 //////////////////
 
 Play DAC sample at CH1 (4PCM, 2ADPCM)
@@ -816,6 +742,81 @@ Volume discrete modulation
 	46xx
 xx: 01 .. 60; pitch (hBlank based frequency). xx > 60 = same as key.
 00: disable
+
+----------------
+Changelog:
+----------------
+1.04
+	Bugs:
+		BMP is not precise, but close.
+		FM CH6 DAC sample playback make occasional garbage noises.
+		Not tested in PAL mode, so may be broken.
+	Fixes:
+		A bit smoother playback.
+		Note retrigger/delay.
+		Instrument mute/solo.
+		SEQ timing fix.
+	Changes:
+		Command 18xx - Channel microtone finetune. Add up to 31 (1F) microtones (1/32 semitone).
+		Command 19xx - Channel SEQ skip step. To slow down.
+		Command 1Axx - Channel ARP skip step. To slow down.
+		Command 1Exx - Channel Note trigger mode: == 00 retrigger note, >= 01 set pitch only. (FM only)
+		Command 2Exx - Channel ARP mode: 00 retrigger note, >= 01 set pitch only. (FM only)
+		Command 3Exx - Channel sub-sequencer type. VOL sub-sequencer renamed to SEQ. Now it's used to sequence any FM parameter (and PSG volume).
+			Values are:
+			- FM-related command number
+			- 41 for volume (default)
+			- 18 for channel microtone finetune
+		Command 70xx - Load PCM driver (00 = PCM, 01 = 4PCM, 02 = 2ADPCM).
+        Command 71xx - Play 4PCM channel 1 (note number up to 5F, FF = NOTE OFF).
+        Command 72xx - Play 4PCM channel 2 (note number up to 5F, FF = NOTE OFF).
+        Command 73xx - Play 4PCM channel 3 (note number up to 5F, FF = NOTE OFF).
+        Command 74xx - Play 4PCM channel 4 (note number up to 5F, FF = NOTE OFF). 
+			
+		Pattern range selection to button Z + U/D.
+        B + D-Pad - whole pattern/selection transpose +/- octave/semitone. Will not destroy melody if one of resulted notes goes out of range.
+        Print currently highlighted pattern command description and instrument name, instead of last entered.
+        (A+B) + D-Pad - Change all values in ARP/SEQ (Skip empty steps), FM Operators.
+		
+		Removed non working msu-md driver.
+		Removed save upgrade from 1.00/1.01 to 1.03.
+		Added save upgrade from 1.03 to 1.04.
+		Removed pulses/frames per second counter. Not really helpfull.
+		PSG microtones resolution increased to 32 instead of 16. Somewhat usefull for 1-2 octaves.
+		SGDK 1.80 -> 1.90
+	MD.Tracker Editor:
+		Changes:
+			Added field for samples bank start address in rom.
+			Last opened paths, rom samples region start address - saved to settings.ini.
+			WAV to 2ADPCM/PCM converter.
+		Fixes:
+			Samples list scrolling.
+			Samples to keys range assigning.
+1.03
+	Fixes:
+		SRAM file changed to start at address 0 (same as pre 1.02).
+		Editor tool now auto align sample length to 256 bytes, as required by SGDK driver. IDK if it improves anything.
+		FPS counter now displays amount of frames being processed last second.
+		Auto save upgrade from 1.00/1.01 to 1.03.
+1.02 [Don't use 1.02, it's messed up! Will break save file.]
+	Fixes:
+		4th sample bank having not enought space to save sattings, leading to minor data corruption.
+		Now works both in BlastEm Standalone and RetroArch.
+	Changes:
+		Auto save upgrade from 1.01 to 1.02.
+		Tool for adding PCM samples into rom.
+		SGDK 1.70 -> 1.80
+1.01
+	Fixes:
+		Wrong ARP 16..32 values init when new empty song save file is created.
+		Global AM LFO zero value GUI placement.
+		Instrument 0 (empty, uneditable) also must have correct default ARP values.
+	Changes:
+		Removed beta file upgrade feature.
+		SGDK 1.65 -> 1.70
+1.00
+	Initial release. Use ONLY this version for upgrading beta files to 1.00.
+		SGDK 1.41 -> 1.50 -> 1.51 -> 1.60 -> 1.62 -> 1.65
 
 ------------------------------------------------	
 + EOF

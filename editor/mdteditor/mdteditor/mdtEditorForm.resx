@@ -333,9 +333,6 @@
   <data name="&gt;&gt;txtBytesUsed.ZOrder" xml:space="preserve">
     <value>3</value>
   </data>
-  <metadata name="ttCopy.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-    <value>17, 17</value>
-  </metadata>
   <data name="btnAutoLoop.FlatStyle" type="System.Windows.Forms.FlatStyle, System.Windows.Forms">
     <value>Flat</value>
   </data>
@@ -351,6 +348,9 @@
   <data name="btnAutoLoop.Text" xml:space="preserve">
     <value>Copy Loop</value>
   </data>
+  <metadata name="ttCopy.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>17, 17</value>
+  </metadata>
   <data name="btnAutoLoop.ToolTip" xml:space="preserve">
     <value>Copy LOOP</value>
   </data>
@@ -366,6 +366,30 @@
   <data name="&gt;&gt;btnAutoLoop.ZOrder" xml:space="preserve">
     <value>5</value>
   </data>
+  <data name="pageSamplesBank1.AutoScroll" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="pageSamplesBank1.AutoScrollMargin" type="System.Drawing.Size, System.Drawing">
+    <value>10, 10</value>
+  </data>
+  <data name="pageSamplesBank1.AutoScrollMinSize" type="System.Drawing.Size, System.Drawing">
+    <value>10, 10</value>
+  </data>
+  <data name="pageSamplesBank1.BackgroundImageLayout" type="System.Windows.Forms.ImageLayout, System.Windows.Forms">
+    <value>None</value>
+  </data>
+  <data name="pageSamplesBank1.Location" type="System.Drawing.Point, System.Drawing">
+    <value>4, 22</value>
+  </data>
+  <data name="pageSamplesBank1.Size" type="System.Drawing.Size, System.Drawing">
+    <value>598, 433</value>
+  </data>
+  <data name="pageSamplesBank1.TabIndex" type="System.Int32, mscorlib">
+    <value>0</value>
+  </data>
+  <data name="pageSamplesBank1.Text" xml:space="preserve">
+    <value>Bank 1</value>
+  </data>
   <data name="&gt;&gt;pageSamplesBank1.Name" xml:space="preserve">
     <value>pageSamplesBank1</value>
   </data>
@@ -377,6 +401,24 @@
   </data>
   <data name="&gt;&gt;pageSamplesBank1.ZOrder" xml:space="preserve">
     <value>0</value>
+  </data>
+  <data name="pageSamplesBank2.AutoScroll" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="pageSamplesBank2.Location" type="System.Drawing.Point, System.Drawing">
+    <value>4, 22</value>
+  </data>
+  <data name="pageSamplesBank2.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
+    <value>3, 3, 3, 3</value>
+  </data>
+  <data name="pageSamplesBank2.Size" type="System.Drawing.Size, System.Drawing">
+    <value>598, 433</value>
+  </data>
+  <data name="pageSamplesBank2.TabIndex" type="System.Int32, mscorlib">
+    <value>1</value>
+  </data>
+  <data name="pageSamplesBank2.Text" xml:space="preserve">
+    <value>Bank 2</value>
   </data>
   <data name="&gt;&gt;pageSamplesBank2.Name" xml:space="preserve">
     <value>pageSamplesBank2</value>
@@ -390,6 +432,24 @@
   <data name="&gt;&gt;pageSamplesBank2.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
+  <data name="pageSamplesBank3.AutoScroll" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="pageSamplesBank3.Location" type="System.Drawing.Point, System.Drawing">
+    <value>4, 22</value>
+  </data>
+  <data name="pageSamplesBank3.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
+    <value>3, 3, 3, 3</value>
+  </data>
+  <data name="pageSamplesBank3.Size" type="System.Drawing.Size, System.Drawing">
+    <value>598, 433</value>
+  </data>
+  <data name="pageSamplesBank3.TabIndex" type="System.Int32, mscorlib">
+    <value>2</value>
+  </data>
+  <data name="pageSamplesBank3.Text" xml:space="preserve">
+    <value>Bank 3</value>
+  </data>
   <data name="&gt;&gt;pageSamplesBank3.Name" xml:space="preserve">
     <value>pageSamplesBank3</value>
   </data>
@@ -401,6 +461,24 @@
   </data>
   <data name="&gt;&gt;pageSamplesBank3.ZOrder" xml:space="preserve">
     <value>2</value>
+  </data>
+  <data name="pageSamplesBank4.AutoScroll" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="pageSamplesBank4.Location" type="System.Drawing.Point, System.Drawing">
+    <value>4, 22</value>
+  </data>
+  <data name="pageSamplesBank4.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
+    <value>3, 3, 3, 3</value>
+  </data>
+  <data name="pageSamplesBank4.Size" type="System.Drawing.Size, System.Drawing">
+    <value>598, 433</value>
+  </data>
+  <data name="pageSamplesBank4.TabIndex" type="System.Int32, mscorlib">
+    <value>3</value>
+  </data>
+  <data name="pageSamplesBank4.Text" xml:space="preserve">
+    <value>Bank 4</value>
   </data>
   <data name="&gt;&gt;pageSamplesBank4.Name" xml:space="preserve">
     <value>pageSamplesBank4</value>
@@ -582,270 +660,6 @@
   <metadata name="label5.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>False</value>
   </metadata>
-  <data name="&gt;&gt;label5.Name" xml:space="preserve">
-    <value>label5</value>
-  </data>
-  <data name="&gt;&gt;label5.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label5.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;label5.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="&gt;&gt;txtPresetTarget.Name" xml:space="preserve">
-    <value>txtPresetTarget</value>
-  </data>
-  <data name="&gt;&gt;txtPresetTarget.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;txtPresetTarget.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;txtPresetTarget.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <data name="&gt;&gt;txtPresetsSource.Name" xml:space="preserve">
-    <value>txtPresetsSource</value>
-  </data>
-  <data name="&gt;&gt;txtPresetsSource.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;txtPresetsSource.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;txtPresetsSource.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="&gt;&gt;btnAssignPreset.Name" xml:space="preserve">
-    <value>btnAssignPreset</value>
-  </data>
-  <data name="&gt;&gt;btnAssignPreset.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;btnAssignPreset.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;btnAssignPreset.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="&gt;&gt;pnPresetsPool.Name" xml:space="preserve">
-    <value>pnPresetsPool</value>
-  </data>
-  <data name="&gt;&gt;pnPresetsPool.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;pnPresetsPool.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;pnPresetsPool.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
-  <data name="&gt;&gt;btnAddPresets.Name" xml:space="preserve">
-    <value>btnAddPresets</value>
-  </data>
-  <data name="&gt;&gt;btnAddPresets.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;btnAddPresets.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;btnAddPresets.ZOrder" xml:space="preserve">
-    <value>5</value>
-  </data>
-  <data name="&gt;&gt;tcInstruments.Name" xml:space="preserve">
-    <value>tcInstruments</value>
-  </data>
-  <data name="&gt;&gt;tcInstruments.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TabControl, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;tcInstruments.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;tcInstruments.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
-  <data name="tabPresets.Location" type="System.Drawing.Point, System.Drawing">
-    <value>4, 22</value>
-  </data>
-  <data name="tabPresets.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
-    <value>3, 3, 3, 3</value>
-  </data>
-  <data name="tabPresets.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1153, 465</value>
-  </data>
-  <data name="tabPresets.TabIndex" type="System.Int32, mscorlib">
-    <value>1</value>
-  </data>
-  <data name="tabPresets.Text" xml:space="preserve">
-    <value>PRESETS (Unimplemented)</value>
-  </data>
-  <data name="&gt;&gt;tabPresets.Name" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;tabPresets.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;tabPresets.Parent" xml:space="preserve">
-    <value>tabsMain</value>
-  </data>
-  <data name="&gt;&gt;tabPresets.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <data name="tabsMain.Dock" type="System.Windows.Forms.DockStyle, System.Windows.Forms">
-    <value>Fill</value>
-  </data>
-  <data name="tabsMain.Location" type="System.Drawing.Point, System.Drawing">
-    <value>0, 0</value>
-  </data>
-  <data name="tabsMain.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1161, 491</value>
-  </data>
-  <data name="tabsMain.TabIndex" type="System.Int32, mscorlib">
-    <value>40</value>
-  </data>
-  <data name="&gt;&gt;tabsMain.Name" xml:space="preserve">
-    <value>tabsMain</value>
-  </data>
-  <data name="&gt;&gt;tabsMain.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TabControl, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;tabsMain.Parent" xml:space="preserve">
-    <value>panelMain</value>
-  </data>
-  <data name="&gt;&gt;tabsMain.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="pageSamplesBank1.AutoScroll" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="pageSamplesBank1.AutoScrollMargin" type="System.Drawing.Size, System.Drawing">
-    <value>10, 10</value>
-  </data>
-  <data name="pageSamplesBank1.AutoScrollMinSize" type="System.Drawing.Size, System.Drawing">
-    <value>10, 10</value>
-  </data>
-  <data name="pageSamplesBank1.BackgroundImageLayout" type="System.Windows.Forms.ImageLayout, System.Windows.Forms">
-    <value>None</value>
-  </data>
-  <data name="pageSamplesBank1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>4, 22</value>
-  </data>
-  <data name="pageSamplesBank1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>598, 433</value>
-  </data>
-  <data name="pageSamplesBank1.TabIndex" type="System.Int32, mscorlib">
-    <value>0</value>
-  </data>
-  <data name="pageSamplesBank1.Text" xml:space="preserve">
-    <value>Bank 1</value>
-  </data>
-  <data name="&gt;&gt;pageSamplesBank1.Name" xml:space="preserve">
-    <value>pageSamplesBank1</value>
-  </data>
-  <data name="&gt;&gt;pageSamplesBank1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;pageSamplesBank1.Parent" xml:space="preserve">
-    <value>tabControl_SampleBanks</value>
-  </data>
-  <data name="&gt;&gt;pageSamplesBank1.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="pageSamplesBank2.AutoScroll" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="pageSamplesBank2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>4, 22</value>
-  </data>
-  <data name="pageSamplesBank2.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
-    <value>3, 3, 3, 3</value>
-  </data>
-  <data name="pageSamplesBank2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>598, 433</value>
-  </data>
-  <data name="pageSamplesBank2.TabIndex" type="System.Int32, mscorlib">
-    <value>1</value>
-  </data>
-  <data name="pageSamplesBank2.Text" xml:space="preserve">
-    <value>Bank 2</value>
-  </data>
-  <data name="&gt;&gt;pageSamplesBank2.Name" xml:space="preserve">
-    <value>pageSamplesBank2</value>
-  </data>
-  <data name="&gt;&gt;pageSamplesBank2.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;pageSamplesBank2.Parent" xml:space="preserve">
-    <value>tabControl_SampleBanks</value>
-  </data>
-  <data name="&gt;&gt;pageSamplesBank2.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <data name="pageSamplesBank3.AutoScroll" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="pageSamplesBank3.Location" type="System.Drawing.Point, System.Drawing">
-    <value>4, 22</value>
-  </data>
-  <data name="pageSamplesBank3.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
-    <value>3, 3, 3, 3</value>
-  </data>
-  <data name="pageSamplesBank3.Size" type="System.Drawing.Size, System.Drawing">
-    <value>598, 433</value>
-  </data>
-  <data name="pageSamplesBank3.TabIndex" type="System.Int32, mscorlib">
-    <value>2</value>
-  </data>
-  <data name="pageSamplesBank3.Text" xml:space="preserve">
-    <value>Bank 3</value>
-  </data>
-  <data name="&gt;&gt;pageSamplesBank3.Name" xml:space="preserve">
-    <value>pageSamplesBank3</value>
-  </data>
-  <data name="&gt;&gt;pageSamplesBank3.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;pageSamplesBank3.Parent" xml:space="preserve">
-    <value>tabControl_SampleBanks</value>
-  </data>
-  <data name="&gt;&gt;pageSamplesBank3.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="pageSamplesBank4.AutoScroll" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="pageSamplesBank4.Location" type="System.Drawing.Point, System.Drawing">
-    <value>4, 22</value>
-  </data>
-  <data name="pageSamplesBank4.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
-    <value>3, 3, 3, 3</value>
-  </data>
-  <data name="pageSamplesBank4.Size" type="System.Drawing.Size, System.Drawing">
-    <value>598, 433</value>
-  </data>
-  <data name="pageSamplesBank4.TabIndex" type="System.Int32, mscorlib">
-    <value>3</value>
-  </data>
-  <data name="pageSamplesBank4.Text" xml:space="preserve">
-    <value>Bank 4</value>
-  </data>
-  <data name="&gt;&gt;pageSamplesBank4.Name" xml:space="preserve">
-    <value>pageSamplesBank4</value>
-  </data>
-  <data name="&gt;&gt;pageSamplesBank4.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;pageSamplesBank4.Parent" xml:space="preserve">
-    <value>tabControl_SampleBanks</value>
-  </data>
-  <data name="&gt;&gt;pageSamplesBank4.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <metadata name="label5.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>False</value>
-  </metadata>
   <data name="label5.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
   </data>
@@ -1005,51 +819,6 @@
   <data name="&gt;&gt;btnAddPresets.ZOrder" xml:space="preserve">
     <value>5</value>
   </data>
-  <data name="&gt;&gt;tbInstSRM.Name" xml:space="preserve">
-    <value>tbInstSRM</value>
-  </data>
-  <data name="&gt;&gt;tbInstSRM.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;tbInstSRM.Parent" xml:space="preserve">
-    <value>tcInstruments</value>
-  </data>
-  <data name="&gt;&gt;tbInstSRM.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="&gt;&gt;tbInstROM.Name" xml:space="preserve">
-    <value>tbInstROM</value>
-  </data>
-  <data name="&gt;&gt;tbInstROM.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;tbInstROM.Parent" xml:space="preserve">
-    <value>tcInstruments</value>
-  </data>
-  <data name="&gt;&gt;tbInstROM.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <data name="tcInstruments.Location" type="System.Drawing.Point, System.Drawing">
-    <value>3, 3</value>
-  </data>
-  <data name="tcInstruments.Size" type="System.Drawing.Size, System.Drawing">
-    <value>606, 459</value>
-  </data>
-  <data name="tcInstruments.TabIndex" type="System.Int32, mscorlib">
-    <value>31</value>
-  </data>
-  <data name="&gt;&gt;tcInstruments.Name" xml:space="preserve">
-    <value>tcInstruments</value>
-  </data>
-  <data name="&gt;&gt;tcInstruments.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TabControl, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;tcInstruments.Parent" xml:space="preserve">
-    <value>tabPresets</value>
-  </data>
-  <data name="&gt;&gt;tcInstruments.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
   <data name="tbInstSRM.AutoScroll" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
@@ -1119,141 +888,81 @@
   <data name="&gt;&gt;tbInstROM.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
+  <data name="tcInstruments.Location" type="System.Drawing.Point, System.Drawing">
+    <value>3, 3</value>
+  </data>
+  <data name="tcInstruments.Size" type="System.Drawing.Size, System.Drawing">
+    <value>606, 459</value>
+  </data>
+  <data name="tcInstruments.TabIndex" type="System.Int32, mscorlib">
+    <value>31</value>
+  </data>
+  <data name="&gt;&gt;tcInstruments.Name" xml:space="preserve">
+    <value>tcInstruments</value>
+  </data>
+  <data name="&gt;&gt;tcInstruments.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TabControl, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;tcInstruments.Parent" xml:space="preserve">
+    <value>tabPresets</value>
+  </data>
+  <data name="&gt;&gt;tcInstruments.ZOrder" xml:space="preserve">
+    <value>6</value>
+  </data>
+  <data name="tabPresets.Location" type="System.Drawing.Point, System.Drawing">
+    <value>4, 22</value>
+  </data>
+  <data name="tabPresets.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
+    <value>3, 3, 3, 3</value>
+  </data>
+  <data name="tabPresets.Size" type="System.Drawing.Size, System.Drawing">
+    <value>1153, 465</value>
+  </data>
+  <data name="tabPresets.TabIndex" type="System.Int32, mscorlib">
+    <value>1</value>
+  </data>
+  <data name="tabPresets.Text" xml:space="preserve">
+    <value>PRESETS (Unimplemented)</value>
+  </data>
+  <data name="&gt;&gt;tabPresets.Name" xml:space="preserve">
+    <value>tabPresets</value>
+  </data>
+  <data name="&gt;&gt;tabPresets.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TabPage, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;tabPresets.Parent" xml:space="preserve">
+    <value>tabsMain</value>
+  </data>
+  <data name="&gt;&gt;tabPresets.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="tabsMain.Dock" type="System.Windows.Forms.DockStyle, System.Windows.Forms">
+    <value>Fill</value>
+  </data>
+  <data name="tabsMain.Location" type="System.Drawing.Point, System.Drawing">
+    <value>0, 0</value>
+  </data>
+  <data name="tabsMain.Size" type="System.Drawing.Size, System.Drawing">
+    <value>1161, 491</value>
+  </data>
+  <data name="tabsMain.TabIndex" type="System.Int32, mscorlib">
+    <value>40</value>
+  </data>
+  <data name="&gt;&gt;tabsMain.Name" xml:space="preserve">
+    <value>tabsMain</value>
+  </data>
+  <data name="&gt;&gt;tabsMain.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TabControl, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;tabsMain.Parent" xml:space="preserve">
+    <value>panelMain</value>
+  </data>
+  <data name="&gt;&gt;tabsMain.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
   <metadata name="panelOpenSave.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>False</value>
   </metadata>
-  <metadata name="pnAutoRange.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>False</value>
-  </metadata>
-  <data name="&gt;&gt;bankAddress.Name" xml:space="preserve">
-    <value>bankAddress</value>
-  </data>
-  <data name="&gt;&gt;bankAddress.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;bankAddress.Parent" xml:space="preserve">
-    <value>panelOpenSave</value>
-  </data>
-  <data name="&gt;&gt;bankAddress.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="&gt;&gt;pnAutoRange.Name" xml:space="preserve">
-    <value>pnAutoRange</value>
-  </data>
-  <data name="&gt;&gt;pnAutoRange.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;pnAutoRange.Parent" xml:space="preserve">
-    <value>panelOpenSave</value>
-  </data>
-  <data name="&gt;&gt;pnAutoRange.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <data name="&gt;&gt;SampleBankAddress.Name" xml:space="preserve">
-    <value>SampleBankAddress</value>
-  </data>
-  <data name="&gt;&gt;SampleBankAddress.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;SampleBankAddress.Parent" xml:space="preserve">
-    <value>panelOpenSave</value>
-  </data>
-  <data name="&gt;&gt;SampleBankAddress.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="&gt;&gt;btnSaveRom.Name" xml:space="preserve">
-    <value>btnSaveRom</value>
-  </data>
-  <data name="&gt;&gt;btnSaveRom.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;btnSaveRom.Parent" xml:space="preserve">
-    <value>panelOpenSave</value>
-  </data>
-  <data name="&gt;&gt;btnSaveRom.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="&gt;&gt;btnOpenROM.Name" xml:space="preserve">
-    <value>btnOpenROM</value>
-  </data>
-  <data name="&gt;&gt;btnOpenROM.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;btnOpenROM.Parent" xml:space="preserve">
-    <value>panelOpenSave</value>
-  </data>
-  <data name="&gt;&gt;btnOpenROM.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
-  <data name="&gt;&gt;txtSrmName.Name" xml:space="preserve">
-    <value>txtSrmName</value>
-  </data>
-  <data name="&gt;&gt;txtSrmName.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;txtSrmName.Parent" xml:space="preserve">
-    <value>panelOpenSave</value>
-  </data>
-  <data name="&gt;&gt;txtSrmName.ZOrder" xml:space="preserve">
-    <value>5</value>
-  </data>
-  <data name="&gt;&gt;btnOpenSRM.Name" xml:space="preserve">
-    <value>btnOpenSRM</value>
-  </data>
-  <data name="&gt;&gt;btnOpenSRM.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;btnOpenSRM.Parent" xml:space="preserve">
-    <value>panelOpenSave</value>
-  </data>
-  <data name="&gt;&gt;btnOpenSRM.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
-  <data name="&gt;&gt;txtRomName.Name" xml:space="preserve">
-    <value>txtRomName</value>
-  </data>
-  <data name="&gt;&gt;txtRomName.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;txtRomName.Parent" xml:space="preserve">
-    <value>panelOpenSave</value>
-  </data>
-  <data name="&gt;&gt;txtRomName.ZOrder" xml:space="preserve">
-    <value>7</value>
-  </data>
-  <data name="&gt;&gt;btnSaveSrm.Name" xml:space="preserve">
-    <value>btnSaveSrm</value>
-  </data>
-  <data name="&gt;&gt;btnSaveSrm.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;btnSaveSrm.Parent" xml:space="preserve">
-    <value>panelOpenSave</value>
-  </data>
-  <data name="&gt;&gt;btnSaveSrm.ZOrder" xml:space="preserve">
-    <value>8</value>
-  </data>
-  <data name="panelOpenSave.Location" type="System.Drawing.Point, System.Drawing">
-    <value>12, 5</value>
-  </data>
-  <data name="panelOpenSave.Size" type="System.Drawing.Size, System.Drawing">
-    <value>1161, 58</value>
-  </data>
-  <data name="panelOpenSave.TabIndex" type="System.Int32, mscorlib">
-    <value>41</value>
-  </data>
-  <data name="&gt;&gt;panelOpenSave.Name" xml:space="preserve">
-    <value>panelOpenSave</value>
-  </data>
-  <data name="&gt;&gt;panelOpenSave.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;panelOpenSave.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;panelOpenSave.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
   <data name="bankAddress.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
@@ -1284,150 +993,6 @@
   <metadata name="pnAutoRange.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>False</value>
   </metadata>
-  <metadata name="label4.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>False</value>
-  </metadata>
-  <metadata name="label1.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>False</value>
-  </metadata>
-  <metadata name="lbAssignSRM.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>False</value>
-  </metadata>
-  <metadata name="lbAssignROM.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>False</value>
-  </metadata>
-  <data name="&gt;&gt;btnAutoRange.Name" xml:space="preserve">
-    <value>btnAutoRange</value>
-  </data>
-  <data name="&gt;&gt;btnAutoRange.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;btnAutoRange.Parent" xml:space="preserve">
-    <value>pnAutoRange</value>
-  </data>
-  <data name="&gt;&gt;btnAutoRange.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="&gt;&gt;label4.Name" xml:space="preserve">
-    <value>label4</value>
-  </data>
-  <data name="&gt;&gt;label4.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label4.Parent" xml:space="preserve">
-    <value>pnAutoRange</value>
-  </data>
-  <data name="&gt;&gt;label4.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <data name="&gt;&gt;txtAssignStart_ROM.Name" xml:space="preserve">
-    <value>txtAssignStart_ROM</value>
-  </data>
-  <data name="&gt;&gt;txtAssignStart_ROM.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;txtAssignStart_ROM.Parent" xml:space="preserve">
-    <value>pnAutoRange</value>
-  </data>
-  <data name="&gt;&gt;txtAssignStart_ROM.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="&gt;&gt;label1.Name" xml:space="preserve">
-    <value>label1</value>
-  </data>
-  <data name="&gt;&gt;label1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;label1.Parent" xml:space="preserve">
-    <value>pnAutoRange</value>
-  </data>
-  <data name="&gt;&gt;label1.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="&gt;&gt;txtAssignEnd_ROM.Name" xml:space="preserve">
-    <value>txtAssignEnd_ROM</value>
-  </data>
-  <data name="&gt;&gt;txtAssignEnd_ROM.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;txtAssignEnd_ROM.Parent" xml:space="preserve">
-    <value>pnAutoRange</value>
-  </data>
-  <data name="&gt;&gt;txtAssignEnd_ROM.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
-  <data name="&gt;&gt;lbAssignSRM.Name" xml:space="preserve">
-    <value>lbAssignSRM</value>
-  </data>
-  <data name="&gt;&gt;lbAssignSRM.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;lbAssignSRM.Parent" xml:space="preserve">
-    <value>pnAutoRange</value>
-  </data>
-  <data name="&gt;&gt;lbAssignSRM.ZOrder" xml:space="preserve">
-    <value>5</value>
-  </data>
-  <data name="&gt;&gt;txtAssignEnd_SRM.Name" xml:space="preserve">
-    <value>txtAssignEnd_SRM</value>
-  </data>
-  <data name="&gt;&gt;txtAssignEnd_SRM.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;txtAssignEnd_SRM.Parent" xml:space="preserve">
-    <value>pnAutoRange</value>
-  </data>
-  <data name="&gt;&gt;txtAssignEnd_SRM.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
-  <data name="&gt;&gt;lbAssignROM.Name" xml:space="preserve">
-    <value>lbAssignROM</value>
-  </data>
-  <data name="&gt;&gt;lbAssignROM.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;lbAssignROM.Parent" xml:space="preserve">
-    <value>pnAutoRange</value>
-  </data>
-  <data name="&gt;&gt;lbAssignROM.ZOrder" xml:space="preserve">
-    <value>7</value>
-  </data>
-  <data name="&gt;&gt;txtAssignStart_SRM.Name" xml:space="preserve">
-    <value>txtAssignStart_SRM</value>
-  </data>
-  <data name="&gt;&gt;txtAssignStart_SRM.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;txtAssignStart_SRM.Parent" xml:space="preserve">
-    <value>pnAutoRange</value>
-  </data>
-  <data name="&gt;&gt;txtAssignStart_SRM.ZOrder" xml:space="preserve">
-    <value>8</value>
-  </data>
-  <data name="pnAutoRange.Location" type="System.Drawing.Point, System.Drawing">
-    <value>652, 3</value>
-  </data>
-  <data name="pnAutoRange.Size" type="System.Drawing.Size, System.Drawing">
-    <value>322, 50</value>
-  </data>
-  <data name="pnAutoRange.TabIndex" type="System.Int32, mscorlib">
-    <value>56</value>
-  </data>
-  <data name="&gt;&gt;pnAutoRange.Name" xml:space="preserve">
-    <value>pnAutoRange</value>
-  </data>
-  <data name="&gt;&gt;pnAutoRange.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;pnAutoRange.Parent" xml:space="preserve">
-    <value>panelOpenSave</value>
-  </data>
-  <data name="&gt;&gt;pnAutoRange.ZOrder" xml:space="preserve">
-    <value>1</value>
-  </data>
-  <metadata name="ttAutoRange.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-    <value>105, 17</value>
-  </metadata>
   <data name="btnAutoRange.FlatStyle" type="System.Windows.Forms.FlatStyle, System.Windows.Forms">
     <value>Flat</value>
   </data>
@@ -1443,6 +1008,9 @@
   <data name="btnAutoRange.Text" xml:space="preserve">
     <value>Auto Range</value>
   </data>
+  <metadata name="ttAutoRange.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>105, 17</value>
+  </metadata>
   <data name="btnAutoRange.ToolTip" xml:space="preserve">
     <value>Auto assign range of samples</value>
   </data>
@@ -1674,6 +1242,27 @@
   <data name="&gt;&gt;txtAssignStart_SRM.ZOrder" xml:space="preserve">
     <value>8</value>
   </data>
+  <data name="pnAutoRange.Location" type="System.Drawing.Point, System.Drawing">
+    <value>652, 3</value>
+  </data>
+  <data name="pnAutoRange.Size" type="System.Drawing.Size, System.Drawing">
+    <value>322, 50</value>
+  </data>
+  <data name="pnAutoRange.TabIndex" type="System.Int32, mscorlib">
+    <value>56</value>
+  </data>
+  <data name="&gt;&gt;pnAutoRange.Name" xml:space="preserve">
+    <value>pnAutoRange</value>
+  </data>
+  <data name="&gt;&gt;pnAutoRange.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;pnAutoRange.Parent" xml:space="preserve">
+    <value>panelOpenSave</value>
+  </data>
+  <data name="&gt;&gt;pnAutoRange.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
   <data name="SampleBankAddress.Location" type="System.Drawing.Point, System.Drawing">
     <value>980, 3</value>
   </data>
@@ -1851,6 +1440,27 @@
   <data name="&gt;&gt;btnSaveSrm.ZOrder" xml:space="preserve">
     <value>8</value>
   </data>
+  <data name="panelOpenSave.Location" type="System.Drawing.Point, System.Drawing">
+    <value>12, 5</value>
+  </data>
+  <data name="panelOpenSave.Size" type="System.Drawing.Size, System.Drawing">
+    <value>1161, 58</value>
+  </data>
+  <data name="panelOpenSave.TabIndex" type="System.Int32, mscorlib">
+    <value>41</value>
+  </data>
+  <data name="&gt;&gt;panelOpenSave.Name" xml:space="preserve">
+    <value>panelOpenSave</value>
+  </data>
+  <data name="&gt;&gt;panelOpenSave.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;panelOpenSave.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;panelOpenSave.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
   <metadata name="panelMain.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>False</value>
   </metadata>
@@ -1878,12 +1488,6 @@
   <data name="&gt;&gt;panelMain.ZOrder" xml:space="preserve">
     <value>1</value>
   </data>
-  <metadata name="ttCopy.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-    <value>17, 17</value>
-  </metadata>
-  <metadata name="ttAutoRange.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-    <value>105, 17</value>
-  </metadata>
   <data name="dacDescription.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
