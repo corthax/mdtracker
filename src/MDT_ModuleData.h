@@ -87,7 +87,8 @@
 
     #endif
 
-#define SEQ_STEP_LAST    31
+#define SEQ_STEP_LAST       31
+#define SAMPLE_NAMES_SIZE   5376 // NOTES*4*GUI_SAMPLE_NAME_SIZE
 //}
 // sizes (byte):
 // pattern data size

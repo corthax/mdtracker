@@ -1163,7 +1163,7 @@ static void DoEngine()
                         (SRAM_ReadSampleRegion(bank, note, SAMPLE_END_2) << 8) |
                          SRAM_ReadSampleRegion(bank, note, SAMPLE_END_3); // ignored
 
-                    sampleStart[bank][note] = sample_bank_1 + start;
+                    sampleStart[bank][note] = sample_bank_1 + start + SAMPLE_NAMES_SIZE;
                     sampleLength[bank][note] = (sampleBankSize - start) - (sampleBankSize - end);
                     sampleRate[bank][note] = SRAM_ReadSampleRate(bank, note);
                     samplePan[bank][note] = SRAM_ReadSamplePan(bank, note);
