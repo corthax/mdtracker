@@ -189,7 +189,6 @@ bool sampleLoop[4][NOTES];
 
 bool bDAC_enable = TRUE; // global, 0xF0 to enable. 0 to disable
 u8 FM_CH6_DAC_Pan = SOUND_PAN_CENTER;
-//u8 pcmNote[4];
 
 // copy/paste
 u16 patternCopyFrom = 1;
@@ -221,6 +220,8 @@ Instrument tmpInst[INSTRUMENTS_TOTAL]; // cache instruments to RAM for faster ac
 Instrument chInst[CHANNELS_TOTAL]; // to apply commands; FM only
 
 u8 midiPreset = 0;
+
+char sampleName[] = "--------------";
 
 /*
 u16 msu_drv();
@@ -3030,8 +3031,22 @@ void PrintSelectedPositionInfo()
 {
     switch (selectedPatternColumn)
     {
-        case DATA_NOTE: break;
-        case DATA_NOTE+PATTERN_COLUMNS: break;
+        case DATA_NOTE:
+            if (selectedMatrixChannel == CHANNEL_FM6_DAC && bDAC_enable)
+                DisplaySampleName(
+                                  GUI_PATTERN_SAMPLE_NAME_XPOS,
+                                  GUI_PATTERN_SAMPLE_NAME_YPOS,
+                                  SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_NOTE),
+                                  activeSampleBank);
+            break;
+        case DATA_NOTE+PATTERN_COLUMNS:
+            if (selectedMatrixChannel == CHANNEL_FM6_DAC && bDAC_enable)
+                DisplaySampleName(
+                                  GUI_PATTERN_SAMPLE_NAME_XPOS,
+                                  GUI_PATTERN_SAMPLE_NAME_YPOS,
+                                  SRAM_ReadPattern(selectedPatternID, selectedPatternRow+PATTEN_ROWS_PER_SIDE, DATA_NOTE),
+                                  activeSampleBank);
+            break;
         case DATA_INSTRUMENT:
             PrintInstrumentInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_INSTRUMENT)); break;
         case DATA_INSTRUMENT+PATTERN_COLUMNS:
@@ -3639,6 +3654,7 @@ static void ChangeInstrumentParameter(s8 modifier, u8 changeAll)
         if (value > NOTE_MAX) value = 0;
         else if (value < 0) value = NOTE_MAX;
         selectedSampleNote = value;
+        DisplaySampleName(106, 10, selectedSampleNote, selectedSampleBank);
         break;
     case GUI_INST_PARAM_PCM_START:
         write_pcm(selectedInstrumentOperator);
@@ -3676,6 +3692,27 @@ static void ChangeInstrumentParameter(s8 modifier, u8 changeAll)
         WriteYM2612(selectedMatrixChannel, selectedMatrixChannel);
     else if (selectedMatrixChannel > CHANNEL_FM3_OP1 && selectedMatrixChannel < CHANNEL_PSG1)
         WriteYM2612(selectedMatrixChannel, selectedMatrixChannel - 3);*/
+}
+
+u32 GetSampleStartAddress(u8 bank, u8 note)
+{
+    return
+    (SRAM_ReadSampleRegion(bank, note, SAMPLE_START_1) << 16) |
+    (SRAM_ReadSampleRegion(bank, note, SAMPLE_START_2) << 8) |
+     SRAM_ReadSampleRegion(bank, note, SAMPLE_START_3);
+}
+
+void DisplaySampleName(u8 xPos, u8 yPos, u8 note, u8 bank)
+{
+    u32 addressNum = (u32)&sample_bank_1 + (note * GUI_SAMPLE_NAME_SIZE + NOTES * bank);
+
+    for (u8 i = 0; i < GUI_SAMPLE_NAME_SIZE; i++)
+    {
+        sampleName[i] = *(char*)(addressNum+i);
+    }
+
+    VDP_setTextPalette(PAL0);
+    VDP_drawTextBG(BG_A, sampleName, xPos, yPos);
 }
 
 inline void DisplayInstrumentEditor()
@@ -6604,8 +6641,8 @@ void DrawStaticGUI()
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, TRUE, bgBaseTileIndex[2] + GUI_FX_SYM), 79, 2);
     DrawText(BG_A, PAL3, "COMMANDS", 70, 2);
 
-    DrawText(BG_A, PAL3, "INST", 41, 23); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 45, 23);
-    //VDP_drawTextBG(BG_A, "INST: --------", 41, 23);
+    //DrawText(BG_A, PAL3, "INST", 41, 23); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 45, 23);
+    VDP_drawTextBG(BG_A, "INST: --------", 41, 23);
 
     // ----------------------------------- instrument editor
     for (u8 i=0; i<7; i++) VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_LOGO + i), i + 112, 22); // MD.TRACKER logo
@@ -6660,6 +6697,9 @@ void DrawStaticGUI()
     DrawText(BG_A, PAL3, "RATE", 106, 6); VDP_setTextPalette(PAL1); VDP_drawText(">", 113, 6);
     DrawText(BG_A, PAL3, "PAN", 106, 7); VDP_setTextPalette(PAL1); VDP_drawText(">", 113, 7);
     for (u8 y=3; y<8; y++) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 111, y); // sample colons
+
+    DrawText(BG_A, PAL3, "NAME", 106, 9);
+    DisplaySampleName(106, 10, 0, 0);
 
     VDP_setTextPalette(PAL3); VDP_drawText("PRESET", 106, 17);
     VDP_setTextPalette(PAL1); VDP_drawText(">", 113, 17); VDP_drawText("000", 114, 17);

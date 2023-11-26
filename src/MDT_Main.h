@@ -182,6 +182,7 @@ static void ReadMatrixRow();
 void Legacy();
 void FileWriteHeader();
 //static void CountPulses();
+u32 GetSampleStartAddress(u8 bank, u8 note);
 
 // temporal instrument storage
 struct Instrument

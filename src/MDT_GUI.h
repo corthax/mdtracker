@@ -209,6 +209,10 @@
 #define GUI_NAVIGATION_DELAY            15
 #define GUI_PATTERN_COLORS_MAX          13
 
+#define GUI_SAMPLE_NAME_SIZE            14
+#define GUI_PATTERN_SAMPLE_NAME_XPOS    56
+#define GUI_PATTERN_SAMPLE_NAME_YPOS    23
+
 void DrawMute(u8 mtxCh);
 void DrawStaticGUI();
 void DrawInfo();
@@ -223,4 +227,5 @@ void NavigateMatrix(u8 direction);
 void NavigatePattern(u8 direction);
 void NavigateInstrument(u8 direction);
 void ReColorsAndTranspose();
+void DisplaySampleName(u8 xPos, u8 yPos, u8 note, u8 bank);
 #endif // MDT_GUI_H_INCLUDED

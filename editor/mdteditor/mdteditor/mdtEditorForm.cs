@@ -4,6 +4,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
 namespace mdteditor
@@ -11,15 +12,20 @@ namespace mdteditor
     public partial class mdtEditor : Form
     {
         private int ROM_SAMPLE_BANK = 0x0002E600; // symbol.txt sample_bank_1; check when md.tracker code is changed
-        private const int ROM_SAMPLE_BANK_SIZE = 3399000;
+        private const int ROM_SAMPLE_NAMES_SIZE = 5376; // 96 * 4 * 14 bytes
+        private const int ROM_SAMPLE_BANK_SIZE = 3399000 - ROM_SAMPLE_NAMES_SIZE;
+
+        private const int MAX_SAMPLES = 384;
+        //private string[] fileNamesStrings = new string[MAX_SAMPLES];
+        private byte[] sampleNamesData = new byte[ROM_SAMPLE_NAMES_SIZE];
 
         private const int SRM_FILE_SIZE = 524288;
         private const uint SRM_SAMPLE_DATA = 0x0726B;
         private const uint SRM_SAMPLE_PAN = 0x6B0AB;
         private const uint SRM_SAMPLE_RATE = 0x6F230;
 
-        private const uint SRM_PRESET_DATA = 0x00002;
-        private const uint SRM_PRESET_NAME = 81;
+        //private const uint SRM_PRESET_DATA = 0x00002;
+        //private const uint SRM_PRESET_NAME = 81;
 
         private const byte NOTES_COUNT = 96;
         private const int NOTES_TOTAL = 96 * 4;
@@ -28,8 +34,8 @@ namespace mdteditor
         private const byte SOUND_PAN_RIGHT     = 0x40;
         private const byte SOUND_PAN_CENTER    = 0xC0;
 
-        private const byte VGI_SIZE = 43;
-        private const byte TFI_SIZE = 42;
+        //private const byte VGI_SIZE = 43;
+        //private const byte TFI_SIZE = 42;
 
         /*
         TFI (TFM Maker format)
@@ -185,8 +191,8 @@ namespace mdteditor
         private static readonly List<string> lsNoteNames = new List<string> { "C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-" };
         private const int GUI_SAMPLE_SETTINGS_FIELD_HEIGHT = 25;
 
-        private const int WM_HSCROLL = 0x114;
-        private const int WM_VSCROLL = 0x115;
+        //private const int WM_HSCROLL = 0x114;
+        //private const int WM_VSCROLL = 0x115;
 
         public Button[] btnSampleSync = new Button[NOTES_TOTAL];
         public TextBox[] txtSampleStart = new TextBox[NOTES_TOTAL];
@@ -255,7 +261,9 @@ namespace mdteditor
             /*for (int l = 0; l < 4; l++)
             {
                 if (tabControl_SampleBanks.SelectedIndex == l) tcBanks[l].ResumeLayout(); else tcBanks[l].SuspendLayout();
-            }*/             
+            }*/
+            
+            for (int i = 0; i < ROM_SAMPLE_NAMES_SIZE; i++) sampleNamesData[i] = 20; // fill sample names with spaces
 
             if (!File.Exists(settings_PATH)) SettingsSave(); else SettingsRead();
         }
@@ -847,6 +855,7 @@ namespace mdteditor
                     BinaryWriter bw = new BinaryWriter(fs);
 
                     bw.Seek(ROM_SAMPLE_BANK, SeekOrigin.Begin);
+                    bw.Write(sampleNamesData, 0, ROM_SAMPLE_NAMES_SIZE); // save names of samples each 14 symbols
                     bw.Write(sampleData, 0, ROM_SAMPLE_BANK_SIZE);
 
                     bw.Flush(); bw.Close(); fs.Close();
@@ -854,7 +863,6 @@ namespace mdteditor
             }
 
             // save presets
-
         }
         
         // open SRM
@@ -1009,6 +1017,8 @@ namespace mdteditor
 
                 for (int i = 0; i < ofd.SafeFileNames.Length; i++)
                 {
+                    if (i > MAX_SAMPLES) break;
+
                     int id = i + samplesCount;
                     int y = 5 + 25 * id - pnSamplesPool.VerticalScroll.Value;
 
@@ -1086,6 +1096,27 @@ namespace mdteditor
                     dicSamplesPool_File.Add(id, file);
                     dicSamplesPool_FileName.Add(id, ofd.SafeFileNames[i]);
                     lsSamplesPool_Size.Add(file.Length);
+
+                    // get sample names data
+                    var str = Path.GetFileNameWithoutExtension(ofd.FileNames[i]);
+                    int open_pos = str.IndexOf("(");
+                    int close_pos = str.IndexOf(")");
+
+                    if (open_pos != -1 && close_pos != -1)
+                    {
+                        str = str.Substring(open_pos+1, close_pos-open_pos-1); // short name inside braces
+                        str = Regex.Replace(str, @"[()]", string.Empty); // remove any braces
+                    }
+
+                    if (str.Length > 14) str = str.Substring(0, 14);
+                    var chstr = str.ToCharArray(); // trim to 14 symbols
+       
+                    int counter = 0;
+                    foreach (char c in chstr)
+                    {
+                        sampleNamesData[id * 14 + counter] = (byte)c;
+                        counter++;
+                    }
 
                     br.Close(); fs.Close();
                 }
