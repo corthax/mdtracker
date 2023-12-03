@@ -644,7 +644,7 @@ namespace mdteditor
             int.TryParse(txtAssignStart_SRM.Text, out int startKey);
             int.TryParse(txtAssignEnd_SRM.Text, out int endKey);
 
-            if (startKey < 0 || endKey < 0 || start < 0 || end < 0) return;
+            if (startKey < 0 || endKey < 0 || start < 0 || end < 0 || start >= samplesCount || end >= samplesCount) return;
 
             int keyId = startKey;
 
@@ -851,8 +851,9 @@ namespace mdteditor
             for (int i = 0; i < NOTES_TOTAL; i++)
             {
                 if (!int.TryParse(txtSampleID[i].Text, out int id) || id < 0) continue;
+                if (!dicSamplesPool_FileName.TryGetValue(id, out string name)) continue;
 
-                var str = Path.GetFileNameWithoutExtension(dicSamplesPool_FileName[id]);
+                var str = Path.GetFileNameWithoutExtension(name);
                 int open_pos = str.IndexOf("(");
                 int close_pos = str.IndexOf(")");
 
@@ -1130,6 +1131,7 @@ namespace mdteditor
                 txtBytesUsed.Text = sampleEnd.ToString();
                 samplesCount += ofd.SafeFileNames.Length;
                 pnSamplesPool.VerticalScroll.Enabled = true;
+                txtAssignEnd_ROM.Text = (samplesCount - 1).ToString();
 
                 settings_SAMPLES_PATH = Path.GetDirectoryName(ofd.FileName);
                 SettingsSave();

@@ -814,9 +814,7 @@ static void DoEngine()
                         ApplyCommand_FM(mtxCh, channelPreviousInstrument[mtxCh], _fxType, _fxValue);
                         break;
                     case CHANNEL_FM6_DAC:
-                        //if (Z80_getLoadedDriver() == Z80_DRIVER_4PCM) pcmNote[0] = pcmNote[1] = pcmNote[2] = pcmNote[3] = NOTE_EMPTY;
-                        ApplyCommand_DAC(_fxType, _fxValue);
-                        //if (!bDAC_enable)
+                        //ApplyCommand_DAC(_fxType, _fxValue);
                         ApplyCommand_FM(mtxCh, channelPreviousInstrument[mtxCh], _fxType, _fxValue);
                         break;
                     case CHANNEL_FM3_OP1: case CHANNEL_FM3_OP2: case CHANNEL_FM3_OP3:
@@ -828,6 +826,7 @@ static void DoEngine()
                         break;
                     default: ApplyCommand_PSG(_fxType, _fxValue); break;
                     }
+                    ApplyCommand_DAC(_fxType, _fxValue); // to be able to play multichannel PCM on any channel
                     ApplyCommand_Common(mtxCh, _fxType, _fxValue);
                 }
                 else if (_fxValue)
@@ -5376,7 +5375,7 @@ static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
         break;
 
     // PAN
-    case 0x0E:
+    /*case 0x0E:
         switch (fxValue)
         {
         case 0x10: FM_CH6_DAC_Pan = SOUND_PAN_LEFT;
@@ -5388,7 +5387,7 @@ static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
         default: FM_CH6_DAC_Pan = NULL; // default sample pan
             break;
         }
-        break;
+        break;*/
 
     // PCM SAMPLE BANK SET
     case 0x16:
@@ -6070,11 +6069,11 @@ static void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
     case 0x0E:
         switch (fxValue)
         {
-        case 0x00: chInst[mtxCh].PAN = tmpInst[id].PAN; break;
-        case 0x10: chInst[mtxCh].PAN = 2; break;
-        case 0x01: chInst[mtxCh].PAN = 1; break;
-        case 0x11: chInst[mtxCh].PAN = 3; break;
-        default: chInst[mtxCh].PAN = 0; break;
+        case 0x00: chInst[mtxCh].PAN = tmpInst[id].PAN; if (mtxCh == CHANNEL_FM6_DAC) FM_CH6_DAC_Pan = NULL; break;
+        case 0x10: chInst[mtxCh].PAN = 2; if (mtxCh == CHANNEL_FM6_DAC) FM_CH6_DAC_Pan = SOUND_PAN_LEFT; break;
+        case 0x01: chInst[mtxCh].PAN = 1; if (mtxCh == CHANNEL_FM6_DAC) FM_CH6_DAC_Pan = SOUND_PAN_RIGHT; break;
+        case 0x11: chInst[mtxCh].PAN = 3; if (mtxCh == CHANNEL_FM6_DAC) FM_CH6_DAC_Pan = SOUND_PAN_CENTER; break;
+        default: chInst[mtxCh].PAN = 0; FM_CH6_DAC_Pan = NULL; break;
         }
         write_pan_ams_fms();
         break;

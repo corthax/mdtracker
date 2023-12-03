@@ -322,21 +322,23 @@ WARNING
 	Changing driver will reset YM and PSG, not really meant for realtime usage!
 //////////////////
 
-Play DAC sample at CH1 (4PCM, 2ADPCM)
-	71xx
+Play DAC sample at CH1 (4PCM, 2ADPCM), Bank 0,1,2,3.
+	71,75,79,7D xx
 xx: note, up to 5F; FF = NOTE OFF
 
-Play DAC sample at CH2 (4PCM, 2ADPCM)
-	72xx
+Play DAC sample at CH2 (4PCM, 2ADPCM), Bank 0,1,2,3.
+	72,76,7A,7E xx
 xx: note, up to 5F; FF = NOTE OFF
 
-Play DAC sample at CH3 (4PCM)
-	73xx
+Play DAC sample at CH3 (4PCM), Bank 0,1,2,3.
+	73,77,7B,7F xx
 xx: note, up to 5F; FF = NOTE OFF
 
-Play DAC sample at CH4 (4PCM)
-	74xx
+Play DAC sample at CH4 (4PCM), Bank 0,1,2,3.
+	74,78,7C,80 xx
 xx: note, up to 5F; FF = NOTE OFF
+
+Tip: These commands can be used on any tracker channel. You can have multichannel PCM drums playing mostly on FM6 but other samples somewhere else.
 
 //////////////////
 WARNING
@@ -749,10 +751,10 @@ Changelog:
 			- 41 for volume (default)
 			- 18 for channel microtone finetune
 		Command 70xx - Load PCM driver (00 = PCM, 01 = 4PCM, 02 = 2ADPCM).
-        Command 71xx - Play 4PCM channel 1 (note number up to 5F, FF = NOTE OFF).
-        Command 72xx - Play 4PCM channel 2 (note number up to 5F, FF = NOTE OFF).
-        Command 73xx - Play 4PCM channel 3 (note number up to 5F, FF = NOTE OFF).
-        Command 74xx - Play 4PCM channel 4 (note number up to 5F, FF = NOTE OFF). 
+        Command 71,75,79,7D xx - Play DAC channel 1 (note number up to 5F, FF = NOTE OFF). Bank 0,1,2,3.
+        Command 72,76,7A,7E xx - Play DAC channel 2 (note number up to 5F, FF = NOTE OFF). Bank 0,1,2,3.
+        Command 73,77,7B,7F xx - Play DAC channel 3 (note number up to 5F, FF = NOTE OFF). Bank 0,1,2,3.
+        Command 74,78,7C,80 xx - Play DAC channel 4 (note number up to 5F, FF = NOTE OFF). Bank 0,1,2,3.
 			
 		Pattern range selection to button Z + U/D.
         B + D-Pad - whole pattern/selection transpose +/- octave/semitone. Will not destroy melody if one of resulted notes goes out of range.
