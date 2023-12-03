@@ -12,10 +12,11 @@ namespace mdteditor
     public partial class mdtEditor : Form
     {
         private int ROM_SAMPLE_BANK = 0x0002E600; // symbol.txt sample_bank_1; check when md.tracker code is changed
-        private const int ROM_SAMPLE_NAMES_SIZE = 5376; // 96 * 4 * 14 bytes
+        private const int ROM_SAMPLE_NAMES_SIZE = NOTES_TOTAL * ROM_SAMPLE_NAME_SIZE; // 96 * 4 * 14 bytes
         private const int ROM_SAMPLE_BANK_SIZE = 3399000 - ROM_SAMPLE_NAMES_SIZE;
+        private const int ROM_SAMPLE_NAME_SIZE = 14;
 
-        private const int MAX_SAMPLES = 384;
+        private const int MAX_SAMPLES = NOTES_TOTAL;
         //private string[] fileNamesStrings = new string[MAX_SAMPLES];
         private byte[] sampleNamesData = new byte[ROM_SAMPLE_NAMES_SIZE];
 
@@ -28,7 +29,7 @@ namespace mdteditor
         //private const uint SRM_PRESET_NAME = 81;
 
         private const byte NOTES_COUNT = 96;
-        private const int NOTES_TOTAL = 96 * 4;
+        private const int NOTES_TOTAL = NOTES_COUNT * 4;
 
         private const byte SOUND_PAN_LEFT      = 0x80;
         private const byte SOUND_PAN_RIGHT     = 0x40;
@@ -374,7 +375,7 @@ namespace mdteditor
                             Location = new Point(300, y),
                             Name = string.Concat("txtID", name),
                             Width = 40,
-                            Text = "0",
+                            Text = "NONE",
                             TextAlign = HorizontalAlignment.Right,
                             BackColor = Color.FromArgb(255, 10, 10, 15),
                             ForeColor = Color.AliceBlue,
@@ -528,7 +529,7 @@ namespace mdteditor
             lsSamplesBank_Rate.AddRange(cbxSampleRate);
             lsSamplesBank_Loop.AddRange(chkSampleLoop);
 
-            for (int i = 0; i < (NOTES_COUNT * 4); i++)
+            for (int i = 0; i < (NOTES_TOTAL); i++)
             {
                 dicSamplesPool_ID.Add(lsSamplesBank_Sync[i].Name, i);
                 lsSamplesBank_Sync[i].Click += new EventHandler(ButtonClicked);
@@ -826,7 +827,7 @@ namespace mdteditor
         // save ROM
         private void btnSaveRom_Click(object sender, EventArgs e)
         {
-            // save sample bank data
+            // prepare sample bank data
             byte[] sampleData = new byte[ROM_SAMPLE_BANK_SIZE];
             int index = 0;
             for (int id = 0; id < samplesCount; id++)
@@ -843,9 +844,36 @@ namespace mdteditor
                 }
 
                 sample.CopyTo(sampleData, index);
-                index += sample.Length;
+                index += sample.Length;         
             }
 
+            // prepare sample names data 
+            for (int i = 0; i < NOTES_TOTAL; i++)
+            {
+                if (!int.TryParse(txtSampleID[i].Text, out int id) || id < 0) continue;
+
+                var str = Path.GetFileNameWithoutExtension(dicSamplesPool_FileName[id]);
+                int open_pos = str.IndexOf("(");
+                int close_pos = str.IndexOf(")");
+
+                if (open_pos != -1 && close_pos != -1)
+                {
+                    str = str.Substring(open_pos + 1, close_pos - open_pos - 1); // short name inside braces
+                    str = Regex.Replace(str, @"[()]", string.Empty); // remove any braces
+                }
+
+                if (str.Length > ROM_SAMPLE_NAME_SIZE) str = str.Substring(0, ROM_SAMPLE_NAME_SIZE);
+                var chstr = str.ToCharArray(); // trim to 14 symbols
+
+                int counter = 0;
+                foreach (char c in chstr)
+                {
+                    sampleNamesData[i * ROM_SAMPLE_NAME_SIZE + counter] = (byte)c;
+                    counter++;
+                }
+            }
+
+            // write data into rom file
             if (txtRomName.Text != "")
             {
                 FileInfo fin = new FileInfo(txtRomName.Text);
@@ -1096,27 +1124,6 @@ namespace mdteditor
                     dicSamplesPool_File.Add(id, file);
                     dicSamplesPool_FileName.Add(id, ofd.SafeFileNames[i]);
                     lsSamplesPool_Size.Add(file.Length);
-
-                    // get sample names data
-                    var str = Path.GetFileNameWithoutExtension(ofd.FileNames[i]);
-                    int open_pos = str.IndexOf("(");
-                    int close_pos = str.IndexOf(")");
-
-                    if (open_pos != -1 && close_pos != -1)
-                    {
-                        str = str.Substring(open_pos+1, close_pos-open_pos-1); // short name inside braces
-                        str = Regex.Replace(str, @"[()]", string.Empty); // remove any braces
-                    }
-
-                    if (str.Length > 14) str = str.Substring(0, 14);
-                    var chstr = str.ToCharArray(); // trim to 14 symbols
-       
-                    int counter = 0;
-                    foreach (char c in chstr)
-                    {
-                        sampleNamesData[id * 14 + counter] = (byte)c;
-                        counter++;
-                    }
 
                     br.Close(); fs.Close();
                 }

@@ -16,6 +16,7 @@ namespace stobin
             string outFolder = $"{currentDirectory}\\out\\";
             string rescompFormat = "2ADPCM";
             string rescompSampleRate = "32000";
+            string rescompSampleRateName = "32kHz_";
             string fileExtention = "2adpcm";
 
             if (wavFiles.Length == 0)
@@ -48,6 +49,7 @@ namespace stobin
                     rescompFormat = "2ADPCM";
                     fileExtention = "2adpcm";
                     rescompSampleRate = "";
+                    rescompSampleRateName = "22kHz_";
                     outFolder += $"{fileExtention}\\";
                     break;
 
@@ -72,18 +74,23 @@ namespace stobin
                     {
                         case ConsoleKey.D1:
                             rescompSampleRate = "8000";
+                            rescompSampleRateName = "08kHz_";
                             break;
                         case ConsoleKey.D2:
                             rescompSampleRate = "11025";
+                            rescompSampleRateName = "11kHz_";
                             break;
                         case ConsoleKey.D3:
                             rescompSampleRate = "16000";
+                            rescompSampleRateName = "16kHz_";
                             break;
                         case ConsoleKey.D4:
                             rescompSampleRate = "22050";
+                            rescompSampleRateName = "22kHz_";
                             break;
                         case ConsoleKey.D5:
                             rescompSampleRate = "32000";
+                            rescompSampleRateName = "32kHz_";
                             break;
                     }
                     break;
@@ -96,7 +103,7 @@ namespace stobin
 
             foreach (var wavFile in wavFiles)
             {
-                string fileName = Path.GetFileNameWithoutExtension(wavFile).Replace(" ", "").ToLower();
+                string fileName = string.Concat(rescompSampleRateName, Path.GetFileNameWithoutExtension(wavFile).Replace(" ", ""));
 
                 // Create .res file
 

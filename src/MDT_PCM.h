@@ -3,6 +3,7 @@
 
 #define SAMPLE_DATA_SIZE    7   // 3 bytes start, 3 bytes end, 1 byte loop; 1 byte rate moved the the eof
 #define DAC_DATA_END        0x0036C900 // see symbols.txt for sgdk_logo_palette_data;
+#define SAMPLE_BANK_LAST        3
 
 static u32 SRAM_ReadSampleRegion(u8 bank, u8 note, u8 byteNum);
 //static u32 SRAM_ReadSampleRegionLegacy(u8 bank, u8 note, u8 byteNum);

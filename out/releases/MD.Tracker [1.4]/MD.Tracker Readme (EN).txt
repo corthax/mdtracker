@@ -1,5 +1,4 @@
 ----------------
-MD.Tracker 1.04
 Native music tracker for SEGA MEGADRIVE / GENESIS / NOMAD
 Source code: https://github.com/corthax/mdtracker
 Powered by SGDK
@@ -18,37 +17,32 @@ Works in:
 //////////////////
 
 Emulators: 
-	PicoDrive (RetroArch) - use [mdt104] version.
+	PicoDrive (RetroArch) - use [mdt***] version.
 		Possible issues:
 		PSG Noise channel wrong pitch.
 		FM CH.6 DAC pan not working.
 		FM CH.3 Special+CSM mode not working.
 		
-	BlastEm (RetroArch) - use [mdt104] version.
+	BlastEm (RetroArch) - use [mdt***] version.
 
-	BlastEm (Standalone 0.6.3+) - use [mdt104-blastem] version.
+	BlastEm (Standalone 0.6.3+) - use [mdt***-blastem] version.
 	
 //////////////////
 
 Flashcarts: 
-	Mega Everdrive Pro - use [mdt] version.
+	Mega Everdrive Pro - use [mdt***] version.
 		ISSUES:
 		Replaced .srm file may be not reloaded on rom start. Remove *rom name*.cfg in \MEGA\sys\romcfg\
 		To dump save file from SRAM to SD card, reset console BEFORE power off.
 		
-	Mega Everdrive X7 - use [mdt-x7] version. (WIP!)
-		
-	Your custom one - use [mdt] version.
-		4MB: 3.5MB for rom + 512KB battery sram.
-		16 bit sram.
-		No bank switching needed.
+	Mega Everdrive X7 - use [mdt***-x7] version. (WIP!)
 		
 //////////////////
 
 If there is no song data, default empty is generated.
-To save as new song just rename the rom, or move/rename your save file.
+To save as new song just rename the ROM, or move/rename your save file.
 
-If your goal is to make a VGM file, then go with standalone BlastEm (latest 0.6.3+) as it has vgm logging (press 'M' to start/stop it).
+If your goal is to make a VGM file, then go with standalone BlastEm (latest 0.6.3+) as it has VGM logging (press 'M' to start/stop it).
 VGM File then can be edited and optimized with VGM TOOLS and optvgm (http://project2612.org/optvgm.zip)
 Use overclocking for best performance if song tick rate is set high =^..^=
 
@@ -60,13 +54,13 @@ Features
 
 32 rows per pattern (max).
 250 pattern rows in matrix (25 per page).
-255 instruments. 00th(--) for empty, unusable.
-Additional 32 step ARP and VOL tick sequencers.
-FM (YM2612/YM3438) CSM and CH3 Special/CSM Modes support, CH6 DAC support.
+255 instruments.
+Additional 32 step ARP and SEQ tick sequencers.
+FM (YM2612/YM3438) CSM and CH3 Special/CSM Modes support, CH6 DAC support (PCM, 4PCM, 2ADPCM drivers of choise).
 PSG (SN76489) support.
 895 patterns.
 384 samples (96 notes * 4 banks).
-6 effects/commands per row.
+6 commands per row.
 
 ----
 
@@ -76,8 +70,7 @@ PSG:	A4 = 440.39677657480314 Hz (NTSC)
 		Lowest note is A-0 (FreqNum 1016~), high part of G#0 (FreqNum 1023~) is also possible, below that is the same notes as octave higher.
 		Frequency number of all microtones of A#7 is 1, B-7 is 0.
 
-1 .. 16 pulses per pattern row. (1 .. 6 recommended at 140BPM on real, non overclocked HW.)
-BPM is rounded, has less resolution at higher values.
+1 .. 16 pulses per pattern row.
 Song data is automatically saved to SRAM at any parameter change.
 SRAM used as additional RAM, but only contains the module data.
 
@@ -101,7 +94,7 @@ Patterm Matrix [PM]
 ----------------
 
 Playback cursor indicates currently playing matrix row.
-I recommend to always use the first (--) matrix row for the track initializations.
+I recommend to always use the first (--) matrix row for the track initializations, set tempo, sizes, load drivers etc.
 
 '
 	Navigate:
@@ -220,7 +213,7 @@ Instrument Editor
 	A+U		+8
 	A+D		-8
 	
-	Change all values: all SEQ/ARP steps (except empty), all 4 FM operators:
+	Change values: all SEQ/ARP steps (except empty), all 4 FM operators:
 	(A+B)+R		+1
 	(A+B)+L		-1
 	(A+B)+U		+8
@@ -259,9 +252,9 @@ Default is 41 (volume attenuation):
 	Substracted from FM slots TL or PSG max volume.
 	Divided by 8 for PSG.
 ------
-	B		Set --: to skip step. 
+	C		Set --: to skip step. 
 
-	C 		Set step value to 00.
+	B 		Set step value to 00.
 
 ------
 ARP:
@@ -269,16 +262,16 @@ Arpeggiator note sequence.
 ".." base note.
 Arp range is +- 24 semitones, if resulting note is not in C-0 .. B-7 range, then the base note is played instead.
 ------
-	B 		Set --: to skip step.
+	C 		Set --: to skip step.
 
-	C 		Enable step.
+	B 		Enable step.
 ------
-Instrument column on PSG channels will set VOl and ARP sequence for this channel. Overriden by [30] and [40] commands.
+Instrument column on PSG channels will set both SEQ and ARP sequences for this channel. Overriden by [30] and [40] commands.
 ------
 
 NAME: 	8 symbols.
 COPY: 	B to copy current FM instrument into selected instrument.
-STATE:	If instrument is playing, muted or solo.
+STATE:	Indicates instrument state: playing [PLAY], muted [MUTE] or solo [SOLO] state.
 
 ---------------------------------------------------------------------------------------------------
 + /// /// /// /// /// /// /// /// /// /// /// Effects /// /// /// /// /// /// /// /// /// /// /// +
@@ -310,21 +303,23 @@ xx: 01 .. 08; Frequency Hz: 3.82, 5.33, 5.77, 6.11, 6.60, 9.23, 46.11, 69.22
 00: to disable Global LFO.
 
 ************************************************
-DAC (enabled by default)
+FM6 DAC (enabled by default)
 	11xx	
-xx: 01 = Enable DAC.
-00: to disable DAC.
+xx:
+01 = Enable
+00 = Disable
 
-Load PCM driver.
+FM6 DAC Load PCM driver
+	70xx
 xx:
 00 = PCM (1 channel pcm 8kHz .. 32kHz)
-01 = 4PCM (4 channel pcm at 16kHz.)
-02 = 2ADPCM (2 channel adpcm at 22050Hz.)
+01 = 4PCM (4 channel pcm at 16kHz)
+02 = 2ADPCM (2 channel adpcm at 22050Hz)
 
 //////////////////
 WARNING
 //////////////////
-	Changing driver will reset YM and PSG, not really meant for a realtime usage!
+	Changing driver will reset YM and PSG, not really meant for realtime usage!
 //////////////////
 
 Play DAC sample at CH1 (4PCM, 2ADPCM)
@@ -349,22 +344,6 @@ WARNING
 	FM registers writes/reads (instrument changes, timers pooling, etc) needs to bus request the Z80, which is running the PCM driver.
 	Speed of played sample may be affected if there are too many parameter changes at the same tick.
 //////////////////
-
-	Reserved space for DAC data in ROM.
-	
-	DAC ROM Samples region: (see symbols.txt)
-		START:	0002F400 (paste-rewrite sample data starting here)
-		END:	0036D600
-	
-	Sample format: RAW (header-less), Signed 8 bit PCM, 32khz max
-		(!!! When converted with Audacity it will add noise to silence parts. The one way to remove it is to replace all FF with 00 in sample using hex editor.)
-	3400192 bytes range reserved for DAC samples (~1min 46sec at 32khz)
-		
-	With any hex editor overwrite that range with your samples.
-	Then assign ranges to keys inside instrument editor SAMPLE section.
-	
-	Audacity can be used to figure out exact samples start and end (sample number == adress, convert to HEX).
-
 
 ************************************************
 FM3 Channel Mode
@@ -625,13 +604,13 @@ xx: 00 .. 0F; >0F reset
 ------------------------------------------------
 
 ************************************************
-Arpeggiator Sequence MODE
+Set ARP play MODE
 	2Fxx
 xx: 01 = Play once for each new note.
 00: Loop sequence.
 
 ************************************************
-Arpegiator Sequence
+Set ARP
 	30xx
 xx: 01 .. FF, instrument id sequence is taken from.
 00: disable sequence.
@@ -693,13 +672,13 @@ xx: ticks to skip. allow slower effect.
 ------------------------------------------------
 
 ************************************************
-SEQ Attenuation Sequence MODE
+Set SEQ play MODE
 	3Fxx
 xx: 01 = Play once for each new note.
 00: Loop sequence.
 
 ************************************************
-SEQ attenuation sequence
+Set SEQ
 	40xx
 xx: 01 .. FF; Instrument id sequence is taken from.
 00: disable sequence.
@@ -751,11 +730,13 @@ Changelog:
 		BMP is not precise, but close.
 		FM CH6 DAC sample playback make occasional garbage noises.
 		Not tested in PAL mode, so may be broken.
+		
 	Fixes:
 		A bit smoother playback.
 		Note retrigger/delay.
 		Instrument mute/solo.
 		SEQ timing fix.
+		
 	Changes:
 		Command 18xx - Channel microtone finetune. Add up to 31 (1F) microtones (1/32 semitone).
 		Command 19xx - Channel SEQ skip step. To slow down.
@@ -778,17 +759,22 @@ Changelog:
         Print currently highlighted pattern command description and instrument name, instead of last entered.
         (A+B) + D-Pad - Change all values in ARP/SEQ (Skip empty steps), FM Operators.
 		
+		Sample name now displayed in instrument editor and for selected note in pattern editor (when FM6 in DAC mode).
 		Removed non working msu-md driver.
 		Removed save upgrade from 1.00/1.01 to 1.03.
 		Added save upgrade from 1.03 to 1.04.
 		Removed pulses/frames per second counter. Not really helpfull.
 		PSG microtones resolution increased to 32 instead of 16. Somewhat usefull for 1-2 octaves.
 		SGDK 1.80 -> 1.90
+		
 	MD.Tracker Editor:
+	
 		Changes:
 			Added field for samples bank start address in rom.
 			Last opened paths, rom samples region start address - saved to settings.ini.
 			WAV to 2ADPCM/PCM converter.
+			Sample names saved into rom, 14 symbols max, trimmed if larger. Use braces in file name to set whats inside as sample short name.
+			
 		Fixes:
 			Samples list scrolling.
 			Samples to keys range assigning.
@@ -798,22 +784,27 @@ Changelog:
 		Editor tool now auto align sample length to 256 bytes, as required by SGDK driver. IDK if it improves anything.
 		FPS counter now displays amount of frames being processed last second.
 		Auto save upgrade from 1.00/1.01 to 1.03.
+		
 1.02 [Don't use 1.02, it's messed up! Will break save file.]
 	Fixes:
 		4th sample bank having not enought space to save sattings, leading to minor data corruption.
 		Now works both in BlastEm Standalone and RetroArch.
+		
 	Changes:
 		Auto save upgrade from 1.01 to 1.02.
 		Tool for adding PCM samples into rom.
 		SGDK 1.70 -> 1.80
+		
 1.01
 	Fixes:
 		Wrong ARP 16..32 values init when new empty song save file is created.
 		Global AM LFO zero value GUI placement.
 		Instrument 0 (empty, uneditable) also must have correct default ARP values.
+		
 	Changes:
 		Removed beta file upgrade feature.
 		SGDK 1.65 -> 1.70
+		
 1.00
 	Initial release. Use ONLY this version for upgrading beta files to 1.00.
 		SGDK 1.41 -> 1.50 -> 1.51 -> 1.60 -> 1.62 -> 1.65
