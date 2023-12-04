@@ -223,6 +223,8 @@ u8 midiPreset = 0;
 
 char sampleName[] = "--------------";
 
+bool bReColorsAndTranspose = TRUE;
+
 /*
 u16 msu_drv();
 vu16 *mcd_cmd = (vu16 *) 0xA12010;  // command
@@ -365,7 +367,7 @@ int main(bool hardReset)
 
         switch (currentScreen)
         {
-        case SCREEN_MATRIX: DisplayPatternMatrix(); break;
+        case SCREEN_MATRIX: DisplayPatternMatrix(); ReColorsAndTranspose(); break;
         case SCREEN_PATTERN: DisplayPatternEditor(); break;
         case SCREEN_INSTRUMENT: DisplayInstrumentEditor(); break;
         default: break;
@@ -418,6 +420,15 @@ void vIntCallback()
         }
         frames_counter = 0;
         _vInts_counter = 0;
+    }*/
+
+    // slower GUI updates. not helping much
+    /*switch (currentScreen)
+    {
+    case SCREEN_MATRIX: DisplayPatternMatrix(); break;
+    case SCREEN_PATTERN: DisplayPatternEditor(); break;
+    case SCREEN_INSTRUMENT: DisplayInstrumentEditor(); break;
+    default: break;
     }*/
 
     // fast navigation
@@ -1747,7 +1758,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
             break;
 
         case BUTTON_MODE:
-            if (bPlayback == FALSE) // play from current line
+            if (bPlayback == FALSE && !useExternalSync) // play from current line
             {
                 pulseCounter = 0;
                 if (selectedPatternColumn < PATTERN_COLUMNS) playingPatternRow = selectedPatternRow; // start from the current selected pattern line
@@ -1757,14 +1768,14 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
             }
             else
             {
-                //bDoPulse = useExternalSync; // external sync from gamepad;
-                stop_playback();
+                bDoPulse = useExternalSync; // external sync from gamepad;
+                //stop_playback();
             }
             break;
 
-        case BUTTON_B:
+        /*case BUTTON_B:
             bDoPulse = useExternalSync;
-            break;
+            break;*/
         }
         if (selectedPatternColumn >= PATTERN_COLUMNS) patternColumnShift = PATTEN_ROWS_PER_SIDE; else patternColumnShift = 0;
         /// -------------------------------------------------------------------------------------------------------------------
@@ -1850,7 +1861,8 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         col = SRAM_ReadPatternColor(selectedPatternID)-1;
                         if (col < 0) col = GUI_PATTERN_COLORS_MAX;
                         SRAM_WritePatternColor(selectedPatternID, col);
-                        ReColorsAndTranspose();
+                        //ReColorsAndTranspose();
+                        bReColorsAndTranspose = TRUE;
                     }
                     break;
 
@@ -1861,7 +1873,8 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         col = SRAM_ReadPatternColor(selectedPatternID)+1;
                         if (col > GUI_PATTERN_COLORS_MAX) col = 0;
                         SRAM_WritePatternColor(selectedPatternID, col);
-                        ReColorsAndTranspose();
+                        //ReColorsAndTranspose();
+                        bReColorsAndTranspose = TRUE;
                     }
                     break;
 
@@ -1870,7 +1883,8 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     if (transpose < 12)
                     {
                         transpose++; SRAM_WriteMatrixTranspose(selectedMatrixChannel, selectedMatrixRow, transpose);
-                        ReColorsAndTranspose();
+                        //ReColorsAndTranspose();
+                        bReColorsAndTranspose = TRUE;
                     }
                     break;
 
@@ -1879,7 +1893,8 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     if (transpose > -12)
                     {
                         transpose--; SRAM_WriteMatrixTranspose(selectedMatrixChannel, selectedMatrixRow, transpose);
-                        ReColorsAndTranspose();
+                        //ReColorsAndTranspose();
+                        bReColorsAndTranspose = TRUE;
                     }
                     break;
 
@@ -1891,7 +1906,8 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         if (col != 0)
                         {
                             SRAM_WritePatternColor(selectedPatternID, 0);
-                            ReColorsAndTranspose();
+                            //ReColorsAndTranspose();
+                            bReColorsAndTranspose = TRUE;
                         }
                     }
                     break;
@@ -1908,7 +1924,8 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         currentPage++;
                         bRefreshScreen = bInitScreen = TRUE;
                         matrixRowToRefresh = OXFFFF;
-                        ReColorsAndTranspose();
+                        //ReColorsAndTranspose();
+                        bReColorsAndTranspose = TRUE;
                     }
                     break;
 
@@ -1918,7 +1935,8 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         currentPage--;
                         bRefreshScreen = bInitScreen = TRUE;
                         matrixRowToRefresh = OXFFFF;
-                        ReColorsAndTranspose();
+                        //ReColorsAndTranspose();
+                        bReColorsAndTranspose = TRUE;
                     }
                     break;
 
@@ -3017,6 +3035,8 @@ void DisplayPatternMatrix()
                 if (row == loopStart) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[3] + GUI_LOOP_START), 39, shiftY);
                 else if (row == loopEnd) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[3] + GUI_LOOP_END), 39, shiftY);
                 else VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), 39, shiftY);
+
+                //ReColorsAndTranspose(chan, row);
 
                 line++;
                 chan = 0;
@@ -6130,10 +6150,41 @@ void FillRowRight(u8 plane, u8 pal, u8 flipV, u8 flipH, u8 guiSymbol, u8 fillCou
 
 void ReColorsAndTranspose() // on color change
 {
-    static u16 pt = 0;
-    static s8 tr = 0;
+    static u8 ch = CHANNEL_FM1;
+    static u8 row = 0;
 
-    for (u8 ch = CHANNEL_FM1; ch <= CHANNEL_PSG4_NOISE; ch++)
+    if (bReColorsAndTranspose)
+    {
+        if (row == MATRIX_ROWS_ONPAGE)
+        {
+            ch++;
+            row = 0;
+
+            if (ch > CHANNEL_PSG4_NOISE)
+            {
+                bReColorsAndTranspose = FALSE;
+                ch = CHANNEL_FM1;
+                return;
+            }
+        }
+
+        u16 pt = SRAM_ReadMatrix(ch, row + currentPage * MATRIX_ROWS_ONPAGE);
+        s8 tr = SRAM_ReadMatrixTranspose(ch, row + currentPage * MATRIX_ROWS_ONPAGE);
+
+        if (pt != NULL)
+        {
+            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PATTERNCOLORS[SRAM_ReadPatternColor(pt)]), ch*3+2, row+2);
+        }
+        else
+        {
+            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), ch*3+2, row+2);
+        }
+        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[3] + GUI_TRANSPOSE + tr), ch*3, row+2);
+
+        row++;
+    }
+
+    /*for (u8 ch = CHANNEL_FM1; ch <= CHANNEL_PSG4_NOISE; ch++)
     {
         for (u8 row = 0; row < MATRIX_ROWS_ONPAGE; row++)
         {
@@ -6149,7 +6200,7 @@ void ReColorsAndTranspose() // on color change
             }
             VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[3] + GUI_TRANSPOSE + tr), ch*3, row+2);
         }
-    }
+    }*/
 }
 
 // instrument
@@ -6309,7 +6360,7 @@ void InitTracker()
     JOY_setSupport(PORT_2, JOY_SUPPORT_6BTN);
     JOY_setEventHandler(JoyEvent);
 
-    ReColorsAndTranspose(); // need SRAM
+    //ReColorsAndTranspose(); // need SRAM
 
     // if there is no SRAM file, needs fresh init.
     if (SRAMW_readWord(FILE_CHECKER) != MDT_CHECKER)

@@ -95,7 +95,7 @@ Patterm Matrix [PM]
 
 Playback cursor indicates currently playing matrix row.
 I recommend to always use the first (--) matrix row for the track initializations, set tempo, sizes, load drivers etc.
-Press C on BPM selected to enable/disable external sync. Song ticks will advance with B pressed on gamepad, when playback is started and external sync is enabled.
+Press C on BPM selected to enable/disable external sync. Song ticks will advance with MODE pressed on gamepad, when playback is started and external sync is enabled.
 
 '
 	Navigate:
@@ -137,6 +137,8 @@ Press C on BPM selected to enable/disable external sync. Song ticks will advance
 
 	B+U		Delete selected matrix row, move rows below selected 1 up.
 	B+D		Copy and insert selected matrix row, move rows below selected 1 down, 250th matrix row will be lost.
+	
+	Note: Row "--" cannot be deleted or cloned.
 	
 	Matrix cell transposition:
 	
@@ -731,20 +733,24 @@ Changelog:
 1.04
 	Bugs:
 		BMP is not precise, but close.
-		FM CH6 DAC sample playback make occasional garbage noises.
+		FM CH6 DAC sample playback make occasional garbage noises. But looks like only when song is stopped or NOTE OFF is used to stop sample playback.
 		Not tested in PAL mode, so may be broken.
+		Minor visual glitches may happen. 
 		
 	Fixes:
 		A bit smoother playback.
 		Note retrigger/delay.
 		Instrument mute/solo.
 		SEQ timing fix.
+		No adding/deleting matrix rows now allowed during playback.
+        -- matrix row now can not be deleted or duplicated.
+        Switching matrix page, also changing cell color mark or transpose causing slowdown. 
 		
 	Changes:
 		Command 18xx - Channel microtone finetune. Add up to 31 (1F) microtones (1/32 semitone).
 		Command 19xx - Channel SEQ skip step. To slow down.
 		Command 1Axx - Channel ARP skip step. To slow down.
-		Command 1Exx - Channel Note trigger mode: == 00 retrigger note, >= 01 set pitch only. (FM only)
+		Command 1Exx - Channel Note trigger mode: 00 retrigger note, >= 01 set pitch only. (FM only)
 		Command 2Exx - Channel ARP mode: 00 retrigger note, >= 01 set pitch only. (FM only)
 		Command 3Exx - Channel sub-sequencer type. VOL sub-sequencer renamed to SEQ. Now it's used to sequence any FM parameter (and PSG volume).
 			Values are:
@@ -762,21 +768,23 @@ Changelog:
         Print currently highlighted pattern command description and instrument name, instead of last entered.
         (A+B) + D-Pad - Change all values in ARP/SEQ (Skip empty steps), FM Operators.
 		
+		External sync mode using gamepad input (Button MODE). Press C on BPM at Pattern Matrix to enable/disable. Each time button pressed next song pulse processed.
 		Sample name now displayed in instrument editor and for selected note in pattern editor (when FM6 in DAC mode).
-		Removed non working msu-md driver.
+		
+		Removed non working MSU-MD driver.
 		Removed save upgrade from 1.00/1.01 to 1.03.
 		Added save upgrade from 1.03 to 1.04.
 		Removed pulses/frames per second counter. Not really helpfull.
 		PSG microtones resolution increased to 32 instead of 16. Somewhat usefull for 1-2 octaves.
 		SGDK 1.80 -> 1.90
 		
-	MD.Tracker Editor:
+	MD.Tracker Editor 1.04 and tools:
 	
 		Changes:
-			Added field for samples bank start address in rom.
-			Last opened paths, rom samples region start address - saved to settings.ini.
-			WAV to 2ADPCM/PCM converter.
-			Sample names saved into rom, 14 symbols max, trimmed if larger. Use braces in file name to set whats inside as sample short name.
+			Added field for samples bank start address in ROM.
+			Last opened paths, ROM samples region start address - saved to settings.ini.
+			WAV to 2ADPCM/PCM converter (separate tool).
+			Sample name written into ROM, 14 symbols max, trimmed if longer. If sample filename contain braces, for ex "Awesome sample pack drums_(Kick Drum 001)", name will be taken from there, resulting "Kick Drum 001" used as name.
 			
 		Fixes:
 			Samples list scrolling.
