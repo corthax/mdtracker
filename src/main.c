@@ -197,7 +197,7 @@ s8 patternCopyRangeEnd = NOTHING;
 
 u16 hIntToSkip = 0;
 u16 hIntCounter = 0;
-//bool bDoPulse = FALSE;
+bool bDoPulse = FALSE;
 
 u16 bgBaseTileIndex[4];
 u16 asciiBaseLetters, asciiBaseNumbers;
@@ -212,7 +212,7 @@ u8 navigationDirection = BUTTON_RIGHT;
 //u32 frames_counter = 0; // to measure fps
 u32 BPM = 0; // rough beats per minute
 f32 fBPM = 0; // very bad precision
-//u32 PPS = 0; // pulses per second needed
+u8 useExternalSync = FALSE;
 
 u8 patternSize = 0x1F;
 
@@ -1248,24 +1248,24 @@ static void DoEngine()
             if (playingPatternRow & 1) maxPulse = ppl_1; else maxPulse = ppl_2;
 
             DrawMatrixPlaybackCursor(FALSE);
-            hIntCounter = hIntToSkip; // reset h-int counter
-            //bDoPulse = FALSE;
+            hIntCounter = 0;// hIntToSkip * !useExternalSync; // reset h-int counter
+            bDoPulse = FALSE; // do not trigger external pulse if button was pressed before playback start
+
             pulseCounter = 0;
             matrixRowJumpTo = OXFF;
             patternRowJumpTo = OXFF;
 
+            VDP_setTextPalette(PAL0); VDP_drawTextBG(BG_B, "PLAY", 29, 27); VDP_drawTextBG(BG_B, "PLAY", 69, 27);
+
             SYS_enableInts();
-            VDP_setHInterrupt(TRUE);
+            VDP_setHInterrupt(!useExternalSync);
         }
 
-        if (hIntCounter >= hIntToSkip)
+        if (hIntCounter >= hIntToSkip || bDoPulse)
         {
-            //bDoPulse = TRUE;
+            bDoPulse = FALSE;
             hIntCounter = 0;
 
-        //if (bDoPulse)
-        //{
-            //bDoPulse = FALSE;
             if (pulseCounter == 0) // row first pulse; prepare command, note, instrument, draw cursor
             {
                 // main slowdown!
@@ -1334,8 +1334,6 @@ static void DoEngine()
                 }
 
                 if (currentScreen == SCREEN_PATTERN) DrawPatternPlaybackCursor();
-
-                //pulseCounter = -1; // to run this part only once when timer expires, not at every while loop tick.
             }
 
             do_effects(CHANNEL_FM1);
@@ -1352,21 +1350,13 @@ static void DoEngine()
             do_effects(CHANNEL_PSG3);
             do_effects(CHANNEL_PSG4_NOISE);
 
-            //if (pulseCounter == -1) pulseCounter = 1;
-            //else
-                pulseCounter++; // count row sub-pulses
+            pulseCounter++; // count row sub-pulses
+
             if (pulseCounter >= maxPulse)
             {
                 if (playingPatternRow & 1) maxPulse = ppl_1; else maxPulse = ppl_2;
                 pulseCounter = 0;
             }
-
-            //frames_counter++;
-
-            /*if (hIntCounter < 1)
-            {
-                VDP_drawText("OVL", 16, 27);
-            }*/
         }
     }
     else if (!_bBeginPlay) // need to run only once at playback stopped
@@ -1380,7 +1370,9 @@ static void DoEngine()
         StopAllSound();
         ClearPatternPlaybackCursor();
         DrawMatrixPlaybackCursor(TRUE);
-        //VDP_drawText("   ", 16, 27);
+
+        VDP_setTextPalette(PAL0); VDP_drawTextBG(BG_B, "    ", 29, 27); VDP_drawTextBG(BG_B, "    ", 69, 27);
+
         SYS_enableInts();
         VDP_setHInterrupt(FALSE);
     }
@@ -1459,6 +1451,12 @@ static void SetBPM(u16 tempo)
 
 void DrawInfo()
 {
+    if (useExternalSync)
+    {
+        VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "EXT    ", 3, 27); VDP_drawTextBG(BG_A, "EXT    ", 43, 27);
+        return;
+    }
+
     // BPM
     if (BPM < 1000)
     {
@@ -1471,7 +1469,7 @@ void DrawInfo()
         DrawNum(BG_A, PAL0, str, 3, 27);
         DrawNum(BG_A, PAL1, str, 43, 27);
     }
-    else { VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "OUT    ", 3, 27); VDP_drawTextBG(BG_A, "OUT    ", 43, 27); }
+    else { VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "999    ", 3, 27); VDP_drawTextBG(BG_A, "999    ", 43, 27); }
 
     // PPS
     /*if (PPS < 1000) { uintToStr(PPS, str, 3); DrawNum(BG_A, PAL1, str, 21, 27); DrawNum(BG_A, PAL1, str, 61, 27); }
@@ -1535,7 +1533,7 @@ void DrawPatternPlaybackCursor()
     else VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL3, 1, FALSE, TRUE, bgBaseTileIndex[2] + GUI_PLAYCURSOR), 60, line-12);
 }
 
-static void ChangeMatrixValue(s16 mod)
+static void ChangeMatrixValue(s16 mod, u8 externalSync)
 {
     static s32 value = 0;
 
@@ -1563,12 +1561,19 @@ static void ChangeMatrixValue(s16 mod)
     }
     else // tempo
     {
-        if (mod)
+        if (mod || !externalSync)
         {
             value = SRAMW_readWord(TEMPO) - mod;
             if (value < TICK_SKIP_MIN) value = TICK_SKIP_MIN;
             else if (value > TICK_SKIP_MAX) value = TICK_SKIP_MAX;
+            useExternalSync = FALSE;
             SetBPM((u16)value);
+        }
+        else if (externalSync)
+        {
+            useExternalSync = TRUE;
+            DrawInfo();
+            return;
         }
     }
 }
@@ -1754,6 +1759,10 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
             {
                 stop_playback();
             }
+            break;
+
+        case BUTTON_B: // external sync from gamepad;
+            bDoPulse = useExternalSync;
             break;
         }
         if (selectedPatternColumn >= PATTERN_COLUMNS) patternColumnShift = PATTEN_ROWS_PER_SIDE; else patternColumnShift = 0;
@@ -1951,13 +1960,13 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         }
                     }
                     break;
-                case BUTTON_RIGHT: ChangeMatrixValue(1);
+                case BUTTON_RIGHT: ChangeMatrixValue(1, FALSE);
                     break;
-                case BUTTON_LEFT: ChangeMatrixValue(-1);
+                case BUTTON_LEFT: ChangeMatrixValue(-1, FALSE);
                     break;
-                case BUTTON_UP: ChangeMatrixValue(16);
+                case BUTTON_UP: ChangeMatrixValue(16, FALSE);
                     break;
-                case BUTTON_DOWN: ChangeMatrixValue(-16);
+                case BUTTON_DOWN: ChangeMatrixValue(-16, FALSE);
                     break;
                 }
                 break;
@@ -2006,7 +2015,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 break;
 
             case BUTTON_C:
-                ChangeMatrixValue(0); // clear
+                ChangeMatrixValue(0, !useExternalSync); // clear
                 break;
             // navigate pattern matrix first button press
             case BUTTON_LEFT: case BUTTON_RIGHT: case BUTTON_UP: case BUTTON_DOWN:

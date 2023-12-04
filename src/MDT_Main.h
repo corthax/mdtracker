@@ -170,7 +170,7 @@ static void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue);
 static void ApplyCommand_PSG(u8 fxParam, u8 fxValue);
 static void ChangeInstrumentParameter(s8 modifier, u8 changeAll);
 static void ChangePatternParameter(s8 note, s8 par);
-static void ChangeMatrixValue(s16 mod);
+static void ChangeMatrixValue(s16 mod, u8 externalSync);
 static void RequestZ80();
 static void ReleaseZ80();
 static void JoyEvent(u16 joy, u16 changed, u16 state);

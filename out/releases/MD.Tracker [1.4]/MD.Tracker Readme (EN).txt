@@ -95,6 +95,7 @@ Patterm Matrix [PM]
 
 Playback cursor indicates currently playing matrix row.
 I recommend to always use the first (--) matrix row for the track initializations, set tempo, sizes, load drivers etc.
+Press C on BPM selected to enable/disable external sync. Song ticks will advance with B pressed on gamepad, when playback is started and external sync is enabled.
 
 '
 	Navigate:
