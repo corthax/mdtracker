@@ -1733,7 +1733,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
         switch (state)
         {
         case BUTTON_START:
-            if (bPlayback == FALSE)
+            if (bPlayback == FALSE) // play from beginning
             {
                 pulseCounter = 0;
                 playingPatternRow = 0; // start from the first line of current pattern
@@ -1747,7 +1747,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
             break;
 
         case BUTTON_MODE:
-            if (bPlayback == FALSE)
+            if (bPlayback == FALSE) // play from current line
             {
                 pulseCounter = 0;
                 if (selectedPatternColumn < PATTERN_COLUMNS) playingPatternRow = selectedPatternRow; // start from the current selected pattern line
@@ -1757,11 +1757,12 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
             }
             else
             {
+                //bDoPulse = useExternalSync; // external sync from gamepad;
                 stop_playback();
             }
             break;
 
-        case BUTTON_B: // external sync from gamepad;
+        case BUTTON_B:
             bDoPulse = useExternalSync;
             break;
         }
@@ -1972,11 +1973,15 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 break;
 
             case BUTTON_B:
+
+                if (bPlayback) break; // no adding/removing rows during playback allowed
+
                 switch (changed)
                 {
                 case BUTTON_UP: // delete selected matrix row
                     if (selectedMatrixScreenRow < MATRIX_ROWS_ONPAGE)
                     {
+                        if (selectedMatrixRow == 0) break;
                         for (u8 row = selectedMatrixRow; row < MATRIX_ROW_LAST-1; row++)
                         {
                             for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
@@ -1999,6 +2004,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 case BUTTON_DOWN: // copy and insert selected matrix row
                     if (selectedMatrixScreenRow < MATRIX_ROWS_ONPAGE)
                     {
+                        if (selectedMatrixRow == 0) break;
                         for (u8 row = MATRIX_ROWS-2; row >= selectedMatrixRow; row--)
                         {
                             for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
