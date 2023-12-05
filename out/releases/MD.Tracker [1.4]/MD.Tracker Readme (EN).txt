@@ -341,6 +341,10 @@ Play DAC sample at CH4 (4PCM), Bank 0,1,2,3.
 	74,78,7C,80 xx
 xx: note, up to 5F; FF = NOTE OFF
 
+Set 4PCM channel volume
+	81xy
+x: channel: 1..4 (0 = all channels); y: volume 0..F
+
 Tip: These commands can be used on any tracker channel. You can have multichannel PCM drums playing mostly on FM6 but other samples somewhere else.
 
 //////////////////
@@ -762,6 +766,7 @@ Changelog:
         Command 72,76,7A,7E xx - Play DAC channel 2 (note number up to 5F, FF = NOTE OFF). Bank 0,1,2,3.
         Command 73,77,7B,7F xx - Play DAC channel 3 (note number up to 5F, FF = NOTE OFF). Bank 0,1,2,3.
         Command 74,78,7C,80 xx - Play DAC channel 4 (note number up to 5F, FF = NOTE OFF). Bank 0,1,2,3.
+		Command 81xy - Set 4PCM channel volume (x: channel 1..4, 0 = ALL; y: volume 0..F).
 			
 		Pattern range selection to button Z + U/D.
         B + D-Pad - whole pattern/selection transpose +/- octave/semitone. Will not destroy melody if one of resulted notes goes out of range.

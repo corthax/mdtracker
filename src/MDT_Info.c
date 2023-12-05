@@ -132,7 +132,7 @@ void InitInfo()
     infoCommands[0x7E] = "DAC PLAY CH2              BANK 3";
     infoCommands[0x7F] = "DAC PLAY CH3              BANK 3";
     infoCommands[0x80] = "DAC PLAY CH4              BANK 3";
-    infoCommands[0x81] = "";
+    infoCommands[0x81] = "SET 4PCM CHANNEL VOLUME         ";
     infoCommands[0x82] = "";
     infoCommands[0x83] = "";
     infoCommands[0x84] = "";
@@ -391,7 +391,7 @@ void InitInfo()
     infoDescriptions[0x7E] = "XX : NOTE NUMBER. FF = CH2 NOTE OFF  ";
     infoDescriptions[0x7F] = "XX : NOTE NUMBER. FF = CH3 NOTE OFF  ";
     infoDescriptions[0x80] = "XX : NOTE NUMBER. FF = CH4 NOTE OFF  ";
-    infoDescriptions[0x81] = "";
+    infoDescriptions[0x81] = "X: CHAN. 1..4 (0 = ALL), Y: VOL. 0..F";
     infoDescriptions[0x82] = "";
     infoDescriptions[0x83] = "";
     infoDescriptions[0x84] = "";

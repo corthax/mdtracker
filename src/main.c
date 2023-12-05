@@ -5548,6 +5548,21 @@ static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
     case 0x7C: dac_play(SOUND_PCM_CH4, SOUND_PCM_CH4_MSK, 2); break;
     case 0x80: dac_play(SOUND_PCM_CH4, SOUND_PCM_CH4_MSK, 3); break;
 
+    // 4PCM VOLUME
+    case 0x81:
+        if (fxValue < 0x10)
+        {
+            SND_setVolume_4PCM(SOUND_PCM_CH1, fxValue);
+            SND_setVolume_4PCM(SOUND_PCM_CH2, fxValue);
+            SND_setVolume_4PCM(SOUND_PCM_CH3, fxValue);
+            SND_setVolume_4PCM(SOUND_PCM_CH4, fxValue);
+        }
+        else if (fxValue < 0x50)
+        {
+            SND_setVolume_4PCM((fxValue >> 4)-1, fxValue & 0x0F);
+        }
+    break;
+
     default: break;
     }
 }
