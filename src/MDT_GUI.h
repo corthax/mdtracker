@@ -226,6 +226,7 @@ void DrawPatternPlaybackCursor();
 void NavigateMatrix(u8 direction);
 void NavigatePattern(u8 direction);
 void NavigateInstrument(u8 direction);
+void RedrawMarks();
 void ReColorsAndTranspose();
 void DisplaySampleName(u8 xPos, u8 yPos, u8 note, u8 bank);
 #endif // MDT_GUI_H_INCLUDED

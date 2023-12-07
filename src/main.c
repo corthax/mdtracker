@@ -224,6 +224,8 @@ u8 midiPreset = 0;
 char sampleName[] = "--------------";
 
 bool bReColorsAndTranspose = TRUE;
+u8 rcat_ch = CHANNEL_FM1;
+u8 rcat_row = 0;
 
 /*
 u16 msu_drv();
@@ -1861,8 +1863,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         col = SRAM_ReadPatternColor(selectedPatternID)-1;
                         if (col < 0) col = GUI_PATTERN_COLORS_MAX;
                         SRAM_WritePatternColor(selectedPatternID, col);
-                        //ReColorsAndTranspose();
-                        bReColorsAndTranspose = TRUE;
+                        RedrawMarks();
                     }
                     break;
 
@@ -1873,8 +1874,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         col = SRAM_ReadPatternColor(selectedPatternID)+1;
                         if (col > GUI_PATTERN_COLORS_MAX) col = 0;
                         SRAM_WritePatternColor(selectedPatternID, col);
-                        //ReColorsAndTranspose();
-                        bReColorsAndTranspose = TRUE;
+                        RedrawMarks();
                     }
                     break;
 
@@ -1883,8 +1883,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     if (transpose < 12)
                     {
                         transpose++; SRAM_WriteMatrixTranspose(selectedMatrixChannel, selectedMatrixRow, transpose);
-                        //ReColorsAndTranspose();
-                        bReColorsAndTranspose = TRUE;
+                        RedrawMarks();
                     }
                     break;
 
@@ -1893,8 +1892,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     if (transpose > -12)
                     {
                         transpose--; SRAM_WriteMatrixTranspose(selectedMatrixChannel, selectedMatrixRow, transpose);
-                        //ReColorsAndTranspose();
-                        bReColorsAndTranspose = TRUE;
+                        RedrawMarks();
                     }
                     break;
 
@@ -1906,8 +1904,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         if (col != 0)
                         {
                             SRAM_WritePatternColor(selectedPatternID, 0);
-                            //ReColorsAndTranspose();
-                            bReColorsAndTranspose = TRUE;
+                        RedrawMarks();
                         }
                     }
                     break;
@@ -1924,8 +1921,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         currentPage++;
                         bRefreshScreen = bInitScreen = TRUE;
                         matrixRowToRefresh = OXFFFF;
-                        //ReColorsAndTranspose();
-                        bReColorsAndTranspose = TRUE;
+                        RedrawMarks();
                     }
                     break;
 
@@ -1935,8 +1931,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         currentPage--;
                         bRefreshScreen = bInitScreen = TRUE;
                         matrixRowToRefresh = OXFFFF;
-                        //ReColorsAndTranspose();
-                        bReColorsAndTranspose = TRUE;
+                        RedrawMarks();
                     }
                     break;
 
@@ -6163,59 +6158,44 @@ void FillRowRight(u8 plane, u8 pal, u8 flipV, u8 flipH, u8 guiSymbol, u8 fillCou
         VDP_setTileMapXY(plane, TILE_ATTR_FULL(pal, 1, flipV, flipH, bgBaseTileIndex[2] + guiSymbol), x, y);
 }
 
+void RedrawMarks()
+{
+    bReColorsAndTranspose = TRUE;
+    rcat_ch = CHANNEL_FM1;
+    rcat_row = 0;
+}
+
 void ReColorsAndTranspose() // on color change
 {
-    static u8 ch = CHANNEL_FM1;
-    static u8 row = 0;
-
     if (bReColorsAndTranspose)
     {
-        if (row == MATRIX_ROWS_ONPAGE)
+        if (rcat_row == MATRIX_ROWS_ONPAGE)
         {
-            ch++;
-            row = 0;
+            rcat_ch++;
+            rcat_row = 0;
 
-            if (ch > CHANNEL_PSG4_NOISE)
+            if (rcat_ch > CHANNEL_PSG4_NOISE)
             {
                 bReColorsAndTranspose = FALSE;
-                ch = CHANNEL_FM1;
                 return;
             }
         }
 
-        u16 pt = SRAM_ReadMatrix(ch, row + currentPage * MATRIX_ROWS_ONPAGE);
-        s8 tr = SRAM_ReadMatrixTranspose(ch, row + currentPage * MATRIX_ROWS_ONPAGE);
+        u16 pt = SRAM_ReadMatrix(rcat_ch, rcat_row + currentPage * MATRIX_ROWS_ONPAGE);
+        s8 tr = SRAM_ReadMatrixTranspose(rcat_ch, rcat_row + currentPage * MATRIX_ROWS_ONPAGE);
 
         if (pt != NULL)
         {
-            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PATTERNCOLORS[SRAM_ReadPatternColor(pt)]), ch*3+2, row+2);
+            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PATTERNCOLORS[SRAM_ReadPatternColor(pt)]), rcat_ch*3+2, rcat_row+2);
         }
         else
         {
-            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), ch*3+2, row+2);
+            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), rcat_ch*3+2, rcat_row+2);
         }
-        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[3] + GUI_TRANSPOSE + tr), ch*3, row+2);
+        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[3] + GUI_TRANSPOSE + tr), rcat_ch*3, rcat_row+2);
 
-        row++;
+        rcat_row++;
     }
-
-    /*for (u8 ch = CHANNEL_FM1; ch <= CHANNEL_PSG4_NOISE; ch++)
-    {
-        for (u8 row = 0; row < MATRIX_ROWS_ONPAGE; row++)
-        {
-            pt = SRAM_ReadMatrix(ch, row + currentPage * MATRIX_ROWS_ONPAGE);
-            tr = SRAM_ReadMatrixTranspose(ch, row + currentPage * MATRIX_ROWS_ONPAGE);
-            if (pt != NULL)
-            {
-                VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PATTERNCOLORS[SRAM_ReadPatternColor(pt)]), ch*3+2, row+2);
-            }
-            else
-            {
-                VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), ch*3+2, row+2);
-            }
-            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, bgBaseTileIndex[3] + GUI_TRANSPOSE + tr), ch*3, row+2);
-        }
-    }*/
 }
 
 // instrument
