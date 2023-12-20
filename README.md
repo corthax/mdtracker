@@ -56,10 +56,11 @@ Demo music (recorded from sega nomad + guitars + vocals): https://youtu.be/evPza
 ---
 
 Pattern matrix
-![2022-09-03 12_43_57-RetroArch BlastEm 0 6 3-pre](https://user-images.githubusercontent.com/36992223/188265546-520a7bba-c9bd-4e40-8103-254bb4b3c89d.png)
+![mtx](https://github.com/corthax/mdtracker/assets/36992223/33f80f19-ddb0-41cb-8bf0-a5939ea235f1)
 
 Pattern editor
-![2022-09-03 12_47_38-RetroArch BlastEm 0 6 3-pre](https://user-images.githubusercontent.com/36992223/188265556-c716742e-3b5f-4977-9dc9-709a10657c2c.png)
+![ptn](https://github.com/corthax/mdtracker/assets/36992223/ce5a0937-9419-46b0-a068-4add7f041287)
 
 Instrument editor
-![2022-09-03 12_50_25-RetroArch BlastEm 0 6 3-pre](https://user-images.githubusercontent.com/36992223/188265567-da0892f1-48e1-424a-98b6-b064d62e36fe.png)
+![inst](https://github.com/corthax/mdtracker/assets/36992223/aeece754-a6d9-40f4-b04a-656ac43c8ab5)
+
