@@ -17,25 +17,23 @@ Works in:
 //////////////////
 
 Emulators: 
-	PicoDrive (RetroArch) - use [mdt***] version.
+	PicoDrive (RetroArch) - use [mdt***-medpro] version.
 		Possible issues:
 		PSG Noise channel wrong pitch.
 		FM CH.6 DAC pan not working.
 		FM CH.3 Special+CSM mode not working.
 		
-	BlastEm (RetroArch) - use [mdt***] version.
+	BlastEm (RetroArch) - use [mdt***-medpro] version.
 
 	BlastEm (Standalone 0.6.3+) - use [mdt***-blastem] version.
 	
 //////////////////
 
 Flashcarts: 
-	Mega Everdrive Pro - use [mdt***] version.
-		ISSUES:
-		Replaced .srm file may be not reloaded on rom start. Remove *rom name*.cfg in \MEGA\sys\romcfg\
+	Mega Everdrive Pro - use [mdt***-medpro] version.
+		ISSUES: (May be fixed in latest OS)
+		Replaced .srm file may be not reloaded on rom start.
 		To dump save file from SRAM to SD card, reset console BEFORE power off.
-		
-	Mega Everdrive X7 - use [mdt***-x7] version. (WIP!)
 		
 //////////////////
 
@@ -736,10 +734,10 @@ Changelog:
 ----------------
 1.04
 	Bugs:
-		BMP is not precise, but close.
+		BPM is not precise, but close.
 		FM CH6 DAC sample playback make occasional garbage noises. But looks like only when song is stopped or NOTE OFF is used to stop sample playback.
 		Not tested in PAL mode, so may be broken.
-		Minor visual glitches may happen. 
+		Minor visual glitches may happen (something is not redrawn).
 		
 	Fixes:
 		A bit smoother playback.
@@ -747,7 +745,7 @@ Changelog:
 		Instrument mute/solo.
 		SEQ timing fix.
 		No adding/deleting matrix rows now allowed during playback.
-        -- matrix row now can not be deleted or duplicated.
+        -- (0th) matrix row now can not be deleted or duplicated.
         Switching matrix page, also changing cell color mark or transpose causing slowdown. 
 		
 	Changes:
@@ -768,12 +766,12 @@ Changelog:
         Command 74,78,7C,80 xx - Play DAC channel 4 (note number up to 5F, FF = NOTE OFF). Bank 0,1,2,3.
 		Command 81xy - Set 4PCM channel volume (x: channel 1..4, 0 = ALL; y: volume 0..F).
 			
-		Pattern range selection to button Z + U/D.
+		Pattern range selection changed to button Z + U/D.
         B + D-Pad - whole pattern/selection transpose +/- octave/semitone. Will not destroy melody if one of resulted notes goes out of range.
         Print currently highlighted pattern command description and instrument name, instead of last entered.
         (A+B) + D-Pad - Change all values in ARP/SEQ (Skip empty steps), FM Operators.
 		
-		External sync mode using gamepad input (Button MODE). Press C on BPM at Pattern Matrix to enable/disable. Each time button pressed next song pulse processed.
+		External sync mode using gamepad input (Button MODE). Press C on BPM at Pattern Matrix to enable/disable. Each time button pressed the next song pulse proceed.
 		Sample name now displayed in instrument editor and for selected note in pattern editor (when FM6 in DAC mode).
 		
 		Removed non working MSU-MD driver.

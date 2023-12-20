@@ -4,7 +4,6 @@
 
 // krikzz
 #include <ssf.h>
-//#include "ext/everdrive.h"
 
 // res
 #include "fontdata.h"
@@ -3082,24 +3081,26 @@ void PrintSelectedPositionInfo()
             PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_FX2_TYPE)); break;
         case DATA_FX3_TYPE: case DATA_FX3_VALUE:
             PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_FX3_TYPE)); break;
-        case DATA_FX4_TYPE: case DATA_FX4_VALUE:
-            PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_FX4_TYPE)); break;
-        case DATA_FX5_TYPE: case DATA_FX5_VALUE:
-            PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_FX5_TYPE)); break;
-        case DATA_FX6_TYPE: case DATA_FX6_VALUE:
-            PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_FX6_TYPE)); break;
         case DATA_FX1_TYPE+PATTERN_COLUMNS: case DATA_FX1_VALUE+PATTERN_COLUMNS:
             PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow+PATTEN_ROWS_PER_SIDE, DATA_FX1_TYPE)); break;
         case DATA_FX2_TYPE+PATTERN_COLUMNS: case DATA_FX2_VALUE+PATTERN_COLUMNS:
             PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow+PATTEN_ROWS_PER_SIDE, DATA_FX2_TYPE)); break;
         case DATA_FX3_TYPE+PATTERN_COLUMNS: case DATA_FX3_VALUE+PATTERN_COLUMNS:
             PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow+PATTEN_ROWS_PER_SIDE, DATA_FX3_TYPE)); break;
+#if (MDT_VERSION == 0 || MDT_VERSION == 1)
+        case DATA_FX4_TYPE: case DATA_FX4_VALUE:
+            PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_FX4_TYPE)); break;
+        case DATA_FX5_TYPE: case DATA_FX5_VALUE:
+            PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_FX5_TYPE)); break;
+        case DATA_FX6_TYPE: case DATA_FX6_VALUE:
+            PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_FX6_TYPE)); break;
         case DATA_FX4_TYPE+PATTERN_COLUMNS: case DATA_FX4_VALUE+PATTERN_COLUMNS:
             PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow+PATTEN_ROWS_PER_SIDE, DATA_FX4_TYPE)); break;
         case DATA_FX5_TYPE+PATTERN_COLUMNS: case DATA_FX5_VALUE+PATTERN_COLUMNS:
             PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow+PATTEN_ROWS_PER_SIDE, DATA_FX5_TYPE)); break;
         case DATA_FX6_TYPE+PATTERN_COLUMNS: case DATA_FX6_VALUE+PATTERN_COLUMNS:
             PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow+PATTEN_ROWS_PER_SIDE, DATA_FX6_TYPE)); break;
+#endif
     }
 }
 
@@ -6530,11 +6531,6 @@ void FileWriteHeader()
 
 void DrawStaticGUI()
 {
-    // draw default initial brackets
-    currentScreen = 2; DrawSelectionCursor(0, 0, 0); // instrument
-    currentScreen = 1; DrawSelectionCursor(0, 0, 0); // pattern
-    currentScreen = 0; DrawSelectionCursor(0, 0, 0); // matrix
-
     //VDP_clearTileMap(WINDOW, 0, 40*28, TRUE); // BG_B is still visible
 
     // ----------------------------------- matrix editor
@@ -6760,6 +6756,11 @@ void DrawStaticGUI()
     VDP_drawText("AM LFO RATE:", 80, 23);
     VDP_drawText("SEQ:", 80, 25);
     VDP_drawText("ARP:", 80, 26);
+
+    // draw initial selection cursors
+    currentScreen = 2; DrawSelectionCursor(0, 0, 0); // instrument
+    currentScreen = 1; DrawSelectionCursor(0, 0, 0); // pattern
+    currentScreen = 0; DrawSelectionCursor(0, 0, 0); // matrix
 }
 
 /*static u32 SRAM_ReadSampleRegionLegacy(u8 bank, u8 note, u8 byteNum)
@@ -6977,3 +6978,4 @@ void ForceResetVariables()
         }
     }
 }
+

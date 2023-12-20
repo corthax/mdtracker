@@ -11,7 +11,7 @@ namespace mdteditor
 {
     public partial class mdtEditor : Form
     {
-        private int ROM_SAMPLE_BANK = 0x0002E600; // symbol.txt sample_bank_1; check when md.tracker code is changed
+        private int ROM_SAMPLE_BANK = 0x00030800; // symbol.txt sample_bank_1; check when md.tracker code is changed
         private const int ROM_SAMPLE_NAMES_SIZE = NOTES_TOTAL * ROM_SAMPLE_NAME_SIZE; // 96 * 4 * 14 bytes
         private const int ROM_SAMPLE_BANK_SIZE = 3399000 - ROM_SAMPLE_NAMES_SIZE;
         private const int ROM_SAMPLE_NAME_SIZE = 14;

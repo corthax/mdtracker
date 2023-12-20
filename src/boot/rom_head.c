@@ -53,7 +53,7 @@ const ROMHeader rom_header = {
 
 #elif (MDT_VERSION == 3)
 
-    "SEGA SSF        ", // Mega Everdrive X7
+    "SEGA SSF        ", // MEGA EVERDRIVE X7
 
 #endif
 
@@ -137,6 +137,7 @@ const ROMHeader rom_header = {
 #elif (MDT_VERSION == 3)
 
     0x003C0000, // SRAM start; upper half of 31 bank
+    //0x00380000,
 
 #endif
 
