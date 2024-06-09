@@ -216,6 +216,7 @@
 void DrawMute(u8 mtxCh);
 void DrawStaticGUI();
 void DrawInfo();
+void DrawBPM();
 void DisplayPatternMatrix();
 void DisplayPatternEditor();
 void DisplayInstrumentEditor();

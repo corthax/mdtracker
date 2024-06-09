@@ -26,7 +26,7 @@
 //#define MDT_VERSION 3
 //-------------------------------
 
-#define MDT_HEADER              "MDT104"
+#define MDT_HEADER              "MDT105"
 #define STRING_EMPTY            ""
 #define H_INT_DURATION_NTSC     744     // ; 744
 #define H_INT_DURATION_PAL      892     // ; 892
@@ -1280,6 +1280,9 @@ static void DoEngine()
 
             if (pulseCounter == 0) // row first pulse; prepare command, note, instrument, draw cursor
             {
+
+                //BPM = ((getTimer(1, TRUE) * 240) / 18432); DrawBPM();
+
                 // main slowdown!
                 do_row(CHANNEL_FM1);
                 do_row(CHANNEL_FM2);
@@ -1297,7 +1300,7 @@ static void DoEngine()
 
                 if (currentScreen == SCREEN_PATTERN) ClearPatternPlaybackCursor();
 
-                if (matrixRowJumpTo != OXFF && currentScreen == SCREEN_MATRIX)
+                if (matrixRowJumpTo != OXFF && currentScreen == SCREEN_MATRIX) // is jump command is set while on matrix screen
                 {
                     playingPatternRow = 0x20; // overflow to trigger next condition
                 }
@@ -1343,6 +1346,8 @@ static void DoEngine()
                     }
 
                     DrawMatrixPlaybackCursor(FALSE);
+
+                    //BPM = ((getTimer(1, TRUE) / 32 * 240) / 18432); DrawBPM();
                 }
 
                 if (currentScreen == SCREEN_PATTERN) DrawPatternPlaybackCursor();
@@ -1459,6 +1464,23 @@ static void SetBPM(u16 tempo)
 
     //PPS = (((BPM * 1000) / 6) * ppb) / 10000; // pulse per second
     DrawInfo();
+}
+
+void DrawBPM()
+{
+    // BPM
+    if (BPM < 1000)
+    {
+        /*fix32ToStr(fBPM, str, 2);
+        VDP_setTextPalette(PAL2);
+        VDP_drawTextBG(BG_A, str, 5, 27);
+        VDP_drawTextBG(BG_A, str, 45, 27);*/
+
+        uintToStr(BPM, str, 3);
+        DrawNum(BG_A, PAL0, str, 3, 27);
+        DrawNum(BG_A, PAL1, str, 43, 27);
+    }
+    else { VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "999    ", 3, 27); VDP_drawTextBG(BG_A, "999    ", 43, 27); }
 }
 
 void DrawInfo()
@@ -3618,6 +3640,7 @@ static void ChangeInstrumentParameter(s8 modifier, u8 changeAll)
             SRAM_WriteInstrument(selectedInstrumentID, INST_SSGEG1 + selectedInstrumentOperator, value);
         }
         break;
+    // non instrument (global)
     case GUI_INST_PARAM_LFO:
         value = SRAMW_readByte(GLOBAL_LFO) + modifier;
         if (value < 7) value = 15; else if (value > 15) value = 7;
@@ -4323,7 +4346,7 @@ static void SetChannelVolume(u8 mtxCh)
 FORCE_INLINE static void RequestZ80()
 {
     //if (!Z80_isBusTaken()) Z80_requestBus(TRUE);
-    Z80_getAndRequestBus(TRUE);
+    Z80_requestBus(TRUE);
 }
 
 FORCE_INLINE static void ReleaseZ80()
@@ -5389,6 +5412,20 @@ static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
         }
     }
 
+    auto void load_dac_driver(u16 driver)
+    {
+        if (Z80_getLoadedDriver() != driver)
+        {
+            SYS_disableInts();
+            Z80_loadDriver(driver, TRUE);
+            // to trigger FM instruments rewrite on playback (fixing muted sound)
+            for (u8 mtxCh = CHANNEL_FM1; mtxCh < CHANNEL_PSG1; mtxCh++)
+                channelPreviousInstrument[mtxCh] = NULL;
+            SYS_enableInts();
+        }
+        SetGlobalLFO(SRAMW_readByte(GLOBAL_LFO));
+    }
+
     switch (fxParam)
     {
     // DAC
@@ -5494,25 +5531,13 @@ static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
         switch (fxValue)
         {
         case 0:
-            if (Z80_getLoadedDriver() != Z80_DRIVER_PCM)
-            {
-                StopChannelSound(CHANNEL_FM6_DAC);
-                Z80_loadDriver(Z80_DRIVER_PCM, FALSE);
-            }
+            load_dac_driver(Z80_DRIVER_PCM);
             break;
         case 1:
-            if (Z80_getLoadedDriver() != Z80_DRIVER_4PCM)
-            {
-                StopChannelSound(CHANNEL_FM6_DAC);
-                Z80_loadDriver(Z80_DRIVER_4PCM, FALSE);
-            }
+            load_dac_driver(Z80_DRIVER_4PCM);
             break;
         case 2:
-            if (Z80_getLoadedDriver() != Z80_DRIVER_2ADPCM)
-            {
-                StopChannelSound(CHANNEL_FM6_DAC);
-                Z80_loadDriver(Z80_DRIVER_2ADPCM, FALSE);
-            }
+            load_dac_driver(Z80_DRIVER_2ADPCM);
             break;
         default:
             break;
@@ -6084,7 +6109,7 @@ static void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue)
         break;
 
     // ALGORITHM
-    case COMMAND_ALG:
+    case 0x0A:
         if (fxValue > 0x07) chInst[mtxCh].ALG = tmpInst[id].ALG;
         else chInst[mtxCh].ALG = fxValue;
         write_fb_alg();
@@ -6350,7 +6375,7 @@ void InitTracker()
     //Z80_loadCustomDriver((u8*)0x61E, (u16)0x1B36); // dualpcm_drv in symbols.txt, bin file size
 
     Z80_setForceDelayDMA(TRUE);
-    Z80_enableBusProtection(); // for XGM
+    //Z80_enableBusProtection(); // for XGM
 
     JOY_setSupport(PORT_1, JOY_SUPPORT_6BTN);
     JOY_setSupport(PORT_2, JOY_SUPPORT_6BTN);

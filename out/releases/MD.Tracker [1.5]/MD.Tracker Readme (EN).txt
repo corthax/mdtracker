@@ -1,0 +1,828 @@
+----------------
+Native music tracker for SEGA MEGADRIVE / GENESIS / NOMAD
+Source code: https://github.com/corthax/mdtracker
+Powered by SGDK
+----------------
+ ██████   ██████ ██████████      ███████████                              █████                        
+░░██████ ██████ ░░███░░░░███    ░█░░░███░░░█                             ░░███                         
+ ░███░█████░███  ░███   ░░███   ░   ░███  ░  ████████   ██████    ██████  ░███ █████  ██████  ████████ 
+ ░███░░███ ░███  ░███    ░███       ░███    ░░███░░███ ░░░░░███  ███░░███ ░███░░███  ███░░███░░███░░███
+ ░███ ░░░  ░███  ░███    ░███       ░███     ░███ ░░░   ███████ ░███ ░░░  ░██████░  ░███████  ░███ ░░░ 
+ ░███      ░███  ░███    ███        ░███     ░███      ███░░███ ░███  ███ ░███░░███ ░███░░░   ░███     
+ █████     █████ ██████████   ██    █████    █████    ░░████████░░██████  ████ █████░░██████  █████    
+░░░░░     ░░░░░ ░░░░░░░░░░   ░░    ░░░░░    ░░░░░      ░░░░░░░░  ░░░░░░  ░░░░ ░░░░░  ░░░░░░  ░░░░░     
+
+//////////////////
+Works in:
+//////////////////
+
+Emulators: 
+	PicoDrive (RetroArch) - use [mdt***-medpro] version.
+		Possible issues:
+		PSG Noise channel wrong pitch.
+		FM CH.6 DAC pan not working.
+		FM CH.3 Special+CSM mode not working.
+		
+	BlastEm (RetroArch) - use [mdt***-medpro] version.
+
+	BlastEm (Standalone 0.6.3+) - use [mdt***-blastem] version.
+	
+//////////////////
+
+Flashcarts: 
+	Mega Everdrive Pro - use [mdt***-medpro] version.
+		ISSUES: (May be fixed in latest OS)
+		Replaced .srm file may be not reloaded on rom start.
+		To dump save file from SRAM to SD card, reset console BEFORE power off.
+		
+//////////////////
+
+If there is no song data, default empty is generated.
+To save as new song just rename the ROM, or move/rename your save file.
+
+If your goal is to make a VGM file, then go with standalone BlastEm (latest 0.6.3+) as it has VGM logging (press 'M' to start/stop it).
+VGM File then can be edited and optimized with VGM TOOLS and optvgm (http://project2612.org/optvgm.zip)
+Use overclocking for best performance if song tick rate is set high =^..^=
+
+//////////////////
+
+----------------
+Features
+----------------
+
+32 rows per pattern (max).
+250 pattern rows in matrix (25 per page).
+255 instruments.
+Additional 32 step ARP and SEQ tick sequencers.
+FM (YM2612/YM3438) CSM and CH3 Special/CSM Modes support, CH6 DAC support (PCM, 4PCM, 2ADPCM drivers of choise).
+PSG (SN76489) support.
+895 patterns.
+384 samples (96 notes * 4 banks).
+6 commands per row.
+
+----
+
+Note range: C-0 .. B-7
+FM:		A4 = 440.12574005126953 Hz (NTSC)
+PSG:	A4 = 440.39677657480314 Hz (NTSC)
+		Lowest note is A-0 (FreqNum 1016~), high part of G#0 (FreqNum 1023~) is also possible, below that is the same notes as octave higher.
+		Frequency number of all microtones of A#7 is 1, B-7 is 0.
+
+1 .. 16 pulses per pattern row.
+Song data is automatically saved to SRAM at any parameter change.
+SRAM used as additional RAM, but only contains the module data.
+
+----------------
+Global Controls
+----------------
+
+From Pattern Matrix [PM] - current selected pattern will be opened. Nothing if no pattern is selected.
+From Pattern Editor [PE] - current selected instrument will be opened. Last if no instument is selected.
+From Instrument Editor [IE] - no special.
+
+	Start	Play song from the beginning of selected pattern in the matrix.
+
+	Mode	Play song from position of selected pattern in the matrix + selected row in pattern editor.
+	
+BPM: Displays current BPM. Not precise.
+PPL: Pulses per odd | even lines. Higher values will increase presicion, but needs more cpu. Less than 4 is recommended for non overclocked hardware/emulator.
+
+----------------
+Patterm Matrix [PM]
+----------------
+
+Playback cursor indicates currently playing matrix row.
+I recommend to always use the first (--) matrix row for the track initializations, set tempo, sizes, load drivers etc.
+Press C on BPM selected to enable/disable external sync. Song ticks will advance with MODE pressed on gamepad, when playback is started and external sync is enabled.
+
+'
+	Navigate:
+	
+	D-Pad	Navigate through rows / channels.
+
+	X+L		Go to [IE].
+	X+R		Go to [PE].
+	
+	Z+R		Select matrix page (+1).
+	Z+L		Select matrix page (-1).
+	Z+U		Select matrix page (+4).
+	Z+D		Select matrix page (-4).
+	
+	Mute, Un-mute, Solo:
+	
+	X+U		Mute channel. Unmute all channels if resulting all channels muted.
+	X+D		Un-Mute channel. Solo channel if all channels Un-Muted.
+	X+Y		Un-Mute all channels.
+	
+	Set pattern color preset: (tip: for instrument change or song chorus marks for ex.)
+	
+	Y+L		Previous slot
+	Y+R 	Next slot
+	Y+C		Clear color
+	
+	Edit:
+	
+	A+R		Change value (+1).
+	A+L		Change value (-1).
+	A+U		Change value (+16).
+	A+D		Change value (-16).
+	
+	A+B 	Find first unused pattern (Slow!).
+
+	C		Clear matrix cell.
+
+	Copy+Insert, Delete:
+
+	B+U		Delete selected matrix row, move rows below selected 1 up.
+	B+D		Copy and insert selected matrix row, move rows below selected 1 down, 250th matrix row will be lost.
+	
+	Note: Row "--" cannot be deleted or cloned.
+	
+	Matrix cell transposition:
+	
+	Y+U/D 	+/- 1 semitone (12 semitones max).
+'
+
+----------------
+Patterm Editor
+----------------
+
+Split into two parts to fit nice on the screen, each consist of:
+Note, Instrument, Effect 1 type, Effect 1 value, Effect 2 type, Effect 2 value ...
+Current pattern is looped when pattern or instrument editor is active.
+
+'
+	Navigate:
+	
+	D-Pad	Navigate rows / columns.
+	
+	X+L		Go to MATRIX editor.
+	X+R		Go to INSTRUMENT editor.
+	
+	Y		Jump to opposite side.
+	
+	Edit:
+	
+	A+R		Change value (+1).
+	A+L		Change value (-1).
+	A+U		Change value (+16).
+	A+D		Change value (-16).
+			Note: Modify current value or insert last entered note/fx if empty.
+	
+	C		Clear value.
+	C+B		Set note OFF on note column.
+	
+	When note column is selected, whole pattern or selected range: (non-destructive, will stop at lowest and highest notes possible)
+	B+R     semitone +1
+	B+L     semitone -1	 
+	B+U     semitone +12	 
+	B+D     semitone -12
+
+	
+	Copy/Paste:
+
+	Z+D		Select range, in current pattern, starting from selected row and below. Pressing Z always clears selection range.
+	Z+U 	Select all;
+
+	A+C 	Copy and Paste data from previously selected range into selected column of current pattern, starting from selected row.
+	A+B 	Same as above, but paste all data columns.
+	
+'
+
+----------------
+Instrument Editor
+----------------
+
+'
+	Navigate:
+	
+	D-Pad	Navigate through parameters.
+	
+	X+L		Go to PATTERN editor.
+	X+R		Go to MATRIX editor.
+	
+	Z+R		Select instrument (+1).
+	Z+L		Select instrument (-1).
+	Z+U		Select instrument (+16).
+	Z+D		Select instrument (-16).
+	
+	Edit:
+	
+	Change value:
+	A+R		+1
+	A+L		-1
+	A+U		+8
+	A+D		-8
+	
+	Change values: all SEQ/ARP steps (except empty), all 4 FM operators:
+	(A+B)+R		+1
+	(A+B)+L		-1
+	(A+B)+U		+8
+	(A+B)+D		-8
+
+
+	Y+L/R	Select instrument for editing (+-1).
+	Y+U/D	Select instrument for editing (+-16).
+
+	Sample:
+	
+	Bank			Select bank for editing.
+	Note			Select note in bank, which region is edited.
+	Region Start	Playback start time (samples, HEX).
+	Region End		Playback end time (samples, HEX). Should be greater than start time.
+	Loop			Is sample playback oneshot or looped.
+	Pan				Default sample pan, L/C/R.
+	
+	Mute, Un-mute, Solo: (State)
+	
+	X+U 	Mute instrument, sets instrument notes to always play NOTE OFF. Does not unmute all other instruments if previously was set to SOLO.
+	X+D 	Solo instrument. All other instruments are muted.
+	X+Y 	Un-Mute all instruments.
+	
+	General MIDI basic presets bank: (Preset)
+	
+	A+D-Pad	Select.
+	B 		Load into current instrument.	
+
+'
+
+------
+SEQ:
+Value sequence.
+Default is 41 (volume attenuation):
+	Substracted from FM slots TL or PSG max volume.
+	Divided by 8 for PSG.
+------
+	C		Set --: to skip step. 
+
+	B 		Set step value to 00.
+
+------
+ARP:
+Arpeggiator note sequence.
+".." base note.
+Arp range is +- 24 semitones, if resulting note is not in C-0 .. B-7 range, then the base note is played instead.
+------
+	C 		Set --: to skip step.
+
+	B 		Enable step.
+------
+Instrument column on PSG channels will set both SEQ and ARP sequences for this channel. Overriden by [30] and [40] commands.
+------
+
+NAME: 	8 symbols.
+COPY: 	B to copy current FM instrument into selected instrument.
+STATE:	Indicates instrument state: playing [PLAY], muted [MUTE] or solo [SOLO] state.
+
+---------------------------------------------------------------------------------------------------
++ /// /// /// /// /// /// /// /// /// /// /// Effects /// /// /// /// /// /// /// /// /// /// /// +
+---------------------------------------------------------------------------------------------------
+
+All effect values are HEX.
+Commands are applied from left to right.
+
+------------------------------------------------
++ Miscellaneous
+------------------------------------------------
+
+************************************************
+H-INT callback skip (Tempo divider. Higher = slower tempo and less BPM precision, but also less CPU load)
+	0Fxx
+xx: 00..FF; Recommended values (whole divisions of scanlines number):
+	NTSC 224: 01,02,04,08,10,20
+	PAL  240: 01,02,04,08,10
+	1 = no skips, 2 = every second scanline, 4 = every 4th scanline, etc.
+	Maximum values for NTSC/PAL are 225(0xE1)/241(0xF1), setting it higher breaking playback.
+	Usefull up to 112(0x70).
+	Can result in slower tempo if set too big ("lazy" counter) or too small (lots of H-INT callbacks per song tick).
+00: Set	to default (20)
+	
+************************************************	
+Global LFO
+	10xx	Affects the all instruments AMS, FMS, AM.
+xx: 01 .. 08; Frequency Hz: 3.82, 5.33, 5.77, 6.11, 6.60, 9.23, 46.11, 69.22
+00: to disable Global LFO.
+
+************************************************
+FM6 DAC (enabled by default)
+	11xx	
+xx:
+01 = Enable
+00 = Disable
+
+FM6 DAC Load PCM driver
+	70xx
+xx:
+00 = PCM (1 channel pcm 8kHz .. 32kHz)
+01 = 4PCM (4 channel pcm at 16kHz)
+02 = 2ADPCM (2 channel adpcm at 22050Hz)
+
+//////////////////
+WARNING
+//////////////////
+	Changing driver will reset YM and PSG, not really meant for realtime usage!
+//////////////////
+
+Play DAC sample at CH1 (4PCM, 2ADPCM), Bank 0,1,2,3.
+	71,75,79,7D xx
+xx: note, up to 5F; FF = NOTE OFF
+
+Play DAC sample at CH2 (4PCM, 2ADPCM), Bank 0,1,2,3.
+	72,76,7A,7E xx
+xx: note, up to 5F; FF = NOTE OFF
+
+Play DAC sample at CH3 (4PCM), Bank 0,1,2,3.
+	73,77,7B,7F xx
+xx: note, up to 5F; FF = NOTE OFF
+
+Play DAC sample at CH4 (4PCM), Bank 0,1,2,3.
+	74,78,7C,80 xx
+xx: note, up to 5F; FF = NOTE OFF
+
+Set 4PCM channel volume
+	81xy
+x: channel: 1..4 (0 = all channels); y: volume 0..F
+
+Tip: These commands can be used on any tracker channel. You can have multichannel PCM drums playing mostly on FM6 but other samples somewhere else.
+
+//////////////////
+WARNING
+//////////////////
+	FM registers writes/reads (instrument changes, timers pooling, etc) needs to bus request the Z80, which is running the PCM driver.
+	Speed of played sample may be affected if there are too many parameter changes at the same tick.
+//////////////////
+
+************************************************
+FM3 Channel Mode
+	12xx
+xx: 01 = SPECIAL; 02 = SPECIAL+CSM.
+SPECIAL:
+	CH3 operators have saparate pitch control.
+SPECIAL+CSM:
+	Instrument OP AR need to be set to 31 to produce any sound.
+	Pitch is far from perfect, especially for higher notes.
+	No ARP or VOL sequences applied.
+	Pitch commands acting as "filtering" effect.
+	Kill previous note just a tick before enabling SPECIAL+CSM mode to not introduce noticable click.
+	FM3 Channels: Use command 55xx to set each operator base note (frequency). It will affect it's "filtering" effect.
+	OP4 controls pitch in note column.
+00: set to NORMAL.
+
+************************************************
+TEMPO (H-INT counter skip, more skipped = slower BPM) 
+	13xx	
+xx: 01 .. FF
+00: reset to default project tempo.
+!!! Resulting BPM is not precise. Use only as basic guide if want to sync tracker with something else !!!
+
+************************************************
+ROW PPL Resolution (Pulse Per Line)
+Expect playback slowdown if set to high.
+Higher than 4/4 resolutions may require overcklocking, depending on desired tempo and song complexity.
+	14xy 
+x: 0 .. F; Odd lines.
+y: 0 .. F; Even lines.
+00: set to default 4; 
+
+************************************************
+N4 Channel Mode
+	15xy	PSG channels only.
+x: 1 = periodic noise; 2 = white noise;
+y: 0 = tonal, SQ3 muted; 1 = tonal, SQ3 not muted; 2, 3, 4 = fixed clock /2, /4, /8 (note pitch is ignored).
+
+************************************************
+PCM Sample ranges bank select
+	16xx
+xx: 00 .. 03; Each bank contains 96 sample region definitions, 1 per note.
+
+************************************************
+Set channel transpose in semitones
+	17xx
+x: 1 = UP; 2 = DOWN; Other values will reset transpose to 0;
+y: Semitones;
+
+************************************************
+Channel microtone finetune
+	18xx
+xx: 00 .. 1F; Adds microtones to channel pitch.
+
+************************************************
+Channel SEQ speed
+	19xx
+xx: Skip pulses.
+
+************************************************
+Channel ARP speed
+	1Axx
+xx: Skip pulses.
+	
+************************************************	
+Channel ARP SEQ note trigger type
+	1Exx
+xx: 00 = Retrigger every note; Other values = set pitch only.
+
+************************************************
+Channel note trigger type
+	2Exx
+xx: 00 = Retrigger every note; Other values = set pitch only.
+
+************************************************
+Channel SEQ type
+	3Exx
+xx: 00 .. FF; Command number.
+
+************************************************
+Matrix Jump	(Ignored while Pattern or Instrument editor is active)
+	52xx	
+xx: 00 .. FA; Jump to xx matrix row after current pattern row finished playing.
+
+************************************************
+Pattern Jump (Ignored while Pattern or Instrument editor is active)
+	53xx	
+xx: 00 .. 1F; Row in the next pattern jump to.
+
+************************************************
+Global Matrix Row Size 
+	60xx
+xx: 01 .. 1F; 01 to 32 pattern rows.
+
+************************************************
+Global Pattern Row Shift (left side)
+	61xy
+x: 0 .. F; Row
+y: 0 .. F; Shift in pulses.
+
+************************************************
+Global Pattern Row Shift (right side)
+	62xy
+x: 0 .. F; Row
+y: 0 .. F; Shift in pulses.
+
+************************************************
+Note Cut (tip: cut the bass notes ends to avoid clicks)
+	50xx	
+xx: 01 .. FF; Kills currently playing note after xx ticks. [new note does not disable it]
+
+************************************************
+Set Channel Note Auto Cut (a bit less efficient than setting Note Cut manually)
+	56xx	
+xx: 01 .. 0F; < PPL. Auto kill every note before next note.
+00: disable.
+
+************************************************
+Note Retrigger (Will override commands [54] [61] [62])
+	51xx	
+xx: 01 .. FF; Retrigger note after xx ticks.
+00: disable.
+
+************************************************
+Note Delay
+	54xx	
+xx: 01 .. FF; Delays note by xx ticks.
+
+************************************************
+CSM OP Base Note (For "lowpass filtering" effect)
+	55xx	
+xx: 09 .. 5F; A-0 .. B-7, can be altered with pitch modifying commands.
+
+------------------------------------------------
++ FM Instrument General
+------------------------------------------------
+
+************************************************
+ALGORITHM
+	0Axx
+xx: 00 .. 07; >07 reset
+
+************************************************
+OP1 FEEDBACK
+	0Bxx	
+xx: 00 .. 07; >07 reset
+
+************************************************
+AMPLITUDE MODULATION SCALE
+	0Cxx
+xx:	00 .. 07; >07 reset
+
+************************************************
+FREQUENCY MODULATION SCALE
+	0Dxx
+xx:	00 .. 03; >03 reset
+
+************************************************
+PAN
+	0Exx	FM channels only
+xx: 11 = center, 10 = left, 01 = right, enything else = mute sound (FM, not DAC).
+00: to reset.
+
+------------------------------------------------
++ FM Operators
+------------------------------------------------
+
+************************************************
+TOTAL LEVEL
+	01xx	TL1	
+	02xx 	TL2	
+	03xx 	TL3
+	04xx 	TL4
+xx: TL 00 .. 7F; >7F reset
+
+************************************************
+RATE SCALE
+	05xy
+x: OP 1 .. 4, 5 to set all operators.
+y: RS 0 .. 3
+00: to reset all, 01 .. 04 to reset OP.
+
+************************************************
+FREQUENCY MULTIPLIER
+	06xy
+x: OP 1 .. 4, 5 to set all operators.
+y: MULT 0 .. F
+00: to reset all, 01 .. 04 to reset OP.
+
+************************************************
+DETUNE
+	07xy	
+x: OP 1 .. 4, 5 to set all operators.
+y: DT 0 .. 7 (-3 .. +3)
+00: to reset all, 01 .. 04 to reset OP. 
+
+************************************************
+AMPLITUDE MODULATION
+	08xy
+x: OP 1 .. 4, 5 to set all operators.
+y: AM 0 = off, 1 = on
+00: to reset all, 01 .. 04 to reset OP. 
+
+************************************************
+SSG-EG
+	09xy
+x: OP 1 .. 4, 5 to set all operators.
+y: SSG-EG 0 == off; 1 .. 8 = select mode.
+00: to reset all, 01 .. 04 to reset OP. 
+
+------------------------------------------------
++ FM ADSR Envelope (Changes applied only when new note is triggered)
+------------------------------------------------
+
+************************************************
+ATTACK RATE
+	A1xx
+	A2xx
+	A3xx
+	A4xx
+xx: 00 .. 1F; >1F reset
+
+************************************************
+DECAY RATE 1
+	B1xx	
+	B2xx
+	B3xx
+	B4xx
+xx: 00 .. 1F; >1F reset
+
+************************************************
+SUSTAIN
+	C1xx	
+	C2xx
+	C3xx
+	C4xx
+xx: 00 .. 0F; >0F reset
+
+************************************************
+DECAY RATE 2
+	D1xx
+	D2xx
+	D3xx
+	D4xx
+xx: 00 .. 1F; >1F reset
+
+************************************************
+RELEASE RATE
+	E1xx
+	E2xx
+	E3xx
+	E4xx
+xx: 00 .. 0F; >0F reset
+
+------------------------------------------------
++ Pitch effects
+------------------------------------------------
+
+************************************************
+Set ARP play MODE
+	2Fxx
+xx: 01 = Play once for each new note.
+00: Loop sequence.
+
+************************************************
+Set ARP
+	30xx
+xx: 01 .. FF, instrument id sequence is taken from.
+00: disable sequence.
+
+************************************************
+Pitch UP [!!! Heavy on CPU !!!]
+	31xx
+xx: 01 .. 7F; Speed * 1/32 semitone per tick, linear.
+Does not restart sliding when new note is triggered, only if new effect value is set.
+Note OFF to reset the effect.
+00: disable.
+FE: hold.
+FF: reset.
+
+************************************************
+Pitch DOWN [!!! Heavy on CPU !!!]
+	32xx
+xx: 01 .. 7F; Speed * 1/32 semitone per tick, linear.
+Does not restart sliding when new note is triggered, only if new effect value is set.
+Note OFF to reset the effect.
+00: stop and reset.
+FE: stop.
+FF: reset.
+
+************************************************
+Vibrato [FM FMS is recommended instead]
+	33xy	
+x: 1 .. F; Total Speed = (Speed * Speed Multiplier) per tick. Phase += Total Speed. Phase is 0 .. 1024 of sin cycle.
+y: 1 .. F; Depth * Depth Multiplier * 1/32 semitone.
+00: disable, stays on last pitch if no any pitch modifying applied. (x || y) > 0 triggers pitch process, use to reset note pitch.
+Note OFF will disable effect. 
+
+************************************************
+Vibrato Speed Multiplier (Put it before Vibrato command)
+	34xx	
+xx: 01 .. 1A; Speed multiplier. Default is 0x08.
+00: reset to default.
+
+************************************************
+Vibrato Depth Multiplier (Put it before Vibrato command)
+	35xx	
+xx: 01 .. FF; Depth multiplier. Default is 0x02, higher values will glitch out :V
+00: reset to default.
+
+************************************************
+Vibrato Mode
+	36xx	
+xx: 01 .. 02; 01 = up only /\/\/\, 02 = down only \/\/\/. Speed of these is twice as fast as normal up/down vibrato, it's just abs or -abs of sin values.
+00: up/down ~~~.
+
+************************************************
+Pitch Slide Skip Ticks
+	37xx
+xx: ticks to skip. allow slower effect.
+00: no skip.
+
+------------------------------------------------	
++ Volume effects (!!! Channel volume effects works like post-fader automation - it will not reset on instrument change or note OFF, do it manually !!!)
+------------------------------------------------
+
+************************************************
+Set SEQ play MODE
+	3Fxx
+xx: 01 = Play once for each new note.
+00: Loop sequence.
+
+************************************************
+Set SEQ
+	40xx
+xx: 01 .. FF; Instrument id sequence is taken from.
+00: disable sequence.
+
+************************************************
+Channel volume attenuation (Less = louder)
+	41xx
+xx: 01 .. 7F; Divided by 8 for PSG.
+00: no attenuation.
+
+************************************************
+Tremolo [FM AMS is recommended instead]
+	42xy	
+x: 1 .. F; Speed, full cycle ticks.
+y: 1 .. F; Depth.
+00: disable.
+
+************************************************
+Tremolo speed multiplier
+	43xx	
+xx: 01 .. FF; Speed multiplier * 1/1024 of sin frequency per row pulse. Default is 0x20.
+00: reset.
+
+************************************************
+Channel volume decrease
+	44xy	
+x: 1 .. F; Pulse to skip.
+y: 1 .. F; Volume decrease amount per pulse;
+00: stop effect.
+
+************************************************
+Channel volume increase
+	45xy	
+x: 1 .. F; Pulse to skip.
+y: 1 .. F; Volume increase amount per pulse;
+00: stop effect.
+
+************************************************
+Volume discrete modulation
+	46xx
+xx: 01 .. 60; pitch (hBlank based frequency). xx > 60 = same as key.
+00: disable
+
+----------------
+Changelog:
+----------------
+1.04
+	Bugs:
+		BPM is not precise, but close.
+		FM CH6 DAC sample playback make occasional garbage noises. But looks like only when song is stopped or NOTE OFF is used to stop sample playback.
+		Not tested in PAL mode, so may be broken.
+		Minor visual glitches may happen (something is not redrawn).
+		
+	Fixes:
+		A bit smoother playback.
+		Note retrigger/delay.
+		Instrument mute/solo.
+		SEQ timing fix.
+		No adding/deleting matrix rows now allowed during playback.
+        -- (0th) matrix row now can not be deleted or duplicated.
+        Switching matrix page, also changing cell color mark or transpose causing slowdown. 
+		
+	Changes:
+		Command 18xx - Channel microtone finetune. Add up to 31 (1F) microtones (1/32 semitone).
+		Command 19xx - Channel SEQ skip step. To slow down.
+		Command 1Axx - Channel ARP skip step. To slow down.
+		Command 1Exx - Channel Note trigger mode: 00 retrigger note, >= 01 set pitch only. (FM only)
+		Command 2Exx - Channel ARP mode: 00 retrigger note, >= 01 set pitch only. (FM only)
+		Command 3Exx - Channel sub-sequencer type. VOL sub-sequencer renamed to SEQ. Now it's used to sequence any FM parameter (and PSG volume).
+			Values are:
+			- FM-related command number
+			- 41 for volume (default)
+			- 18 for channel microtone finetune
+		Command 70xx - Load PCM driver (00 = PCM, 01 = 4PCM, 02 = 2ADPCM).
+        Command 71,75,79,7D xx - Play DAC channel 1 (note number up to 5F, FF = NOTE OFF). Bank 0,1,2,3.
+        Command 72,76,7A,7E xx - Play DAC channel 2 (note number up to 5F, FF = NOTE OFF). Bank 0,1,2,3.
+        Command 73,77,7B,7F xx - Play DAC channel 3 (note number up to 5F, FF = NOTE OFF). Bank 0,1,2,3.
+        Command 74,78,7C,80 xx - Play DAC channel 4 (note number up to 5F, FF = NOTE OFF). Bank 0,1,2,3.
+		Command 81xy - Set 4PCM channel volume (x: channel 1..4, 0 = ALL; y: volume 0..F).
+			
+		Pattern range selection changed to button Z + U/D.
+        B + D-Pad - whole pattern/selection transpose +/- octave/semitone. Will not destroy melody if one of resulted notes goes out of range.
+        Print currently highlighted pattern command description and instrument name, instead of last entered.
+        (A+B) + D-Pad - Change all values in ARP/SEQ (Skip empty steps), FM Operators.
+		
+		External sync mode using gamepad input (Button MODE). Press C on BPM at Pattern Matrix to enable/disable. Each time button pressed the next song pulse proceed.
+		Sample name now displayed in instrument editor and for selected note in pattern editor (when FM6 in DAC mode).
+		
+		Removed non working MSU-MD driver.
+		Removed save upgrade from 1.00/1.01 to 1.03.
+		Added save upgrade from 1.03 to 1.04.
+		Removed pulses/frames per second counter. Not really helpfull.
+		PSG microtones resolution increased to 32 instead of 16. Somewhat usefull for 1-2 octaves.
+		SGDK 1.80 -> 1.90
+		
+	MD.Tracker Editor 1.04 and tools:
+	
+		Changes:
+			Added field for samples bank start address in ROM.
+			Last opened paths, ROM samples region start address - saved to settings.ini.
+			WAV to 2ADPCM/PCM converter (separate tool).
+			Sample name written into ROM, 14 symbols max, trimmed if longer. If sample filename contain braces, for ex "Awesome sample pack drums_(Kick Drum 001)", name will be taken from there, resulting "Kick Drum 001" used as name.
+			
+		Fixes:
+			Samples list scrolling.
+			Samples to keys range assigning.
+1.03
+	Fixes:
+		SRAM file changed to start at address 0 (same as pre 1.02).
+		Editor tool now auto align sample length to 256 bytes, as required by SGDK driver. IDK if it improves anything.
+		FPS counter now displays amount of frames being processed last second.
+		Auto save upgrade from 1.00/1.01 to 1.03.
+		
+1.02 [Don't use 1.02, it's messed up! Will break save file.]
+	Fixes:
+		4th sample bank having not enought space to save sattings, leading to minor data corruption.
+		Now works both in BlastEm Standalone and RetroArch.
+		
+	Changes:
+		Auto save upgrade from 1.01 to 1.02.
+		Tool for adding PCM samples into rom.
+		SGDK 1.70 -> 1.80
+		
+1.01
+	Fixes:
+		Wrong ARP 16..32 values init when new empty song save file is created.
+		Global AM LFO zero value GUI placement.
+		Instrument 0 (empty, uneditable) also must have correct default ARP values.
+		
+	Changes:
+		Removed beta file upgrade feature.
+		SGDK 1.65 -> 1.70
+		
+1.00
+	Initial release. Use ONLY this version for upgrading beta files to 1.00.
+		SGDK 1.41 -> 1.50 -> 1.51 -> 1.60 -> 1.62 -> 1.65
+
+------------------------------------------------	
++ EOF
+------------------------------------------------

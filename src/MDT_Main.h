@@ -163,6 +163,15 @@ static void SetChannelBaseVolume_FM(u8 mtxCh);
 static void SetBPM(u16 tempo);
 static void WriteYM2612(u8 mtxCh);
 static void CacheIstrumentToRAM(u8 id);
+/** \brief
+ *
+ * \param mtxCh u8: Matrix channel
+ * \param id u8: Previous channel instrumant ID
+ * \param fxParam u8: Command ID
+ * \param fxValue u8: Command VALUE
+ * \return void
+ *
+ */
 static void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue);
 static void ApplyCommand_FM3_SP(u8 mtxCh, u8 fxParam, u8 fxValue);
 static void ApplyCommand_DAC(u8 fxParam, u8 fxValue);
