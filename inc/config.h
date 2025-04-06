@@ -82,6 +82,16 @@
 #define LEGACY_SPRITE_ENGINE    0
 
 /**
+ * \brief
+ *      Set it to 1 to use the original SGDK's error handling screen and vectors.<br>
+ *      Otherwise error handler from the MD Debugger project is used, which supports source code symbols with "debug" build proifle and backtrace.<br>
+ *
+ *      The new error handler, however, completely takes over exception vectors and doesn't allow to set your own callbacks for errors (e.g. addressErrorCB).<br>
+ *      If you rely on callbacks to override error handling behavior, consider using legacy system instead.
+ */
+#define LEGACY_ERROR_HANDLER    0
+
+/**
  *  \brief
  *      Set it to 1 to enable automatic bank switch using official SEGA mapper for ROM > 4MB.
  *
@@ -117,19 +127,6 @@
 
 /**
  *  \brief
- *      To force method inlining (not sure that GCC does actually care of it)
- */
-#define FORCE_INLINE            inline __attribute__((always_inline))
-
-/**
- *  \brief
- *      To force no inlining for this method
- */
-#define NO_INLINE               __attribute__ ((noinline))
-
-
-/**
- *  \brief
  *      Set it to 1 if you want to use EVERDRIVE programming methods (written by Krikzz).
  */
 #define MODULE_EVERDRIVE        0
@@ -148,29 +145,23 @@
 
 /**
  *  \brief
- *      Set it to 1 if you want to enable MegaWiFi functions and support code (written by Jesus Alonso - doragasu) */
+ *      Set it to 1 if you want to enable MegaWiFi functions and support code (written by Jesus Alonso - doragasu)
+ */
 #define MODULE_MEGAWIFI         0
 
 /**
  *  \brief
  *      Set it to 1 if you want to enable Flash Save functions (written by Jesus Alonso - doragasu).<br>
  *      There is no reason to disable it as it doesn't consume extra memory
-  */
+ */
 #define MODULE_FLASHSAVE        1
 
 /**
  *  \brief
  *      Set it to 1 if you want to enable the TTY text console module (written by Andreas Dietrich).<br>
- *      It consume about 34 bytes of memory when enabled.
-  */
-#define MODULE_CONSOLE          0
-
-/**
- *  \brief
- *      Set it to 1 if you want to use the Fractal sound driver from Aurora Fields.<br>
- *      Note that you need to install the module first before enable it (https://gitlab.com/Natsumi/Fractal-Sound)
+ *      It consume about 28 bytes of memory when enabled.
  */
-#define MODULE_FRACTAL          0
+#define MODULE_CONSOLE          1
 
 
 #endif // _CONFIG_

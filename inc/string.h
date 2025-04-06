@@ -122,6 +122,31 @@ char* strncpy(char *dest, const char *src, u16 len);
  * Appends the source string to the destination string.
  */
 char* strcat(char *dest, const char *src);
+
+/**
+ *  \brief
+ *      Composes a string with the same text that would be printed if format was used on printf,
+ *      but instead of being printed, the content is stored as a C string in the buffer pointed by str.
+ *
+ *  \param buf
+ *      Destination string (it must be large enough to receive result).
+ *  \param fmt
+ *      C string that contains the text to be written to destination string.<br />
+ *      It can optionally contain embedded format specifiers.
+ *  \param args
+ *      Optional argument(s). Depending on the format string, the function may expect a sequence of additional arguments,<br>
+ *      each containing a value to be used to replace a format specifier in the format string.
+ *
+ *      There should be at least as many of these arguments as the number of values specified in the format specifiers.<br>
+ *      Additional arguments are ignored by the function.
+ *
+ *  \return On success, the total number of characters written is returned..
+ *
+ *  Copy the string pointed by 'fmt' param to the 'buffer' param.<br>
+ *  If 'fmt' includes format specifiers (subsequences beginning with %), the additional arguments following format are
+ *  formatted and inserted in the resulting string replacing their respective specifiers
+ */
+int vsprintf(char *buffer, const char *fmt, va_list args);
 /**
  *  \brief
  *      Composes a string with the same text that would be printed if format was used on printf,
@@ -145,9 +170,8 @@ char* strcat(char *dest, const char *src);
  *  Copy the string pointed by 'fmt' param to the 'buffer' param.<br>
  *  If 'fmt' includes format specifiers (subsequences beginning with %), the additional arguments following format are
  *  formatted and inserted in the resulting string replacing their respective specifiers
- *
  */
-u16 sprintf(char *buffer,const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
+int sprintf(char *buffer, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
 
 #endif  // ENABLE_NEWLIB
 
@@ -228,6 +252,20 @@ u16 intToHex(u32 value, char *str, u16 minsize);
 
 /**
  *  \brief
+ *      Convert a fix16 value to string.
+ *
+ *  \param value
+ *      The fix16 value to convert to string.
+ *  \param str
+ *      Destination string (it must be large enough to receive result).
+ *  \param numdec
+ *      Number of wanted decimal.
+ *
+ * Converts the specified fix16 value to string.<br>
+ */
+void fix16ToStr(fix16 value, char *str, u16 numdec);
+/**
+ *  \brief
  *      Convert a fix32 value to string.
  *
  *  \param value
@@ -242,18 +280,56 @@ u16 intToHex(u32 value, char *str, u16 minsize);
 void fix32ToStr(fix32 value, char *str, u16 numdec);
 /**
  *  \brief
- *      Convert a fix16 value to string.
+ *      Convert a fastfix16 value to string.
  *
  *  \param value
- *      The fix16 value to convert to string.
+ *      The fastfix16 value to convert to string.
  *  \param str
  *      Destination string (it must be large enough to receive result).
  *  \param numdec
  *      Number of wanted decimal.
  *
- * Converts the specified fix16 value to string.<br>
+ * Converts the specified fastfix16 value to string.<br>
  */
-void fix16ToStr(fix16 value, char *str, u16 numdec);
+void fastFix16ToStr(fastfix16 value, char *str, u16 numdec);
+/**
+ *  \brief
+ *      Convert a fastfix32 value to string.
+ *
+ *  \param value
+ *      The fastfix32 value to convert to string.
+ *  \param str
+ *      Destination string (it must be large enough to receive result).
+ *  \param numdec
+ *      Number of wanted decimal.
+ *
+ * Converts the specified fastfix32 value to string.<br>
+ */
+void fastFix32ToStr(fastfix32 value, char *str, u16 numdec);
+/**
+ *  \brief
+ *      Same as fix16ToStr(..)
+ *  \see fix16ToStr
+ */
+void F16_toStr(fix16 value, char *str, u16 numdec);
+/**
+ *  \brief
+ *      Same as fix32ToStr(..)
+ *  \see fix32ToStr
+ */
+void F32_toStr(fix32 value, char *str, u16 numdec);
+/**
+ *  \brief
+ *      Same as fastFix16ToStr(..)
+ *  \see fastFix16ToStr
+ */
+void FF16_toStr(fastfix16 value, char *str, u16 numdec);
+/**
+ *  \brief
+ *      Same as fastFix32ToStr(..)
+ *  \see fastFix32ToStr
+ */
+void FF32_toStr(fastfix32 value, char *str, u16 numdec);
 
 #endif // _STRING_H_
 

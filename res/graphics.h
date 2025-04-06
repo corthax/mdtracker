@@ -1,3 +1,5 @@
+#include <genesis.h>
+
 #ifndef _RES_GRAPHICS_H_
 #define _RES_GRAPHICS_H_
 

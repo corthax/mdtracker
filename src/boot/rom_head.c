@@ -1,10 +1,6 @@
 #include <genesis.h>
 #include "../MDT_Version.h"
 
-//-------------------------------
-//#define MDT_VERSION 3
-//-------------------------------
-
 __attribute__((externally_visible))
 /*
 const struct
@@ -57,7 +53,7 @@ const ROMHeader rom_header = {
 
 #endif
 
-    "(C)Corthax 2024 ",
+    "(C)Corthax 2025 ",
 
 #if (MDT_VERSION == 0)
 

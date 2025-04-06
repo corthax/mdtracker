@@ -7,10 +7,6 @@
 
 //! offset must be > 1
 
-//-------------------------------
-//#define MDT_VERSION 3
-//-------------------------------
-
 u8 SRAMW_readByte(u32 offset)
 {
     #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)

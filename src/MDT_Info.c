@@ -1,4 +1,4 @@
-#include "MDT_Info.h"
+/*#include "MDT_Info.h"
 
 void InitInfo()
 {
@@ -520,3 +520,4 @@ void InitInfo()
     infoDescriptions[0xFF] = "";
     //}
 }
+*/

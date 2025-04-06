@@ -1,3 +1,5 @@
+#include <genesis.h>
+
 #ifndef _RES_SAMPLES_H_
 #define _RES_SAMPLES_H_
 

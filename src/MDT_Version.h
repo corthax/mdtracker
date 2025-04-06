@@ -12,6 +12,6 @@
 #define MDT_VERSION 1 // REBUILD if changed!
 #define MDT_CHECKER 0xDEAD // DEAD INSIDE
 
-const char *MDT_HEADER;
+extern const char *MDT_HEADER;
 
 #endif

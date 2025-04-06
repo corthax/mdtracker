@@ -22,10 +22,6 @@
 #include "MDT_Presets.h"
 #include "MDT_Version.h"
 
-//-------------------------------
-//#define MDT_VERSION 3
-//-------------------------------
-
 #define MDT_HEADER              "MDT105"
 #define STRING_EMPTY            ""
 #define H_INT_DURATION_NTSC     744     // ; 744
@@ -669,13 +665,13 @@ static void DoEngine()
         switch (channelVibratoMode[mtxCh])
         {
         case 1:
-            vib = abs((s8)fix16ToRoundedInt(fix16Mul(FIX16(channelVibratoDepth[mtxCh]), sinFix16(channelVibratoPhase[mtxCh]))));
+            vib = abs((s8)F16_toRoundedInt(F16_mul(FIX16(channelVibratoDepth[mtxCh]), sinFix16(channelVibratoPhase[mtxCh]))));
             break;
         case 2:
-            vib = -abs((s8)fix16ToRoundedInt(fix16Mul(FIX16(channelVibratoDepth[mtxCh]), sinFix16(channelVibratoPhase[mtxCh]))));
+            vib = -abs((s8)F16_toRoundedInt(F16_mul(FIX16(channelVibratoDepth[mtxCh]), sinFix16(channelVibratoPhase[mtxCh]))));
             break;
         default:
-            vib = (s8)fix16ToRoundedInt(fix16Mul(FIX16(channelVibratoDepth[mtxCh]), sinFix16(channelVibratoPhase[mtxCh])));
+            vib = (s8)F16_toRoundedInt(F16_mul(FIX16(channelVibratoDepth[mtxCh]), sinFix16(channelVibratoPhase[mtxCh])));
             break;
         }
 
@@ -849,7 +845,7 @@ static void DoEngine()
                         ApplyCommand_FM(mtxCh, channelPreviousInstrument[mtxCh], channelPreviousEffectType[mtxCh][effect], _fxValue);
                         break;
                     case CHANNEL_FM6_DAC:
-                        //if (Z80_getLoadedDriver() == Z80_DRIVER_4PCM) pcmNote[0] = pcmNote[1] = pcmNote[2] = pcmNote[3] = NOTE_EMPTY;
+                        //if (Z80_getLoadedDriver() == Z80_DRIVER_PCM4) pcmNote[0] = pcmNote[1] = pcmNote[2] = pcmNote[3] = NOTE_EMPTY;
                         ApplyCommand_DAC(channelPreviousEffectType[CHANNEL_FM6_DAC][effect], _fxValue);
                         //if (!bDAC_enable)
                         ApplyCommand_FM(mtxCh, channelPreviousInstrument[mtxCh], channelPreviousEffectType[mtxCh][effect], _fxValue);
@@ -942,7 +938,7 @@ static void DoEngine()
             // --------- trigger note playback; check empty note later; pass note id: 0..95, 254, 255
             /*if (mtxCh == CHANNEL_FM6_DAC &&
                 bDAC_enable &&
-                Z80_getLoadedDriver() == Z80_DRIVER_4PCM &&
+                Z80_getLoadedDriver() == Z80_DRIVER_PCM4 &&
                 (pcmNote[0] != NOTE_EMPTY ||
                  pcmNote[1] != NOTE_EMPTY ||
                  pcmNote[2] != NOTE_EMPTY ||
@@ -1054,9 +1050,9 @@ static void DoEngine()
             // tremolo (set by every pulse)
             if (channelTremoloDepth[mtxCh] && channelTremoloSpeed[mtxCh])
             {
-                channelTremolo[mtxCh] = (u8)fix16ToRoundedInt
+                channelTremolo[mtxCh] = (u8)F16_toRoundedInt
                 (
-                    fix16Mul(FIX16(channelTremoloDepth[mtxCh]), fix16Div(fix16Add(cosFix16(channelTremoloPhase[mtxCh]), FIX16(1)), FIX16(2)))
+                    F16_mul(FIX16(channelTremoloDepth[mtxCh]), F16_div(cosFix16(channelTremoloPhase[mtxCh]) + FIX16(1), FIX16(2)))
                 );
 
                 channelTremoloPhase[mtxCh] += channelTremoloSpeed[mtxCh];
@@ -1442,12 +1438,12 @@ static void SetBPM(u16 tempo)
     if (IS_PAL_SYSTEM)
     {
         //mcs = H_INT_DURATION_PAL * H_INT_CALLS_SKIP * hIntToSkip; // h-blank = 1/11200 sec;  8.928571428571429e-5; 89.2857 microseconds;
-        mcs = fix32Div(FIX32(1.0), FIX32(1.120)) * H_INT_CALLS_SKIP * hIntToSkip;
+        mcs = F32_div(FIX32(1.0), FIX32(1.120)) * H_INT_CALLS_SKIP * hIntToSkip;
     }
     else
     {
         //mcs = H_INT_DURATION_NTSC * H_INT_CALLS_SKIP * hIntToSkip; // h-blank = 1/13440 sec; 7.44047619047619e-5; 74.4047 microseconds; 224 * 60
-        mcs = fix32Div(FIX32(1.0), FIX32(1.344)) * H_INT_CALLS_SKIP * hIntToSkip; //193, 140, 0.74404761904761904761904761904762
+        mcs = F32_div(FIX32(1.0), FIX32(1.344)) * H_INT_CALLS_SKIP * hIntToSkip; //193, 140, 0.74404761904761904761904761904762
     }
 
     // precise BPM: 600000000000 / (1/13440) * 2 * hIntToSkip)) / ppb
@@ -1458,9 +1454,9 @@ static void SetBPM(u16 tempo)
     //BPM = (600000000 / mcs) / ppb;
 
     // beat per minute (fractional)
-    fBPM = (fix32Div(FIX32(60000.0), mcs) / ppb) * 10;
-    BPM = fix32ToInt(fix32Int(fBPM));
-    fBPM = fix32Frac(fBPM);
+    fBPM = (F32_div(FIX32(60000.0), mcs) / ppb) * 10;
+    BPM = F32_toInt(fBPM);
+    fBPM = F32_frac(fBPM);
 
     //PPS = (((BPM * 1000) / 6) * ppb) / 10000; // pulse per second
     DrawInfo();
@@ -1689,7 +1685,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
     u8 _rangeStart = 0;
     u8 _rangeEnd = PATTERN_ROWS;
 
-    u8 muted;
+    u8 muted = 0;
 
     if (selectedMatrixScreenRow < MATRIX_ROWS_ONPAGE)
         selectedMatrixRow = selectedMatrixScreenRow + (currentPage * 25);
@@ -3718,7 +3714,7 @@ static void ChangeInstrumentParameter(s8 modifier, u8 changeAll)
         break;
     case GUI_INST_PARAM_PCM_RATE:
         value = SRAM_ReadSampleRate(selectedSampleBank, selectedSampleNote) + modifier;
-        if (value < SOUND_RATE_32000) value = SOUND_RATE_32000; else if (value > SOUND_RATE_8000) value = SOUND_RATE_8000;
+        if (value < SOUND_PCM_RATE_32000) value = SOUND_PCM_RATE_32000; else if (value > SOUND_PCM_RATE_8000) value = SOUND_PCM_RATE_8000;
         SRAM_WriteSampleRate(selectedSampleBank, selectedSampleNote, value);
         break;
     case GUI_INST_PARAM_PCM_PAN:
@@ -3797,12 +3793,12 @@ inline void DisplayInstrumentEditor()
         value = SRAM_ReadSampleRate(selectedSampleBank, selectedSampleNote);
         switch (value)
         {
-            case SOUND_RATE_32000: DrawNum(BG_A, PAL1, "32000", 114, 6); break;
-            case SOUND_RATE_22050: DrawNum(BG_A, PAL1, "22050", 114, 6); break;
-            case SOUND_RATE_16000: DrawNum(BG_A, PAL1, "16000", 114, 6); break;
-            case SOUND_RATE_13400: DrawNum(BG_A, PAL1, "13400", 114, 6); break;
-            case SOUND_RATE_11025: DrawNum(BG_A, PAL1, "11025", 114, 6); break;
-            case SOUND_RATE_8000: DrawNum(BG_A, PAL1, "8000", 114, 6);
+            case SOUND_PCM_RATE_32000: DrawNum(BG_A, PAL1, "32000", 114, 6); break;
+            case SOUND_PCM_RATE_22050: DrawNum(BG_A, PAL1, "22050", 114, 6); break;
+            case SOUND_PCM_RATE_16000: DrawNum(BG_A, PAL1, "16000", 114, 6); break;
+            case SOUND_PCM_RATE_13400: DrawNum(BG_A, PAL1, "13400", 114, 6); break;
+            case SOUND_PCM_RATE_11025: DrawNum(BG_A, PAL1, "11025", 114, 6); break;
+            case SOUND_PCM_RATE_8000: DrawNum(BG_A, PAL1, "8000", 114, 6);
                 VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, NULL), 118, 6); break;
             default: DrawNum(BG_A, PAL1, "-----", 114, 6); break;
         }
@@ -4558,7 +4554,7 @@ static void SetPitchFM(u8 mtxCh, u8 note)
                 case Z80_DRIVER_PCM:
                     if (!FM_CH6_DAC_Pan)
                     {
-                        SND_startPlay_PCM(sampleStart[activeSampleBank][note],
+                        SND_PCM_startPlay(sampleStart[activeSampleBank][note],
                                         sampleLength[activeSampleBank][note],
                                         sampleRate[activeSampleBank][note],
                                         samplePan[activeSampleBank][note],
@@ -4566,7 +4562,7 @@ static void SetPitchFM(u8 mtxCh, u8 note)
                     }
                     else
                     {
-                        SND_startPlay_PCM(sampleStart[activeSampleBank][note],
+                        SND_PCM_startPlay(sampleStart[activeSampleBank][note],
                                       sampleLength[activeSampleBank][note],
                                       sampleRate[activeSampleBank][note],
                                       FM_CH6_DAC_Pan,
@@ -4574,16 +4570,16 @@ static void SetPitchFM(u8 mtxCh, u8 note)
                     }
                     break;
 
-                case Z80_DRIVER_4PCM:
-                        SND_startPlay_4PCM(
+                case Z80_DRIVER_PCM4:
+                        SND_PCM4_startPlay(
                                         sampleStart[activeSampleBank][note],
                                         sampleLength[activeSampleBank][note],
                                         SOUND_PCM_CH_AUTO,
                                         sampleLoop[activeSampleBank][note]);
                     break;
 
-                case Z80_DRIVER_2ADPCM:
-                        SND_startPlay_2ADPCM(
+                case Z80_DRIVER_DPCM2:
+                        SND_DPCM2_startPlay(
                                         sampleStart[activeSampleBank][note],
                                         sampleLength[activeSampleBank][note],
                                         SOUND_PCM_CH_AUTO,
@@ -4731,17 +4727,17 @@ static void StopChannelSound(u8 mtxCh)
         switch (Z80_getLoadedDriver())
         {
         case Z80_DRIVER_PCM:
-            if (SND_isPlaying_PCM()) SND_stopPlay_PCM();
+            if (SND_PCM_isPlaying()) SND_PCM_stopPlay();
             break;
-        case Z80_DRIVER_4PCM:
-            if (SND_isPlaying_4PCM(SOUND_PCM_CH1_MSK)) SND_stopPlay_4PCM(SOUND_PCM_CH1);
-            if (SND_isPlaying_4PCM(SOUND_PCM_CH2_MSK)) SND_stopPlay_4PCM(SOUND_PCM_CH2);
-            if (SND_isPlaying_4PCM(SOUND_PCM_CH3_MSK)) SND_stopPlay_4PCM(SOUND_PCM_CH3);
-            if (SND_isPlaying_4PCM(SOUND_PCM_CH4_MSK)) SND_stopPlay_4PCM(SOUND_PCM_CH4);
+        case Z80_DRIVER_PCM4:
+            if (SND_PCM4_isPlaying(SOUND_PCM_CH1_MSK)) SND_PCM4_stopPlay(SOUND_PCM_CH1);
+            if (SND_PCM4_isPlaying(SOUND_PCM_CH2_MSK)) SND_PCM4_stopPlay(SOUND_PCM_CH2);
+            if (SND_PCM4_isPlaying(SOUND_PCM_CH3_MSK)) SND_PCM4_stopPlay(SOUND_PCM_CH3);
+            if (SND_PCM4_isPlaying(SOUND_PCM_CH4_MSK)) SND_PCM4_stopPlay(SOUND_PCM_CH4);
             break;
-        case Z80_DRIVER_2ADPCM:
-            if (SND_isPlaying_2ADPCM(SOUND_PCM_CH1_MSK)) SND_stopPlay_2ADPCM(SOUND_PCM_CH1);
-            if (SND_isPlaying_2ADPCM(SOUND_PCM_CH2_MSK)) SND_stopPlay_2ADPCM(SOUND_PCM_CH2);
+        case Z80_DRIVER_DPCM2:
+            if (SND_DPCM2_isPlaying(SOUND_PCM_CH1_MSK)) SND_DPCM2_stopPlay(SOUND_PCM_CH1);
+            if (SND_DPCM2_isPlaying(SOUND_PCM_CH2_MSK)) SND_DPCM2_stopPlay(SOUND_PCM_CH2);
             break;
         }
         break;
@@ -5386,29 +5382,29 @@ static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
 {
     auto void dac_play(u8 channel, u8 channel_mask, u8 bank)
     {
-        if (Z80_getLoadedDriver() == Z80_DRIVER_4PCM)
+        if (Z80_getLoadedDriver() == Z80_DRIVER_PCM4)
         {
             if (fxValue < NOTES)
             {
-                SND_startPlay_4PCM(
+                SND_PCM4_startPlay(
                     sampleStart[bank][fxValue],
                     sampleLength[bank][fxValue],
                     channel,
                     sampleLoop[bank][fxValue]);
             }
-            else if (SND_isPlaying_4PCM(channel_mask) && fxValue == NOTE_OFF) SND_stopPlay_4PCM(channel);
+            else if (SND_PCM4_isPlaying(channel_mask) && fxValue == NOTE_OFF) SND_PCM4_stopPlay(channel);
         }
-        else if (Z80_getLoadedDriver() == Z80_DRIVER_2ADPCM)
+        else if (Z80_getLoadedDriver() == Z80_DRIVER_DPCM2)
         {
             if (fxValue < NOTES)
             {
-                SND_startPlay_2ADPCM(
+                SND_DPCM2_startPlay(
                     sampleStart[bank][fxValue],
                     sampleLength[bank][fxValue],
                     channel,
                     sampleLoop[bank][fxValue]);
             }
-            else if (SND_isPlaying_2ADPCM(channel_mask) && fxValue == NOTE_OFF) SND_stopPlay_2ADPCM(channel);
+            else if (SND_DPCM2_isPlaying(channel_mask) && fxValue == NOTE_OFF) SND_DPCM2_stopPlay(channel);
         }
     }
 
@@ -5534,10 +5530,10 @@ static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
             load_dac_driver(Z80_DRIVER_PCM);
             break;
         case 1:
-            load_dac_driver(Z80_DRIVER_4PCM);
+            load_dac_driver(Z80_DRIVER_PCM4);
             break;
         case 2:
-            load_dac_driver(Z80_DRIVER_2ADPCM);
+            load_dac_driver(Z80_DRIVER_DPCM2);
             break;
         default:
             break;
@@ -5569,18 +5565,18 @@ static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
     case 0x7C: dac_play(SOUND_PCM_CH4, SOUND_PCM_CH4_MSK, 2); break;
     case 0x80: dac_play(SOUND_PCM_CH4, SOUND_PCM_CH4_MSK, 3); break;
 
-    // 4PCM VOLUME
+    // PCM4 VOLUME
     case 0x81:
         if (fxValue < 0x10)
         {
-            SND_setVolume_4PCM(SOUND_PCM_CH1, fxValue);
-            SND_setVolume_4PCM(SOUND_PCM_CH2, fxValue);
-            SND_setVolume_4PCM(SOUND_PCM_CH3, fxValue);
-            SND_setVolume_4PCM(SOUND_PCM_CH4, fxValue);
+            SND_PCM4_setVolume(SOUND_PCM_CH1, fxValue);
+            SND_PCM4_setVolume(SOUND_PCM_CH2, fxValue);
+            SND_PCM4_setVolume(SOUND_PCM_CH3, fxValue);
+            SND_PCM4_setVolume(SOUND_PCM_CH4, fxValue);
         }
         else if (fxValue < 0x50)
         {
-            SND_setVolume_4PCM((fxValue >> 4)-1, fxValue & 0x0F);
+            SND_PCM4_setVolume((fxValue >> 4)-1, fxValue & 0x0F);
         }
     break;
 
@@ -6369,8 +6365,8 @@ void InitTracker()
     Z80_init();
 
     Z80_loadDriver(Z80_DRIVER_PCM, TRUE);
-    //Z80_loadDriver(Z80_DRIVER_2ADPCM, TRUE);
-    //Z80_loadDriver(Z80_DRIVER_4PCM, TRUE);
+    //Z80_loadDriver(Z80_DRIVER_DPCM2, TRUE);
+    //Z80_loadDriver(Z80_DRIVER_PCM4, TRUE);
     //Z80_loadDriver(Z80_DRIVER_XGM, TRUE);
     //Z80_loadCustomDriver((u8*)0x61E, (u16)0x1B36); // dualpcm_drv in symbols.txt, bin file size
 
@@ -6447,7 +6443,7 @@ void InitTracker()
             {
                 // by default: regions are zero, loop is none
                 SRAM_WriteSamplePan(bank, note, SOUND_PAN_CENTER);
-                SRAM_WriteSampleRate(bank, note, SOUND_RATE_32000);
+                SRAM_WriteSampleRate(bank, note, SOUND_PCM_RATE_32000);
             }
         }
 

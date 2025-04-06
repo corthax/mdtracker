@@ -16,6 +16,7 @@
 #define PROCESS_DMA_TASK            (1 << 2)
 #define PROCESS_XGM_TASK            (1 << 3)
 #define PROCESS_VDP_SCROLL_TASK     (1 << 4)
+#define PROCESS_XGM2_FADE_TASK      (1 << 5)
 
 
 #define ROM_ALIGN_BIT               17
@@ -26,8 +27,29 @@
 #define ROM_END                     (((u32) &_stext) + ((u32) &_sdata))
 #define ROM_SIZE                    ((ROM_END + ROM_ALIGN_MASK) & (~ROM_ALIGN_MASK))
 
+/**
+ *  \brief
+ *      To force method inlining (not sure that GCC does actually care of it)
+ */
+#define FORCE_INLINE                inline __attribute__((always_inline))
 
-#define HINTERRUPT_CALLBACK         __attribute__ ((interrupt)) void
+/**
+ *  \brief
+ *      To force no inlining for this method
+ */
+#define NO_INLINE                   __attribute__((noinline))
+
+/**
+ *  \brief
+ *      Put function in .data (RAM) instead of the default .text
+ */
+#define RAM_SECT                    __attribute__((section(".ramprog")))
+
+/**
+ *  \brief
+ *      Declare function for the hint callback (generate a RTE to return from interrupt instead of RTS)
+ */
+#define HINTERRUPT_CALLBACK         __attribute__((interrupt)) void
 
 
 // exist through rom_head.c
@@ -71,7 +93,7 @@ typedef enum
     ON_VBLANK_START     /** Start VBlank process on VBlank *start* period, means that we wait the next *start* of VBlank period if we missed it */
 } VBlankProcessTime;
 
-
+#if LEGACY_ERROR_HANDLER
 /**
  *  \brief
  *      Bus error interrupt callback.
@@ -142,6 +164,8 @@ extern VoidCallback *line1x1xCB;
  * You can modify it to use your own callback (for debug purpose).
  */
 extern VoidCallback *errorExceptionCB;
+#endif
+
 /**
  *  \brief
  *      Level interrupt callback.
@@ -467,10 +491,11 @@ bool SYS_isChecksumOk(void);
 /**
  *  \brief
  *      Die with the specified error message.<br>
- *      Program execution is interrupted.
- *
+ *      Program execution is interrupted.<br>
+ *      Accepts a list of strings. The list must end with a NULL value.
+ * 
  * This actually display an error message and program ends execution.
  */
-void SYS_die(char *err);
+void SYS_die(char *err, ...);
 
 #endif // _SYS_H_

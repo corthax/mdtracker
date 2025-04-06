@@ -1,4 +1,4 @@
-#include <genesis.h>
+/*#include <genesis.h>
 #include "MDT_Presets.h"
 
 // based on https://github.com/rhargreaves/mega-drive-midi-interface
@@ -2329,3 +2329,4 @@ void InitPresets()
     presetName[0xFF] = "DEFAULT      ";
     //}
 }
+*/

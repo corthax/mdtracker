@@ -732,6 +732,18 @@ xx: 01 .. 60; pitch (hBlank based frequency). xx > 60 = same as key.
 ----------------
 Changelog:
 ----------------
+1.05
+	Bugs:
+		Same as 1.04
+	
+	Fixes:
+		Sound muted due Z80 reset after DAC driver change command.
+		
+	Changes:
+		Nothing.
+	
+	MD.Tracker Editor 1.05 and tools:
+		Nothing changed. Same as 1.04
 1.04
 	Bugs:
 		BPM is not precise, but close.

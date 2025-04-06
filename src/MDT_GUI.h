@@ -1,11 +1,7 @@
-#include "MDT_Version.h"
+//#include "MDT_Version.h"
 
 #ifndef MDT_GUI_H_INCLUDED
 #define MDT_GUI_H_INCLUDED
-
-//-------------------------------
-//#define MDT_VERSION 3
-//-------------------------------
 
 #define GUI_INST_PARAM_ALG          0
 #define GUI_INST_PARAM_FMS          1
@@ -230,4 +226,5 @@ void NavigateInstrument(u8 direction);
 void RedrawMarks();
 void ReColorsAndTranspose();
 void DisplaySampleName(u8 xPos, u8 yPos, u8 note, u8 bank);
+
 #endif // MDT_GUI_H_INCLUDED

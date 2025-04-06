@@ -31,6 +31,41 @@
 #include "vdp_tile.h"
 #include "pal.h"
 
+// forward
+typedef struct Map Map;
+
+/**
+ *  \brief
+ *      Map data update type
+ */
+typedef enum
+{
+    ROW_UPDATE,        /** tilemap row update **/
+    COLUMN_UPDATE      /** tilemap column update **/
+} MapUpdateType;
+
+/**
+ *  \brief
+ *      Map data patch callback.<br>
+ *      It's used to modify/patch map data (for destructible blocks for instance) before sending it to VRAM.
+ *
+ *  \param map
+ *      source Map structure containing map information.
+ *  \param buf
+ *      buffer containing the tilemap data to patch
+ *  \param x
+ *      tile X start update position
+ *  \param y
+ *      tile Y start update position
+ *  \param updateType
+ *      map data update type:<br>
+ *      - ROW_UPDATE (tilemap row update)<br>
+ *      - COLUMN_UPDATE (tilemap column update)<br>
+ *  \param size
+ *      size of the buffer (tilemap width or height depending we are on a row or column update type)
+ */
+typedef void MapDataPatchCallback(Map *map, u16 *buf, u16 x, u16 y, MapUpdateType updateType, u16 size);
+
 
 /**
  *  \brief
@@ -87,7 +122,6 @@ typedef struct
     u16* blockRowOffsets;
 } MapDefinition;
 
-
 /**
  *  \brief
  *      Map structure containing information for large background/plane update based on #MapDefinition
@@ -124,13 +158,17 @@ typedef struct
  *      internal
  *  \param lastYT
  *      internal
+ *  \param hScrollTable
+ *      internal
+ *  \param vScrollTable
+ *      internal
  *  \param prepareMapDataColumnCB
  *      internal
  *  \param prepareMapDataRowCB
  *      internal
- *  \param hScrollTable
+ *  \param patchMapDataColumnCB
  *      internal
- *  \param vScrollTable
+ *  \param patchMapDataRowCB
  *      internal
  *  \param getMetaTileCB
  *      internal
@@ -151,16 +189,21 @@ typedef struct Map
     u32 posY;
     u16 wMask;
     u16 hMask;
-    u16 planeWidthMask;
-    u16 planeHeightMask;
+    u16 planeWidth;
+    u16 planeHeight;
+    u16 planeWidthMaskAdj;
+    u16 planeHeightMaskAdj;
+    u16 planeWidthSftAdj;
+    u16 firstUpdate;
     u16 lastXT;
     u16 lastYT;
     u16 hScrollTable[240];
     u16 vScrollTable[20];
-    void (*prepareMapDataColumnCB)(struct Map *map, u16 *bufCol1, u16 *bufCol2, u16 xm, u16 ym, u16 height);
-    void (*prepareMapDataRowCB)(struct Map *map, u16 *bufRow1, u16 *bufRow2, u16 xm, u16 ym, u16 width);
-    u16  (*getMetaTileCB)(struct Map *map, u16 x, u16 y);
-    void (*getMetaTilemapRectCB)(struct Map *map, u16 x, u16 y, u16 w, u16 h, u16* dest);
+    void (*prepareMapDataColumnCB)(Map *map, u16 *bufCol1, u16 *bufCol2, u16 xm, u16 ym, u16 height);
+    void (*prepareMapDataRowCB)(Map *map, u16 *bufRow1, u16 *bufRow2, u16 xm, u16 ym, u16 width);
+    MapDataPatchCallback* mapDataPatchCB;
+    u16  (*getMetaTileCB)(Map *map, u16 x, u16 y);
+    void (*getMetaTilemapRectCB)(Map *map, u16 x, u16 y, u16 w, u16 h, u16* dest);
 } Map;
 
 
@@ -205,7 +248,7 @@ void MAP_release(Map* map);
  *      SYS_doVBlankProcess() in between.
  *
  *  \param map
- *      Map structure containing map information.
+ *      source Map structure containing map information.
  *  \param x
  *      view position X we want to scroll on
  *  \param y
@@ -219,7 +262,7 @@ void MAP_scrollTo(Map* map, u32 x, u32 y);
  *      Exactly as #MAP_scrollTo(..) except we can force complete map drawing
  *
  *  \param map
- *      Map structure containing map information.
+ *      source Map structure containing map information.
  *  \param x
  *      view position X we want to scroll on
  *  \param y
@@ -340,6 +383,37 @@ void MAP_getMetaTilemapRect(Map* map, u16 x, u16 y, u16 w, u16 h, u16* dest);
  *  \see #MAP_getMetaTilemapRect(..)
  */
 void MAP_getTilemapRect(Map* map, u16 x, u16 y, u16 w, u16 h, bool column, u16* dest);
+
+/**
+ *  \brief
+ *      Set the callback function to patch tilemap data.<br>
+ *      Note that you need to set
+ *<br>
+ *      The method will be called when a new tilemap row / column is ready to be send to the VDP.<br>
+ *      You can use this callback to modify the tilemap data before sending it to VRAM.<br>
+ *      It can be useful, for instance, to implement destructibles blocks.
+ *
+ *  \param map
+ *      source Map structure we want to set the patch data callback for.
+ *  \param CB
+ *      Callback to use to patch the new tilemap data (set to NULL by default = no callback).<br>
+ *      See declaration of #MapDataPatchCallback to get information about the callback parameters.
+ */
+void MAP_setDataPatchCallback(Map* map, MapDataPatchCallback *CB);
+
+/**
+ *  \brief
+ *      Override the system (VDP) plane size for this map (should be called after MAP_create(..))<br>
+ *      Useful if you have VDP plane size set to 64x64 but you want to use 64x32 for a plane so you can use spare VRAM for something else.
+ *
+ *  \param map
+ *      source Map structure we want to override VDP tilemap size for.
+ *  \param w
+ *      tilemap width (32, 64 or 128)
+ *  \param h
+ *      tilemap height (32, 64 or 128)
+ */
+void MAP_overridePlaneSize(Map* map, u16 w, u16 h);
 
 
 #endif // _MAP_H_

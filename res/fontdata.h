@@ -1,3 +1,5 @@
+#include <genesis.h>
+
 #ifndef _RES_FONTDATA_H_
 #define _RES_FONTDATA_H_
 

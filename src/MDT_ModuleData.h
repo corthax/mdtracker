@@ -1,11 +1,7 @@
-#include "MDT_Version.h"
+//#include "MDT_Version.h"
 
 #ifndef MDT_MODULEDATA_H_INCLUDED
 #define MDT_MODULEDATA_H_INCLUDED
-
-//-------------------------------
-//#define MDT_VERSION 3
-//-------------------------------
 
 //{ Instrument data SRAM offsets
 #define INST_ALG 0 // 1 byte ..

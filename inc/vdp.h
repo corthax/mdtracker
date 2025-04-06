@@ -370,7 +370,7 @@
  *  \brief
  *      Set VDP command to read specified VSRAM address.
  */
-#define VDP_READ_VSRAM_ADDR(adr)    (((0x0000 + ((adr) & 0x3F)) << 16) + 0x10)
+#define VDP_READ_VSRAM_ADDR(adr)    (((0x0000 + ((adr) & 0x7F)) << 16) + 0x10)
 
 /**
  *  \brief
@@ -386,7 +386,7 @@
  *  \brief
  *      Set VDP command to write at specified VSRAM address.
  */
-#define VDP_WRITE_VSRAM_ADDR(adr)   (((0x4000 + ((adr) & 0x3F)) << 16) + 0x10)
+#define VDP_WRITE_VSRAM_ADDR(adr)   (((0x4000 + ((adr) & 0x7F)) << 16) + 0x10)
 
 /**
  *  \brief
@@ -402,7 +402,7 @@
  *  \brief
  *      Set VDP command to issue a DMA transfert to specified VSRAM address.
  */
-#define VDP_DMA_VSRAM_ADDR(adr)     (((0x4000 + ((adr) & 0x3F)) << 16) + 0x90)
+#define VDP_DMA_VSRAM_ADDR(adr)     (((0x4000 + ((adr) & 0x7F)) << 16) + 0x90)
 
 /**
  *  \brief
@@ -791,7 +791,7 @@ u8 VDP_getDMAEnabled(void);
  *
  *  Note that by default SGDK always enable DMA (there is no reason to disable it)
  */
-void VDP_setDMAEnabled(u8 value);
+void VDP_setDMAEnabled(bool value);
 /**
  *  \brief
  *      Returns HV counter latching on INT2 (used for light gun)
@@ -803,26 +803,33 @@ u8 VDP_getHVLatching(void);
  *
  *  You can ask the HV Counter to fix its value on INT2 for accurate light gun positionning.
  */
-void VDP_setHVLatching(u8 value);
+void VDP_setHVLatching(bool value);
+/**
+ *  \brief
+ *      Enable or Disable Vertical interrupt (it's *strongly* recommanded to keep it enabled).
+ *
+ *  \see VDP_setHInterrupt()
+ */
+void VDP_setVInterrupt(bool value);
 /**
  *  \brief
  *      Enable or Disable Horizontal interrupt.
  *
  *  \see VDP_setHIntCounter()
  */
-void VDP_setHInterrupt(u8 value);
+void VDP_setHInterrupt(bool value);
 /**
  *  \brief
  *      Enable or Disable External interrupt.
  *
  *  \see VDP_setExtIntCounter()
  */
-void VDP_setExtInterrupt(u8 value);
+void VDP_setExtInterrupt(bool value);
 /**
  *  \brief
  *      Enable or Disable Hilight / Shadow effect.
  */
-void VDP_setHilightShadow(u8 value);
+void VDP_setHilightShadow(bool value);
 
 /**
  *  \brief
@@ -984,6 +991,48 @@ void VDP_setWindowHPos(u16 right, u16 pos);
  *      The Vertical position of the window in 1 tile unit (8 pixels).
  */
 void VDP_setWindowVPos(u16 down, u16 pos);
+/**
+ *  \brief
+ *      Turns off the window.
+ */
+void VDP_setWindowOff();
+/**
+ *  \brief
+ *      Positions the window from the top edge of the screen by the specified number of rows (tiles).
+ *
+ *  \param rows
+ *      The number of rows, expressed in tiles.
+ */
+void VDP_setWindowOnTop(u16 rows);
+/**
+ *  \brief
+ *      Positions the window from the bottom edge of the screen by the specified number of rows (tiles).
+ *
+ *  \param rows
+ *      The number of rows, expressed in tiles.
+ */
+void VDP_setWindowOnBottom(u16 rows);
+/**
+ *  \brief
+ *      Positions the window from the left edge of the screen by the specified number of columns, each 2 tiles wide (16 pixels).
+ *
+ *  \param cols
+ *      The number of columns, expressed in double tiles.
+ */
+void VDP_setWindowOnLeft(u16 cols);
+/**
+ *  \brief
+ *      Positions the window from the right edge of the screen by the specified number of columns, each 2 tiles wide (16 pixels).
+ *
+ *  \param cols
+ *      The number of columns, expressed in double tiles.
+ */
+void VDP_setWindowOnRight(u16 cols);
+/**
+ *  \brief
+ *      Positions the window to full screen.
+ */
+void VDP_setWindowFullScreen();
 
 /**
  *  \brief
@@ -1053,22 +1102,31 @@ u16 VDP_getAdjustedVCounter(void);
  *
  *  \param asFloat
  *      Display in float number format.
+ *  \param x
+ *      X coordinate (in tile).
+ *  \param y
+ *      y coordinate (in tile).
  *
  * This function actually display the number of time it was called in the last second.<br>
  * i.e: for benchmarking you should call this method only once per frame update.
  *
  * \see #SYS_getFPS(..)
  */
-void VDP_showFPS(u16 asFloat);
+void VDP_showFPS(u16 asFloat, u16 x, u16 y);
 /**
  *  \brief
  *      Display the estimated CPU load (in %).
+ * 
+*  \param x
+ *      X coordinate (in tile).
+ *  \param y
+ *      y coordinate (in tile).
  *
  * This function actually display an estimation of the CPU load (in %) for the last frame.
  *
  * \see #SYS_getCPULoad()
  */
-void VDP_showCPULoad(void);
+void VDP_showCPULoad(u16 x, u16 y);
 
 
 #endif // _VDP_H_

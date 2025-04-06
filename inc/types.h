@@ -39,7 +39,7 @@
 #define MAX_U8  0xFF
 #endif
 #ifndef MIN_S8
-#define MIN_S8  -0x80
+#define MIN_S8  (-0x80)
 #endif
 #ifndef MAX_S8
 #define MAX_S8  0x7F
@@ -52,7 +52,7 @@
 #define MAX_U16 0xFFFF
 #endif
 #ifndef MIN_S16
-#define MIN_S16 -0x8000
+#define MIN_S16 (-0x8000)
 #endif
 #ifndef MAX_S16
 #define MAX_S16 0x7FFF
@@ -65,7 +65,7 @@
 #define MAX_U32 0xFFFFFFFF
 #endif
 #ifndef MIN_S32
-#define MIN_S32 -0x80000000
+#define MIN_S32 (-0x80000000)
 #endif
 #ifndef MAX_S32
 #define MAX_S32 0x7FFFFFFF
@@ -104,13 +104,29 @@ typedef unsigned short u16;
  */
 typedef unsigned long u32;
 
+#if !defined(__cplusplus) && (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 202300L))
+
 /**
  *  \typedef bool
- *      boolean type, to be used with TRUE and FALSE constant.
+ *      boolean type, to be used with TRUE/true and FALSE/false constants.
  *      (internally set as unsigned char)
  */
-#ifndef __cplusplus
 typedef u8 bool;
+/**
+ *  \brief
+ *      false define (equivalent to 0).
+ */
+#ifndef false
+#define false   FALSE
+#endif
+/**
+ *  \brief
+ *      true define (equivalent to 1).
+ */
+#ifndef true
+#define true    TRUE
+#endif
+
 #endif
 
 /**
@@ -172,47 +188,74 @@ typedef s16 p16;
 #define uint32_t    u32
 #define int32_t     s32
 #endif
+#if !defined(size_t)
+#define size_t      u32
+#endif
+#if !defined(ptrdiff_t)
+#define ptrdiff_t   u32
+#endif
 
 
 /**
  *  \typedef fix16
- *      16 bits fixed point type.
+ *      16 bits fixed point (10.6) type
  */
 typedef s16 fix16;
 /**
  *  \typedef fix32
- *      32 bits fixed point type.
+ *      32 bits fixed point (22.10) type
  */
 typedef s32 fix32;
 /**
  *  \typedef f16
- *      16 bits fixed point type (short version).
+ *      16 bits fixed point (10.6) type - short version
  */
 typedef s16 f16;
 /**
  *  \typedef f32
- *      32 bits fixed point type (short version).
+ *      32 bits fixed point (22.10) type - short version
  */
 typedef s32 f32;
 
 /**
+ *  \typedef fastfix16
+ *      "fast" 16 bits fixed point (8.8) type
+ */
+typedef s16 fastfix16;
+/**
+ *  \typedef fastfix32
+ *      "fast" 32 bits fixed point (16.16) type
+ */
+typedef s32 fastfix32;
+/**
+ *  \typedef ff16
+ *      "fast" 16 bits fixed point (8.8) type - short version
+ */
+typedef s16 ff16;
+/**
+ *  \typedef ff32
+ *      "fast" 32 bits fixed point (16.16) type - short version
+ */
+typedef s32 ff32;
+
+/**
  *  \typedef vfix16
- *      volatile 16 bits fixed point type.
+ *      volatile 16 bits fixed point (10.6) type.
  */
 typedef vs16 vfix16;
 /**
  *  \typedef vfix32
- *      volatile 32 bits fixed point type.
+ *      volatile 32 bits fixed point (22.10) type.
  */
 typedef vs32 vfix32;
 /**
  *  \typedef vf16
- *      volatile 16 bits fixed point type (short version).
+ *      volatile 16 bits fixed point (10.6) type - short version
  */
 typedef vs16 vf16;
 /**
  *  \typedef vf32
- *      volatile 32 bits fixed point type (short version).
+ *      volatile 32 bits fixed point (22.10) type - short version
  */
 typedef vs32 vf32;
 

@@ -1,11 +1,7 @@
-#include "MDT_Version.h"
+//#include "MDT_Version.h"
 
 #ifndef MDT_MAIN_H_INCLUDED
 #define MDT_MAIN_H_INCLUDED
-
-//-------------------------------
-//#define MDT_VERSION 3
-//-------------------------------
 
 // bit help
 // a=target variable, b=bit number to act upon 0-n
