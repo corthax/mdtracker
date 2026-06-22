@@ -2,9 +2,10 @@
 <CodeBlocks_project_file>
 	<FileVersion major="1" minor="6" />
 	<Project>
-		<Option title="game" />
-		<Option makefile="D:/gamedev/sega/sgdk/makefile.gen" />
+		<Option title="mdtracker" />
+		<Option makefile="C:/gamedev/sega/sgdk/makefile.gen" />
 		<Option makefile_is_custom="1" />
+		<Option execution_dir="C:/GameDev/SEGA/project/mdtracker" />
 		<Option pch_mode="2" />
 		<Option compiler="sgdk" />
 		<Option virtualFolders="c:/gamedev/sega/sgdk/inc/" />
@@ -18,11 +19,10 @@
 		</MakeCommands>
 		<Build>
 			<Target title="default">
-				<Option output="out/game" prefix_auto="1" extension_auto="1" />
-				<Option object_output="out/" />
-				<Option type="1" />
+				<Option type="4" />
 				<Option compiler="sgdk" />
-				<Option host_application="C:/games/_console/sega/genesis/blastem-win32-0.6.2/blastem.exe" />
+				<Option parameters="C:\GameDev\SEGA\project\mdtracker\out\rom.bin" />
+				<Option host_application="d:/Games/_console/sega/genesis/BlastEm/blastem-win64-0.6.3-pre-6404643aca38/blastem.exe" />
 				<Option run_host_application_in_terminal="0" />
 				<Compiler>
 					<Add option="-O2" />
@@ -124,7 +124,7 @@
 		</Unit>
 		<Extensions>
 			<code_completion>
-				<search_path add="D:\gamedev\sega\sgdk\inc" />
+				<search_path add="c:\gamedev\sega\sgdk\inc" />
 			</code_completion>
 		</Extensions>
 	</Project>

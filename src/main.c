@@ -24,8 +24,10 @@
 
 #define MDT_HEADER              "MDT105"
 #define STRING_EMPTY            ""
-#define H_INT_DURATION_NTSC     744     // ; 744
-#define H_INT_DURATION_PAL      892     // ; 892
+#define NTSC_ACTIVE_LINES       224
+#define PAL_ACTIVE_LINES        224
+#define NTSC_FPS                60
+#define PAL_FPS                 50
 
 #define TICK_SKIP_MIN           0x01       // fast tempo limit, 1 tick = H_INT_SKIP h-Blanks; 6
 #define TICK_SKIP_MAX           0xFF    // slow tempo limit; 128
@@ -1052,7 +1054,7 @@ static void DoEngine()
             {
                 channelTremolo[mtxCh] = (u8)F16_toRoundedInt
                 (
-                    F16_mul(FIX16(channelTremoloDepth[mtxCh]), F16_div(cosFix16(channelTremoloPhase[mtxCh]) + FIX16(1), FIX16(2)))
+                    F16_mul(FIX16(channelTremoloDepth[mtxCh]), (cosFix16(channelTremoloPhase[mtxCh]) + FIX16(1)) >> 1)
                 );
 
                 channelTremoloPhase[mtxCh] += channelTremoloSpeed[mtxCh];
@@ -1141,7 +1143,7 @@ static void DoEngine()
                     seqParValue[id][step] = SRAM_ReadSEQ_PAR(id, step);
                     seqArpValue[id][step] = SRAM_ReadSEQ_ARP(id, step);
                 }
-                CacheIstrumentToRAM(id);
+                CacheInstrumentToRAM(id);
             }
 
             // set instruments
@@ -1422,8 +1424,6 @@ static s16 FindUnusedPattern()
 
 static void SetBPM(u16 tempo)
 {
-    static f32 mcs = 0;
-
     if (!tempo)
     {
         hIntToSkip = SRAMW_readWord(TEMPO);
@@ -1434,29 +1434,16 @@ static void SetBPM(u16 tempo)
         hIntToSkip = tempo;
     }
 
-    // GUI
-    if (IS_PAL_SYSTEM)
-    {
-        //mcs = H_INT_DURATION_PAL * H_INT_CALLS_SKIP * hIntToSkip; // h-blank = 1/11200 sec;  8.928571428571429e-5; 89.2857 microseconds;
-        mcs = F32_div(FIX32(1.0), FIX32(1.120)) * H_INT_CALLS_SKIP * hIntToSkip;
-    }
-    else
-    {
-        //mcs = H_INT_DURATION_NTSC * H_INT_CALLS_SKIP * hIntToSkip; // h-blank = 1/13440 sec; 7.44047619047619e-5; 74.4047 microseconds; 224 * 60
-        mcs = F32_div(FIX32(1.0), FIX32(1.344)) * H_INT_CALLS_SKIP * hIntToSkip; //193, 140, 0.74404761904761904761904761904762
-    }
+    u16 activeLines = IS_PAL_SYSTEM ? PAL_ACTIVE_LINES : NTSC_ACTIVE_LINES;
+    u16 fps = IS_PAL_SYSTEM ? PAL_FPS : NTSC_FPS;
+    u8 hIntPerFrame = activeLines / H_INT_CALLS_SKIP;
+    u16 hIntRate = hIntPerFrame * fps;
+    u8 ppb = (ppl_1 + ppl_2) * 2;
+    u16 pb = hIntToSkip * ppb;
 
-    // precise BPM: 600000000000 / (1/13440) * 2 * hIntToSkip)) / ppb
-
-    u8 ppb = (ppl_1 + ppl_2) * 2; // pulses per beat
-
-    // beat per minute
-    //BPM = (600000000 / mcs) / ppb;
-
-    // beat per minute (fractional)
-    fBPM = (F32_div(FIX32(60000.0), mcs) / ppb) * 10;
-    BPM = F32_toInt(fBPM);
-    fBPM = F32_frac(fBPM);
+    u32 bpmX100 = (u32)60 * hIntRate * 100 / pb;
+    BPM = bpmX100 / 100;
+    fBPM = F32_div(FIX32(bpmX100 % 100), FIX32(100));
 
     //PPS = (((BPM * 1000) / 6) * ppb) / 10000; // pulse per second
     DrawInfo();
@@ -3414,6 +3401,207 @@ void DisplayPatternEditor()
     }
 }
 // ------------------------------ INSTRUMENT EDITOR
+// apply single instrument parameter change to YM2612 hardware registers,
+// writing only the register(s) that were edited to preserve pattern automation
+static void ApplyInstChangeToYM(u8 instID, u8 param, u8 op, u8 changeAll)
+{
+    for (u8 mtxCh = 0; mtxCh < CHANNEL_PSG1; mtxCh++)
+    {
+        if (channelPreviousInstrument[mtxCh] != instID) continue;
+        if (mtxCh == CHANNEL_FM3_OP3 || mtxCh == CHANNEL_FM3_OP2 || mtxCh == CHANNEL_FM3_OP1) continue;
+
+        u8 ymCh = (mtxCh < CHANNEL_FM4) ? mtxCh : (mtxCh - CHANNEL_FM4);
+        u16 port = (mtxCh <= CHANNEL_FM3_OP4) ? PORT_1 : PORT_2;
+
+        switch (param)
+        {
+        case GUI_INST_PARAM_ALG:
+            chInst[mtxCh].ALG = tmpInst[instID].ALG;
+            chInst[mtxCh].FB_ALG = (chInst[mtxCh].FB << 3) | chInst[mtxCh].ALG;
+            YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH0 + ymCh, chInst[mtxCh].FB_ALG);
+            SetChannelBaseVolume_FM(mtxCh);
+            bWriteRegs = TRUE; SetChannelVolume(mtxCh);
+            break;
+
+        case GUI_INST_PARAM_FMS:
+            chInst[mtxCh].FMS = tmpInst[instID].FMS;
+            chInst[mtxCh].PAN_AMS_FMS = (chInst[mtxCh].PAN << 6) | (chInst[mtxCh].AMS << 4) | chInst[mtxCh].FMS;
+            YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH0 + ymCh, chInst[mtxCh].PAN_AMS_FMS);
+            break;
+
+        case GUI_INST_PARAM_AMS:
+            chInst[mtxCh].AMS = tmpInst[instID].AMS;
+            chInst[mtxCh].PAN_AMS_FMS = (chInst[mtxCh].PAN << 6) | (chInst[mtxCh].AMS << 4) | chInst[mtxCh].FMS;
+            YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH0 + ymCh, chInst[mtxCh].PAN_AMS_FMS);
+            break;
+
+        case GUI_INST_PARAM_PAN:
+            chInst[mtxCh].PAN = tmpInst[instID].PAN;
+            chInst[mtxCh].PAN_AMS_FMS = (chInst[mtxCh].PAN << 6) | (chInst[mtxCh].AMS << 4) | chInst[mtxCh].FMS;
+            YM2612_writeRegZ80(port, YM2612REG_PAN_AMS_FMS_CH0 + ymCh, chInst[mtxCh].PAN_AMS_FMS);
+            break;
+
+        case GUI_INST_PARAM_FB:
+            chInst[mtxCh].FB = tmpInst[instID].FB;
+            chInst[mtxCh].FB_ALG = (chInst[mtxCh].FB << 3) | chInst[mtxCh].ALG;
+            YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH0 + ymCh, chInst[mtxCh].FB_ALG);
+            break;
+
+        case GUI_INST_PARAM_TL:
+        {
+            u8 start = changeAll ? 0 : op, end = changeAll ? 4 : (u8)(op + 1);
+            u8 *ch = &chInst[mtxCh].TL1;
+            u8 *tmp = &tmpInst[instID].TL1;
+            for (u8 i = start; i < end; i++)
+            {
+                ch[i] = tmp[i];
+                YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + (i << 2) + ymCh, ch[i]);
+            }
+            SetChannelBaseVolume_FM(mtxCh);
+            bWriteRegs = TRUE; SetChannelVolume(mtxCh);
+            break;
+        }
+
+        case GUI_INST_PARAM_RS:
+        {
+            u8 start = changeAll ? 0 : op, end = changeAll ? 4 : (u8)(op + 1);
+            for (u8 i = start; i < end; i++)
+            {
+                u8 *pRS = &chInst[mtxCh].RS1 + i;
+                u8 *pAR = &chInst[mtxCh].AR1 + i;
+                u8 *pComb = &chInst[mtxCh].RS1_AR1 + i;
+                *pRS = *(&tmpInst[instID].RS1 + i);
+                *pComb = (*pRS << 6) | *pAR;
+                YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH0 + (i << 2) + ymCh, *pComb);
+            }
+            break;
+        }
+
+        case GUI_INST_PARAM_AR:
+        {
+            u8 start = changeAll ? 0 : op, end = changeAll ? 4 : (u8)(op + 1);
+            for (u8 i = start; i < end; i++)
+            {
+                u8 *pAR = &chInst[mtxCh].AR1 + i;
+                u8 *pComb = &chInst[mtxCh].RS1_AR1 + i;
+                *pAR = *(&tmpInst[instID].AR1 + i);
+                *pComb = (*(&chInst[mtxCh].RS1 + i) << 6) | *pAR;
+                YM2612_writeRegZ80(port, YM2612REG_OP1_RS_AR_CH0 + (i << 2) + ymCh, *pComb);
+            }
+            break;
+        }
+
+        case GUI_INST_PARAM_MUL:
+        {
+            u8 start = changeAll ? 0 : op, end = changeAll ? 4 : (u8)(op + 1);
+            for (u8 i = start; i < end; i++)
+            {
+                u8 *pMUL = &chInst[mtxCh].MUL1 + i;
+                u8 *pComb = &chInst[mtxCh].DT1_MUL1 + i;
+                *pMUL = *(&tmpInst[instID].MUL1 + i);
+                *pComb = (*(&chInst[mtxCh].DT1 + i) << 4) | *pMUL;
+                YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH0 + (i << 2) + ymCh, *pComb);
+            }
+            break;
+        }
+
+        case GUI_INST_PARAM_DT:
+        {
+            u8 start = changeAll ? 0 : op, end = changeAll ? 4 : (u8)(op + 1);
+            for (u8 i = start; i < end; i++)
+            {
+                u8 *pDT = &chInst[mtxCh].DT1 + i;
+                u8 *pComb = &chInst[mtxCh].DT1_MUL1 + i;
+                *pDT = *(&tmpInst[instID].DT1 + i);
+                *pComb = (*pDT << 4) | *(&chInst[mtxCh].MUL1 + i);
+                YM2612_writeRegZ80(port, YM2612REG_OP1_DT_MUL_CH0 + (i << 2) + ymCh, *pComb);
+            }
+            break;
+        }
+
+        case GUI_INST_PARAM_D1R:
+        {
+            u8 start = changeAll ? 0 : op, end = changeAll ? 4 : (u8)(op + 1);
+            for (u8 i = start; i < end; i++)
+            {
+                u8 *pD1R = &chInst[mtxCh].D1R1 + i;
+                u8 *pComb = &chInst[mtxCh].AM1_D1R1 + i;
+                *pD1R = *(&tmpInst[instID].D1R1 + i);
+                *pComb = (*(&chInst[mtxCh].AM1 + i) << 7) | *pD1R;
+                YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH0 + (i << 2) + ymCh, *pComb);
+            }
+            break;
+        }
+
+        case GUI_INST_PARAM_AM:
+        {
+            u8 start = changeAll ? 0 : op, end = changeAll ? 4 : (u8)(op + 1);
+            for (u8 i = start; i < end; i++)
+            {
+                u8 *pAM = &chInst[mtxCh].AM1 + i;
+                u8 *pComb = &chInst[mtxCh].AM1_D1R1 + i;
+                *pAM = *(&tmpInst[instID].AM1 + i);
+                *pComb = (*pAM << 7) | *(&chInst[mtxCh].D1R1 + i);
+                YM2612_writeRegZ80(port, YM2612REG_OP1_AM_D1R_CH0 + (i << 2) + ymCh, *pComb);
+            }
+            break;
+        }
+
+        case GUI_INST_PARAM_D1L:
+        {
+            u8 start = changeAll ? 0 : op, end = changeAll ? 4 : (u8)(op + 1);
+            for (u8 i = start; i < end; i++)
+            {
+                u8 *pD1L = &chInst[mtxCh].D1L1 + i;
+                u8 *pComb = &chInst[mtxCh].D1L1_RR1 + i;
+                *pD1L = *(&tmpInst[instID].D1L1 + i);
+                *pComb = (*pD1L << 4) | *(&chInst[mtxCh].RR1 + i);
+                YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH0 + (i << 2) + ymCh, *pComb);
+            }
+            break;
+        }
+
+        case GUI_INST_PARAM_RR:
+        {
+            u8 start = changeAll ? 0 : op, end = changeAll ? 4 : (u8)(op + 1);
+            for (u8 i = start; i < end; i++)
+            {
+                u8 *pRR = &chInst[mtxCh].RR1 + i;
+                u8 *pComb = &chInst[mtxCh].D1L1_RR1 + i;
+                *pRR = *(&tmpInst[instID].RR1 + i);
+                *pComb = (*(&chInst[mtxCh].D1L1 + i) << 4) | *pRR;
+                YM2612_writeRegZ80(port, YM2612REG_OP1_D1L_RR_CH0 + (i << 2) + ymCh, *pComb);
+            }
+            break;
+        }
+
+        case GUI_INST_PARAM_D2R:
+        {
+            u8 start = changeAll ? 0 : op, end = changeAll ? 4 : (u8)(op + 1);
+            for (u8 i = start; i < end; i++)
+            {
+                u8 *pD2R = &chInst[mtxCh].D2R1 + i;
+                *pD2R = *(&tmpInst[instID].D2R1 + i);
+                YM2612_writeRegZ80(port, YM2612REG_OP1_D2R_CH0 + (i << 2) + ymCh, *pD2R);
+            }
+            break;
+        }
+
+        case GUI_INST_PARAM_SSGEG:
+        {
+            u8 start = changeAll ? 0 : op, end = changeAll ? 4 : (u8)(op + 1);
+            for (u8 i = start; i < end; i++)
+            {
+                u8 *pSSG = &chInst[mtxCh].SSGEG1 + i;
+                *pSSG = *(&tmpInst[instID].SSGEG1 + i);
+                YM2612_writeRegZ80(port, YM2612REG_OP1_SSGEG_CH0 + (i << 2) + ymCh, *pSSG);
+            }
+            break;
+        }
+        }
+    }
+}
+
 static void ChangeInstrumentParameter(s8 modifier, u8 changeAll)
 {
     static s16 value = 0;
@@ -3731,13 +3919,9 @@ static void ChangeInstrumentParameter(s8 modifier, u8 changeAll)
         if (value < 0) midiPreset = 0xFF; else if (value > 0xFF) midiPreset = 0; else midiPreset = value; // guard, wrap
         break;
     }
-    CacheIstrumentToRAM(selectedInstrumentID); // update RAM struct
-    // apply values at edit
-    /*chInst[selectedMatrixChannel] = tmpInst[selectedMatrixChannel];
-    if (selectedMatrixChannel < CHANNEL_FM3_OP3)
-        WriteYM2612(selectedMatrixChannel, selectedMatrixChannel);
-    else if (selectedMatrixChannel > CHANNEL_FM3_OP1 && selectedMatrixChannel < CHANNEL_PSG1)
-        WriteYM2612(selectedMatrixChannel, selectedMatrixChannel - 3);*/
+    CacheInstrumentToRAM(selectedInstrumentID); // update RAM struct
+    // apply values at edit - write only the changed register(s) to preserve pattern automation
+    ApplyInstChangeToYM(selectedInstrumentID, selectedInstrumentParameter, selectedInstrumentOperator, changeAll);
 }
 
 u32 GetSampleStartAddress(u8 bank, u8 note)
@@ -4165,8 +4349,10 @@ static void SetChannelVolume(u8 mtxCh)
 
             if (bWriteRegs)
             {
+                YM2612_writeRegBatchBegin();
                 YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, (u8)vol[2]);
                 YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)vol[3]);
+                YM2612_writeRegBatchEnd();
             }
             chInst[mtxCh].TL3 = (u8)vol[2];
             chInst[mtxCh].TL4 = (u8)vol[3];
@@ -4196,9 +4382,11 @@ static void SetChannelVolume(u8 mtxCh)
 
             if (bWriteRegs)
             {
+                YM2612_writeRegBatchBegin();
                 YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + ymCh, (u8)vol[1]);
                 YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, (u8)vol[2]);
                 YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)vol[3]);
+                YM2612_writeRegBatchEnd();
             }
             chInst[mtxCh].TL2 = (u8)vol[1];
             chInst[mtxCh].TL3 = (u8)vol[2];
@@ -4236,10 +4424,12 @@ static void SetChannelVolume(u8 mtxCh)
 
             if (bWriteRegs)
             {
+                YM2612_writeRegBatchBegin();
                 YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + ymCh, (u8)vol[0]);
                 YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + ymCh, (u8)vol[1]);
                 YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, (u8)vol[2]);
                 YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)vol[3]);
+                YM2612_writeRegBatchEnd();
             }
             chInst[mtxCh].TL1 = (u8)vol[0];
             chInst[mtxCh].TL2 = (u8)vol[1];
@@ -4457,6 +4647,7 @@ static void SetPitchFM(u8 mtxCh, u8 note)
         part1 = ((noteOctave[(u8)key]) << 3) | (noteMicrotone_YM[noteFreqID[(u8)key]][(u8)channelFinalPitch[mtxCh]] >> 8);
         part2 = 0b0000000011111111 & noteMicrotone_YM[noteFreqID[(u8)key]][(u8)channelFinalPitch[mtxCh]];
 
+        YM2612_writeRegBatchBegin();
         switch (mtxCh)
         {
         case CHANNEL_FM1:
@@ -4598,6 +4789,7 @@ static void SetPitchFM(u8 mtxCh, u8 note)
             break;
             default: break;
         }
+        YM2612_writeRegBatchEnd();
     }
     else
     {
@@ -4805,7 +4997,7 @@ static void SetGlobalLFO(u8 freq)
 }
 
 // cache instrument
-static void CacheIstrumentToRAM(u8 id)
+static void CacheInstrumentToRAM(u8 id)
 {
     tmpInst[id].ALG = SRAM_ReadInstrument(id, INST_ALG);
     tmpInst[id].AMS = SRAM_ReadInstrument(id, INST_AMS);
@@ -4981,6 +5173,7 @@ static void WriteYM2612(u8 mtxCh)
     switch (ymCh)
     {
     case 0:
+        YM2612_writeRegBatchBegin();
         YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH0, chInst[mtxCh].FB_ALG);
 
         YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0, chInst[mtxCh].TL1);
@@ -5019,8 +5212,10 @@ static void WriteYM2612(u8 mtxCh)
         YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH0, chInst[mtxCh].SSGEG2);
         YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH0, chInst[mtxCh].SSGEG3);
         YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH0, chInst[mtxCh].SSGEG4);
+        YM2612_writeRegBatchEnd();
         break;
     case 1:
+        YM2612_writeRegBatchBegin();
         YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH1, chInst[mtxCh].FB_ALG);
 
         YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH1, chInst[mtxCh].TL1);
@@ -5059,8 +5254,10 @@ static void WriteYM2612(u8 mtxCh)
         YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH1, chInst[mtxCh].SSGEG2);
         YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH1, chInst[mtxCh].SSGEG3);
         YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH1, chInst[mtxCh].SSGEG4);
+        YM2612_writeRegBatchEnd();
         break;
     case 2:
+        YM2612_writeRegBatchBegin();
         YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH2, chInst[mtxCh].FB_ALG);
 
         YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH2, chInst[mtxCh].TL1);
@@ -5099,6 +5296,7 @@ static void WriteYM2612(u8 mtxCh)
         YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH2, chInst[mtxCh].SSGEG2);
         YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH2, chInst[mtxCh].SSGEG3);
         YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH2, chInst[mtxCh].SSGEG4);
+        YM2612_writeRegBatchEnd();
         break;
     default: break;
     }
@@ -6258,11 +6456,25 @@ u8 SRAM_ReadSampleRate(u8 bank, u8 note){ return SRAMW_readByte((u32)SAMPLE_RATE
 void SRAM_WriteSampleRate(u8 bank, u8 note, u8 data) { SRAMW_writeByte((u32)SAMPLE_RATE + (bank * NOTES) + note, data); }
 
 // other
+static u8 ym2612Z80BatchDepth = 0;
+
 void YM2612_writeRegZ80(u16 part, u8 reg, u8 data)
 {
-    RequestZ80();
+    if (!ym2612Z80BatchDepth) RequestZ80();
     YM2612_writeReg(part, reg, data);
-    ReleaseZ80();
+    if (!ym2612Z80BatchDepth) ReleaseZ80();
+}
+
+void YM2612_writeRegBatchBegin()
+{
+    RequestZ80();
+    ym2612Z80BatchDepth++;
+}
+
+void YM2612_writeRegBatchEnd()
+{
+    ym2612Z80BatchDepth--;
+    if (!ym2612Z80BatchDepth) ReleaseZ80();
 }
 
 void DrawMute(u8 mtxCh)
@@ -6521,7 +6733,7 @@ void InitTracker()
 
     for (u16 id = 0; id <= INSTRUMENTS_LAST; id++)
     {
-        CacheIstrumentToRAM(id);
+        CacheInstrumentToRAM(id);
         instrumentIsMuted[id] = INST_PLAY;
     }
 

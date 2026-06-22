@@ -158,7 +158,7 @@ static void SetChannelVolume(u8 mtxCh);
 static void SetChannelBaseVolume_FM(u8 mtxCh);
 static void SetBPM(u16 tempo);
 static void WriteYM2612(u8 mtxCh);
-static void CacheIstrumentToRAM(u8 id);
+static void CacheInstrumentToRAM(u8 id);
 /** \brief
  *
  * \param mtxCh u8: Matrix channel
@@ -180,6 +180,8 @@ static void RequestZ80();
 static void ReleaseZ80();
 static void JoyEvent(u16 joy, u16 changed, u16 state);
 static void YM2612_writeRegZ80(u16 part, u8 reg, u8 data);
+void YM2612_writeRegBatchBegin();
+void YM2612_writeRegBatchEnd();
 static s16 FindUnusedPattern();
 void CalculateCombined(u8 mtxCh, u8 reg);
 void ForceResetVariables();
