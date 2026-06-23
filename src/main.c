@@ -2048,6 +2048,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
         break;
         /// -------------------------------------------------------------------------------------------------------------------
         case SCREEN_PATTERN:
+
             switch (state)
             {
             case BUTTON_X:
@@ -2070,29 +2071,6 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 NavigatePattern(PATTERN_JUMPSIDETRIGGER);
                 PrintSelectedPositionInfo();
                 break;
-
-            /*case BUTTON_Z:
-                // Z + D-Pad: select pattern for editing [useless]
-                switch (changed)
-                {
-                case BUTTON_RIGHT:
-                    if (selectedPatternID < MAX_PATTERN){ selectedPatternID++; bRefreshScreen = bInitScreen = TRUE; patternRowToRefresh = EVALUATE_0xFF; }
-                    if (bPlayback == 1) DrawPatternPlaybackCursor(); // to change color
-                    break;
-                case BUTTON_LEFT:
-                    if (selectedPatternID > 1) { selectedPatternID--; bRefreshScreen = bInitScreen = TRUE; patternRowToRefresh = EVALUATE_0xFF; }
-                    if (bPlayback == 1) DrawPatternPlaybackCursor(); // to change color
-                    break;
-                case BUTTON_UP:
-                    if (selectedPatternID < (MAX_PATTERN - 16)) { selectedPatternID += 16; bRefreshScreen = bInitScreen = TRUE; patternRowToRefresh = EVALUATE_0xFF; }
-                    if (bPlayback == 1) DrawPatternPlaybackCursor(); // to change color
-                    break;
-                case BUTTON_DOWN:
-                    if (selectedPatternID > 16) { selectedPatternID -= 16; bRefreshScreen = bInitScreen = TRUE; patternRowToRefresh = EVALUATE_0xFF; }
-                    if (bPlayback == 1) DrawPatternPlaybackCursor(); // to change color
-                    break;
-                }
-                break;*/
 
             case BUTTON_A:
                 // A + D-Pad: change note; instrument +- 1|16;  effect type/value +- 1|16
@@ -2302,8 +2280,66 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                             SRAM_WritePattern(selectedPatternID, row, DATA_NOTE, note);
                         }
                         break;
+
+                    /*case DATA_FX1_VALUE:
+                    case DATA_FX2_VALUE:
+                    case DATA_FX3_VALUE:
+                    case DATA_FX4_VALUE:
+                    case DATA_FX5_VALUE:
+                    case DATA_FX6_VALUE:
+                    case (DATA_FX1_VALUE + PATTERN_COLUMNS):
+                    case (DATA_FX2_VALUE + PATTERN_COLUMNS):
+                    case (DATA_FX3_VALUE + PATTERN_COLUMNS):
+                    case (DATA_FX4_VALUE + PATTERN_COLUMNS):
+                    case (DATA_FX5_VALUE + PATTERN_COLUMNS):
+                    case (DATA_FX6_VALUE + PATTERN_COLUMNS):*/
+                    // B+Down effect value linear interpolation
+                    default:
+                        u8 param = selectedPatternColumn;
+                        if (param >= PATTERN_COLUMNS) param -= PATTERN_COLUMNS;
+
+                        if (param >= DATA_FX1_VALUE && (param & 1))
+                        {
+                            u8 row = selectedPatternRow + patternColumnShift;
+                            u8 curType = SRAM_ReadPattern(selectedPatternID, row, param - 1);
+                            u8 effectiveType = curType;
+                            if (effectiveType == 0)
+                            {
+                                for (s8 r = (s8)(row) - 1; r >= 0; r--)
+                                {
+                                    u8 t = SRAM_ReadPattern(selectedPatternID, (u8)r, param - 1);
+                                    if (t) { effectiveType = t; break; }
+                                }
+                            }
+                            u8 curValue = SRAM_ReadPattern(selectedPatternID, row, param);
+
+                            if (curType || curValue)
+                            {
+                                u8 tgtRow = OXFF, tgtVal = 0;
+                                for (u8 r = row + 1; r <= PATTERN_ROW_LAST; r++)
+                                {
+                                    u8 nxtType = SRAM_ReadPattern(selectedPatternID, r, param - 1);
+                                    if (nxtType != effectiveType && nxtType != 0) break;
+                                    u8 nxtVal = SRAM_ReadPattern(selectedPatternID, r, param);
+                                    if (nxtVal) { tgtRow = r; tgtVal = nxtVal; break; }
+                                }
+
+                                if (tgtRow != OXFF && tgtRow > row + 1)
+                                {
+                                    u8 steps = tgtRow - row;
+                                    for (u8 s = 1; s < steps; s++)
+                                    {
+                                        s16 n = (s16)curValue * (s16)(steps - s)
+                                                  + (s16)tgtVal * (s16)s
+                                                  + (s16)(steps >> 1);
+                                        SRAM_WritePattern(selectedPatternID, row + s, param, (u8)(n / (s16)steps));
+                                    }
+                                }
+                            }
+                        }
+                        break;
                     }
-                    bRefreshScreen = TRUE; patternRowToRefresh = OXFF;
+                    bRefreshScreen = TRUE; patternRowToRefresh = OXFF; bInitScreen = true;
                     break;
                 // octave +
                 case BUTTON_UP:
@@ -2381,6 +2417,22 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
             case BUTTON_Z:
                 switch (changed)
                 {
+                /*case BUTTON_RIGHT:  // Z + D-Pad: select pattern for editing [useless]
+                    if (selectedPatternID < MAX_PATTERN){ selectedPatternID++; bRefreshScreen = bInitScreen = TRUE; patternRowToRefresh = EVALUATE_0xFF; }
+                    if (bPlayback == 1) DrawPatternPlaybackCursor(); // to change color
+                    break;
+                case BUTTON_LEFT:
+                    if (selectedPatternID > 1) { selectedPatternID--; bRefreshScreen = bInitScreen = TRUE; patternRowToRefresh = EVALUATE_0xFF; }
+                    if (bPlayback == 1) DrawPatternPlaybackCursor(); // to change color
+                    break;
+                case BUTTON_UP:
+                    if (selectedPatternID < (MAX_PATTERN - 16)) { selectedPatternID += 16; bRefreshScreen = bInitScreen = TRUE; patternRowToRefresh = EVALUATE_0xFF; }
+                    if (bPlayback == 1) DrawPatternPlaybackCursor(); // to change color
+                    break;
+                case BUTTON_DOWN:
+                    if (selectedPatternID > 16) { selectedPatternID -= 16; bRefreshScreen = bInitScreen = TRUE; patternRowToRefresh = EVALUATE_0xFF; }
+                    if (bPlayback == 1) DrawPatternPlaybackCursor(); // to change color
+                    break;*/
                 // selected to nothing
                 case BUTTON_Z: // pressed
                     inc = 0;
