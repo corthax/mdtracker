@@ -158,6 +158,10 @@ u8 channelNoteCut[CHANNELS_TOTAL];
 u8 channelNoteRetrigger[CHANNELS_TOTAL];
 u8 channelNoteRetriggerCounter[CHANNELS_TOTAL];
 
+u8 channelAutoGlide[CHANNELS_TOTAL];
+u16 channelAutoGlideTicksLeft[CHANNELS_TOTAL];
+s8 channelAutoGlideStartPitch[CHANNELS_TOTAL];
+
 bool bPsgIsPlayingNote[4];
 
 s16 matrixRowJumpTo = OXFF;
@@ -660,6 +664,7 @@ static void DoEngine()
     static u8 _inst = 0;
     static s16 _key = 0;
     static s8 _test = 0;
+    static s16 _oldNote = 0;
 
     // vibrato tool
     auto s8 vibrato(u8 mtxCh) {
@@ -961,6 +966,8 @@ static void DoEngine()
             }
             else if (channelCurrentRowNote[mtxCh] < NOTES) // there is a note on a row
             {
+                _oldNote = channelPreviousNote[mtxCh];
+
                 if (channelMatrixTranspose[mtxCh] || channelTranspose[mtxCh])
                 {
                     _test = channelCurrentRowNote[mtxCh] + channelMatrixTranspose[mtxCh] + channelTranspose[mtxCh]; // check if out of notes range
@@ -969,6 +976,14 @@ static void DoEngine()
                         _key = channelPreviousNote[mtxCh] = channelArp[mtxCh] = channelCurrentRowNote[mtxCh] = _test;
                     }
                 } else _key = channelPreviousNote[mtxCh] = channelArp[mtxCh] = channelCurrentRowNote[mtxCh];
+
+                // auto glide: if active and valid previous note, start gliding from old pitch
+                if (channelAutoGlide[mtxCh] && _oldNote < NOTES)
+                {
+                    channelModNotePitch[mtxCh] = (s8)(_oldNote - _key);
+                    channelAutoGlideStartPitch[mtxCh] = channelModNotePitch[mtxCh];
+                    channelAutoGlideTicksLeft[mtxCh] = channelAutoGlide[mtxCh] + 1;
+                }
 
                 // shift row playback by some pulses if set on channel. re-trigger will ignore it
                 if (channelRowShift[mtxCh][playingPatternRow] && !channelNoteRetrigger[mtxCh])
@@ -1064,8 +1079,17 @@ static void DoEngine()
             }
 
             // pitch effects
-            if (channelPitchSlideSpeed[mtxCh] || (channelVibratoDepth[mtxCh] && channelVibratoSpeed[mtxCh]))
+            if (channelPitchSlideSpeed[mtxCh] || (channelVibratoDepth[mtxCh] && channelVibratoSpeed[mtxCh]) || channelAutoGlideTicksLeft[mtxCh])
             {
+                // auto glide
+                if (channelAutoGlideTicksLeft[mtxCh] && !channelNoteDelayCounter[mtxCh])
+                {
+                    channelAutoGlideTicksLeft[mtxCh]--;
+                    if (channelAutoGlideTicksLeft[mtxCh])
+                        channelModNotePitch[mtxCh] = (channelAutoGlideStartPitch[mtxCh] * channelAutoGlideTicksLeft[mtxCh]) / channelAutoGlide[mtxCh];
+                    else channelModNotePitch[mtxCh] = 0;
+                }
+
                 // pitch slide
                 //pitch_slide(mtxCh);
                 if (channelPitchSlideSpeed[mtxCh])
@@ -4897,6 +4921,10 @@ static void StopEffects(u8 mtxCh)
     channelModNotePitch[mtxCh] = 0;
     channelMicrotone[mtxCh] = 0;
 
+    channelAutoGlide[mtxCh] = 0;
+    channelAutoGlideTicksLeft[mtxCh] = 0;
+    channelAutoGlideStartPitch[mtxCh] = 0;
+
     channelPreviousNote[mtxCh] = NOTE_OFF;
 
     channelSEQCounter_ARP[mtxCh] = 0;
@@ -5523,6 +5551,16 @@ static void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
     // SET PORTAMENTO SKIP TICKS
     case 0x37:
         channelPitchSkipStep[mtxCh] = fxValue;
+        break;
+
+    // CHANNEL AUTO GLIDE
+    case 0x38:
+        channelAutoGlide[mtxCh] = fxValue;
+        if (!fxValue)
+        {
+            channelAutoGlideTicksLeft[mtxCh] = 0;
+            channelAutoGlideStartPitch[mtxCh] = 0;
+        }
         break;
 
     // VOLUME SEQUENCE MODE

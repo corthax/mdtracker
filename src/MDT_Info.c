@@ -59,7 +59,7 @@ void InitInfo()
     infoCommands[0x35] = "VIBRATO DEPTH                   ";
     infoCommands[0x36] = "VIBRATO MODE                    ";
     infoCommands[0x37] = "PITCH SLIDE SKIP PULSES         ";
-    infoCommands[0x38] = "";
+    infoCommands[0x38] = "CHANNEL AUTO GLIDE              ";
     infoCommands[0x39] = "";
     infoCommands[0x3A] = "";
     infoCommands[0x3B] = "";
@@ -318,7 +318,7 @@ void InitInfo()
     infoDescriptions[0x35] = "00: RESET                [DEFAULT 02]";
     infoDescriptions[0x36] = "01=UP, 02=DOWN, 00: UP AND DOWN      ";
     infoDescriptions[0x37] = "[XX] PULSES TO SKIP; 00: NOTHING     ";
-    infoDescriptions[0x38] = "";
+    infoDescriptions[0x38] = "00: OFF; 01..FF: GLIDE TICKS         ";
     infoDescriptions[0x39] = "";
     infoDescriptions[0x3A] = "";
     infoDescriptions[0x3B] = "";
