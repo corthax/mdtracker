@@ -753,6 +753,7 @@ Changelog:
 	Changes:
 		Added FX column value linear interpolation (B + Down). Current value -> next found value. If column FX Type changes before next value found, interpolation is skipped.
 		New Command 0x38: Channel auto pitch glide. 01..FF ticks from previous note to current note. Note OFF or value 00 disables auto gliding.
+		Added basic MIDI control (Start/Stop/Tempo Sync) via everdrive usb port or controller port 2 with usb-serial adapter (same way as mega-drive-midi-interface). There is slight delay before playback starts.
 	
 	MD.Tracker Editor 1.05 and tools:
 		Nothing changed. Same as 1.04
@@ -796,7 +797,14 @@ Changelog:
         Print currently highlighted pattern command description and instrument name, instead of last entered.
         (A+B) + D-Pad - Change all values in ARP/SEQ (Skip empty steps), FM Operators.
 		
-		External sync mode using gamepad input (Button MODE). Press C on BPM at Pattern Matrix to enable/disable. Each time button pressed the next song pulse proceed.
+		External sync mode: 
+		- EXT: Using gamepad input (Button MODE). Each time button pressed the next song pulse proceed.
+		- MCLK: MIDI Clock. Sync START, STOP, TEMPO with host. 
+		- MNT: MIDI Note (any). Incoming note triggers song tick.
+		
+		Press C on BPM at Pattern Matrix to switch between modes.
+		Works via Everdrive USB port or controller port 2 and USB-serial adapter (look for mega-drive-midi-interface project for details how to make an adapter). Something like hairless-midiserial and virtual midi (loopMIDI, rptMIDI or similar) required for setup.
+
 		Sample name now displayed in instrument editor and for selected note in pattern editor (when FM6 in DAC mode).
 		
 		Removed non working MSU-MD driver.

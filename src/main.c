@@ -22,6 +22,11 @@
 #include "MDT_Presets.h"
 #include "MDT_Version.h"
 
+// midi
+#include "midi/comm_midi.h"
+#include "midi/midi_rx.h"
+#include "midi/midi_sync.h"
+
 #define MDT_HEADER              "MDT105"
 #define STRING_EMPTY            ""
 #define NTSC_ACTIVE_LINES       224
@@ -1150,6 +1155,8 @@ static void DoEngine()
         }
     }
 
+    ProcessMidiSync();
+
     if (bPlayback)
     {
         if (_bBeginPlay)
@@ -1292,7 +1299,7 @@ static void DoEngine()
             VDP_setTextPalette(PAL0); VDP_drawTextBG(BG_B, "PLAY", 29, 27); VDP_drawTextBG(BG_B, "PLAY", 69, 27);
 
             SYS_enableInts();
-            VDP_setHInterrupt(!useExternalSync);
+            VDP_setHInterrupt(!useExternalSync && midi_sync_get_mode() == MIDI_SYNC_OFF);
         }
 
         if (hIntCounter >= hIntToSkip || bDoPulse)
@@ -1473,6 +1480,39 @@ static void SetBPM(u16 tempo)
     DrawInfo();
 }
 
+static void ProcessMidiSync()
+{
+    MidiSyncMode mode = midi_sync_get_mode();
+    if (mode == MIDI_SYNC_OFF)
+        return;
+
+    MidiTransportCmd cmd = midi_sync_get_transport();
+    switch (cmd) {
+    case MIDI_TRANSPORT_START:
+        if (!bPlayback) {
+            playingPatternRow = 0;
+            playingMatrixRow = selectedMatrixRow;
+            bPlayback = TRUE;
+        }
+        break;
+    case MIDI_TRANSPORT_STOP:
+        if (bPlayback) {
+            pulseCounter = 0;
+            bPlayback = FALSE;
+        }
+        break;
+    case MIDI_TRANSPORT_CONTINUE:
+        if (!bPlayback) {
+            bPlayback = TRUE;
+        }
+        break;
+    default:
+        break;
+    }
+
+    midi_rx_process();
+}
+
 void DrawBPM()
 {
     // BPM
@@ -1492,9 +1532,23 @@ void DrawBPM()
 
 void DrawInfo()
 {
-    if (useExternalSync)
+    MidiSyncMode _midiMode = midi_sync_get_mode();
+
+    if (useExternalSync && _midiMode == MIDI_SYNC_OFF)
     {
         VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "EXT    ", 3, 27); VDP_drawTextBG(BG_A, "EXT    ", 43, 27);
+        return;
+    }
+
+    if (_midiMode == MIDI_SYNC_CLOCK)
+    {
+        VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "MCLK   ", 3, 27); VDP_drawTextBG(BG_A, "MCLK   ", 43, 27);
+        return;
+    }
+
+    if (_midiMode == MIDI_SYNC_NOTE)
+    {
+        VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "MNT    ", 3, 27); VDP_drawTextBG(BG_A, "MNT    ", 43, 27);
         return;
     }
 
@@ -1602,17 +1656,28 @@ static void ChangeMatrixValue(s16 mod, u8 externalSync)
     }
     else // tempo
     {
-        if (mod || !externalSync)
+        if (mod) // direction button: adjust tempo, disable sync
         {
             value = SRAMW_readWord(TEMPO) - mod;
             if (value < TICK_SKIP_MIN) value = TICK_SKIP_MIN;
             else if (value > TICK_SKIP_MAX) value = TICK_SKIP_MAX;
             useExternalSync = FALSE;
+            midi_sync_set_mode(MIDI_SYNC_OFF);
             SetBPM((u16)value);
         }
-        else if (externalSync)
+        else if (externalSync) // C button: cycle sync mode
         {
-            useExternalSync = TRUE;
+            MidiSyncMode m = midi_sync_get_mode();
+            if (useExternalSync) {
+                useExternalSync = FALSE;
+                midi_sync_set_mode(MIDI_SYNC_CLOCK);
+            } else if (m == MIDI_SYNC_CLOCK) {
+                midi_sync_set_mode(MIDI_SYNC_NOTE);
+            } else if (m == MIDI_SYNC_NOTE) {
+                midi_sync_set_mode(MIDI_SYNC_OFF);
+            } else {
+                useExternalSync = TRUE;
+            }
             DrawInfo();
             return;
         }
@@ -1788,7 +1853,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
             break;
 
         case BUTTON_MODE:
-            if (bPlayback == FALSE && !useExternalSync) // play from current line
+            if (bPlayback == FALSE && !useExternalSync && midi_sync_get_mode() == MIDI_SYNC_OFF) // play from current line
             {
                 pulseCounter = 0;
                 if (selectedPatternColumn < PATTERN_COLUMNS) playingPatternRow = selectedPatternRow; // start from the current selected pattern line
@@ -1798,8 +1863,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
             }
             else
             {
-                bDoPulse = useExternalSync; // external sync from gamepad;
-                //stop_playback();
+                bDoPulse = (useExternalSync && midi_sync_get_mode() == MIDI_SYNC_OFF); // external sync from gamepad;
             }
             break;
 
@@ -2062,7 +2126,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 break;
 
             case BUTTON_C:
-                ChangeMatrixValue(0, !useExternalSync); // clear
+                ChangeMatrixValue(0, TRUE); // cycle sync mode
                 break;
             // navigate pattern matrix first button press
             case BUTTON_LEFT: case BUTTON_RIGHT: case BUTTON_UP: case BUTTON_DOWN:
@@ -6679,6 +6743,9 @@ void InitTracker()
     JOY_setSupport(PORT_2, JOY_SUPPORT_6BTN);
     JOY_setEventHandler(JoyEvent);
 
+    comm_midi_init();
+    midi_sync_init();
+
     //ReColorsAndTranspose(); // need SRAM
 
     // if there is no SRAM file, needs fresh init.
@@ -6840,7 +6907,7 @@ void InitTracker()
 
     SYS_setHIntCallback(*hIntCallback);
     SYS_setVIntCallback(*vIntCallback);
-    SYS_setInterruptMaskLevel(2);
+    SYS_setInterruptMaskLevel(1);
 }
 
 void FileWriteHeader()

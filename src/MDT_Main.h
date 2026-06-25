@@ -157,6 +157,7 @@ static void SetGlobalLFO(u8 freq);
 static void SetChannelVolume(u8 mtxCh);
 static void SetChannelBaseVolume_FM(u8 mtxCh);
 static void SetBPM(u16 tempo);
+static void ProcessMidiSync();
 static void WriteYM2612(u8 mtxCh);
 static void CacheInstrumentToRAM(u8 id);
 /** \brief

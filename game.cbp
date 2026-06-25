@@ -122,6 +122,30 @@
 		<Unit filename="src/ssf.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="src/midi/ring_buf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/midi/serial.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/midi/comm_serial.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/midi/comm_everdrive.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/midi/comm_everdrive_pro.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/midi/comm_midi.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/midi/midi_rx.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/midi/midi_sync.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Extensions>
 			<code_completion>
 				<search_path add="c:\gamedev\sega\sgdk\inc" />
