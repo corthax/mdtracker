@@ -34,23 +34,11 @@
 #define PATTERN_ROWS            32
 #define PATTERN_ROW_LAST        0x1F    // index of max line; starts from 0
 
-    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
 #define PATTERN_LAST            0x380   // 896
 #define INST_SIZE               89 // last 32 bytes reserved
 #define INSTRUMENTS_TOTAL       256
 #define INSTRUMENTS_LAST        0xFF
 #define EFFECTS_TOTAL           6
-
-    #elif (MDT_VERSION == 3)
-
-#define PATTERN_LAST            0x1A4   // 420
-#define INST_SIZE               57
-#define INSTRUMENTS_TOTAL       64
-#define INSTRUMENTS_LAST        0x3F
-#define EFFECTS_TOTAL           3
-
-    #endif
 
 #define PATTERN_JUMPSIDETRIGGER 0xFF
 
@@ -138,6 +126,35 @@
 #define SEQ_TYPE_VOL            0x41
 #define SEQ_TYPE_MICROTONE      0x18
 
+// New expandable pattern storage
+#ifndef PATTERN_SIZE
+#define PATTERN_SIZE        448 // 32 rows * 14 columns (max across all versions)
+#endif
+extern u16 patternOffset[PATTERN_LAST+1];      // SRAM offset per pattern, relative to patternRegionBase (0=empty)
+extern u8* editBuffer;                         // pattern edit buffer (NULL when not editing)
+extern u16 patternEditID;                      // which pattern is in editBuffer (0xFFFF=none)
+extern u16 chEventIdx[CHANNELS_TOTAL];         // per-channel event read pointer
+
+// Instrument block globals
+extern u32 instBlockEnd;                       // start of sequencers block = end of instruments
+extern u32 seqBlockEnd;                        // start of patterns block = end of sequencers
+extern u32 patternRegionBase;                  // = seqBlockEnd (cached for convenience)
+extern u16 instDataAddr[INSTRUMENTS_TOTAL];    // SRAM addr per modified instrument's compact record (0=ROM)
+extern u16 seqDataAddr[INSTRUMENTS_TOTAL];     // SRAM addr per modified sequencer's compact record (0=default)
+extern u16 seqEditID;                          // which instrument's SEQ is in seqEditBuffer (0xFFFF=none)
+extern u8  seqEditBuffer[64];                  // SEQ edit buffer: [0..31] VOL, [32..63] ARP
+
+// SRAM block functions
+void SRAM_ResetInstrumentToPreset(u8 id, u8 preset);
+void RecalcAllAddrs();
+void CommitSeqEditBuffer();
+void LoadSeqEditBuffer(u8 id);
+
+// Pattern region functions
+void SRAM_UnpackToBuffer(u16 id);
+void SRAM_CommitBuffer(u16 id);
+void SRAM_ScanPatternRegion();
+
 void InitTracker();
 void DrawText(u8 plane, u8 pal, const char *str, u8 x, u8 y);
 void DrawNum(u8 plane, u8 pal, const char *str, u8 x, u8 y);
@@ -187,7 +204,7 @@ static s16 FindUnusedPattern();
 void CalculateCombined(u8 mtxCh, u8 reg);
 void ForceResetVariables();
 static void ReadMatrixRow();
-void Legacy();
+
 void FileWriteHeader();
 //static void CountPulses();
 u32 GetSampleStartAddress(u8 bank, u8 note);

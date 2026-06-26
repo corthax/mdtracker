@@ -3,7 +3,20 @@
 #ifndef MDT_MODULEDATA_H_INCLUDED
 #define MDT_MODULEDATA_H_INCLUDED
 
-//{ Instrument data SRAM offsets
+// New pattern format
+#define PATTERN_MAGIC            0x4D44
+#define PATTERN_FORMAT_VERSION   2
+#define EVT_NOTEINST            0
+#define EVT_FX1                 1
+#define EVT_FX2                 2
+#define EVT_FX3                 3
+#define EVT_FX4                 4
+#define EVT_FX5                 5
+#define EVT_FX6                 6
+#define EVT_COUNT               7
+#define EVT_RESERVED            7
+
+//{ Instrument data param IDs (used with SRAM_ReadInstrument/SRAM_WriteInstrument)
 #define INST_ALG 0 // 1 byte ..
 #define INST_FMS 1
 #define INST_AMS 2
@@ -65,115 +78,70 @@
 #define INST_SSGEG3 47
 #define INST_SSGEG4 48
 
-// 49..80 (32 bytes) unused!
-/*#define INST_VOL_TICK_01 49
-#define INST_VOL_TICK_16 64
-#define INST_ARP_TICK_01 65
-#define INST_ARP_TICK_16 80*/
+// Compact instrument data contains fields 0-48 (INST_ALG through INST_SSGEG4)
+#define INST_DATA_SIZE      49
+#define INST_NAME_SIZE       8
+#define INST_NAME_OFFSET    49   // name starts at param 49
+#define INST_NAME_1         INST_NAME_OFFSET
+#define INST_NAME_8         (INST_NAME_OFFSET + 7)
 
-    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
-#define INST_NAME_1 81
-#define INST_NAME_8 88
-
-    #elif (MDT_VERSION == 3)
-
-#define INST_NAME_1 49
-#define INST_NAME_8 56
-
-    #endif
+#define INST_RECORD_SIZE     58  // 1 byte id + 49 data bytes + 8 name bytes
+#define INST_SENTINEL_MODIFIED 0xFF
+#define SEQ_RECORD_SIZE      65  // 1 byte id + 32 VOL bytes + 32 ARP bytes
+#define SEQ_SENTINEL_MODIFIED 0xFF
 
 #define SEQ_STEP_LAST       31
 #define SAMPLE_NAMES_SIZE   5376 // NOTES*4*GUI_SAMPLE_NAME_SIZE
-//}
-// sizes (byte):
-// pattern data size
-// 32 * 14 * 896 = 401408
-// 32 * 14 * 512 = 229376
-// 32 *  8 * 896 = 229376
-
-// 32 * 10 * 512 = 163840; 199463; (62169 free) 704 patterns max
-// 32 * 12 * 512 = 196608; 205231; (56913 free) 660 patterns max
-// 32 *  8 * 768 = 196608
-// pattern color
-// 896
-
-// ------------------------
-// instruments size
-// 256 * 89 = 22784
-
-// matrix size
-// 13 * 250 * 2 = 6500
-
-// matrix channels mute
-// 13
-
-// matrix transpose
-// 13 * 250 = 3250
-
-// sample data size
-// 4 * 96 * 8 = 3072
-// ------------------------
-
-// tempo/checker
-// 4
-
-// 35623
-
-// 256K = 262144
-// 512K = 524288
-
-    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
 
 #define PATTERN_COLUMNS     14
-#define PATTERN_SIZE        448 // 32 (pattern rows) * PATTERN_COLUMNS bytes
+#ifndef PATTERN_SIZE
+#define PATTERN_SIZE        448
+#endif
 
-//{ SRAM data blocks (BYTESWAPPED!!!)
-#define INSTRUMENT_DATA     0x00002 // 89 * 256 bytes
-#define GLOBAL_LFO          0x05902 // INSTRUMENT_DATA + 5900h; 1 byte
-#define FILE_CHECKER        0x05903 // DEAD. To check if SRAM file exists; 2 bytes
-#define PATTERN_MATRIX      0x05905 // MAX_MATRIX_ROWS * 13 * 2 bytes
-#define TEMPO               0x07269 // PATTERN_MATRIX + 1964h; 2 bytes
-#define SAMPLE_DATA         0x0726B // 4 * 96 * SAMPLE_DATA_SIZE(7) bytes (3byte start + 3byte end + 1byte loop); 1byte rate is missing
-#define PATTERN_DATA        0x07CEB // SAMPLE_DATA + A80h; 402304‬
-#define PATTERN_COLOR       0x6A06B // PATTERN_DATA + PATTERN_SIZE * (MAX_PATTERN + 1);
-#define MATRIX_TRANSPOSE    0x6A3EC // matrix slot transpose (250*13)
-#define MUTE_CHANNEL        0x6B09E // store disabled matrix channels (13)
-#define SAMPLE_PAN          0x6B0AB // default sample pan (4 * 96)
-#define SEQ_VOL_START       0x6B230 // 32 steps vol seq start
-#define SEQ_ARP_START       0x6D230 // SEQ_VOL_START + 2000; 32 steps arp seq start
-#define SAMPLE_RATE         0x6f230 // SEQ_ARP_START + 2000; default sample rate (4 * 96)
-//0x71230; 463408 ‬bytes
-// ...
-//0x80000 // eof
-//}
+// ========================================================
+// SRAM Layout (absolute byte offsets from SRAM start)
+// ========================================================
+// Block 1: Static data (fixed addresses, never shifts)
+#define STATIC_BASE             12    // after 6-byte header + 6 bytes padding (avoid _Odd overlap)
 
-    #elif (MDT_VERSION == 3)
+#define SRAM_GLOBAL_LFO         (STATIC_BASE + 0u)       // 3 bytes
+#define SRAM_PATTERN_MATRIX     (STATIC_BASE + 3u)       // 6500 bytes (13ch * 250row * 2)
+#define SRAM_TEMPO              (STATIC_BASE + 6503u)    // 2 bytes
+#define SRAM_SAMPLE_DATA        (STATIC_BASE + 6505u)    // 2688 bytes (4banks * 96notes * 7bytes)
+#define SRAM_PATTERN_COLOR      (STATIC_BASE + 9193u)    // 897 bytes
+#define SRAM_MATRIX_TRANSPOSE   (STATIC_BASE + 10090u)   // 3250 bytes (13ch * 250row)
+#define SRAM_SAMPLE_PAN         (STATIC_BASE + 13340u)   // 384 bytes (4banks * 96notes)
+#define SRAM_SAMPLE_RATE        (STATIC_BASE + 13724u)   // 384 bytes (4banks * 96notes)
+#define STATIC_END              (STATIC_BASE + 14108u)   // = 0x3728
 
-#define PATTERN_COLUMNS     8
-#define PATTERN_SIZE        256 // 32 * 8
+// Block 2: Instruments (at STATIC_END, expandable via compact records)
+#define INST_BLOCK_BASE           STATIC_END              // 0x371C = 14108
+#define INST_MOD_COUNT_ADDR       INST_BLOCK_BASE         // word
+#define INST_LOOKUP_TABLE_ADDR    (INST_BLOCK_BASE + 2)   // 256 bytes
+#define INST_COMPACT_START        (INST_BLOCK_BASE + 258) // = 0x381E = 14366
 
-//{ SRAM data blocks (BYTESWAPPED!!!)
-#define INSTRUMENT_DATA     0x00002 // + 0          57 * 64 = 3684 (E40h); instruments * instrument_size;
-#define GLOBAL_LFO          0x00E42 // + E40h       1 byte; lfo
-#define FILE_CHECKER        0x00E43 // + 1h         2 bytes; checker
-#define PATTERN_MATRIX      0x00E45 // + 2h         13 * 250 * 2 = 6500 (1964h); channels * rows * bytes
-#define TEMPO               0x027A9 // + 1964h      2 bytes; tempo
-#define SAMPLE_DATA         0x027AB // + 2h         96 * 4 * 7 = 2688 (A80h); notes * banks * sample_data_size
-#define PATTERN_DATA        0x0322B // + A80h       256 * 420 = 107520 (1A400h); pattern_size * patterns
-#define PATTERN_COLOR       0x1D62B // + 1A400h     420 bytes (1A4h); patterns
-#define MATRIX_TRANSPOSE    0x1D7CF // + 1A4h       250 * 13 = 3250 (CB2h); rows * channels
-#define MUTE_CHANNEL        0x1E481 // + CB2h       13 bytes (Dh); channels
-#define SAMPLE_PAN          0x1E48E // + Dh         96 * 4 = 384 (180h); notes * banks
-#define SEQ_VOL_START       0x1E60E // + 180h       32 * 64 = 2048 (800h); steps * instruments
-#define SEQ_ARP_START       0x1EE0E // + 800h       32 * 64 = 2048 (800h); steps * instruments
-#define SAMPLE_RATE         0x1F60E // + 800h       96 * 4 = 384 (180h); notes * banks
-//0x1F78E // + 180h
-// ... 872 bytes (3 patterns or 7 instruments)
-//0x20000 // eof
-//}
+// instBlockEnd = INST_COMPACT_START + modCount * INST_RECORD_SIZE
 
-    #endif
+// Block 3: Sequencers (at instBlockEnd, expandable via compact records)
+// SEQ_MOD_COUNT_ADDR      = instBlockEnd (word)
+// SEQ_LOOKUP_TABLE_ADDR   = instBlockEnd + 2 (256 bytes)
+// SEQ_COMPACT_START       = instBlockEnd + 258
+// seqBlockEnd = instBlockEnd + 258 + modCount * SEQ_RECORD_SIZE
+
+// Block 4: Patterns (at seqBlockEnd = patternRegionBase)
+// PATTERN_REGION_BASE = patternRegionBase (global variable)
+
+// ========================================================
+// Sample field offsets (within SAMPLE_DATA)
+// ========================================================
+#define SAMPLE_START_1      0
+#define SAMPLE_START_2      1
+#define SAMPLE_START_3      2
+#define SAMPLE_END_1        3
+#define SAMPLE_END_2        4
+#define SAMPLE_END_3        5
+#define SAMPLE_LOOP         6
+#define SAMPLE_DATA_SIZE    7
 
 #define SAMPLE_START_1      0
 #define SAMPLE_START_2      1
@@ -194,8 +162,6 @@
 #define DATA_FX3_TYPE       6
 #define DATA_FX3_VALUE      7
 
-    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
 #define DATA_FX4_TYPE       8
 #define DATA_FX4_VALUE      9
 #define DATA_FX5_TYPE       10
@@ -203,7 +169,12 @@
 #define DATA_FX6_TYPE       12
 #define DATA_FX6_VALUE      13
 
-    #endif
+// Column to event position map (for DATA_NOTE, column 0 → event pos EVT_NOTEINST)
+// Note: column 0 (DATA_NOTE) and column 1 (DATA_INSTRUMENT) share event pos 0
+// FX type/value pairs share one event position each
+#define COL_TO_EVT(col) (((col) <= DATA_INSTRUMENT) ? EVT_NOTEINST : (EVT_FX1 + (((col) - DATA_FX1_TYPE) >> 1)))
+#define EVT_TO_COL_TYPE(evt) ((evt) == EVT_NOTEINST ? DATA_NOTE : (DATA_FX1_TYPE + ((evt) - EVT_FX1) * 2))
+#define EVT_TO_COL_VALUE(evt) ((evt) == EVT_NOTEINST ? DATA_INSTRUMENT : (DATA_FX1_VALUE + ((evt) - EVT_FX1) * 2))
 //}
 
 #endif // MDT_MODULEDATA_H_INCLUDED

@@ -79,9 +79,11 @@ u8 channelPreviousInstrument[CHANNELS_TOTAL];
 u8 channelPreviousEffectType[CHANNELS_TOTAL][EFFECTS_TOTAL];
 u8 channelPreviousNote[CHANNELS_TOTAL];
 u8 channelArpSeqID[CHANNELS_TOTAL];
+u8 channelArpSeqActive[CHANNELS_TOTAL];
 u8 channelArpSeqPlayMODE[CHANNELS_TOTAL];
 u8 channelArpSeqTriggerType[CHANNELS_TOTAL];
 u8 channelParSeqID[CHANNELS_TOTAL];
+u8 channelParSeqActive[CHANNELS_TOTAL];
 u8 channelParSeqPlayMODE[CHANNELS_TOTAL];
 u8 channelParSeqTYPE[CHANNELS_TOTAL];
 u8 channelCurrentRowNote[CHANNELS_TOTAL]; // affected by channelMatrixTranspose
@@ -221,6 +223,38 @@ f32 fBPM = 0; // very bad precision
 u8 useExternalSync = FALSE;
 
 u8 patternSize = 0x1F;
+
+// New expandable pattern storage
+u16 patternOffset[PATTERN_LAST+1];     // SRAM offset of each pattern's block, relative to patternRegionBase (0=empty)
+u8* editBuffer = NULL;                 // current pattern being edited (allocated on demand)
+u16 patternEditID = 0xFFFF;            // which pattern is in editBuffer
+u16 chEventIdx[CHANNELS_TOTAL];        // per-channel event read pointer during playback
+
+// Expandable block variables
+u32 instBlockEnd;                      // start of sequencers block = end of instruments
+u32 seqBlockEnd;                       // start of patterns block = end of sequencers
+u32 patternRegionBase;                 // = seqBlockEnd (cached)
+u16 instDataAddr[INSTRUMENTS_TOTAL];   // SRAM addr of each modified instrument's compact record (0=ROM)
+u16 seqDataAddr[INSTRUMENTS_TOTAL];    // SRAM addr of each modified sequencer's compact record (0=default)
+u16 seqEditID = 0xFFFF;                // which instrument's SEQ is in seqEditBuffer (0xFFFF=none)
+u8  seqEditBuffer[64];                 // SEQ edit buffer: [0..31] VOL, [32..63] ARP
+
+// Maps SRAM INST_* param (0..48) to byte offset within Preset_FM struct for ROM-mode reads.
+// Handles the OP1,OP3,OP2,OP4 ordering difference between Preset_FM and SRAM layout.
+static const u8 paramToPresetByte[INST_DATA_SIZE] = {
+     0, 4, 3, 2, 1,    // INST_ALG, FMS, AMS, PAN, FB
+    14,36,25,47,       // INST_TL1..TL4 (OP1,OP3,OP2,OP4)
+     8,30,19,41,       // INST_RS1..RS4
+     5,27,16,38,       // INST_MUL1..MUL4
+     6,28,17,39,       // INST_DT1..DT4
+     7,29,18,40,       // INST_AR1..AR4
+     9,31,20,42,       // INST_D1R1..D1R4
+    11,33,22,44,       // INST_D1L1..D1L4
+    12,34,23,45,       // INST_D2R1..D2R4
+    13,35,24,46,       // INST_RR1..RR4
+    10,32,21,43,       // INST_AM1..AM4
+    15,37,26,48        // INST_SSGEG1..SSGEG4
+};
 
 Instrument tmpInst[INSTRUMENTS_TOTAL]; // cache instruments to RAM for faster access
 Instrument chInst[CHANNELS_TOTAL]; // to apply commands; FM only
@@ -718,6 +752,7 @@ static void DoEngine()
     }*/
 
     auto void seq_par(u8 mtxCh) {
+        if (!channelParSeqActive[mtxCh]) return;
         if (!channelParSeqPlayMODE[mtxCh] || (channelParSeqPlayMODE[mtxCh] && (channelSEQCounter_PAR[mtxCh] <= SEQ_STEP_LAST)))
         {
             if (!channelSeqSkipStepCounter[mtxCh]) { channelSeqSkipStepCounter[mtxCh] = channelSeqSkipStep[mtxCh]; }
@@ -766,6 +801,7 @@ static void DoEngine()
 
     auto void seq_arp_modify_key(u8 mtxCh)
     {
+        if (!channelArpSeqActive[mtxCh]) return;
         _seqValue = seqArpValue[channelArpSeqID[mtxCh]][0];
         if (_seqValue > ARP_BASE) _key = channelCurrentRowNote[mtxCh] + (_seqValue - ARP_BASE);
         else if (_seqValue < ARP_BASE) _key = channelCurrentRowNote[mtxCh] - (ARP_BASE - _seqValue);
@@ -773,6 +809,7 @@ static void DoEngine()
     }
 
     auto void seq_arp(u8 mtxCh) {
+        if (!channelArpSeqActive[mtxCh]) return;
         if (channelSEQCounter_ARP[mtxCh] < 0)
         {
             //channelSEQCounter_ARP[mtxCh]++;
@@ -816,13 +853,26 @@ static void DoEngine()
     }
 
     auto void do_row(u8 mtxCh) {
+        u8 _rowData[PATTERN_COLUMNS];
         if (channelFlags[mtxCh])
         {
+            SRAM_ReadRowToBuffer(channelPlayingPatternID[mtxCh], playingPatternRow, _rowData);
+
+            // detect per-row ARP (0x30) and VOL (0x40) effects for auto-clearing
+            u8 hasArpOnRow = 0, hasParOnRow = 0;
+            for (u8 _eff = 0; _eff < EFFECTS_TOTAL; _eff++)
+            {
+                u8 _ft = _rowData[DATA_FX1_TYPE + _eff*2];
+                u8 _fv = _rowData[DATA_FX1_VALUE + _eff*2];
+                if (_ft == 0x30 || (!_ft && _fv && channelPreviousEffectType[mtxCh][_eff] == 0x30)) hasArpOnRow = 1;
+                if (_ft == 0x40 || (!_ft && _fv && channelPreviousEffectType[mtxCh][_eff] == 0x40)) hasParOnRow = 1;
+            }
+
             auto void command(u8 type, u8 val, u8 effect) { // slow!
                 //if (channelDoEffects[mtxCh])
                 //{
-                    _fxType = SRAM_ReadPattern(channelPlayingPatternID[mtxCh], playingPatternRow, type);
-                    _fxValue = SRAM_ReadPattern(channelPlayingPatternID[mtxCh], playingPatternRow, val);
+                    _fxType = _rowData[type];
+                    _fxValue = _rowData[val];
                 //}
 
                 if (_fxType)
@@ -880,32 +930,28 @@ static void DoEngine()
                 command(DATA_FX2_TYPE, DATA_FX2_VALUE, 1);
                 command(DATA_FX3_TYPE, DATA_FX3_VALUE, 2);
 
-            #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
                 command(DATA_FX4_TYPE, DATA_FX4_VALUE, 3);
                 command(DATA_FX5_TYPE, DATA_FX5_VALUE, 4);
                 command(DATA_FX6_TYPE, DATA_FX6_VALUE, 5);
-
-            #endif
             }
 
-            _inst = SRAM_ReadPattern(channelPlayingPatternID[mtxCh], playingPatternRow, DATA_INSTRUMENT);
+            _inst = _rowData[DATA_INSTRUMENT];
 
-            channelCurrentRowNote[mtxCh] = SRAM_ReadPattern(channelPlayingPatternID[mtxCh], playingPatternRow, DATA_NOTE);
+            channelCurrentRowNote[mtxCh] = _rowData[DATA_NOTE];
 
             // auto cut note before next note
             if (channelNoteAutoCut[mtxCh])
             {
                 if (playingPatternRow == PATTERN_ROW_LAST)
                 {
-                    if (SRAM_ReadPattern(SRAM_ReadMatrix(mtxCh, playingMatrixRow+1), 0, DATA_NOTE) < NOTES)
+                    if (SRAM_ReadPatternFromEvents(SRAM_ReadMatrix(mtxCh, playingMatrixRow+1), 0, DATA_NOTE) < NOTES)
                     {
                         channelNoteCut[mtxCh] = channelNoteAutoCut[mtxCh];
                     } else channelNoteCut[mtxCh] = 0;
                 }
                 else
                 {
-                    if (SRAM_ReadPattern(channelPlayingPatternID[mtxCh], playingPatternRow+1, DATA_NOTE) < NOTES)
+                    if (SRAM_ReadPatternFromEvents(channelPlayingPatternID[mtxCh], playingPatternRow+1, DATA_NOTE) < NOTES)
                     {
                         channelNoteCut[mtxCh] = channelNoteAutoCut[mtxCh];
                     } else channelNoteCut[mtxCh] = 0;
@@ -938,6 +984,7 @@ static void DoEngine()
                 {
                     channelPreviousInstrument[mtxCh] = _inst;
                     channelArpSeqID[mtxCh] = channelParSeqID[mtxCh] = _inst; // set seq for PSG as instrument
+                    channelArpSeqActive[mtxCh] = channelParSeqActive[mtxCh] = 1;
                     apply_commands(); // will override PSG seq
                 }
             }
@@ -946,6 +993,10 @@ static void DoEngine()
                 bWriteRegs = TRUE; // write commands regs
                 apply_commands();
             }
+
+            // clear per-row sequencer flags when command absent (FM only; PSG uses instrument default)
+            if (!hasArpOnRow && mtxCh < CHANNEL_PSG1) { channelArpSeqActive[mtxCh] = 0; channelSEQCounter_ARP[mtxCh] = 0; }
+            if (!hasParOnRow && mtxCh < CHANNEL_PSG1) { channelParSeqActive[mtxCh] = 0; channelSEQCounter_PAR[mtxCh] = 0; }
 
             // --------- trigger note playback; check empty note later; pass note id: 0..95, 254, 255
             /*if (mtxCh == CHANNEL_FM6_DAC &&
@@ -1184,6 +1235,7 @@ static void DoEngine()
                 else
                 {
                     channelArpSeqID[mtxCh] = channelParSeqID[mtxCh] = channelPreviousInstrument[mtxCh];
+                    channelArpSeqActive[mtxCh] = channelParSeqActive[mtxCh] = 1;
                 }
             }
 
@@ -1457,11 +1509,11 @@ static void SetBPM(u16 tempo)
 {
     if (!tempo)
     {
-        hIntToSkip = SRAMW_readWord(TEMPO);
+        hIntToSkip = SRAMW_readWord(SRAM_TEMPO);
     }
     else
     {
-        SRAMW_writeWord(TEMPO, tempo); // store
+        SRAMW_writeWord(SRAM_TEMPO, tempo); // store
         hIntToSkip = tempo;
     }
 
@@ -1658,7 +1710,7 @@ static void ChangeMatrixValue(s16 mod, u8 externalSync)
     {
         if (mod) // direction button: adjust tempo, disable sync
         {
-            value = SRAMW_readWord(TEMPO) - mod;
+            value = SRAMW_readWord(SRAM_TEMPO) - mod;
             if (value < TICK_SKIP_MIN) value = TICK_SKIP_MIN;
             else if (value > TICK_SKIP_MAX) value = TICK_SKIP_MAX;
             useExternalSync = FALSE;
@@ -1686,66 +1738,7 @@ static void ChangeMatrixValue(s16 mod, u8 externalSync)
 
 static void LoadPreset(u8 id, u8 preset)
 {
-    SRAM_WriteInstrument(id, INST_MUL1, M_BANK_0[preset]->multiple_1);
-    SRAM_WriteInstrument(id, INST_MUL2, M_BANK_0[preset]->multiple_3);
-    SRAM_WriteInstrument(id, INST_MUL3, M_BANK_0[preset]->multiple_2);
-    SRAM_WriteInstrument(id, INST_MUL4, M_BANK_0[preset]->multiple_4);
-
-    SRAM_WriteInstrument(id, INST_DT1, M_BANK_0[preset]->detune_1);
-    SRAM_WriteInstrument(id, INST_DT2, M_BANK_0[preset]->detune_3);
-    SRAM_WriteInstrument(id, INST_DT3, M_BANK_0[preset]->detune_2);
-    SRAM_WriteInstrument(id, INST_DT4, M_BANK_0[preset]->detune_4);
-
-    SRAM_WriteInstrument(id, INST_TL1, M_BANK_0[preset]->totalLevel_1);
-    SRAM_WriteInstrument(id, INST_TL2, M_BANK_0[preset]->totalLevel_3);
-    SRAM_WriteInstrument(id, INST_TL3, M_BANK_0[preset]->totalLevel_2);
-    SRAM_WriteInstrument(id, INST_TL4, M_BANK_0[preset]->totalLevel_4);
-
-    SRAM_WriteInstrument(id, INST_RS1, M_BANK_0[preset]->rateScaling_1);
-    SRAM_WriteInstrument(id, INST_RS2, M_BANK_0[preset]->rateScaling_3);
-    SRAM_WriteInstrument(id, INST_RS3, M_BANK_0[preset]->rateScaling_2);
-    SRAM_WriteInstrument(id, INST_RS4, M_BANK_0[preset]->rateScaling_4);
-
-    SRAM_WriteInstrument(id, INST_AR1, M_BANK_0[preset]->attackRate_1);
-    SRAM_WriteInstrument(id, INST_AR2, M_BANK_0[preset]->attackRate_3);
-    SRAM_WriteInstrument(id, INST_AR3, M_BANK_0[preset]->attackRate_2);
-    SRAM_WriteInstrument(id, INST_AR4, M_BANK_0[preset]->attackRate_4);
-
-    SRAM_WriteInstrument(id, INST_D1R1, M_BANK_0[preset]->firstDecayRate_1);
-    SRAM_WriteInstrument(id, INST_D1R2, M_BANK_0[preset]->firstDecayRate_3);
-    SRAM_WriteInstrument(id, INST_D1R3, M_BANK_0[preset]->firstDecayRate_2);
-    SRAM_WriteInstrument(id, INST_D1R4, M_BANK_0[preset]->firstDecayRate_4);
-
-    SRAM_WriteInstrument(id, INST_D1L1, M_BANK_0[preset]->secondaryAmplitude_1);
-    SRAM_WriteInstrument(id, INST_D1L2, M_BANK_0[preset]->secondaryAmplitude_3);
-    SRAM_WriteInstrument(id, INST_D1L3, M_BANK_0[preset]->secondaryAmplitude_2);
-    SRAM_WriteInstrument(id, INST_D1L4, M_BANK_0[preset]->secondaryAmplitude_4);
-
-    SRAM_WriteInstrument(id, INST_AM1, M_BANK_0[preset]->amplitudeModulation_1);
-    SRAM_WriteInstrument(id, INST_AM2, M_BANK_0[preset]->amplitudeModulation_3);
-    SRAM_WriteInstrument(id, INST_AM3, M_BANK_0[preset]->amplitudeModulation_2);
-    SRAM_WriteInstrument(id, INST_AM4, M_BANK_0[preset]->amplitudeModulation_4);
-
-    SRAM_WriteInstrument(id, INST_D2R1, M_BANK_0[preset]->secondaryDecayRate_1);
-    SRAM_WriteInstrument(id, INST_D2R2, M_BANK_0[preset]->secondaryDecayRate_3);
-    SRAM_WriteInstrument(id, INST_D2R3, M_BANK_0[preset]->secondaryDecayRate_2);
-    SRAM_WriteInstrument(id, INST_D2R4, M_BANK_0[preset]->secondaryDecayRate_4);
-
-    SRAM_WriteInstrument(id, INST_RR1, M_BANK_0[preset]->releaseRate_1);
-    SRAM_WriteInstrument(id, INST_RR2, M_BANK_0[preset]->releaseRate_3);
-    SRAM_WriteInstrument(id, INST_RR3, M_BANK_0[preset]->releaseRate_2);
-    SRAM_WriteInstrument(id, INST_RR4, M_BANK_0[preset]->releaseRate_4);
-
-    SRAM_WriteInstrument(id, INST_SSGEG1, M_BANK_0[preset]->ssgEg_1);
-    SRAM_WriteInstrument(id, INST_SSGEG2, M_BANK_0[preset]->ssgEg_3);
-    SRAM_WriteInstrument(id, INST_SSGEG3, M_BANK_0[preset]->ssgEg_2);
-    SRAM_WriteInstrument(id, INST_SSGEG4, M_BANK_0[preset]->ssgEg_4);
-
-    SRAM_WriteInstrument(id, INST_FB, M_BANK_0[preset]->feedback);
-    SRAM_WriteInstrument(id, INST_ALG, M_BANK_0[preset]->algorithm);
-    SRAM_WriteInstrument(id, INST_PAN, M_BANK_0[preset]->stereo);
-    SRAM_WriteInstrument(id, INST_FMS, M_BANK_0[preset]->fms);
-    SRAM_WriteInstrument(id, INST_AMS, M_BANK_0[preset]->ams);
+    SRAM_ResetInstrumentToPreset(id, preset);
 }
 
 // gamepad interrupts handler
@@ -1783,9 +1776,14 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
 
     auto void switch_to_pattern_editor()
     {
+        CommitSeqEditBuffer();
+
         selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow);
         if (selectedPatternID != 0x00) // -- pattern should not be editable
         {
+            // Unpack pattern from SRAM event stream to RAM edit buffer
+            SRAM_UnpackToBuffer(selectedPatternID);
+
             currentScreen = SCREEN_PATTERN;
             bInitScreen = TRUE;
             bRefreshScreen = TRUE;
@@ -1796,6 +1794,13 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
 
     auto void switch_to_instrument_editor()
     {
+        // Commit editing pattern back to SRAM
+        if (patternEditID != 0xFFFF)
+        {
+            SRAM_CommitBuffer(patternEditID);
+            patternEditID = 0xFFFF;
+        }
+
         currentScreen = SCREEN_INSTRUMENT;
         bInitScreen = TRUE;
         bRefreshScreen = TRUE;
@@ -1812,10 +1817,21 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
             u8 value = SRAM_ReadPattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_INSTRUMENT);
             if (value != 0x00) selectedInstrumentID = value;
         }
+
+        LoadSeqEditBuffer(selectedInstrumentID);
     }
 
     auto void switch_to_matrix_editor()
     {
+        CommitSeqEditBuffer();
+
+        // Commit editing pattern back to SRAM
+        if (patternEditID != 0xFFFF)
+        {
+            SRAM_CommitBuffer(patternEditID);
+            patternEditID = 0xFFFF;
+        }
+
         selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow);
         currentScreen = SCREEN_MATRIX;
         bInitScreen = TRUE;
@@ -2202,16 +2218,12 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX3_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX3_TYPE));
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX3_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX3_VALUE));
 
-                                #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX4_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX4_TYPE));
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX4_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX4_VALUE));
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX5_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX5_TYPE));
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX5_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX5_VALUE));
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX6_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX6_TYPE));
                                 SRAM_WritePattern(selectedPatternID, row, DATA_FX6_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX6_VALUE));
-
-                                #endif
 
                                 inc++;
                             }
@@ -2285,51 +2297,47 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                                 } //else return;
                                 break;
 
-                            #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
                             case DATA_FX4_TYPE: case (DATA_FX4_TYPE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
                                     SRAM_WritePattern(selectedPatternID, row, DATA_FX4_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX4_TYPE)); inc++;
-                                } //else return;
+                                }
                                 break;
 
                             case DATA_FX4_VALUE: case (DATA_FX4_VALUE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
                                     SRAM_WritePattern(selectedPatternID, row, DATA_FX4_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX4_VALUE)); inc++;
-                                } //else return;
+                                }
                                 break;
 
                             case DATA_FX5_TYPE: case (DATA_FX5_TYPE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
                                     SRAM_WritePattern(selectedPatternID, row, DATA_FX5_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX5_TYPE)); inc++;
-                                } //else return;
+                                }
                                 break;
 
                             case DATA_FX5_VALUE: case (DATA_FX5_VALUE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
                                     SRAM_WritePattern(selectedPatternID, row, DATA_FX5_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX5_VALUE)); inc++;
-                                } //else return;
+                                }
                                 break;
 
                             case DATA_FX6_TYPE: case (DATA_FX6_TYPE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
                                     SRAM_WritePattern(selectedPatternID, row, DATA_FX6_TYPE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX6_TYPE)); inc++;
-                                } //else return;
+                                }
                                 break;
 
                             case DATA_FX6_VALUE: case (DATA_FX6_VALUE + PATTERN_COLUMNS):
                                 row = selectedPatternRow + patternColumnShift + inc;
                                 if (row <= PATTERN_ROW_LAST) {
                                     SRAM_WritePattern(selectedPatternID, row, DATA_FX6_VALUE, SRAM_ReadPattern(patternCopyFrom, cnt, DATA_FX6_VALUE)); inc++;
-                                } //else return;
+                                }
                                 break;
-
-                            #endif
 
                             }
                         }
@@ -2617,8 +2625,6 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     patternRowToRefresh = selectedPatternRow + patternColumnShift;
                     break;
 
-                #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
                 case DATA_FX4_TYPE: case (DATA_FX4_TYPE + PATTERN_COLUMNS):
                     SRAM_WritePattern(selectedPatternID, selectedPatternRow + patternColumnShift, DATA_FX4_TYPE, NULL);
                     bRefreshScreen = TRUE;
@@ -2650,7 +2656,6 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     patternRowToRefresh = selectedPatternRow + patternColumnShift;
                     break;
 
-                #endif
                 }
 
                 switch (changed)
@@ -2711,20 +2716,20 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 switch (changed)
                 {
                 case BUTTON_RIGHT:
-                    if (selectedInstrumentID < INSTRUMENTS_LAST) { selectedInstrumentID++; bRefreshScreen = TRUE; instrumentParameterToRefresh = OXFF; }
+                    if (selectedInstrumentID < INSTRUMENTS_LAST) { CommitSeqEditBuffer(); selectedInstrumentID++; LoadSeqEditBuffer(selectedInstrumentID); bRefreshScreen = TRUE; instrumentParameterToRefresh = OXFF; }
                     break;
 
                 case BUTTON_LEFT:
-                    if (selectedInstrumentID > 1) { selectedInstrumentID--; bRefreshScreen = TRUE; instrumentParameterToRefresh = OXFF; }
+                    if (selectedInstrumentID > 1) { CommitSeqEditBuffer(); selectedInstrumentID--; LoadSeqEditBuffer(selectedInstrumentID); bRefreshScreen = TRUE; instrumentParameterToRefresh = OXFF; }
                     break;
 
                 case BUTTON_UP:
-                    if (selectedInstrumentID < (INSTRUMENTS_LAST - 16)) selectedInstrumentID += 16; else selectedInstrumentID = INSTRUMENTS_LAST;
+                    if (selectedInstrumentID < (INSTRUMENTS_LAST - 16)) { CommitSeqEditBuffer(); selectedInstrumentID += 16; LoadSeqEditBuffer(selectedInstrumentID); } else selectedInstrumentID = INSTRUMENTS_LAST;
                     bRefreshScreen = TRUE; instrumentParameterToRefresh = OXFF;
                     break;
 
                 case BUTTON_DOWN:
-                    if (selectedInstrumentID > 16) selectedInstrumentID -= 16; else selectedInstrumentID = 1;
+                    if (selectedInstrumentID > 16) { CommitSeqEditBuffer(); selectedInstrumentID -= 16; LoadSeqEditBuffer(selectedInstrumentID); } else selectedInstrumentID = 1;
                     bRefreshScreen = TRUE; instrumentParameterToRefresh = OXFF;
                     break;
                 }
@@ -2866,16 +2871,12 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
         case GUI_PATTERN_L_FX3_TYPE:
         case GUI_PATTERN_L_FX3_VALUE:
 
-        #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
         case GUI_PATTERN_L_FX4_TYPE:
         case GUI_PATTERN_L_FX4_VALUE:
         case GUI_PATTERN_L_FX5_TYPE:
         case GUI_PATTERN_L_FX5_VALUE:
         case GUI_PATTERN_L_FX6_TYPE:
         case GUI_PATTERN_L_FX6_VALUE:
-
-        #endif
             offset_x = 40+6; offset_y = 4; width = 1;
             break;
         case GUI_PATTERN_R_NOTE:
@@ -2891,16 +2892,12 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
         case GUI_PATTERN_R_FX3_TYPE:
         case GUI_PATTERN_R_FX3_VALUE:
 
-        #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
         case GUI_PATTERN_R_FX4_TYPE:
         case GUI_PATTERN_R_FX4_VALUE:
         case GUI_PATTERN_R_FX5_TYPE:
         case GUI_PATTERN_R_FX5_VALUE:
         case GUI_PATTERN_R_FX6_TYPE:
         case GUI_PATTERN_R_FX6_VALUE:
-
-        #endif
 
             offset_x = 40+12; offset_y = 4; width = 1;
             break;
@@ -3050,12 +3047,8 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
             case GUI_PATTERN_L_FX2_VALUE: case GUI_PATTERN_R_FX2_VALUE:
             case GUI_PATTERN_L_FX3_VALUE: case GUI_PATTERN_R_FX3_VALUE:
 
-                #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
             case GUI_PATTERN_L_FX4_VALUE: case GUI_PATTERN_R_FX4_VALUE:
             case GUI_PATTERN_L_FX5_VALUE: case GUI_PATTERN_R_FX5_VALUE:
-
-                #endif
 
                 VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_SEPARATOR), pos_x * width + offset_x, pos_y + offset_y); break; // draw separator
             default: clear_cursor_1(pos_x * width + offset_x, pos_y + offset_y); break; // effects
@@ -3232,7 +3225,6 @@ void PrintSelectedPositionInfo()
             PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow+PATTEN_ROWS_PER_SIDE, DATA_FX2_TYPE)); break;
         case DATA_FX3_TYPE+PATTERN_COLUMNS: case DATA_FX3_VALUE+PATTERN_COLUMNS:
             PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow+PATTEN_ROWS_PER_SIDE, DATA_FX3_TYPE)); break;
-#if (MDT_VERSION == 0 || MDT_VERSION == 1)
         case DATA_FX4_TYPE: case DATA_FX4_VALUE:
             PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow, DATA_FX4_TYPE)); break;
         case DATA_FX5_TYPE: case DATA_FX5_VALUE:
@@ -3245,7 +3237,6 @@ void PrintSelectedPositionInfo()
             PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow+PATTEN_ROWS_PER_SIDE, DATA_FX5_TYPE)); break;
         case DATA_FX6_TYPE+PATTERN_COLUMNS: case DATA_FX6_VALUE+PATTERN_COLUMNS:
             PrintCommandInfo(SRAM_ReadPattern(selectedPatternID, selectedPatternRow+PATTEN_ROWS_PER_SIDE, DATA_FX6_TYPE)); break;
-#endif
     }
 }
 
@@ -3386,16 +3377,12 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
     case DATA_FX3_TYPE:                         write_fx_type(DATA_FX3_TYPE, 0); break;
     case DATA_FX3_VALUE:                        write_fx_value(DATA_FX3_VALUE, 0); break;
 
-    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
     case DATA_FX4_TYPE:                         write_fx_type(DATA_FX4_TYPE, 0); break;
     case DATA_FX4_VALUE:                        write_fx_value(DATA_FX4_VALUE, 0); break;
     case DATA_FX5_TYPE:                         write_fx_type(DATA_FX5_TYPE, 0); break;
     case DATA_FX5_VALUE:                        write_fx_value(DATA_FX5_VALUE, 0); break;
     case DATA_FX6_TYPE:                         write_fx_type(DATA_FX6_TYPE, 0); break;
     case DATA_FX6_VALUE:                        write_fx_value(DATA_FX6_VALUE, 0); break;
-
-    #endif
 
     case (DATA_NOTE + PATTERN_COLUMNS):         write_note(1); break;
     case (DATA_INSTRUMENT + PATTERN_COLUMNS):   write_instrument(1); break;
@@ -3406,16 +3393,12 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
     case (DATA_FX3_TYPE + PATTERN_COLUMNS):     write_fx_type(DATA_FX3_TYPE, 1); break;
     case (DATA_FX3_VALUE + PATTERN_COLUMNS):    write_fx_value(DATA_FX3_VALUE, 1); break;
 
-    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
     case (DATA_FX4_TYPE + PATTERN_COLUMNS):     write_fx_type(DATA_FX4_TYPE, 1); break;
     case (DATA_FX4_VALUE + PATTERN_COLUMNS):    write_fx_value(DATA_FX4_VALUE, 1); break;
     case (DATA_FX5_TYPE + PATTERN_COLUMNS):     write_fx_type(DATA_FX5_TYPE, 1); break;
     case (DATA_FX5_VALUE + PATTERN_COLUMNS):    write_fx_value(DATA_FX5_VALUE, 1); break;
     case (DATA_FX6_TYPE + PATTERN_COLUMNS):     write_fx_type(DATA_FX6_TYPE, 1); break;
     case (DATA_FX6_VALUE + PATTERN_COLUMNS):    write_fx_value(DATA_FX6_VALUE, 1); break;
-
-    #endif
 
     }
 }
@@ -3515,13 +3498,9 @@ void DisplayPatternEditor()
         display_fx(DATA_FX2_TYPE, DATA_FX2_VALUE, 2);
         display_fx(DATA_FX3_TYPE, DATA_FX3_VALUE, 4);
 
-        #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
         display_fx(DATA_FX4_TYPE, DATA_FX4_VALUE, 6);
         display_fx(DATA_FX5_TYPE, DATA_FX5_VALUE, 8);
         display_fx(DATA_FX6_TYPE, DATA_FX6_VALUE, 10);
-
-        #endif
 
         // refresh all, line by frame; or only currently edited line;
         if (patternRowToRefresh == OXFF) // refresh all
@@ -3966,9 +3945,9 @@ static void ChangeInstrumentParameter(s8 modifier, u8 changeAll)
         break;
     // non instrument (global)
     case GUI_INST_PARAM_LFO:
-        value = SRAMW_readByte(GLOBAL_LFO) + modifier;
+        value = SRAMW_readByte(SRAM_GLOBAL_LFO) + modifier;
         if (value < 7) value = 15; else if (value > 15) value = 7;
-        SRAMW_writeByte(GLOBAL_LFO, value); SetGlobalLFO(value);
+        SRAMW_writeByte(SRAM_GLOBAL_LFO, value); SetGlobalLFO(value);
         break;
     case GUI_INST_PARAM_PARSEQ:
         if (changeAll)
@@ -4280,7 +4259,7 @@ inline void DisplayInstrumentEditor()
                 }
             }
         case GUI_INST_PARAM_LFO: case 239:
-            value = SRAMW_readByte(GLOBAL_LFO);
+            value = SRAMW_readByte(SRAM_GLOBAL_LFO);
             //if (value > 7)
                 DrawHex2(BG_A, value - 7, 80+12, 23);
             //else FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_BIGDOT, 2, 86, 24);
@@ -5457,7 +5436,7 @@ static void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
         VDP_setHIntCounter(H_INT_CALLS_SKIP-1);
         SetBPM(NULL);
         break;
-    // TEMPO
+    // SRAM_TEMPO
     case 0x13:
         SetBPM(fxValue);
         break;
@@ -5513,6 +5492,7 @@ static void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
     // ARP SEQUENCE
     case 0x30:
         channelArpSeqID[mtxCh] = fxValue;
+        channelArpSeqActive[mtxCh] = 1;
         break;
 
     // PITCH SLIDE UP
@@ -5636,7 +5616,7 @@ static void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
     case 0x40:
         channelParSeqID[mtxCh] = fxValue;
         if (!fxValue) channelVolumeAttenuation[mtxCh] = 0;
-        //channelVolumeChangeSpeed[mtxCh] = 0;
+        channelParSeqActive[mtxCh] = 1;
         break;
 
     // VOLUME ATTENUATION
@@ -5771,7 +5751,7 @@ static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
                 channelPreviousInstrument[mtxCh] = NULL;
             SYS_enableInts();
         }
-        SetGlobalLFO(SRAMW_readByte(GLOBAL_LFO));
+        SetGlobalLFO(SRAMW_readByte(SRAM_GLOBAL_LFO));
     }
 
     switch (fxParam)
@@ -6572,42 +6552,625 @@ void ReColorsAndTranspose() // on color change
     }
 }
 
-// instrument
-u8 SRAM_ReadInstrument(u8 id, u16 param) { return SRAMW_readByte((u32)INSTRUMENT_DATA + (id * INST_SIZE) + param); }
-void SRAM_WriteInstrument(u8 id, u16 param, u8 data) { SRAMW_writeByte((u32)INSTRUMENT_DATA + (id * INST_SIZE) + param, data); }
+// ============================================================
+// RecalcAllAddrs: scan SRAM instrument + sequencer compact
+// blocks to rebuild instDataAddr[], seqDataAddr[], and the
+// cached block boundary pointers.
+// ============================================================
+void RecalcAllAddrs()
+{
+    // --- Instrument block ---
+    u16 modCount = SRAMW_readWord(INST_MOD_COUNT_ADDR);
+    u32 ptr = INST_COMPACT_START;
 
-// seq
-u8 SRAM_ReadSEQ_PAR(u8 id, u8 step) { return SRAMW_readByte((u32)SEQ_VOL_START + (id*SEQ_STEPS) + step); }
-void SRAM_WriteSEQ_PAR(u8 id, u8 step, u8 data) { SRAMW_writeByte((u32)SEQ_VOL_START + (id*SEQ_STEPS) + step, data); }
-u8 SRAM_ReadSEQ_ARP(u8 id, u8 step) { return SRAMW_readByte((u32)SEQ_ARP_START + (id*SEQ_STEPS) + step); }
-void SRAM_WriteSEQ_ARP(u8 id, u8 step, u8 data) { SRAMW_writeByte((u32)SEQ_ARP_START + (id*SEQ_STEPS) + step, data); }
+    for (u16 i = 0; i < INSTRUMENTS_TOTAL; i++)
+        instDataAddr[i] = 0;
 
-// pattern
-u8 SRAM_ReadPattern(u16 id, u8 line, u8 param) { return SRAMW_readByte(PATTERN_DATA + (id * PATTERN_SIZE) + (line * PATTERN_COLUMNS) + param); }
-void SRAM_WritePattern(u16 id, u8 line, u8 param, u8 data) { SRAMW_writeByte((u32)PATTERN_DATA + (id * PATTERN_SIZE) + (line * PATTERN_COLUMNS) + param, data); }
+    for (u16 i = 0; i < modCount; i++)
+    {
+        u8 id = SRAMW_readByte(ptr);
+        instDataAddr[id] = (u16)ptr;
+        ptr += INST_RECORD_SIZE;
+    }
+    instBlockEnd = ptr;
 
-u8 SRAM_ReadPatternColor(u16 id) { return SRAMW_readByte((u32)PATTERN_COLOR + id); }
-void SRAM_WritePatternColor(u16 id, u8 color) { SRAMW_writeByte((u32)PATTERN_COLOR + id, color); }
+    // --- Sequencer block ---
+    u32 seqBase = instBlockEnd;
+    u16 seqModCount = SRAMW_readWord(seqBase);
+    ptr = seqBase + 2 + INSTRUMENTS_TOTAL;   // skip modCount + lookup table
 
-// matrix
-u16 SRAM_ReadMatrix(u8 channel, u8 line) { return SRAMW_readWord((u32)PATTERN_MATRIX + ((channel * MATRIX_ROWS) + line) * 2); }
-void SRAM_WriteMatrix(u8 channel, u8 line, u16 data) { SRAMW_writeWord((u32)PATTERN_MATRIX + ((channel * MATRIX_ROWS) + line) * 2, data); }
+    for (u16 i = 0; i < INSTRUMENTS_TOTAL; i++)
+        seqDataAddr[i] = 0;
 
-s8 SRAM_ReadMatrixTranspose(u8 channel, u8 line) { return SRAMW_readByte((u32)MATRIX_TRANSPOSE + ((channel * MATRIX_ROWS) + line)); }
-void SRAM_WriteMatrixTranspose(u8 channel, u8 line, s8 transpose) { SRAMW_writeByte((u32)MATRIX_TRANSPOSE + ((channel * MATRIX_ROWS) + line), transpose); }
+    for (u16 i = 0; i < seqModCount; i++)
+    {
+        u8 id = SRAMW_readByte(ptr);
+        seqDataAddr[id] = (u16)ptr;
+        ptr += SEQ_RECORD_SIZE;
+    }
+    seqBlockEnd = ptr;
+    patternRegionBase = seqBlockEnd;
+}
 
-u8 SRAM_ReadMatrixChannelEnabled(u8 channel) { return SRAMW_readByte((u32)MUTE_CHANNEL + channel); }
-void SRAM_WriteMatrixChannelEnabled(u8 channel, u8 state) { SRAMW_writeByte((u32)MUTE_CHANNEL + channel, state); }
+// ============================================================
+// Read a single instrument parameter.
+// Param 0..48: FM data (ROM preset if unmodified, else SRAM).
+// Param 49..56: name bytes (0 if unmodified, else SRAM).
+// ============================================================
+u8 SRAM_ReadInstrument(u8 id, u16 param)
+{
+    u8 lookup = SRAMW_readByte(INST_LOOKUP_TABLE_ADDR + id);
+    if (lookup != INST_SENTINEL_MODIFIED)
+    {
+        // Unmodified — ROM preset for data, empty for name
+        if (param < INST_DATA_SIZE)
+            return ((const u8*)M_BANK_0[lookup])[paramToPresetByte[param]];
+        return 0;
+    }
+    // Modified — read from compact record
+    if (instDataAddr[id] != 0)
+        return SRAMW_readByte(instDataAddr[id] + 1 + param);
+    return 0;
+}
 
-// pcm
-u32 SRAM_ReadSampleRegion(u8 bank, u8 note, u8 byteNum) { return (u32)SRAMW_readByte((u32)SAMPLE_DATA + (bank * NOTES * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum); }
-void SRAM_WriteSampleRegion(u8 bank, u8 note, u8 byteNum, u8 data) { SRAMW_writeByte((u32)SAMPLE_DATA + (bank * NOTES * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum, data); }
+// Forward declarations
+void assimilateInstrument(u8 id);
+void assimilateSeq(u8 id);
+void ResetSeqToDefault(u8 id);
 
-u8 SRAM_ReadSamplePan(u8 bank, u8 note){ return SRAMW_readByte((u32)SAMPLE_PAN + (bank * NOTES) + note); }
-void SRAM_WriteSamplePan(u8 bank, u8 note, u8 data) { SRAMW_writeByte((u32)SAMPLE_PAN + (bank * NOTES) + note, data); }
+// ============================================================
+// Write a single instrument parameter.
+// First write auto-converts (assimilates) the instrument.
+// ============================================================
+void SRAM_WriteInstrument(u8 id, u16 param, u8 data)
+{
+    assimilateInstrument(id);
+    SRAMW_writeByte(instDataAddr[id] + 1 + param, data);
+}
 
-u8 SRAM_ReadSampleRate(u8 bank, u8 note){ return SRAMW_readByte((u32)SAMPLE_RATE + (bank * NOTES) + note); }
-void SRAM_WriteSampleRate(u8 bank, u8 note, u8 data) { SRAMW_writeByte((u32)SAMPLE_RATE + (bank * NOTES) + note, data); }
+// ============================================================
+// Convert a ROM-preset instrument to SRAM mode.
+// Shifts the tail (sequencers + patterns) forward by
+// INST_RECORD_SIZE, writes a new compact record with all 49
+// data bytes from ROM + 8 zero name bytes.
+// ============================================================
+void assimilateInstrument(u8 id)
+{
+    u8 lookup = SRAMW_readByte(INST_LOOKUP_TABLE_ADDR + id);
+    if (lookup == INST_SENTINEL_MODIFIED) return;
+
+    u16 modCount = SRAMW_readWord(INST_MOD_COUNT_ADDR);
+    u32 recordAddr = INST_COMPACT_START + modCount * INST_RECORD_SIZE;
+
+    // Shift tail (sequencers + patterns) forward to make room
+    u32 regionSize = SRAMW_readWord(patternRegionBase + 4);
+    u32 tailEnd = patternRegionBase + regionSize;
+    u32 tailLen = tailEnd - instBlockEnd;
+
+    for (s32 i = (s32)tailLen - 1; i >= 0; i--)
+        SRAMW_writeByte(instBlockEnd + INST_RECORD_SIZE + i, SRAMW_readByte(instBlockEnd + i));
+
+    // Write compact record (1 ID + 49 data + 8 name = 58 bytes)
+    SRAMW_writeByte(recordAddr, id);
+    for (u8 p = 0; p < INST_DATA_SIZE; p++)
+        SRAMW_writeByte(recordAddr + 1 + p, ((const u8*)M_BANK_0[lookup])[paramToPresetByte[p]]);
+    for (u8 p = 0; p < INST_NAME_SIZE; p++)
+        SRAMW_writeByte(recordAddr + 1 + INST_DATA_SIZE + p, 0);
+
+    SRAMW_writeByte(INST_LOOKUP_TABLE_ADDR + id, INST_SENTINEL_MODIFIED);
+    SRAMW_writeWord(INST_MOD_COUNT_ADDR, modCount + 1);
+    RecalcAllAddrs();
+}
+
+// ============================================================
+// Convert instrument back to ROM-preset mode.
+// Removes its compact record, shifts tail (sequencers +
+// patterns) backward.
+// ============================================================
+void SRAM_ResetInstrumentToPreset(u8 id, u8 preset)
+{
+    if (SRAMW_readByte(INST_LOOKUP_TABLE_ADDR + id) == INST_SENTINEL_MODIFIED && instDataAddr[id] != 0)
+    {
+        u16 oldModCount = SRAMW_readWord(INST_MOD_COUNT_ADDR);
+        u32 delAddr = instDataAddr[id];
+
+        // Shift remaining instrument compact records backward
+        u32 tailStart = delAddr + INST_RECORD_SIZE;
+        u32 tailEnd = INST_COMPACT_START + oldModCount * INST_RECORD_SIZE;
+        for (u32 i = 0; i < tailEnd - tailStart; i++)
+            SRAMW_writeByte(delAddr + i, SRAMW_readByte(tailStart + i));
+
+        // Shift sequencers + patterns backward to fill the gap
+        u32 regionSize = SRAMW_readWord(patternRegionBase + 4);
+        u32 dataTailEnd = patternRegionBase + regionSize;
+        u32 dataTailLen = dataTailEnd - instBlockEnd;
+        for (u32 i = 0; i < dataTailLen; i++)
+            SRAMW_writeByte(instBlockEnd - INST_RECORD_SIZE + i, SRAMW_readByte(instBlockEnd + i));
+
+        SRAMW_writeWord(INST_MOD_COUNT_ADDR, oldModCount - 1);
+    }
+
+    SRAMW_writeByte(INST_LOOKUP_TABLE_ADDR + id, preset);
+    instDataAddr[id] = 0;
+    RecalcAllAddrs();
+}
+
+// ============================================================
+// SEQ functions with transparent edit-buffer support.
+// When seqEditID matches the requested instrument, reads/writes
+// go to the RAM buffer instead of SRAM.
+// ============================================================
+u8 SRAM_ReadSEQ_PAR(u8 id, u8 step)
+{
+    if (id == seqEditID && seqEditID != 0xFFFF)
+        return seqEditBuffer[step];
+    u8 lookup = SRAMW_readByte(instBlockEnd + 2 + id);
+    if (lookup == SEQ_SENTINEL_MODIFIED && seqDataAddr[id] != 0)
+        return SRAMW_readByte(seqDataAddr[id] + 1 + step);
+    return SEQ_SKIP;
+}
+
+void SRAM_WriteSEQ_PAR(u8 id, u8 step, u8 data)
+{
+    if (id == seqEditID && seqEditID != 0xFFFF)
+    {
+        seqEditBuffer[step] = data;
+        return;
+    }
+    // Direct write when not being context-edited (e.g. pattern commands)
+    assimilateSeq(id);
+    SRAMW_writeByte(seqDataAddr[id] + 1 + step, data);
+}
+
+u8 SRAM_ReadSEQ_ARP(u8 id, u8 step)
+{
+    if (id == seqEditID && seqEditID != 0xFFFF)
+        return seqEditBuffer[SEQ_STEPS + step];
+    u8 lookup = SRAMW_readByte(instBlockEnd + 2 + id);
+    if (lookup == SEQ_SENTINEL_MODIFIED && seqDataAddr[id] != 0)
+        return SRAMW_readByte(seqDataAddr[id] + 1 + SEQ_STEPS + step);
+    return NOTE_EMPTY;
+}
+
+void SRAM_WriteSEQ_ARP(u8 id, u8 step, u8 data)
+{
+    if (id == seqEditID && seqEditID != 0xFFFF)
+    {
+        seqEditBuffer[SEQ_STEPS + step] = data;
+        return;
+    }
+    assimilateSeq(id);
+    SRAMW_writeByte(seqDataAddr[id] + 1 + SEQ_STEPS + step, data);
+}
+
+// ============================================================
+// Create a compact sequencer record for an instrument.
+// Shifts the pattern tail forward by SEQ_RECORD_SIZE.
+// ============================================================
+void assimilateSeq(u8 id)
+{
+    u8 lookup = SRAMW_readByte(instBlockEnd + 2 + id);
+    if (lookup == SEQ_SENTINEL_MODIFIED) return;
+
+    u16 modCount = SRAMW_readWord(instBlockEnd);  // SEQ_MOD_COUNT_ADDR
+    u32 recordAddr = instBlockEnd + 2 + INSTRUMENTS_TOTAL + modCount * SEQ_RECORD_SIZE;
+
+    // Shift pattern region forward
+    u32 regionSize = SRAMW_readWord(patternRegionBase + 4);
+    u32 tailEnd = patternRegionBase + regionSize;
+    u32 tailLen = tailEnd - seqBlockEnd;
+    for (s32 i = (s32)tailLen - 1; i >= 0; i--)
+        SRAMW_writeByte(seqBlockEnd + SEQ_RECORD_SIZE + i, SRAMW_readByte(seqBlockEnd + i));
+
+    // Write record (1 ID + 32 VOL + 32 ARP = 65 bytes), defaults
+    SRAMW_writeByte(recordAddr, id);
+    for (u8 s = 0; s < SEQ_STEPS; s++)
+    {
+        SRAMW_writeByte(recordAddr + 1 + s, SEQ_SKIP);
+        SRAMW_writeByte(recordAddr + 1 + SEQ_STEPS + s, NOTE_EMPTY);
+    }
+
+    SRAMW_writeByte(instBlockEnd + 2 + id, SEQ_SENTINEL_MODIFIED);
+    SRAMW_writeWord(instBlockEnd, modCount + 1);
+    RecalcAllAddrs();
+}
+
+// ============================================================
+// Remove a sequencer compact record (all steps are default).
+// Shifts the pattern tail backward by SEQ_RECORD_SIZE.
+// ============================================================
+void ResetSeqToDefault(u8 id)
+{
+    if (SRAMW_readByte(instBlockEnd + 2 + id) == SEQ_SENTINEL_MODIFIED && seqDataAddr[id] != 0)
+    {
+        u16 oldModCount = SRAMW_readWord(instBlockEnd);
+        u32 delAddr = seqDataAddr[id];
+        u32 tailStart = delAddr + SEQ_RECORD_SIZE;
+        u32 tailEnd = instBlockEnd + 2 + INSTRUMENTS_TOTAL + oldModCount * SEQ_RECORD_SIZE;
+
+        // Shift remaining SEQ compact records backward
+        for (u32 i = 0; i < tailEnd - tailStart; i++)
+            SRAMW_writeByte(delAddr + i, SRAMW_readByte(tailStart + i));
+
+        // Shift pattern region backward
+        u32 regionSize = SRAMW_readWord(patternRegionBase + 4);
+        u32 dataTailEnd = patternRegionBase + regionSize;
+        u32 dataTailLen = dataTailEnd - seqBlockEnd;
+        for (u32 i = 0; i < dataTailLen; i++)
+            SRAMW_writeByte(seqBlockEnd - SEQ_RECORD_SIZE + i, SRAMW_readByte(seqBlockEnd + i));
+
+        SRAMW_writeWord(instBlockEnd, oldModCount - 1);
+    }
+    SRAMW_writeByte(instBlockEnd + 2 + id, 0);
+    seqDataAddr[id] = 0;
+    RecalcAllAddrs();
+}
+
+// ============================================================
+// Commit the SEQ edit buffer to SRAM.
+// If entirely default, removes the compact record (compaction).
+// ============================================================
+void CommitSeqEditBuffer()
+{
+    if (seqEditID == 0xFFFF) return;
+
+    bool allDefault = TRUE;
+    for (u8 s = 0; s < SEQ_STEPS; s++)
+    {
+        if (seqEditBuffer[s] != SEQ_SKIP)         { allDefault = FALSE; break; }
+        if (seqEditBuffer[SEQ_STEPS + s] != NOTE_EMPTY) { allDefault = FALSE; break; }
+    }
+
+    if (allDefault)
+    {
+        ResetSeqToDefault(seqEditID);
+    }
+    else
+    {
+        assimilateSeq(seqEditID);
+        u32 addr = seqDataAddr[seqEditID];
+        for (u8 s = 0; s < SEQ_STEPS; s++)
+        {
+            SRAMW_writeByte(addr + 1 + s, seqEditBuffer[s]);
+            SRAMW_writeByte(addr + 1 + SEQ_STEPS + s, seqEditBuffer[SEQ_STEPS + s]);
+        }
+    }
+    seqEditID = 0xFFFF;
+}
+
+// ============================================================
+// Load the SEQ edit buffer for a given instrument.
+// ============================================================
+void LoadSeqEditBuffer(u8 id)
+{
+    for (u8 s = 0; s < SEQ_STEPS; s++)
+    {
+        seqEditBuffer[s]            = SRAM_ReadSEQ_PAR(id, s);
+        seqEditBuffer[SEQ_STEPS + s] = SRAM_ReadSEQ_ARP(id, s);
+    }
+    seqEditID = id;
+}
+
+// pattern - new event-based format
+// Read from event-encoded SRAM (raw read, no edit buffer)
+u8 SRAM_ReadPatternFromEvents(u16 id, u8 line, u8 param)
+{
+    u32 offset = patternRegionBase + patternOffset[id] * 2u;
+    u32 evtBase;
+    u16 numEvents;
+    u8 tick, dataHi, dataLo, targetTick;
+
+    if (patternOffset[id] == 0)
+        return (param == DATA_NOTE) ? NOTE_EMPTY : 0;
+
+    numEvents = SRAMW_readWord(offset + 2);
+    evtBase = offset + 4;
+
+    targetTick = line * EVT_COUNT + COL_TO_EVT(param);
+
+    for (u16 i = 0; i < numEvents; i++)
+    {
+        tick = SRAMW_readByte(evtBase + i * 3);
+        if (tick == targetTick)
+        {
+            dataHi = SRAMW_readByte(evtBase + i * 3 + 1);
+            dataLo = SRAMW_readByte(evtBase + i * 3 + 2);
+            return (param & 1) ? dataLo : dataHi;
+        }
+        if (tick > targetTick) break;
+    }
+    return (param == DATA_NOTE) ? NOTE_EMPTY : 0;
+}
+
+// Read pattern: if editing pattern, read from editBuffer; else from SRAM events
+u8 SRAM_ReadPattern(u16 id, u8 line, u8 param)
+{
+    if (id == patternEditID && patternEditID != 0xFFFF)
+        return editBuffer[line * PATTERN_COLUMNS + param];
+    return SRAM_ReadPatternFromEvents(id, line, param);
+}
+
+// Write pattern: if editing pattern, write to editBuffer only
+// Committed to SRAM on pattern editor exit
+void SRAM_WritePattern(u16 id, u8 line, u8 param, u8 data)
+{
+    if (id == patternEditID && patternEditID != 0xFFFF)
+        editBuffer[line * PATTERN_COLUMNS + param] = data;
+}
+
+// Fill a 14-byte row buffer from event-encoded pattern (for playback)
+void SRAM_ReadRowToBuffer(u16 id, u8 line, u8* buf)
+{
+    if (id == patternEditID && patternEditID != 0xFFFF)
+    {
+        u16 base = line * PATTERN_COLUMNS;
+        for (u16 i = 0; i < PATTERN_COLUMNS; i++)
+            buf[i] = editBuffer[base + i];
+        return;
+    }
+
+    u16 numEvents;
+    u8 tick, evtPos, dataHi, dataLo;
+    u32 offset, evtBase;
+
+    for (u16 i = 0; i < PATTERN_COLUMNS; i++)
+        buf[i] = (i == DATA_NOTE) ? NOTE_EMPTY : 0;
+
+    if (patternOffset[id] == 0) return;
+    offset = patternRegionBase + patternOffset[id] * 2u;
+
+    numEvents = SRAMW_readWord(offset + 2);
+    evtBase = offset + 4;
+
+    for (u16 i = 0; i < numEvents; i++)
+    {
+        tick = SRAMW_readByte(evtBase + i * 3);
+        if (tick / EVT_COUNT > line) break;
+        if (tick / EVT_COUNT < line) continue;
+
+        evtPos = tick % EVT_COUNT;
+        dataHi = SRAMW_readByte(evtBase + i * 3 + 1);
+        dataLo = SRAMW_readByte(evtBase + i * 3 + 2);
+
+        if (evtPos == EVT_NOTEINST)
+        {
+            buf[DATA_NOTE] = dataHi;
+            buf[DATA_INSTRUMENT] = dataLo;
+        }
+        else
+        {
+            buf[EVT_TO_COL_TYPE(evtPos)] = dataHi;
+            buf[EVT_TO_COL_VALUE(evtPos)] = dataLo;
+        }
+    }
+}
+
+// Unpack entire pattern from SRAM events to editBuffer
+void SRAM_UnpackToBuffer(u16 id)
+{
+    u16 i, numEvents;
+    u8 tick, evtPos, dataHi, dataLo;
+    u32 offset, evtBase;
+
+    if (!editBuffer)
+    {
+        editBuffer = MEM_alloc(PATTERN_SIZE);
+        if (!editBuffer) { patternEditID = 0xFFFF; return; }
+    }
+    for (i = 0; i < PATTERN_SIZE; i++)
+        editBuffer[i] = 0;
+    for (i = 0; i < PATTERN_ROWS; i++)
+        editBuffer[i * PATTERN_COLUMNS + DATA_NOTE] = NOTE_EMPTY;
+    patternEditID = id;
+
+    if (patternOffset[id] == 0)
+    {
+        for (i = 0; i < PATTERN_ROWS; i++)
+            editBuffer[i * PATTERN_COLUMNS + DATA_NOTE] = NOTE_EMPTY;
+        return;
+    }
+    offset = patternRegionBase + patternOffset[id] * 2u;
+    numEvents = SRAMW_readWord(offset + 2);
+    evtBase = offset + 4;
+
+    for (i = 0; i < numEvents; i++)
+    {
+        tick = SRAMW_readByte(evtBase + i * 3);
+        evtPos = tick % EVT_COUNT;
+        dataHi = SRAMW_readByte(evtBase + i * 3 + 1);
+        dataLo = SRAMW_readByte(evtBase + i * 3 + 2);
+
+        if (evtPos == EVT_NOTEINST)
+        {
+            editBuffer[(tick / EVT_COUNT) * PATTERN_COLUMNS + DATA_NOTE] = dataHi;
+            editBuffer[(tick / EVT_COUNT) * PATTERN_COLUMNS + DATA_INSTRUMENT] = dataLo;
+        }
+        else
+        {
+            editBuffer[(tick / EVT_COUNT) * PATTERN_COLUMNS + EVT_TO_COL_TYPE(evtPos)] = dataHi;
+            editBuffer[(tick / EVT_COUNT) * PATTERN_COLUMNS + EVT_TO_COL_VALUE(evtPos)] = dataLo;
+        }
+    }
+}
+
+// Pack a 14-byte row into output buffer and return number of events written
+static u16 packRow(u8* rowData, u8 row, u8* out, u16 outIdx)
+{
+    u8 note = rowData[DATA_NOTE];
+    u8 inst = rowData[DATA_INSTRUMENT];
+    u16 count = 0;
+
+    if (note <= NOTE_MAX || inst)
+    {
+        out[outIdx] = row * EVT_COUNT + EVT_NOTEINST;
+        out[outIdx + 1] = (note <= NOTE_MAX) ? note : NOTE_EMPTY;
+        out[outIdx + 2] = inst;
+        outIdx += 3; count++;
+    }
+    return count;
+}
+
+static u16 packFX(u8* rowData, u8 row, u8 fxIdx, u8* out, u16 outIdx)
+{
+    u8 typeCol = DATA_FX1_TYPE + fxIdx * 2;
+    u8 valCol = DATA_FX1_VALUE + fxIdx * 2;
+    u8 type = rowData[typeCol];
+    u8 val = rowData[valCol];
+
+    if (type || val)
+    {
+        out[outIdx] = row * EVT_COUNT + (EVT_FX1 + fxIdx);
+        out[outIdx + 1] = type;
+        out[outIdx + 2] = val;
+        outIdx += 3;
+        return 1;
+    }
+    return 0;
+}
+
+// Write packed block to SRAM at specified offset
+// numEvents is passed, data is in buffer at events[0..numEvents*3-1]
+// This is an internal helper used by SRAM_CommitBuffer
+static void writeBlockToSRAM(u32 sramOffset, u16 id, u16 numEvents, u8* events)
+{
+    u16 dataBytes = numEvents * 3;
+    SRAMW_writeWord(sramOffset, id);
+    SRAMW_writeWord(sramOffset + 2, numEvents);
+    for (u16 i = 0; i < dataBytes; i++)
+        SRAMW_writeByte(sramOffset + 4 + i, events[i]);
+    if (dataBytes & 1)
+        SRAMW_writeByte(sramOffset + 4 + dataBytes, 0);
+}
+
+// Pack editBuffer and write/update pattern block in SRAM.
+// Shift subsequent blocks in SRAM to accommodate size change.
+void SRAM_CommitBuffer(u16 id)
+{
+    // Temp buffer for packed events (max 148 events * 3 bytes = 444, plus 4 header = 448)
+    // We know packed never exceeds 448 bytes (threshold for raw format)
+    u8 packed[448];
+    u16 numEvents = 0, oldNumEvents;
+    u32 regionBase = patternRegionBase;
+    u32 regionSize, newOffset, tailStart, tailLen, oldBlockSize, newBlockSize;
+    s32 delta;
+    u32 absOffset = regionBase + patternOffset[id] * 2u;
+
+    // Pack the editBuffer
+    for (u8 row = 0; row < PATTERN_ROWS; row++)
+    {
+        u8* rowData = &editBuffer[row * PATTERN_COLUMNS];
+        numEvents += packRow(rowData, row, packed, numEvents * 3);
+        for (u8 fx = 0; fx < EFFECTS_TOTAL; fx++)
+            numEvents += packFX(rowData, row, fx, packed, numEvents * 3);
+    }
+
+    newBlockSize = 4 + numEvents * 3 + (numEvents & 1);
+
+    // Read region size
+    regionSize = (u32)SRAMW_readWord(regionBase + 4);
+
+    if (patternOffset[id] != 0)
+    {
+        // Update existing pattern
+        oldNumEvents = SRAMW_readWord(absOffset + 2);
+        oldBlockSize = 4 + oldNumEvents * 3 + (oldNumEvents & 1);
+        delta = newBlockSize - oldBlockSize;
+
+        if (delta > 0)
+        {
+            // Growing - shift tail forward, copy BACKWARD
+            tailStart = absOffset + oldBlockSize;
+            tailLen = (regionBase + regionSize) - tailStart;
+            for (s32 i = (s32)tailLen - 1; i >= 0; i--)
+                SRAMW_writeByte(tailStart + delta + i, SRAMW_readByte(tailStart + i));
+        }
+        else if (delta < 0)
+        {
+            // Shrinking - shift tail backward, copy FORWARD
+            tailStart = absOffset + oldBlockSize;
+            tailLen = (regionBase + regionSize) - tailStart;
+            for (u32 i = 0; i < tailLen; i++)
+                SRAMW_writeByte(tailStart + delta + i, SRAMW_readByte(tailStart + i));
+        }
+
+        // Write new block
+        writeBlockToSRAM(absOffset, id, numEvents, packed);
+
+        // Update region size
+        regionSize += delta;
+        SRAMW_writeWord(regionBase + 4, (u16)regionSize);
+
+        // Update offset table in RAM for patterns after this one
+        for (u16 pid = 0; pid <= PATTERN_LAST; pid++)
+        {
+            if (patternOffset[pid] != 0 && regionBase + patternOffset[pid] * 2u > absOffset)
+            {
+                u32 newRelBytes = patternOffset[pid] * 2u + delta;
+                patternOffset[pid] = (u16)(newRelBytes / 2);
+            }
+        }
+    }
+    else
+    {
+        // New pattern - append at end
+        newOffset = regionBase + regionSize;
+        writeBlockToSRAM(newOffset, id, numEvents, packed);
+        patternOffset[id] = (u16)((newOffset - regionBase) / 2);
+        regionSize += newBlockSize;
+        SRAMW_writeWord(regionBase + 4, (u16)regionSize);
+    }
+    if (editBuffer) { MEM_free(editBuffer); editBuffer = NULL; }
+}
+
+// Scan the pattern region and build the offset table in RAM
+void SRAM_ScanPatternRegion()
+{
+    u32 regionBase = patternRegionBase;
+    u32 regionSize;
+    u32 ptr;
+
+    for (u16 i = 0; i <= PATTERN_LAST; i++)
+        patternOffset[i] = 0;
+
+    if (SRAMW_readWord(regionBase) != PATTERN_MAGIC)
+        return;
+
+    regionSize = SRAMW_readWord(regionBase + 4);
+
+    ptr = regionBase + 6;
+    while (ptr < regionBase + regionSize)
+    {
+        u16 blockId = SRAMW_readWord(ptr);
+        u16 blockNumEvents = SRAMW_readWord(ptr + 2);
+        if (blockId <= PATTERN_LAST)
+            patternOffset[blockId] = (u16)((ptr - regionBase) / 2);
+        ptr += 4 + blockNumEvents * 3 + (blockNumEvents & 1);
+    }
+}
+
+// static data accessors (fixed SRAM addresses)
+u8 SRAM_ReadPatternColor(u16 id) { return SRAMW_readByte((u32)SRAM_PATTERN_COLOR + id); }
+void SRAM_WritePatternColor(u16 id, u8 color) { SRAMW_writeByte((u32)SRAM_PATTERN_COLOR + id, color); }
+
+u16 SRAM_ReadMatrix(u8 channel, u8 line) { return SRAMW_readWord((u32)SRAM_PATTERN_MATRIX + ((channel * MATRIX_ROWS) + line) * 2); }
+void SRAM_WriteMatrix(u8 channel, u8 line, u16 data) { SRAMW_writeWord((u32)SRAM_PATTERN_MATRIX + ((channel * MATRIX_ROWS) + line) * 2, data); }
+
+s8 SRAM_ReadMatrixTranspose(u8 channel, u8 line) { return SRAMW_readByte((u32)SRAM_MATRIX_TRANSPOSE + ((channel * MATRIX_ROWS) + line)); }
+void SRAM_WriteMatrixTranspose(u8 channel, u8 line, s8 transpose) { SRAMW_writeByte((u32)SRAM_MATRIX_TRANSPOSE + ((channel * MATRIX_ROWS) + line), transpose); }
+
+// MUTE_CHANNEL is RAM-only (channelFlags[])
+u8 SRAM_ReadMatrixChannelEnabled(u8 channel) { return channelFlags[channel]; }
+void SRAM_WriteMatrixChannelEnabled(u8 channel, u8 state) { channelFlags[channel] = state; }
+
+// sample PCM mapping (stored in SRAM)
+u32 SRAM_ReadSampleRegion(u8 bank, u8 note, u8 byteNum) { return (u32)SRAMW_readByte((u32)SRAM_SAMPLE_DATA + (bank * NOTES * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum); }
+void SRAM_WriteSampleRegion(u8 bank, u8 note, u8 byteNum, u8 data) { SRAMW_writeByte((u32)SRAM_SAMPLE_DATA + (bank * NOTES * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum, data); }
+
+u8 SRAM_ReadSamplePan(u8 bank, u8 note){ return SRAMW_readByte((u32)SRAM_SAMPLE_PAN + (bank * NOTES) + note); }
+void SRAM_WriteSamplePan(u8 bank, u8 note, u8 data) { SRAMW_writeByte((u32)SRAM_SAMPLE_PAN + (bank * NOTES) + note, data); }
+
+u8 SRAM_ReadSampleRate(u8 bank, u8 note){ return SRAMW_readByte((u32)SRAM_SAMPLE_RATE + (bank * NOTES) + note); }
+void SRAM_WriteSampleRate(u8 bank, u8 note, u8 data) { SRAMW_writeByte((u32)SRAM_SAMPLE_RATE + (bank * NOTES) + note, data); }
 
 // other
 static u8 ym2612Z80BatchDepth = 0;
@@ -6661,18 +7224,6 @@ void InitTracker()
     ssf_init();
     ssf_set_rom_bank(7, 31); // 4
     ssf_rom_wr_on();
-
-#if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
-    //msu_resp = msu_drv();
-
-    //if (msu_resp == 0) // Function will return 0 if driver loaded successfully or 1 if MCD hardware not detected.
-    //{
-        //while (*mcd_stat != 1); // Init driver ... 0-ready, 1-init, 2-cmd busy
-        //while (*mcd_stat == 1); // Wait till sub CPU finish initialization
-    //}
-
-#endif
 
     VDP_init();
     VDP_setDMAEnabled(TRUE);
@@ -6748,97 +7299,71 @@ void InitTracker()
 
     //ReColorsAndTranspose(); // need SRAM
 
-    // if there is no SRAM file, needs fresh init.
-    if (SRAMW_readWord(FILE_CHECKER) != MDT_CHECKER)
+    // Check if valid save file exists by reading header string (SRAM[0..5]) directly
+    for (u8 i = 0; i < 6; i++) str[i] = SRAM_readByte_Odd(i);
+
+    if (strcmp(str, MDT_HEADER) != 0)
     {
+        // No valid save — fresh init everything
         VDP_setTextPalette(PAL0); VDP_drawText("GENERATING MODULE DATA", 3, 3);
 
-        for (u16 inst = 0; inst <= INSTRUMENTS_LAST; inst++) // 0 inst is unused. also header space. but must have vol and arp
-        {
-            LoadPreset(inst, 0); // default sound
-            for (u8 t = 0; t < SEQ_STEPS; t++)
-            {
-                SRAM_WriteSEQ_PAR(inst, t, SEQ_SKIP);
-                SRAM_WriteSEQ_ARP(inst, t, NOTE_EMPTY);
-                if (t < 8) SRAM_WriteInstrument(inst, INST_NAME_1 + t, NULL); // "--------" by default
-            }
-        }
+        // --- Block 1: Static data (fixed addresses) ---
+        SetBPM(DEFAULT_TEMPO);
+        SRAMW_writeByte(SRAM_GLOBAL_LFO, 7);
 
-        // init matrix
-        for (u8 channel = CHANNEL_FM1; channel < CHANNELS_TOTAL; channel++)
-        {
-            SRAM_WriteMatrixChannelEnabled(channel, TRUE); // enable channel
-            channelFlags[channel] = TRUE;
-            VDP_fillTileMapRect(BG_B, NULL, (channel * 3) + 1, 1, 2, 1);
-
-            for (u8 row = 0; row < MATRIX_ROWS; row++) // 250
-            {
-                SRAM_WriteMatrix(channel, row, NULL);
-            }
-        }
-
-        // initialize patterns
-        for (u16 pattern = 0; pattern <= PATTERN_LAST; pattern++)
-        {
-            SRAM_WritePatternColor(pattern, 0);
-            for (u8 row = 0; row <= PATTERN_ROW_LAST; row++)
-            {
-                SRAM_WritePattern(pattern, row, DATA_NOTE, NOTE_EMPTY);
-                SRAM_WritePattern(pattern, row, DATA_INSTRUMENT, NULL);
-                SRAM_WritePattern(pattern, row, DATA_FX1_TYPE, NULL);
-                SRAM_WritePattern(pattern, row, DATA_FX1_VALUE, NULL);
-                SRAM_WritePattern(pattern, row, DATA_FX2_TYPE, NULL);
-                SRAM_WritePattern(pattern, row, DATA_FX2_VALUE, NULL);
-                SRAM_WritePattern(pattern, row, DATA_FX3_TYPE, NULL);
-                SRAM_WritePattern(pattern, row, DATA_FX3_VALUE, NULL);
-
-                #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
-                SRAM_WritePattern(pattern, row, DATA_FX4_TYPE, NULL);
-                SRAM_WritePattern(pattern, row, DATA_FX4_VALUE, NULL);
-                SRAM_WritePattern(pattern, row, DATA_FX5_TYPE, NULL);
-                SRAM_WritePattern(pattern, row, DATA_FX5_VALUE, NULL);
-                SRAM_WritePattern(pattern, row, DATA_FX6_TYPE, NULL);
-                SRAM_WritePattern(pattern, row, DATA_FX6_VALUE, NULL);
-
-                #endif
-            }
-        }
-
-        // dac default pan and rate init
         for (u8 bank = 0; bank < 4; bank++)
-        {
             for (u8 note = 0; note < NOTES; note++)
             {
-                // by default: regions are zero, loop is none
                 SRAM_WriteSamplePan(bank, note, SOUND_PAN_CENTER);
                 SRAM_WriteSampleRate(bank, note, SOUND_PCM_RATE_32000);
             }
+
+        // --- Block 2: Instruments ---
+        SRAMW_writeWord(INST_MOD_COUNT_ADDR, 0);
+        for (u16 inst = 0; inst <= INSTRUMENTS_LAST; inst++)
+            SRAMW_writeByte(INST_LOOKUP_TABLE_ADDR + inst, 0);
+
+        // No name block or SEQ data — defaults are implicit
+
+        instBlockEnd = INST_COMPACT_START;  // modCount=0, no compact records
+
+        // --- Block 3: Sequencers ---
+        SRAMW_writeWord(instBlockEnd, 0);  // seqModCount = 0
+        for (u16 inst = 0; inst <= INSTRUMENTS_LAST; inst++)
+            SRAMW_writeByte(instBlockEnd + 2 + inst, 0);
+
+        seqBlockEnd = instBlockEnd + 2 + INSTRUMENTS_TOTAL;  // = instBlockEnd + 258
+        patternRegionBase = seqBlockEnd;
+
+        // --- Block 4: Patterns ---
+        SRAMW_writeWord(patternRegionBase, PATTERN_MAGIC);
+        SRAMW_writeWord(patternRegionBase + 2, PATTERN_FORMAT_VERSION);
+        SRAMW_writeWord(patternRegionBase + 4, 6);
+
+        // Matrix (static data continued)
+        for (u8 channel = CHANNEL_FM1; channel < CHANNELS_TOTAL; channel++)
+        {
+            channelFlags[channel] = TRUE;
+            VDP_fillTileMapRect(BG_B, NULL, (channel * 3) + 1, 1, 2, 1);
+            for (u8 row = 0; row < MATRIX_ROWS; row++)
+                SRAM_WriteMatrix(channel, row, NULL);
         }
 
-        SetBPM(DEFAULT_TEMPO);
-        SRAMW_writeByte(GLOBAL_LFO, 7);
-
-        SRAMW_writeWord(FILE_CHECKER, MDT_CHECKER);
+        RecalcAllAddrs();
         FileWriteHeader();
     }
-    else // if it's correct save file
+    else
     {
-        // legacy stuff
-        for (u8 i = 0; i < 6; i++) str[i] = SRAM_readByte_Odd(i);
-        /*
-        <0	the first character that does not match has a lower value in ptr1 than in ptr2
-        0	the contents of both strings are equal
-        >0	the first character that does not match has a greater value in ptr1 than in ptr2
-        */
-        if (strcmp(str, MDT_HEADER) != 0) // header mismatch
-        {
-            Legacy();
-            FileWriteHeader();
-        }
-
-        SetBPM(NULL); // reads BPM from SRAM
+        RecalcAllAddrs();
+        SetBPM(NULL);
     }
+
+    // Build pattern offset table from SRAM
+    SRAM_ScanPatternRegion();
+
+    // init chEventIdx
+    for (u8 i = 0; i < CHANNELS_TOTAL; i++)
+        chEventIdx[i] = 0;
 
     // init
     for (u8 mtxCh = CHANNEL_FM1; mtxCh < CHANNELS_TOTAL; mtxCh++)
@@ -6848,8 +7373,10 @@ void InitTracker()
         channelPreviousEffectType[mtxCh][1] =
         channelPreviousEffectType[mtxCh][2] =
         channelArpSeqID[mtxCh] =
+        channelArpSeqActive[mtxCh] =
         channelVibratoMode[mtxCh] =
         channelParSeqID[mtxCh] =
+        channelParSeqActive[mtxCh] =
         channelNoteCut[mtxCh] = 0;
 
         channelPreviousNote[mtxCh] = NOTE_OFF;
@@ -6858,12 +7385,13 @@ void InitTracker()
         channelVibratoSpeedMult[mtxCh] = 0x08;
         channelVibratoDepthMult[mtxCh] = 0x02;
 
-        channelFlags[mtxCh] = SRAM_ReadMatrixChannelEnabled(mtxCh);
+        // MUTE_CHANNEL is RAM-only — channelFlags[] stays at its
+        // initialized default (TRUE) on fresh start
         DrawMute(mtxCh);
     }
 
     sampleBankSize = sizeof(sample_bank_1);
-    SetGlobalLFO(SRAMW_readByte(GLOBAL_LFO));
+    SetGlobalLFO(SRAMW_readByte(SRAM_GLOBAL_LFO));
 
     // CH3 mode:
     //|Mode| Behavior
@@ -7005,12 +7533,7 @@ void DrawStaticGUI()
 
     for (u8 y=4; y<20; y++) // pattern effects separator dots, numbers
     {
-        u8 pal; u8 pal_2;
-        #if (MDT_VERSION == 3)
-            pal_2 = PAL0;
-        #else
-            pal_2 = PAL2;
-        #endif
+        u8 pal; u8 pal_2 = PAL2;
         if (y%4) pal = PAL3; else pal = PAL0;
         VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(pal, 1, FALSE, FALSE, bgBaseTileIndex[0] + y-4), 44, y);
         VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(pal, 1, FALSE, FALSE, bgBaseTileIndex[0] + y+12), 64, y);
@@ -7158,65 +7681,6 @@ void DrawStaticGUI()
     return (u32)SRAMW_readByte((u32)SAMPLE_DATA + (bank * NOTES * 8) + (note * 8) + byteNum);
 }*/
 
-// tool
-void Legacy()
-{
-    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
-        SRAM_WriteSEQ_PAR(0, 0, SEQ_SKIP);
-        SRAM_WriteSEQ_ARP(0, 0, NOTE_EMPTY);
-        /*for (u8 bank = 0; bank < 4; bank++)
-        {
-            for (u8 key = 0; key < NOTES; key++)
-            {
-                u8 start1 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_START_1);
-                u8 start2 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_START_2);
-                u8 start3 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_START_3);
-                u8 end1 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_END_1);
-                u8 end2 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_END_2);
-                u8 end3 = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_END_3);
-                u8 loop = SRAM_ReadSampleRegionLegacy(bank, key, SAMPLE_LOOP);
-                u8 rate = SRAM_ReadSampleRegionLegacy(bank, key, 7);
-
-                SRAM_WriteSampleRegion(bank, key, SAMPLE_START_1, start1);
-                SRAM_WriteSampleRegion(bank, key, SAMPLE_START_2, start2);
-                SRAM_WriteSampleRegion(bank, key, SAMPLE_START_3, start3);
-                SRAM_WriteSampleRegion(bank, key, SAMPLE_END_1, end1);
-                SRAM_WriteSampleRegion(bank, key, SAMPLE_END_2, end2);
-                SRAM_WriteSampleRegion(bank, key, SAMPLE_END_3, end3);
-                SRAM_WriteSampleRegion(bank, key, SAMPLE_LOOP, loop);
-                SRAM_WriteSampleRate(bank, key, rate);
-            }
-        }*/
-
-        /* beta
-        // update seq to 32 steps
-        for (u16 id = 0; id < INSTRUMENTS_TOTAL; id++)
-        {
-            for (u8 step = 0; step < 32; step++)
-            {
-                if (step < 16)
-                {
-                    SRAM_WriteSEQ_VOL(id, step, SRAM_ReadInstrument(id, 49+step));
-                    SRAM_WriteSEQ_ARP(id, step, SRAM_ReadInstrument(id, 65+step));
-                }
-                else
-                {
-                    SRAM_WriteSEQ_VOL(id, step, SEQ_VOL_SKIP);
-                    SRAM_WriteSEQ_ARP(id, step, NOTE_EMPTY);
-                }
-            }
-        }
-        // 00th instrument SEQ
-        for (u8 t = 0; t < 16; t++)
-        {
-            SRAM_WriteSEQ_VOL(0, t, SEQ_VOL_SKIP); // skip step
-            SRAM_WriteSEQ_ARP(0, t, NOTE_EMPTY); // empty note
-        }*/
-
-    #endif
-}
-
 void ForceResetVariables()
 {
     playingMatrixRow=
@@ -7306,7 +7770,9 @@ void ForceResetVariables()
         channelTranspose[ch]=
         channelPreviousNote[ch]=
         channelArpSeqID[ch]=
+        channelArpSeqActive[ch]=
         channelParSeqID[ch]=
+        channelParSeqActive[ch]=
         channelCurrentRowNote[ch]=
         channelSEQCounter_PAR[ch]=
         channelSEQCounter_ARP[ch]=

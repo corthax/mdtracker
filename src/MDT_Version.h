@@ -1,16 +1,15 @@
 #ifndef MDT_VERSION_H_INCLUDED
 #define MDT_VERSION_H_INCLUDED
 
-//! HEADERS ARE NOT REPARSED IN CODEBLOCKS WHEN BUILD. DO REBUILD
 /*
-0 = Mega Everdrive Pro / BlastEm (libretro)
-1 = BlastEm (standalone 0.6.3-pre)
-2 = PicoDrive (libretro)
-3 = Mega Everdrive X7
+0 = Mega Everdrive Pro / BlastEm (512KB SRAM, 16-bit linear access)
+1 = EDMD-v3 (64KB SRAM, 8-bit odd-byte access only)
 */
 
+#define MDT_VERSION_PRO_BLASTEM   0
+#define MDT_VERSION_EDMDV3        1
+
 #define MDT_VERSION 1 // REBUILD if changed!
-#define MDT_CHECKER 0xDEAD // DEAD INSIDE
 
 extern const char *MDT_HEADER;
 

@@ -45,16 +45,12 @@
 #define GUI_PATTERN_L_FX3_TYPE      6
 #define GUI_PATTERN_L_FX3_VALUE     7
 
-    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
 #define GUI_PATTERN_L_FX4_TYPE      8
 #define GUI_PATTERN_L_FX4_VALUE     9
 #define GUI_PATTERN_L_FX5_TYPE      10
 #define GUI_PATTERN_L_FX5_VALUE     11
 #define GUI_PATTERN_L_FX6_TYPE      12
 #define GUI_PATTERN_L_FX6_VALUE     13
-
-    #endif
 
 #define GUI_PATTERN_R_NOTE          14
 #define GUI_PATTERN_R_INST          15
@@ -65,8 +61,6 @@
 #define GUI_PATTERN_R_FX3_TYPE      20
 #define GUI_PATTERN_R_FX3_VALUE     21
 
-    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
 #define GUI_PATTERN_R_FX4_TYPE      22
 #define GUI_PATTERN_R_FX4_VALUE     23
 #define GUI_PATTERN_R_FX5_TYPE      24
@@ -74,33 +68,12 @@
 #define GUI_PATTERN_R_FX6_TYPE      26
 #define GUI_PATTERN_R_FX6_VALUE     27
 
-    #endif
-
-    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
 #define GUI_PATTERN_COLUMN_LAST     27
 #define GUI_PATTERN_SIDE_ROWS       14
 
-    #elif (MDT_VERSION == 3)
-
-#define GUI_PATTERN_COLUMN_LAST     15
-#define GUI_PATTERN_SIDE_ROWS       8
-
-    #endif
-
-    #if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
 #define GUI_PATTERN_R_NOTE_OFFSET   6
 #define GUI_PATTERN_R_INST_OFFSET   20
 #define GUI_PATTERN_R_FX_OFFSET     52
-
-    #elif (MDT_VERSION == 3)
-
-#define GUI_PATTERN_R_NOTE_OFFSET   6
-#define GUI_PATTERN_R_INST_OFFSET   20
-#define GUI_PATTERN_R_FX_OFFSET     52
-
-    #endif
 
 // -----------------------------------------------------------
 #define GUI_PATTERN_ROW_LAST        15

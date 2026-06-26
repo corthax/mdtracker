@@ -754,9 +754,12 @@ Changelog:
 		Added FX column value linear interpolation (B + Down). Current value -> next found value. If column FX Type changes before next value found, interpolation is skipped.
 		New Command 0x38: Channel auto pitch glide. 01..FF ticks from previous note to current note. Note OFF or value 00 disables auto gliding.
 		Added basic MIDI control (Start/Stop/Tempo Sync) via everdrive usb port or controller port 2 with usb-serial adapter (same way as mega-drive-midi-interface). There is slight delay before playback starts.
+		Architecture changed to expandable save format.
+		No DAC sample parameters pre-editing available now. But can be overriden using pattern commands. Sample related instrument editing block is disabled.
 	
 	MD.Tracker Editor 1.05 and tools:
-		Nothing changed. Same as 1.04
+		Save conversion 1.04 to 1.05 via MD.Tracker Editor.
+		Sample related data now is ROM read-only. All default setup (note, default pan, rate, loop) only via editor.
 --------------------------------
 1.04
 	Bugs:

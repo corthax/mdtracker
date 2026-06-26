@@ -10,6 +10,8 @@ u8 SRAMW_readByte(u32 offset);
 
 u8 SRAM_readByte_Odd(u32 offset);
 void SRAM_writeByte_Odd(u32 offset, u8 val);
+u8 SRAM_readByte_Even(u32 offset);
+void SRAM_writeByte_Even(u32 offset, u8 val);
 
 // SRAM
 u8 SRAM_ReadInstrument(u8 id, u16 param);
@@ -35,5 +37,14 @@ u8 SRAM_ReadSEQ_PAR(u8 id, u8 step);
 void SRAM_WriteSEQ_PAR(u8 id, u8 step, u8 data);
 u8 SRAM_ReadSEQ_ARP(u8 id, u8 step);
 void SRAM_WriteSEQ_ARP(u8 id, u8 step, u8 data);
+
+// New pattern region functions
+u8 SRAM_ReadPatternFromEvents(u16 id, u8 line, u8 param);
+void SRAM_ReadRowToBuffer(u16 id, u8 line, u8* buf);
+void SRAM_ScanPatternRegion();
+void SRAM_PackAndWriteBlock(u16 id, u8* buffer, u16 numEvents);
+
+// Instrument block
+void SRAM_ResetInstrumentToPreset(u8 id, u8 preset);
 
 #endif // MDT_SRAM_H_INCLUDED

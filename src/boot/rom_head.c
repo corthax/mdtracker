@@ -30,7 +30,7 @@ const ROMHeader rom_header = {
 //    "SEGA GENESIS    "	Mega Drive (blastem 0.6.3-pre may need it too)
 //    "SEGA 32X        "	Mega Drive + 32X
 //    "SEGA EVERDRIVE  "	Mega Drive (Everdrive extensions)
-//    "SEGA EVERDRIVEXX"
+//    "SEGA EVERDRIVEXX"    Not sure if its relevant anymore
 //          where XX reflects mapper number (MED PRO)
 //          01:SMD, 02:32X, 03:10M, 05:SSF, 06:SMS, 07:SVP(Virtua Racing), 08:CD, 09:PIE(Pier Solar), 11:SMD+CD, 12:EDAPP(NES)
 //    "SEGA SSF        "	Mega Drive (Mega Everdrive extensions) [for mega everdrive only]
@@ -39,41 +39,28 @@ const ROMHeader rom_header = {
 //    "SEGA TERA68K    "	Tera Drive (boot from 68000 side)
 //    "SEGA TERA286    "	Tera Drive (boot from x86 side)
 
-#if (MDT_VERSION == 0)
+#if MDT_VERSION == MDT_VERSION_PRO_BLASTEM
 
-    "SEGA SSF        ", // Mega Everdrive Pro
+    "SEGA MEGADRIVE  ", // BlastEm 0.6.3-pre, PicoDrive.
+    //"SEGA SSF        ", // Change to SEGA SSF on MED PRO!
 
-#elif (MDT_VERSION == 1 || MDT_VERSION == 2)
+#elif MDT_VERSION == MDT_VERSION_EDMDV3
 
-    "SEGA MEGADRIVE  ", // BlastEm 0.6.3-pre, PicoDrive
-
-#elif (MDT_VERSION == 3)
-
-    "SEGA SSF        ", // MEGA EVERDRIVE X7
+    "SEGA EVERDRIVE  ", // Old EDMD-v3
 
 #endif
 
     "(C)Corthax 2025 ",
 
-#if (MDT_VERSION == 0)
+#if MDT_VERSION == MDT_VERSION_PRO_BLASTEM
 
     "MD.Tracker (1.5)                                ",
-    "MD.Tracker for MEGA EVERDRIVE PRO               ",
+    "MD.Tracker for MED PRO / BlastEm                ",
 
-#elif (MDT_VERSION == 1)
-
-    "MD.Tracker (1.5)                                ",
-    "MD.Tracker for BlastEm                          ",
-
-#elif (MDT_VERSION == 2)
+#elif MDT_VERSION == MDT_VERSION_EDMDV3
 
     "MD.Tracker (1.5)                                ",
-    "MD.Tracker for PicoDrive                        ",
-
-#elif (MDT_VERSION == 3)
-
-    "MD.Tracker (1.5)                                ",
-    "MD.Tracker for MEGA EVERDRIVE X7                ",
+    "MD.Tracker for EDMD-v3                          ",
 
 #endif
 
@@ -87,17 +74,12 @@ const ROMHeader rom_header = {
 //"6"	6-button controller
 //"0"	Master System controller
 //"A"	Analog joystick
-//"4"	Multitap
-//"G"	Lightgun
-//"L"	Activator
+//"L"	Lightgun
 //"M"	Mouse
 //"B"	Trackball
-//"T"	Tablet
-//"V"	Paddle
 //"K"	Keyboard or keypad
 //"R"	RS-232
 //"P"	Printer
-//"C"	CD-ROM (Sega CD)
 //"F"	Floppy drive
 //"D"	Download?
     "C6              ",
@@ -115,35 +97,38 @@ const ROMHeader rom_header = {
 //F8	Yes	    8-bit (odd addresses)
 //"RA", 0xE840; EEPROM type
 
-#if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
+// SRAM mode; EDMD-v3 doesn't care, always odd; matters for BlastEm, will not r/w other address.
+// !!! Always load SRAM file manually after it's replaced, or it will be overwriten when ROM loads with battery ram content!!!
+#if MDT_VERSION == MDT_VERSION_PRO_BLASTEM
 
     0xE020,     // 16 bit SRAM mode
 
-#elif (MDT_VERSION == 3)
+#elif MDT_VERSION == MDT_VERSION_EDMDV3
 
-    0xF820,     // 8 bit SRAM mode
-    //0xE020,     // 16 bit SRAM mode
-
-#endif
-
-#if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
-
-    0x00380000, // SRAM start
-
-#elif (MDT_VERSION == 3)
-
-    0x003C0000, // SRAM start; upper half of 31 bank
-    //0x00380000,
+    //0xF820,     // 8 bit SRAM mode (odd addresses only)
+    0xE020,      // Still need 16 bit
 
 #endif
 
-#if (MDT_VERSION == 0 || MDT_VERSION == 1 || MDT_VERSION == 2)
+#if MDT_VERSION == MDT_VERSION_PRO_BLASTEM
+
+    0x00380000, // SRAM start; 0x00200000 default
+
+#elif MDT_VERSION == MDT_VERSION_EDMDV3
+
+    0x00380000, // 0EDMD-v3 SRAM start
+    //0x003C0000, // X7 SRAM start
+
+#endif
+
+#if MDT_VERSION == MDT_VERSION_PRO_BLASTEM
 
     0x003FFFFF, // SRAM end 512K
 
-#elif (MDT_VERSION == 3)
+#elif MDT_VERSION == MDT_VERSION_EDMDV3
 
-    0x003FFFFF, // SRAM end 256K (128K 8 bit ); upper of 31 bank
+    0x0038FFFF, // 0EDMD-v3 x0020FFFF 32K (64K / 2)
+    //0x003FFFFF, // X7 SRAM end 256K (128K 8-bit); upper of 31 bank
 
 #endif
 
