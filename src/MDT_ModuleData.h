@@ -91,8 +91,6 @@
 #define SEQ_SENTINEL_MODIFIED 0xFF
 
 #define SEQ_STEP_LAST       31
-#define SAMPLE_NAMES_SIZE   5376 // NOTES*4*GUI_SAMPLE_NAME_SIZE
-
 #define PATTERN_COLUMNS     14
 #ifndef PATTERN_SIZE
 #define PATTERN_SIZE        448
@@ -105,20 +103,16 @@
 #define STATIC_BASE             12    // after 6-byte header + 6 bytes padding (avoid _Odd overlap)
 
 #define SRAM_GLOBAL_LFO         (STATIC_BASE + 0u)       // 3 bytes
-#define SRAM_PATTERN_MATRIX     (STATIC_BASE + 3u)       // 6500 bytes (13ch * 250row * 2)
+#define SRAM_PATTERN_MATRIX     (STATIC_BASE + 3u)       // 6500 bytes (13ch * 250row * 2, combined patternID + transpose)
 #define SRAM_TEMPO              (STATIC_BASE + 6503u)    // 2 bytes
-#define SRAM_SAMPLE_DATA        (STATIC_BASE + 6505u)    // 2688 bytes (4banks * 96notes * 7bytes)
-#define SRAM_PATTERN_COLOR      (STATIC_BASE + 9193u)    // 897 bytes
-#define SRAM_MATRIX_TRANSPOSE   (STATIC_BASE + 10090u)   // 3250 bytes (13ch * 250row)
-#define SRAM_SAMPLE_PAN         (STATIC_BASE + 13340u)   // 384 bytes (4banks * 96notes)
-#define SRAM_SAMPLE_RATE        (STATIC_BASE + 13724u)   // 384 bytes (4banks * 96notes)
-#define STATIC_END              (STATIC_BASE + 14108u)   // = 0x3728
+#define SRAM_PATTERN_COLOR      (STATIC_BASE + 6505u)    // 897 bytes
+#define STATIC_END              (STATIC_BASE + 7402u)    // = 0x1CF6
 
 // Block 2: Instruments (at STATIC_END, expandable via compact records)
-#define INST_BLOCK_BASE           STATIC_END              // 0x371C = 14108
+#define INST_BLOCK_BASE           STATIC_END              // 0x1CF6 = 7414
 #define INST_MOD_COUNT_ADDR       INST_BLOCK_BASE         // word
 #define INST_LOOKUP_TABLE_ADDR    (INST_BLOCK_BASE + 2)   // 256 bytes
-#define INST_COMPACT_START        (INST_BLOCK_BASE + 258) // = 0x381E = 14366
+#define INST_COMPACT_START        (INST_BLOCK_BASE + 258) // = 0x1DF8 = 7672
 
 // instBlockEnd = INST_COMPACT_START + modCount * INST_RECORD_SIZE
 
@@ -130,27 +124,6 @@
 
 // Block 4: Patterns (at seqBlockEnd = patternRegionBase)
 // PATTERN_REGION_BASE = patternRegionBase (global variable)
-
-// ========================================================
-// Sample field offsets (within SAMPLE_DATA)
-// ========================================================
-#define SAMPLE_START_1      0
-#define SAMPLE_START_2      1
-#define SAMPLE_START_3      2
-#define SAMPLE_END_1        3
-#define SAMPLE_END_2        4
-#define SAMPLE_END_3        5
-#define SAMPLE_LOOP         6
-#define SAMPLE_DATA_SIZE    7
-
-#define SAMPLE_START_1      0
-#define SAMPLE_START_2      1
-#define SAMPLE_START_3      2
-#define SAMPLE_END_1        3
-#define SAMPLE_END_2        4
-#define SAMPLE_END_3        5
-#define SAMPLE_LOOP         6
-//#define SAMPLE_RATE         7
 
 //{ Pattern data 14 * 32 bytes
 #define DATA_NOTE           0

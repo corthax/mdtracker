@@ -1,0 +1,46 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MDTracker.Editor.ViewModels"
+             x:Class="MDTracker.Editor.Views.SampleConverterView"
+             x:DataType="vm:SampleConverterViewModel">
+  <Grid RowDefinitions="*,Auto" Margin="6" ColumnDefinitions="*,220">
+    <Grid RowDefinitions="Auto,*,Auto">
+      <TextBlock Text="Source Files" FontWeight="Bold" />
+      <ListBox Grid.Row="1"
+               ItemsSource="{Binding SourceSamples}"
+               SelectedItem="{Binding SelectedSource}"
+               Margin="0,4">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:SourceSample">
+            <StackPanel>
+              <TextBlock Text="{Binding Name}" FontWeight="Bold" />
+              <TextBlock Text="{Binding InputInfo}" FontSize="11" Opacity="0.7" />
+              <TextBlock Text="{Binding OutputInfo}" FontSize="11" />
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+      <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="4">
+        <Button Content="Remove" Command="{Binding RemoveSourceCommand}" />
+        <Button Content="Convert Selected" Command="{Binding ConvertSelectedCommand}" Margin="20,0,0,0" />
+        <Button Content="Convert All" Command="{Binding ConvertAllCommand}" />
+      </StackPanel>
+    </Grid>
+
+    <StackPanel Grid.Column="1" Spacing="8" Margin="10,0,0,0">
+      <Border BorderBrush="#444" BorderThickness="1" Padding="8" CornerRadius="4">
+        <StackPanel Spacing="6">
+          <TextBlock Text="Output Settings" FontWeight="Bold" />
+          <TextBlock Text="Target Rate:" FontSize="11" />
+          <ComboBox ItemsSource="{Binding TargetRates}"
+                    SelectedIndex="{Binding TargetRateIndex}" />
+          <TextBlock Text="Format:" FontSize="11" />
+          <ComboBox ItemsSource="{Binding OutputFormats}"
+                    SelectedIndex="{Binding OutputFormatIndex}" />
+          <Separator />
+          <TextBlock Text="{Binding EstimatedSize, StringFormat='Est. total: {0:N0} bytes'}" FontSize="11" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </Grid>
+</UserControl>

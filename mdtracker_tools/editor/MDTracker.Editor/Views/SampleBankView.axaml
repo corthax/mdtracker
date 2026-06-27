@@ -1,0 +1,342 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MDTracker.Editor.ViewModels"
+             xmlns:m="using:MDTracker.Editor.Models"
+             xmlns:ctl="using:MDTracker.Editor.Controls"
+             x:Class="MDTracker.Editor.Views.SampleBankView"
+             x:DataType="vm:SampleBankViewModel">
+  <Grid RowDefinitions="Auto,*,Auto" Margin="4" Grid.IsSharedSizeScope="True">
+    <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,4">
+      <TextBlock Text="Select range:" VerticalAlignment="Center" />
+      <StackPanel Orientation="Horizontal" Grid.Column="1" Spacing="4" Margin="8,0,0,0">
+        <ctl:NumericTextBox Text="{Binding RangeStart, Converter={StaticResource StringToInt}}" Width="60" FontSize="15" />
+        <TextBlock Text="to" VerticalAlignment="Center" />
+        <ctl:NumericTextBox Text="{Binding RangeEnd, Converter={StaticResource StringToInt}}" Width="60" FontSize="15" />
+        <TextBlock Text="Pan:" VerticalAlignment="Center" Margin="8,0,0,0" />
+        <ComboBox ItemsSource="{Binding Source={x:Static m:SampleSlot.PanOptions}}" SelectedItem="{Binding RangePanOption}" Width="70" FontSize="15">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="m:DropdownOption">
+              <TextBlock Text="{Binding Label}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <TextBlock Text="Rate:" VerticalAlignment="Center" Margin="4,0,0,0" />
+        <ComboBox ItemsSource="{Binding Source={x:Static m:SampleSlot.RateOptions}}" SelectedItem="{Binding RangeRateOption}" Width="80" FontSize="15">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="m:DropdownOption">
+              <TextBlock Text="{Binding Label}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <CheckBox IsChecked="{Binding RangeLoop}" Content="Loop" VerticalAlignment="Center" Margin="4,0,0,0" />
+        <Button Content="Apply" Command="{Binding ApplyAutoRangeCommand}" Margin="8,0,0,0" />
+      </StackPanel>
+    </Grid>
+
+    <TabControl Grid.Row="1" SelectedIndex="{Binding SelectedBankIndex}">
+      <TabItem Header="Bank 1">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+          <Grid Margin="2,2,2,1">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="30" SharedSizeGroup="C0" />
+              <ColumnDefinition Width="60" SharedSizeGroup="C1" />
+              <ColumnDefinition Width="80" SharedSizeGroup="C2" />
+              <ColumnDefinition Width="80" SharedSizeGroup="C3" />
+              <ColumnDefinition Width="100" SharedSizeGroup="C4" />
+              <ColumnDefinition Width="100" SharedSizeGroup="C5" />
+              <ColumnDefinition Width="56" SharedSizeGroup="C6" />
+              <ColumnDefinition Width="350" SharedSizeGroup="C7" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="" Grid.Column="0" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Note" Grid.Column="1" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Start" Grid.Column="2" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="End" Grid.Column="3" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Pan" Grid.Column="4" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Rate" Grid.Column="5" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Loop" Grid.Column="6" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Name" Grid.Column="7" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+          </Grid>
+          <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible">
+            <ItemsControl ItemsSource="{Binding Bank0Slots}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <VirtualizingStackPanel />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="m:SampleSlot">
+                  <Border BorderBrush="#333" BorderThickness="0,0,0,1" Padding="2">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="30" SharedSizeGroup="C0" />
+                        <ColumnDefinition Width="60" SharedSizeGroup="C1" />
+                        <ColumnDefinition Width="80" SharedSizeGroup="C2" />
+                        <ColumnDefinition Width="80" SharedSizeGroup="C3" />
+                        <ColumnDefinition Width="56" SharedSizeGroup="C4" />
+                        <ColumnDefinition Width="72" SharedSizeGroup="C5" />
+                        <ColumnDefinition Width="56" SharedSizeGroup="C6" />
+                        <ColumnDefinition Width="350" SharedSizeGroup="C7" />
+                      </Grid.ColumnDefinitions>
+                      <Button Content="S" Width="26" Height="22" FontSize="15" ToolTip.Tip="Sync from pool" Margin="1,0" />
+                      <TextBlock Text="{Binding NoteName}" Grid.Column="1" VerticalAlignment="Center" FontSize="15" Margin="2,0" TextAlignment="Left" />
+                      <ctl:NumericTextBox Text="{Binding StartOffset, Converter={StaticResource StringToInt}}" Grid.Column="2" Width="72" FontSize="15" Margin="1,0" />
+                      <ctl:NumericTextBox Text="{Binding EndOffset, Converter={StaticResource StringToInt}}" Grid.Column="3" Width="72" FontSize="15" Margin="1,0,4,0" />
+                      <ComboBox Grid.Column="4" ItemsSource="{Binding Source={x:Static m:SampleSlot.PanOptions}}" SelectedItem="{Binding PanOption}" HorizontalAlignment="Stretch" FontSize="15">
+                        <ComboBox.ItemTemplate>
+                          <DataTemplate x:DataType="m:DropdownOption">
+                            <TextBlock Text="{Binding Label}" />
+                          </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                      </ComboBox>
+                      <ComboBox Grid.Column="5" ItemsSource="{Binding Source={x:Static m:SampleSlot.RateOptions}}" SelectedItem="{Binding RateOption}" HorizontalAlignment="Stretch" FontSize="15">
+                        <ComboBox.ItemTemplate>
+                          <DataTemplate x:DataType="m:DropdownOption">
+                            <TextBlock Text="{Binding Label}" />
+                          </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                      </ComboBox>
+                      <CheckBox IsChecked="{Binding Looped}" Grid.Column="6" VerticalAlignment="Center" Margin="3,0" />
+                      <TextBox Text="{Binding Name}" Grid.Column="7" FontSize="15" Margin="1,0" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </Grid>
+      </TabItem>
+      <TabItem Header="Bank 2">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+          <Grid Margin="2,2,2,1">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="30" SharedSizeGroup="C0" />
+              <ColumnDefinition Width="60" SharedSizeGroup="C1" />
+              <ColumnDefinition Width="80" SharedSizeGroup="C2" />
+              <ColumnDefinition Width="80" SharedSizeGroup="C3" />
+              <ColumnDefinition Width="100" SharedSizeGroup="C4" />
+              <ColumnDefinition Width="100" SharedSizeGroup="C5" />
+              <ColumnDefinition Width="56" SharedSizeGroup="C6" />
+              <ColumnDefinition Width="350" SharedSizeGroup="C7" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="" Grid.Column="0" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Note" Grid.Column="1" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Start" Grid.Column="2" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="End" Grid.Column="3" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Pan" Grid.Column="4" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Rate" Grid.Column="5" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Loop" Grid.Column="6" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Name" Grid.Column="7" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+          </Grid>
+          <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible">
+            <ItemsControl ItemsSource="{Binding Bank1Slots}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <VirtualizingStackPanel />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="m:SampleSlot">
+                  <Border BorderBrush="#333" BorderThickness="0,0,0,1" Padding="2">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="30" SharedSizeGroup="C0" />
+                        <ColumnDefinition Width="60" SharedSizeGroup="C1" />
+                        <ColumnDefinition Width="80" SharedSizeGroup="C2" />
+                        <ColumnDefinition Width="80" SharedSizeGroup="C3" />
+                        <ColumnDefinition Width="56" SharedSizeGroup="C4" />
+                        <ColumnDefinition Width="72" SharedSizeGroup="C5" />
+                        <ColumnDefinition Width="56" SharedSizeGroup="C6" />
+                        <ColumnDefinition Width="350" SharedSizeGroup="C7" />
+                      </Grid.ColumnDefinitions>
+                      <Button Content="S" Width="26" Height="22" FontSize="15" ToolTip.Tip="Sync from pool" Margin="1,0" />
+                      <TextBlock Text="{Binding NoteName}" Grid.Column="1" VerticalAlignment="Center" FontSize="15" Margin="2,0" TextAlignment="Left" />
+                      <ctl:NumericTextBox Text="{Binding StartOffset, Converter={StaticResource StringToInt}}" Grid.Column="2" Width="72" FontSize="15" Margin="1,0" />
+                      <ctl:NumericTextBox Text="{Binding EndOffset, Converter={StaticResource StringToInt}}" Grid.Column="3" Width="72" FontSize="15" Margin="1,0,4,0" />
+                      <ComboBox Grid.Column="4" ItemsSource="{Binding Source={x:Static m:SampleSlot.PanOptions}}" SelectedItem="{Binding PanOption}" HorizontalAlignment="Stretch" FontSize="15">
+                        <ComboBox.ItemTemplate>
+                          <DataTemplate x:DataType="m:DropdownOption">
+                            <TextBlock Text="{Binding Label}" />
+                          </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                      </ComboBox>
+                      <ComboBox Grid.Column="5" ItemsSource="{Binding Source={x:Static m:SampleSlot.RateOptions}}" SelectedItem="{Binding RateOption}" HorizontalAlignment="Stretch" FontSize="15">
+                        <ComboBox.ItemTemplate>
+                          <DataTemplate x:DataType="m:DropdownOption">
+                            <TextBlock Text="{Binding Label}" />
+                          </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                      </ComboBox>
+                      <CheckBox IsChecked="{Binding Looped}" Grid.Column="6" VerticalAlignment="Center" Margin="3,0" />
+                      <TextBox Text="{Binding Name}" Grid.Column="7" FontSize="15" Margin="1,0" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </Grid>
+      </TabItem>
+      <TabItem Header="Bank 3">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+          <Grid Margin="2,2,2,1">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="30" SharedSizeGroup="C0" />
+              <ColumnDefinition Width="60" SharedSizeGroup="C1" />
+              <ColumnDefinition Width="80" SharedSizeGroup="C2" />
+              <ColumnDefinition Width="80" SharedSizeGroup="C3" />
+              <ColumnDefinition Width="100" SharedSizeGroup="C4" />
+              <ColumnDefinition Width="100" SharedSizeGroup="C5" />
+              <ColumnDefinition Width="56" SharedSizeGroup="C6" />
+              <ColumnDefinition Width="350" SharedSizeGroup="C7" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="" Grid.Column="0" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Note" Grid.Column="1" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Start" Grid.Column="2" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="End" Grid.Column="3" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Pan" Grid.Column="4" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Rate" Grid.Column="5" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Loop" Grid.Column="6" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Name" Grid.Column="7" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+          </Grid>
+          <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible">
+            <ItemsControl ItemsSource="{Binding Bank2Slots}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <VirtualizingStackPanel />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="m:SampleSlot">
+                  <Border BorderBrush="#333" BorderThickness="0,0,0,1" Padding="2">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="30" SharedSizeGroup="C0" />
+                        <ColumnDefinition Width="60" SharedSizeGroup="C1" />
+                        <ColumnDefinition Width="80" SharedSizeGroup="C2" />
+                        <ColumnDefinition Width="80" SharedSizeGroup="C3" />
+                        <ColumnDefinition Width="56" SharedSizeGroup="C4" />
+                        <ColumnDefinition Width="72" SharedSizeGroup="C5" />
+                        <ColumnDefinition Width="56" SharedSizeGroup="C6" />
+                        <ColumnDefinition Width="350" SharedSizeGroup="C7" />
+                      </Grid.ColumnDefinitions>
+                      <Button Content="S" Width="26" Height="22" FontSize="15" ToolTip.Tip="Sync from pool" Margin="1,0" />
+                      <TextBlock Text="{Binding NoteName}" Grid.Column="1" VerticalAlignment="Center" FontSize="15" Margin="2,0" TextAlignment="Left" />
+                      <ctl:NumericTextBox Text="{Binding StartOffset, Converter={StaticResource StringToInt}}" Grid.Column="2" Width="72" FontSize="15" Margin="1,0" />
+                      <ctl:NumericTextBox Text="{Binding EndOffset, Converter={StaticResource StringToInt}}" Grid.Column="3" Width="72" FontSize="15" Margin="1,0,4,0" />
+                      <ComboBox Grid.Column="4" ItemsSource="{Binding Source={x:Static m:SampleSlot.PanOptions}}" SelectedItem="{Binding PanOption}" HorizontalAlignment="Stretch" FontSize="15">
+                        <ComboBox.ItemTemplate>
+                          <DataTemplate x:DataType="m:DropdownOption">
+                            <TextBlock Text="{Binding Label}" />
+                          </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                      </ComboBox>
+                      <ComboBox Grid.Column="5" ItemsSource="{Binding Source={x:Static m:SampleSlot.RateOptions}}" SelectedItem="{Binding RateOption}" HorizontalAlignment="Stretch" FontSize="15">
+                        <ComboBox.ItemTemplate>
+                          <DataTemplate x:DataType="m:DropdownOption">
+                            <TextBlock Text="{Binding Label}" />
+                          </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                      </ComboBox>
+                      <CheckBox IsChecked="{Binding Looped}" Grid.Column="6" VerticalAlignment="Center" Margin="3,0" />
+                      <TextBox Text="{Binding Name}" Grid.Column="7" FontSize="15" Margin="1,0" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </Grid>
+      </TabItem>
+      <TabItem Header="Bank 4">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+          <Grid Margin="2,2,2,1">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="30" SharedSizeGroup="C0" />
+              <ColumnDefinition Width="60" SharedSizeGroup="C1" />
+              <ColumnDefinition Width="80" SharedSizeGroup="C2" />
+              <ColumnDefinition Width="80" SharedSizeGroup="C3" />
+              <ColumnDefinition Width="100" SharedSizeGroup="C4" />
+              <ColumnDefinition Width="100" SharedSizeGroup="C5" />
+              <ColumnDefinition Width="56" SharedSizeGroup="C6" />
+              <ColumnDefinition Width="350" SharedSizeGroup="C7" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="" Grid.Column="0" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Note" Grid.Column="1" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Start" Grid.Column="2" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="End" Grid.Column="3" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Pan" Grid.Column="4" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Rate" Grid.Column="5" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Loop" Grid.Column="6" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+            <TextBlock Text="Name" Grid.Column="7" FontSize="15" FontWeight="Bold" Foreground="#888" Margin="2,0" />
+          </Grid>
+          <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Visible">
+            <ItemsControl ItemsSource="{Binding Bank3Slots}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <VirtualizingStackPanel />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="m:SampleSlot">
+                  <Border BorderBrush="#333" BorderThickness="0,0,0,1" Padding="2">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="30" SharedSizeGroup="C0" />
+                        <ColumnDefinition Width="60" SharedSizeGroup="C1" />
+                        <ColumnDefinition Width="80" SharedSizeGroup="C2" />
+                        <ColumnDefinition Width="80" SharedSizeGroup="C3" />
+                        <ColumnDefinition Width="56" SharedSizeGroup="C4" />
+                        <ColumnDefinition Width="72" SharedSizeGroup="C5" />
+                        <ColumnDefinition Width="56" SharedSizeGroup="C6" />
+                        <ColumnDefinition Width="350" SharedSizeGroup="C7" />
+                      </Grid.ColumnDefinitions>
+                      <Button Content="S" Width="26" Height="22" FontSize="15" ToolTip.Tip="Sync from pool" Margin="1,0" />
+                      <TextBlock Text="{Binding NoteName}" Grid.Column="1" VerticalAlignment="Center" FontSize="15" Margin="2,0" TextAlignment="Left" />
+                      <ctl:NumericTextBox Text="{Binding StartOffset, Converter={StaticResource StringToInt}}" Grid.Column="2" Width="72" FontSize="15" Margin="1,0" />
+                      <ctl:NumericTextBox Text="{Binding EndOffset, Converter={StaticResource StringToInt}}" Grid.Column="3" Width="72" FontSize="15" Margin="1,0,4,0" />
+                      <ComboBox Grid.Column="4" ItemsSource="{Binding Source={x:Static m:SampleSlot.PanOptions}}" SelectedItem="{Binding PanOption}" HorizontalAlignment="Stretch" FontSize="15">
+                        <ComboBox.ItemTemplate>
+                          <DataTemplate x:DataType="m:DropdownOption">
+                            <TextBlock Text="{Binding Label}" />
+                          </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                      </ComboBox>
+                      <ComboBox Grid.Column="5" ItemsSource="{Binding Source={x:Static m:SampleSlot.RateOptions}}" SelectedItem="{Binding RateOption}" HorizontalAlignment="Stretch" FontSize="15">
+                        <ComboBox.ItemTemplate>
+                          <DataTemplate x:DataType="m:DropdownOption">
+                            <TextBlock Text="{Binding Label}" />
+                          </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                      </ComboBox>
+                      <CheckBox IsChecked="{Binding Looped}" Grid.Column="6" VerticalAlignment="Center" Margin="3,0" />
+                      <TextBox Text="{Binding Name}" Grid.Column="7" FontSize="15" Margin="1,0" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </Grid>
+      </TabItem>
+    </TabControl>
+
+    <Grid Grid.Row="2" ColumnDefinitions="Auto,*" Margin="0,4,0,0">
+    </Grid>
+  </Grid>
+</UserControl>

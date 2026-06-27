@@ -50,16 +50,16 @@ const ROMHeader rom_header = {
 
 #endif
 
-    "(C)Corthax 2025 ",
+    "(C)Corthax 2026 ",
 
 #if MDT_VERSION == MDT_VERSION_PRO_BLASTEM
 
-    "MD.Tracker (1.5)                                ",
+    "MD.Tracker (1.5b)                               ",
     "MD.Tracker for MED PRO / BlastEm                ",
 
 #elif MDT_VERSION == MDT_VERSION_EDMDV3
 
-    "MD.Tracker (1.5)                                ",
+    "MD.Tracker (1.5b)                               ",
     "MD.Tracker for EDMD-v3                          ",
 
 #endif

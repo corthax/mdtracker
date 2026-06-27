@@ -18,6 +18,7 @@
 #include "MDT_ModuleData.h"
 #include "MDT_GUI.h"
 #include "MDT_PCM.h"
+#include "MDT_SampleSettings.h"
 #include "MDT_Info.h"
 #include "MDT_Presets.h"
 #include "MDT_Version.h"
@@ -944,7 +945,7 @@ static void DoEngine()
             {
                 if (playingPatternRow == PATTERN_ROW_LAST)
                 {
-                    if (SRAM_ReadPatternFromEvents(SRAM_ReadMatrix(mtxCh, playingMatrixRow+1), 0, DATA_NOTE) < NOTES)
+                    if (SRAM_ReadPatternFromEvents(SRAM_ReadMatrix(mtxCh, playingMatrixRow+1) & 0x3FF, 0, DATA_NOTE) < NOTES)
                     {
                         channelNoteCut[mtxCh] = channelNoteAutoCut[mtxCh];
                     } else channelNoteCut[mtxCh] = 0;
@@ -1239,27 +1240,17 @@ static void DoEngine()
                 }
             }
 
-            // cache sample addresses
+            // cache sample addresses from ROM settings table
             for (u8 bank = 0; bank < 4; bank++)
             {
                 for (u8 note = 0; note < NOTES; note++)
                 {
-                    u32 start, end = 0;
-                    start =
-                        (SRAM_ReadSampleRegion(bank, note, SAMPLE_START_1) << 16) |
-                        (SRAM_ReadSampleRegion(bank, note, SAMPLE_START_2) << 8) |
-                         SRAM_ReadSampleRegion(bank, note, SAMPLE_START_3); // ignored
-
-                    end =
-                        (SRAM_ReadSampleRegion(bank, note, SAMPLE_END_1) << 16) |
-                        (SRAM_ReadSampleRegion(bank, note, SAMPLE_END_2) << 8) |
-                         SRAM_ReadSampleRegion(bank, note, SAMPLE_END_3); // ignored
-
-                    sampleStart[bank][note] = sample_bank_1 + start + SAMPLE_NAMES_SIZE;
-                    sampleLength[bank][note] = (sampleBankSize - start) - (sampleBankSize - end);
-                    sampleRate[bank][note] = SRAM_ReadSampleRate(bank, note);
-                    samplePan[bank][note] = SRAM_ReadSamplePan(bank, note);
-                    sampleLoop[bank][note] = SRAM_ReadSampleRegion(bank, note, SAMPLE_LOOP);
+                    const struct SampleSettings* s = GetSampleSettings(bank, note);
+                    sampleStart[bank][note] = sample_bank_1 + s->startOffset;
+                    sampleLength[bank][note] = s->endOffset - s->startOffset;
+                    sampleRate[bank][note] = s->rate;
+                    samplePan[bank][note] = s->pan;
+                    sampleLoop[bank][note] = s->looped;
                 }
             }
 
@@ -1272,7 +1263,7 @@ static void DoEngine()
                     u8 _effCounter[EFFECTS_TOTAL*2] = {0,0,0,0,0,0,0,0,0,0,0,0}; // reset counters
                     for (s16 rowM = playingMatrixRow-1; rowM >= 0; rowM--) // scan from previous matrix row to first
                     {
-                        u16 _pattern = SRAM_ReadMatrix(_ch, rowM);
+                        u16 _pattern = SRAM_ReadMatrix(_ch, rowM) & 0x3FF;
                         if (_pattern) // pattern is not empty
                         {
                             for (u8 colP = DATA_NOTE; colP < PATTERN_COLUMNS; colP++) // pattern columns
@@ -1480,8 +1471,10 @@ static void ReadMatrixRow()
 {
     for (u8 mtxCh = 0; mtxCh < CHANNELS_TOTAL; mtxCh++)
     {
-        channelMatrixTranspose[mtxCh] = SRAM_ReadMatrixTranspose(mtxCh, playingMatrixRow);
-        channelPlayingPatternID[mtxCh] = SRAM_ReadMatrix(mtxCh, playingMatrixRow);
+        u16 combined = SRAM_ReadMatrix(mtxCh, playingMatrixRow);
+        channelPlayingPatternID[mtxCh] = combined & 0x3FF;
+        u8 raw = (combined >> 10) & 0x3F;
+        channelMatrixTranspose[mtxCh] = (s8)(raw >= 32 ? raw - 64 : raw);
     }
 }
 
@@ -1497,7 +1490,7 @@ static s16 FindUnusedPattern()
     for (s16 pattern = 1; pattern <= PATTERN_LAST; pattern++) {
         used = FALSE;
         for (u8 mtxCh = 0; mtxCh < CHANNELS_TOTAL; mtxCh++) {
-            for (u8 line = 0; line < MATRIX_ROWS; line++) { if (SRAM_ReadMatrix(mtxCh, line) == pattern) { used = TRUE; break; } }
+            for (u8 line = 0; line < MATRIX_ROWS; line++) { if ((SRAM_ReadMatrix(mtxCh, line) & 0x3FF) == pattern) { used = TRUE; break; } }
             if (used) break;
         }
         if (!used) return pattern;
@@ -1688,7 +1681,7 @@ static void ChangeMatrixValue(s16 mod, u8 externalSync)
     {
         if (mod)
         {
-            value = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow);
+            value = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow) & 0x3FF;
             if (!value && lastEnteredPattern) value = lastEnteredPattern;
             else
             {
@@ -1696,13 +1689,13 @@ static void ChangeMatrixValue(s16 mod, u8 externalSync)
                 if (value < 1) value = PATTERN_LAST; // last pattern
                 else if (value > PATTERN_LAST) value = 1; // first pattern
             }
-            SRAM_WriteMatrix(selectedMatrixChannel, selectedMatrixRow, value); bRefreshScreen = TRUE; matrixRowToRefresh = selectedMatrixRow;
+            SRAM_WritePatternID(selectedMatrixChannel, selectedMatrixRow, (u16)value); bRefreshScreen = TRUE; matrixRowToRefresh = selectedMatrixRow;
             lastEnteredPattern = value;
         }
         else
         {
-            value = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow);
-            if (value) lastEnteredPattern = value; // accidential delete
+            value = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow) & 0x3FF;
+            if (value) lastEnteredPattern = (u16)value; // accidential delete
             SRAM_WriteMatrix(selectedMatrixChannel, selectedMatrixRow, 0); bRefreshScreen = TRUE; matrixRowToRefresh = selectedMatrixRow;
         }
     }
@@ -1778,7 +1771,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
     {
         CommitSeqEditBuffer();
 
-        selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow);
+        selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow) & 0x3FF;
         if (selectedPatternID != 0x00) // -- pattern should not be editable
         {
             // Unpack pattern from SRAM event stream to RAM edit buffer
@@ -1832,7 +1825,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
             patternEditID = 0xFFFF;
         }
 
-        selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow);
+        selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow) & 0x3FF;
         currentScreen = SCREEN_MATRIX;
         bInitScreen = TRUE;
         bRefreshScreen = TRUE;
@@ -1965,7 +1958,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 switch(changed)
                 {
                 case BUTTON_LEFT: // pattern colors
-                    selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow); // select current pattern
+                    selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow) & 0x3FF; // select current pattern
                     if (selectedPatternID != NULL)
                     {
                         col = SRAM_ReadPatternColor(selectedPatternID)-1;
@@ -1976,7 +1969,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     break;
 
                 case BUTTON_RIGHT:
-                    selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow);
+                    selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow) & 0x3FF;
                     if (selectedPatternID != NULL)
                     {
                         col = SRAM_ReadPatternColor(selectedPatternID)+1;
@@ -2005,7 +1998,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     break;
 
                 case BUTTON_C: // clear
-                    selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow);
+                    selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow) & 0x3FF;
                     if (selectedPatternID != NULL)
                     {
                         col = SRAM_ReadPatternColor(selectedPatternID);
@@ -2070,12 +2063,12 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 switch (changed)
                 {
                 case BUTTON_B:
-                    if (!SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow))
+                    if (!(SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow) & 0x3FF))
                     {
                         u16 value = FindUnusedPattern();
                         if (value)
                         {
-                            SRAM_WriteMatrix(selectedMatrixChannel, selectedMatrixRow, value );
+                            SRAM_WritePatternID(selectedMatrixChannel, selectedMatrixRow, value);
                             bRefreshScreen = TRUE;
                             matrixRowToRefresh = selectedMatrixRow;
                             lastEnteredPattern = value;
@@ -3003,7 +2996,7 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
 
     auto void clear_cursor_2_color(u8 x, u8 y)
     {
-        selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow); // select previous pattern on clear
+        selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow) & 0x3FF; // select previous pattern on clear
         VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 0, FALSE, FALSE, NULL), x, y);
         if (selectedPatternID != NULL)
             VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PATTERNCOLORS[SRAM_ReadPatternColor(selectedPatternID)]), x + 1, y);
@@ -3129,7 +3122,7 @@ void DisplayPatternMatrix()
             line = matrixRowToRefresh - pageShift; // map to 0..24
         }
 
-        patternID = SRAM_ReadMatrix(chan, line + pageShift);
+        patternID = SRAM_ReadMatrix(chan, line + pageShift) & 0x3FF;
 
         // display assigned pattern number
         shiftX = chan * 3;
@@ -3728,26 +3721,6 @@ static void ChangeInstrumentParameter(s8 modifier, u8 changeAll)
     bRefreshScreen = TRUE;
     instrumentParameterToRefresh = selectedInstrumentParameter;
 
-    auto void write_pcm(u8 byteNum)
-    {
-        value = SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, byteNum) + modifier;
-        if (value < 0) value = 255; else if (value > 255) value = 0;
-        SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, byteNum, value);
-
-        // border check
-        u32 sampleLength =
-                (SRAM_ReadSampleRegion(activeSampleBank, selectedSampleNote, SAMPLE_END_1) << 16) |
-                (SRAM_ReadSampleRegion(activeSampleBank, selectedSampleNote, SAMPLE_END_2) << 8) |
-                 SRAM_ReadSampleRegion(activeSampleBank, selectedSampleNote, SAMPLE_END_3);
-
-        if (sampleLength > DAC_DATA_END)
-        {
-            SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_END_1, (u8)((DAC_DATA_END >> 16) & 0xFF));
-            SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_END_2, (u8)((DAC_DATA_END >> 8) & 0xFF));
-            SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_END_3, (u8)(DAC_DATA_END & 0xFF));
-        }
-    }
-
     switch (selectedInstrumentParameter)
     {
     case GUI_INST_PARAM_ALG:
@@ -4010,24 +3983,10 @@ static void ChangeInstrumentParameter(s8 modifier, u8 changeAll)
         DisplaySampleName(106, 10, selectedSampleNote, selectedSampleBank);
         break;
     case GUI_INST_PARAM_PCM_START:
-        write_pcm(selectedInstrumentOperator);
-        break;
     case GUI_INST_PARAM_PCM_END:
-        write_pcm(selectedInstrumentOperator + SAMPLE_END_1);
-        break;
     case GUI_INST_PARAM_PCM_LOOP:
-        if (modifier < 0) SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_LOOP, FALSE);
-        else SRAM_WriteSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_LOOP, TRUE);
-        break;
     case GUI_INST_PARAM_PCM_RATE:
-        value = SRAM_ReadSampleRate(selectedSampleBank, selectedSampleNote) + modifier;
-        if (value < SOUND_PCM_RATE_32000) value = SOUND_PCM_RATE_32000; else if (value > SOUND_PCM_RATE_8000) value = SOUND_PCM_RATE_8000;
-        SRAM_WriteSampleRate(selectedSampleBank, selectedSampleNote, value);
-        break;
     case GUI_INST_PARAM_PCM_PAN:
-        if (modifier == -1) SRAM_WriteSamplePan(selectedSampleBank, selectedSampleNote, SOUND_PAN_LEFT);
-        else if (modifier == 1) SRAM_WriteSamplePan(selectedSampleBank, selectedSampleNote, SOUND_PAN_RIGHT);
-        else SRAM_WriteSamplePan(selectedSampleBank, selectedSampleNote, SOUND_PAN_CENTER);
         break;
     case GUI_INST_PARAM_COPY: // tool, not saved to sram
         value = instCopyTo + modifier;
@@ -4045,19 +4004,15 @@ static void ChangeInstrumentParameter(s8 modifier, u8 changeAll)
 
 u32 GetSampleStartAddress(u8 bank, u8 note)
 {
-    return
-    (SRAM_ReadSampleRegion(bank, note, SAMPLE_START_1) << 16) |
-    (SRAM_ReadSampleRegion(bank, note, SAMPLE_START_2) << 8) |
-     SRAM_ReadSampleRegion(bank, note, SAMPLE_START_3);
+    return GetSampleSettings(bank, note)->startOffset;
 }
 
 void DisplaySampleName(u8 xPos, u8 yPos, u8 note, u8 bank)
 {
-    u32 addressNum = (u32)&sample_bank_1 + ((note + NOTES * bank) * GUI_SAMPLE_NAME_SIZE);
-
-    for (u8 i = 0; i < GUI_SAMPLE_NAME_SIZE; i++)
+    const struct SampleSettings* s = GetSampleSettings(bank, note);
+    for (u8 i = 0; i < 14; i++)
     {
-        sampleName[i] = *(char*)(addressNum+i);
+        sampleName[i] = s->name[i];
     }
 
     VDP_setTextPalette(PAL0);
@@ -4070,31 +4025,22 @@ inline void DisplayInstrumentEditor()
     static u8 alg = 0;
     static u8 stepDrawPos = 0;
 
-    auto void draw_pcm_start()
+    auto void draw_pcm_settings()
     {
-        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_START_1), 113, 3);
-        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_START_2), 115, 3);
-        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_START_3), 117, 3);
-    }
+        const struct SampleSettings* s = GetSampleSettings(selectedSampleBank, selectedSampleNote);
 
-    auto void draw_pcm_end()
-    {
-        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_END_1), 113, 4);
-        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_END_2), 115, 4);
-        DrawHex2(PAL0, SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_END_3), 117, 4);
-    }
+        DrawHex2(PAL0, (s->startOffset >> 16) & 0xFF, 113, 3);
+        DrawHex2(PAL0, (s->startOffset >> 8) & 0xFF, 115, 3);
+        DrawHex2(PAL0, s->startOffset & 0xFF, 117, 3);
 
-    auto void draw_pcm_loop()
-    {
-        value = SRAM_ReadSampleRegion(selectedSampleBank, selectedSampleNote, SAMPLE_LOOP);
-        if (value == FALSE) FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_BIGDOT, 2, 113, 5);
+        DrawHex2(PAL0, (s->endOffset >> 16) & 0xFF, 113, 4);
+        DrawHex2(PAL0, (s->endOffset >> 8) & 0xFF, 115, 4);
+        DrawHex2(PAL0, s->endOffset & 0xFF, 117, 4);
+
+        if (s->looped == FALSE) FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_BIGDOT, 2, 113, 5);
         else DrawText(BG_A, PAL0, "ON", 113, 5);
-    }
 
-    auto void draw_pcm_rate()
-    {
-        value = SRAM_ReadSampleRate(selectedSampleBank, selectedSampleNote);
-        switch (value)
+        switch (s->rate)
         {
             case SOUND_PCM_RATE_32000: DrawNum(BG_A, PAL1, "32000", 114, 6); break;
             case SOUND_PCM_RATE_22050: DrawNum(BG_A, PAL1, "22050", 114, 6); break;
@@ -4105,12 +4051,8 @@ inline void DisplayInstrumentEditor()
                 VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, NULL), 118, 6); break;
             default: DrawNum(BG_A, PAL1, "-----", 114, 6); break;
         }
-    }
 
-    auto void draw_pcm_pan()
-    {
-        value = SRAM_ReadSamplePan(selectedSampleBank, selectedSampleNote);
-        switch (value)
+        switch (s->pan)
         {
             case SOUND_PAN_CENTER: VDP_setTextPalette(PAL1); VDP_drawText("C", 114, 7); break;
             case SOUND_PAN_LEFT: VDP_setTextPalette(PAL1); VDP_drawText("L", 114, 7); break;
@@ -4392,26 +4334,14 @@ inline void DisplayInstrumentEditor()
             VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_NOTE_NAMES[1][noteID]), 117, 0); // #/-
             VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[1] + (selectedSampleNote / 12)), 118, 0); // octave number
 
-            draw_pcm_start();
-            draw_pcm_end();
-            draw_pcm_loop();
-            draw_pcm_rate();
-            draw_pcm_pan();
+            draw_pcm_settings();
             break;
         case GUI_INST_PARAM_PCM_START:
-            draw_pcm_start();
-            break;
         case GUI_INST_PARAM_PCM_END:
-            draw_pcm_end();
-            break;
         case GUI_INST_PARAM_PCM_LOOP:
-            draw_pcm_loop();
-            break;
         case GUI_INST_PARAM_PCM_RATE:
-            draw_pcm_rate();
-            break;
         case GUI_INST_PARAM_PCM_PAN:
-            draw_pcm_pan();
+            draw_pcm_settings();
             break;
         case GUI_INST_PARAM_COPY:
             DrawHex2(PAL0, instCopyTo, GUI_INST_NAME_START, 1); // same x position as NAME
@@ -6535,8 +6465,10 @@ void ReColorsAndTranspose() // on color change
             }
         }
 
-        u16 pt = SRAM_ReadMatrix(rcat_ch, rcat_row + currentPage * MATRIX_ROWS_ONPAGE);
-        s8 tr = SRAM_ReadMatrixTranspose(rcat_ch, rcat_row + currentPage * MATRIX_ROWS_ONPAGE);
+        u16 combined = SRAM_ReadMatrix(rcat_ch, rcat_row + currentPage * MATRIX_ROWS_ONPAGE);
+        u16 pt = combined & 0x3FF;
+        u8 rawTr = (combined >> 10) & 0x3F;
+        s8 tr = (s8)(rawTr >= 32 ? rawTr - 64 : rawTr);
 
         if (pt != NULL)
         {
@@ -7155,22 +7087,29 @@ void SRAM_WritePatternColor(u16 id, u8 color) { SRAMW_writeByte((u32)SRAM_PATTER
 u16 SRAM_ReadMatrix(u8 channel, u8 line) { return SRAMW_readWord((u32)SRAM_PATTERN_MATRIX + ((channel * MATRIX_ROWS) + line) * 2); }
 void SRAM_WriteMatrix(u8 channel, u8 line, u16 data) { SRAMW_writeWord((u32)SRAM_PATTERN_MATRIX + ((channel * MATRIX_ROWS) + line) * 2, data); }
 
-s8 SRAM_ReadMatrixTranspose(u8 channel, u8 line) { return SRAMW_readByte((u32)SRAM_MATRIX_TRANSPOSE + ((channel * MATRIX_ROWS) + line)); }
-void SRAM_WriteMatrixTranspose(u8 channel, u8 line, s8 transpose) { SRAMW_writeByte((u32)SRAM_MATRIX_TRANSPOSE + ((channel * MATRIX_ROWS) + line), transpose); }
+// Transpose is packed into upper 6 bits of combined pattern matrix cell.
+// Bits 0-9: pattern ID, Bits 10-15: transpose (signed 6-bit, -32..+31).
+static u8 transposeUnpack(u16 combined) {
+    u8 raw = (combined >> 10) & 0x3F;
+    return (raw >= 32) ? raw - 64 : raw;
+}
+static u16 transposePack(s8 transpose) {
+    return (u16)(transpose & 0x3F) << 10;
+}
+
+s8 SRAM_ReadMatrixTranspose(u8 channel, u8 line) { return (s8)transposeUnpack(SRAM_ReadMatrix(channel, line)); }
+void SRAM_WriteMatrixTranspose(u8 channel, u8 line, s8 transpose) {
+    u16 combined = SRAM_ReadMatrix(channel, line);
+    SRAM_WriteMatrix(channel, line, (combined & 0x3FF) | transposePack(transpose));
+}
+void SRAM_WritePatternID(u8 channel, u8 line, u16 patternID) {
+    u16 combined = SRAM_ReadMatrix(channel, line);
+    SRAM_WriteMatrix(channel, line, (combined & 0xFC00) | (patternID & 0x3FF));
+}
 
 // MUTE_CHANNEL is RAM-only (channelFlags[])
 u8 SRAM_ReadMatrixChannelEnabled(u8 channel) { return channelFlags[channel]; }
 void SRAM_WriteMatrixChannelEnabled(u8 channel, u8 state) { channelFlags[channel] = state; }
-
-// sample PCM mapping (stored in SRAM)
-u32 SRAM_ReadSampleRegion(u8 bank, u8 note, u8 byteNum) { return (u32)SRAMW_readByte((u32)SRAM_SAMPLE_DATA + (bank * NOTES * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum); }
-void SRAM_WriteSampleRegion(u8 bank, u8 note, u8 byteNum, u8 data) { SRAMW_writeByte((u32)SRAM_SAMPLE_DATA + (bank * NOTES * SAMPLE_DATA_SIZE) + (note * SAMPLE_DATA_SIZE) + byteNum, data); }
-
-u8 SRAM_ReadSamplePan(u8 bank, u8 note){ return SRAMW_readByte((u32)SRAM_SAMPLE_PAN + (bank * NOTES) + note); }
-void SRAM_WriteSamplePan(u8 bank, u8 note, u8 data) { SRAMW_writeByte((u32)SRAM_SAMPLE_PAN + (bank * NOTES) + note, data); }
-
-u8 SRAM_ReadSampleRate(u8 bank, u8 note){ return SRAMW_readByte((u32)SRAM_SAMPLE_RATE + (bank * NOTES) + note); }
-void SRAM_WriteSampleRate(u8 bank, u8 note, u8 data) { SRAMW_writeByte((u32)SRAM_SAMPLE_RATE + (bank * NOTES) + note, data); }
 
 // other
 static u8 ym2612Z80BatchDepth = 0;
@@ -7310,13 +7249,6 @@ void InitTracker()
         // --- Block 1: Static data (fixed addresses) ---
         SetBPM(DEFAULT_TEMPO);
         SRAMW_writeByte(SRAM_GLOBAL_LFO, 7);
-
-        for (u8 bank = 0; bank < 4; bank++)
-            for (u8 note = 0; note < NOTES; note++)
-            {
-                SRAM_WriteSamplePan(bank, note, SOUND_PAN_CENTER);
-                SRAM_WriteSampleRate(bank, note, SOUND_PCM_RATE_32000);
-            }
 
         // --- Block 2: Instruments ---
         SRAMW_writeWord(INST_MOD_COUNT_ADDR, 0);

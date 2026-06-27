@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MDTracker.Editor.ViewModels"
+             xmlns:m="using:MDTracker.Editor.Models"
+             x:Class="MDTracker.Editor.Views.SamplePoolView"
+             x:DataType="vm:SamplePoolViewModel">
+  <Grid RowDefinitions="Auto,*,Auto" Margin="4">
+    <TextBlock Text="Sample Pool" FontWeight="Bold" Margin="0,0,0,4" />
+
+    <ListBox Grid.Row="1"
+             ItemsSource="{Binding Samples}"
+             SelectedItem="{Binding SelectedSample}">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="m:SampleFile">
+          <Grid ColumnDefinitions="Auto,*,Auto">
+            <TextBlock Text="{Binding Id}" Width="24" FontSize="11" />
+            <TextBlock Text="{Binding ShortName}" Grid.Column="1" FontSize="11" />
+            <TextBlock Text="{Binding AlignedSize}" Grid.Column="2" FontSize="11" />
+          </Grid>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="4" Margin="0,4,0,0">
+      <Button Content="Remove" Command="{Binding RemoveSampleCommand}" />
+      <Button Content="Clear" Command="{Binding ClearSamplesCommand}" />
+      <TextBlock Text="{Binding TotalSize, StringFormat='Total: {0} bytes'}" VerticalAlignment="Center" Margin="8,0,0,0" FontSize="11" />
+    </StackPanel>
+  </Grid>
+</UserControl>

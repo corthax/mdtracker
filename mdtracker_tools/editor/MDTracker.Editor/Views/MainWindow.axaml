@@ -1,0 +1,47 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MDTracker.Editor.ViewModels"
+        x:Class="MDTracker.Editor.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="MD.Tracker Editor"
+        Width="1200"
+        Height="800"
+        Background="#0F0F15"
+        Foreground="PaleGoldenrod"
+        TransparencyLevelHint="None"
+        WindowStartupLocation="CenterScreen">
+  <Grid RowDefinitions="Auto,*" Margin="5">
+    <!-- Top toolbar -->
+    <StackPanel Orientation="Horizontal" Grid.Row="0" Spacing="8" Margin="0,0,0,5">
+      <Button Content="Open ROM" Command="{Binding OpenRomCommand}" />
+      <TextBlock Text="{Binding RomPath}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="300" />
+      <Button Content="Save ROM" Command="{Binding SaveRomCommand}" />
+      <Separator Width="2" />
+      <Button Content="Add Samples" Command="{Binding AddSamplesCommand}" />
+      <Button Content="Add Presets" Command="{Binding AddPresetsCommand}" />
+
+    </StackPanel>
+
+    <!-- Main content area -->
+    <TabControl Grid.Row="1" Background="#151520">
+      <TabItem Header="Sample Banks">
+        <Grid ColumnDefinitions="*,220">
+          <ContentControl Content="{Binding SampleBankView}" />
+          <ContentControl Grid.Column="1" Content="{Binding SamplePoolView}" />
+        </Grid>
+      </TabItem>
+      <TabItem Header="Instrument Presets">
+        <Grid ColumnDefinitions="*,300">
+          <ContentControl Content="{Binding InstrumentEditorView}" />
+          <ContentControl Grid.Column="1" Content="{Binding PresetPoolView}" />
+        </Grid>
+      </TabItem>
+      <TabItem Header="Sample Converter">
+        <ContentControl Content="{Binding SampleConverterView}" />
+      </TabItem>
+      <TabItem Header="Save Converter">
+        <ContentControl Content="{Binding SaveConverterView}" />
+      </TabItem>
+    </TabControl>
+  </Grid>
+</Window>
