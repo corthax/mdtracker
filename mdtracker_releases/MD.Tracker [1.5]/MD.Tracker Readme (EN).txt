@@ -749,6 +749,7 @@ Changelog:
 		Correct BPM display.
 		Register changes of currently edited instrument now applied during playback, not only at start.
 		Better performance (batched register writes/Z80 requests, pitch set optimization, less divisions).
+		Instant playback start (was a bit delayed due caching).
 		
 	Changes:
 		Added FX column value linear interpolation (B + Down). Current value -> next found value. If column FX Type changes before next value found, interpolation is skipped.
@@ -756,6 +757,9 @@ Changelog:
 		Added basic MIDI control (Start/Stop/Tempo Sync) via everdrive usb port or controller port 2 with usb-serial adapter (same way as mega-drive-midi-interface). There is slight delay before playback starts.
 		Architecture changed to expandable save format.
 		No DAC sample parameters pre-editing available now. But can be overriden using pattern commands. Sample related instrument editing block is disabled.
+		Displaying used SRAM.
+		Pattern mark colors increased from 15 to 63 preset colors (some are used also by GUI).
+		Maximum patterns now 1023 (0x3FF).
 	
 	MD.Tracker Editor 1.05 and tools:
 		Save conversion 1.04 to 1.05 via MD.Tracker Editor.

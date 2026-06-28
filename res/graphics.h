@@ -5,6 +5,7 @@
 
 extern const TileSet tileset_gui;
 extern const TileSet tileset_gui2;
+extern const TileSet tileset_colordots;
 extern const Palette palette_gui;
 extern const Palette palette_0;
 extern const Palette palette_1;

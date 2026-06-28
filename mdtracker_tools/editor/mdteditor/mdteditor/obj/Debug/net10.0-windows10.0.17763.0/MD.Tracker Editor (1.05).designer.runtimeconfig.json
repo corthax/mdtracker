@@ -1,0 +1,25 @@
+{
+  "runtimeOptions": {
+    "tfm": "net10.0",
+    "frameworks": [
+      {
+        "name": "Microsoft.NETCore.App",
+        "version": "10.0.0"
+      },
+      {
+        "name": "Microsoft.WindowsDesktop.App",
+        "version": "10.0.0"
+      }
+    ],
+    "additionalProbingPaths": [
+      "C:\\Users\\Snowdrop\\.dotnet\\store\\|arch|\\|tfm|",
+      "C:\\Users\\Snowdrop\\.nuget\\packages",
+      "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+    ],
+    "configProperties": {
+      "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false,
+      "CSWINRT_USE_WINDOWS_UI_XAML_PROJECTIONS": false,
+      "Microsoft.NETCore.DotNetHostPolicy.SetAppPaths": true
+    }
+  }
+}

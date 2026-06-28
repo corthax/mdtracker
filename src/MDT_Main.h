@@ -34,7 +34,7 @@
 #define PATTERN_ROWS            32
 #define PATTERN_ROW_LAST        0x1F    // index of max line; starts from 0
 
-#define PATTERN_LAST            0x380   // 896
+#define PATTERN_LAST            0x3FF   // 1023
 #define INST_SIZE               89 // last 32 bytes reserved
 #define INSTRUMENTS_TOTAL       256
 #define INSTRUMENTS_LAST        0xFF
@@ -162,48 +162,10 @@ void DrawHex(u8 pal, u8 number, u8 x, u8 y);
 void DrawHex2(u8 pal, u16 number, u8 x, u8 y);
 void FillRowRight(u8 plane, u8 pal, u8 flipV, u8 flipH, u8 guiSymbol, u8 fillCount, u8 startX, u8 y);
 
-static void DoEngine();
-static void SetPitchFM(u8 mtxCh, u8 note);
-static void SetPitchPSG(u8 mtxCh, u8 note);
-static void PlayNote(u8 note, u8 mtxCh, u8 glide);
-static void PlayNoteOff(u8 mtxCh);
-static void StopChannelSound(u8 mtxCh);
-static void StopAllSound();
-static void StopEffects(u8 mtxCh);
-static void SetGlobalLFO(u8 freq);
-static void SetChannelVolume(u8 mtxCh);
-static void SetChannelBaseVolume_FM(u8 mtxCh);
-static void SetBPM(u16 tempo);
-static void ProcessMidiSync();
-static void WriteYM2612(u8 mtxCh);
-static void CacheInstrumentToRAM(u8 id);
-/** \brief
- *
- * \param mtxCh u8: Matrix channel
- * \param id u8: Previous channel instrumant ID
- * \param fxParam u8: Command ID
- * \param fxValue u8: Command VALUE
- * \return void
- *
- */
-static void ApplyCommand_FM(u8 mtxCh, u8 id, u8 fxParam, u8 fxValue);
-static void ApplyCommand_FM3_SP(u8 mtxCh, u8 fxParam, u8 fxValue);
-static void ApplyCommand_DAC(u8 fxParam, u8 fxValue);
-static void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue);
-static void ApplyCommand_PSG(u8 fxParam, u8 fxValue);
-static void ChangeInstrumentParameter(s8 modifier, u8 changeAll);
-static void ChangePatternParameter(s8 note, s8 par);
-static void ChangeMatrixValue(s16 mod, u8 externalSync);
-static void RequestZ80();
-static void ReleaseZ80();
-static void JoyEvent(u16 joy, u16 changed, u16 state);
-static void YM2612_writeRegZ80(u16 part, u8 reg, u8 data);
 void YM2612_writeRegBatchBegin();
 void YM2612_writeRegBatchEnd();
-static s16 FindUnusedPattern();
 void CalculateCombined(u8 mtxCh, u8 reg);
 void ForceResetVariables();
-static void ReadMatrixRow();
 
 void FileWriteHeader();
 //static void CountPulses();

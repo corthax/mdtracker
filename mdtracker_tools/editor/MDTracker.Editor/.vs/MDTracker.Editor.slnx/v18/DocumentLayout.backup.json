@@ -3,8 +3,12 @@
   "WorkspaceRootPath": "C:\\GameDev\\SEGA\\project\\mdtracker\\mdtracker_tools\\editor\\MDTracker.Editor\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{EB476D0D-48D8-4D10-9D1A-300E7BF5989E}|MDTracker.Editor.csproj|c:\\gamedev\\sega\\project\\mdtracker\\mdtracker_tools\\editor\\mdtracker.editor\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{EB476D0D-48D8-4D10-9D1A-300E7BF5989E}|MDTracker.Editor.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{EB476D0D-48D8-4D10-9D1A-300E7BF5989E}|MDTracker.Editor.csproj|c:\\gamedev\\sega\\project\\mdtracker\\mdtracker_tools\\editor\\mdtracker.editor\\views\\samplebankview.axaml||{6D5344A2-2FCD-49DE-A09D-6A14FD1B1224}",
+      "RelativeMoniker": "D:0:0:{EB476D0D-48D8-4D10-9D1A-300E7BF5989E}|MDTracker.Editor.csproj|solutionrelative:views\\samplebankview.axaml||{6D5344A2-2FCD-49DE-A09D-6A14FD1B1224}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{EB476D0D-48D8-4D10-9D1A-300E7BF5989E}|MDTracker.Editor.csproj|c:\\gamedev\\sega\\project\\mdtracker\\mdtracker_tools\\editor\\mdtracker.editor\\viewmodels\\samplebankviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EB476D0D-48D8-4D10-9D1A-300E7BF5989E}|MDTracker.Editor.csproj|solutionrelative:viewmodels\\samplebankviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -14,23 +18,39 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 1,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{eefa5220-e298-11d0-8f78-00a0c9110057}"
             },
             {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "SampleBankViewModel.cs",
+              "DocumentMoniker": "C:\\GameDev\\SEGA\\project\\mdtracker\\mdtracker_tools\\editor\\MDTracker.Editor\\ViewModels\\SampleBankViewModel.cs",
+              "RelativeDocumentMoniker": "ViewModels\\SampleBankViewModel.cs",
+              "ToolTip": "C:\\GameDev\\SEGA\\project\\mdtracker\\mdtracker_tools\\editor\\MDTracker.Editor\\ViewModels\\SampleBankViewModel.cs",
+              "RelativeToolTip": "ViewModels\\SampleBankViewModel.cs",
+              "ViewState": "AgIAADkAAAAAAAAAAAAkwFEAAAAGAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-28T20:14:54.861Z",
+              "EditorCaption": ""
+            },
+            {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\GameDev\\SEGA\\project\\mdtracker\\mdtracker_tools\\editor\\MDTracker.Editor\\Program.cs",
-              "RelativeDocumentMoniker": "Program.cs",
-              "ToolTip": "C:\\GameDev\\SEGA\\project\\mdtracker\\mdtracker_tools\\editor\\MDTracker.Editor\\Program.cs",
-              "RelativeToolTip": "Program.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-27T15:00:02.577Z",
+              "Title": "SampleBankView.axaml",
+              "DocumentMoniker": "C:\\GameDev\\SEGA\\project\\mdtracker\\mdtracker_tools\\editor\\MDTracker.Editor\\Views\\SampleBankView.axaml",
+              "RelativeDocumentMoniker": "Views\\SampleBankView.axaml",
+              "ToolTip": "C:\\GameDev\\SEGA\\project\\mdtracker\\mdtracker_tools\\editor\\MDTracker.Editor\\Views\\SampleBankView.axaml",
+              "RelativeToolTip": "Views\\SampleBankView.axaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-06-28T20:10:32.747Z",
               "EditorCaption": ""
             }
           ]

@@ -1,7 +1,11 @@
-//#include "MDT_Version.h"
+#include <genesis.h>
 
 #ifndef MDT_GUI_H_INCLUDED
 #define MDT_GUI_H_INCLUDED
+
+// ---------------------------------------------------------------------------
+// GUI constants
+// ---------------------------------------------------------------------------
 
 #define GUI_INST_PARAM_ALG          0
 #define GUI_INST_PARAM_FMS          1
@@ -172,16 +176,79 @@
 #define GUI_BPM                     56
 #define GUI_FPS                     58
 #define GUI_PPS                     60
+#define GUI_SRAM                    58
 #define GUI_PPL                     62
 // -----------------------------------------------------------
 #define GUI_NAVIGATION_SPEED_COUNTER    3
 #define GUI_NAVIGATION_DELAY            15
-#define GUI_PATTERN_COLORS_MAX          13
+#define GUI_PATTERN_COLORS_MAX          63
 
 #define GUI_SAMPLE_NAME_SIZE            14
 #define GUI_PATTERN_SAMPLE_NAME_XPOS    56
 #define GUI_PATTERN_SAMPLE_NAME_YPOS    23
 
+// ---------------------------------------------------------------------------
+// Shared globals (defined in main.c)
+// ---------------------------------------------------------------------------
+extern u8 playingMatrixRow;
+extern u8 selectedMatrixScreenRow;
+extern u8 selectedMatrixRow;
+extern u8 selectedMatrixChannel;
+extern s8 currentPage;
+extern u8 selectedPatternRow;
+extern u8 selectedPatternColumn;
+extern u16 selectedPatternID;
+extern u8 playingPatternRow;
+extern u8 patternSize;
+extern u8 selectedInstrumentID;
+extern u8 selectedInstrumentParameter;
+extern u8 selectedInstrumentOperator;
+extern u8 selectedSampleBank;
+extern u8 selectedSampleNote;
+extern u8 currentScreen;
+extern bool bRefreshScreen;
+extern u8 patternRowToRefresh;
+extern u16 matrixRowToRefresh;
+extern u8 instrumentParameterToRefresh;
+extern char str[10];
+extern u8 loopStart;
+extern u8 loopEnd;
+extern bool bPlayback;
+extern u32 BPM;
+extern f32 fBPM;
+extern u8 ppl_1;
+extern u8 ppl_2;
+extern u8 useExternalSync;
+extern u32 sramUsed;
+extern u8 channelFlags[];
+extern u8 instrumentIsMuted[];
+extern u8 midiPreset;
+
+// ---------------------------------------------------------------------------
+// GUI-owned globals (defined in MDT_GUI.c)
+// ---------------------------------------------------------------------------
+extern u8 line;
+extern u8 chan;
+extern bool bInitScreen;
+extern u16 bgBaseTileIndex[5];
+extern u16 asciiBaseLetters;
+extern u16 asciiBaseNumbers;
+extern u8 instCopyTo;
+extern s8 buttonCounter;
+extern bool bDoCount;
+extern u8 navigationDirection;
+extern u16 patternCopyFrom;
+extern s8 patternCopyRangeStart;
+extern s8 patternCopyRangeEnd;
+extern char sampleName[14];
+extern bool bReColorsAndTranspose;
+extern u8 rcat_ch;
+extern u8 rcat_row;
+
+// ---------------------------------------------------------------------------
+// GUI function prototypes
+// ---------------------------------------------------------------------------
+extern const s16 GUI_ALPHABET[38];
 void DrawMute(u8 mtxCh);
 void DrawStaticGUI();
 void DrawInfo();
@@ -199,5 +266,6 @@ void NavigateInstrument(u8 direction);
 void RedrawMarks();
 void ReColorsAndTranspose();
 void DisplaySampleName(u8 xPos, u8 yPos, u8 note, u8 bank);
+void ForceResetGUI();
 
 #endif // MDT_GUI_H_INCLUDED

@@ -4,6 +4,7 @@ public static class LegacySramLayout
 {
     public const int FileSize = 524288;
 
+    public const uint SrmLfo = 0x05902;
     public const uint SrmSampleData = 0x0726B;
     public const uint SrmSamplePan = 0x6B0AB;
     public const uint SrmSampleRate = 0x6F230;

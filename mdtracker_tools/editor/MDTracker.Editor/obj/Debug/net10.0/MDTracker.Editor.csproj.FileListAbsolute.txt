@@ -86,3 +86,8 @@ C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\MDTracker.Editor\bin\De
 C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\MDTracker.Editor\bin\Debug\net10.0\runtimes\win-arm64\native\libSkiaSharp.pdb
 C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\MDTracker.Editor\bin\Debug\net10.0\runtimes\win-x64\native\libSkiaSharp.pdb
 C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\MDTracker.Editor\bin\Debug\net10.0\runtimes\win-x86\native\libSkiaSharp.pdb
+C:\Users\Snowdrop\AppData\Local\Temp\opencode\mdt-test\MDTracker.Editor.exe
+C:\Users\Snowdrop\AppData\Local\Temp\opencode\mdt-test\MDTracker.Editor.deps.json
+C:\Users\Snowdrop\AppData\Local\Temp\opencode\mdt-test\MDTracker.Editor.runtimeconfig.json
+C:\Users\Snowdrop\AppData\Local\Temp\opencode\mdt-test\MDTracker.Editor.dll
+C:\Users\Snowdrop\AppData\Local\Temp\opencode\mdt-test\MDTracker.Editor.pdb

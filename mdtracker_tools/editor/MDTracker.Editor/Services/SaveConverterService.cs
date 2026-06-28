@@ -16,8 +16,10 @@ public class SaveConverterService
             {
                 int rowAddr = patAddr + r * LegacySramLayout.PatternRowSize;
                 if ((uint)(rowAddr + 1) >= (uint)sram.Length) break;
+                byte note = ReadSramByte(sram, rowAddr);
                 byte inst = ReadSramByte(sram, rowAddr + 1);
-                if (inst < 0xFE) used.Add(inst);
+                if ((note < LegacySramLayout.NoteEmpty || inst != 0) && inst < 0xFE)
+                    used.Add(inst);
             }
         }
         return used;
@@ -26,95 +28,134 @@ public class SaveConverterService
     public static byte[] Convert(byte[] sram, long outputSize)
     {
         var used = ScanUsedInstruments(sram);
-        var outStream = new MemoryStream();
+        // Allocate enough to hold the converted data (v1.05 ≈ v1.04 in logical volume)
+        int bufferSize = Math.Max((int)Math.Min(sram.Length, int.MaxValue), (int)outputSize);
+        byte[] output = new byte[bufferSize];
+        int pos = 0;
 
-        WriteHeader(outStream);
-        WriteStaticArea(outStream, sram);
-        var instEnd = WriteInstrumentBlock(outStream, used, sram);
-        var seqEnd = WriteSequencerBlock(outStream, instEnd, sram);
-        WritePatterns(outStream, seqEnd, sram);
-        PadToSize(outStream, outputSize);
+        pos = WriteHeader(output, pos);
+        pos = WriteStaticArea(output, pos, sram);
+        pos = WriteInstrumentBlock(output, pos, used, sram);
+        pos = WriteSequencerBlock(output, pos, sram);
+        int maxPattern = ScanMatrixMaxPattern(sram);
+        pos = WritePatterns(output, pos, sram, maxPattern);
 
-        return outStream.ToArray();
+        // Return at least outputSize bytes (zero-padded), never truncate below pos
+        int finalSize = Math.Max(pos, (int)outputSize);
+        if (finalSize < output.Length)
+            Array.Resize(ref output, finalSize);
+        return output;
     }
 
-    private static void WriteHeader(MemoryStream ms)
+    private static int WriteHeader(byte[] output, int startPos)
     {
-        ms.WriteByte((byte)'M');
-        ms.WriteByte((byte)'D');
-        ms.WriteByte((byte)'T');
-        ms.WriteByte((byte)'1');
-        ms.WriteByte((byte)'0');
-        ms.WriteByte((byte)'5');
-        for (int i = 0; i < 6; i++) ms.WriteByte(0);
-    }
-
-    private static void WriteStaticArea(MemoryStream ms, byte[] sram)
-    {
-        ms.WriteByte(0);
-
-        var matrix = new byte[LegacySramLayout.MatrixRows * LegacySramLayout.MatrixChannels];
-        for (int i = 0; i < matrix.Length; i++)
-            matrix[i] = ReadSramByte(sram, (int)(SramV05Layout.SramPatternMatrix + i));
-        ms.Write(matrix);
-
-        int tempo = ReadSramWord(sram, (int)LegacySramLayout.SrmTempo);
-        ms.WriteByte((byte)(tempo & 0xFF));
-        ms.WriteByte((byte)((tempo >> 8) & 0xFF));
-
-        int tempoEnd = (int)(SramV05Layout.SramTempo + 2);
-        int colorLen = (int)(SramV05Layout.StaticEnd - tempoEnd);
-        for (int i = 0; i < colorLen; i++)
+        byte[] header = [(byte)'M', (byte)'D', (byte)'T', (byte)'1', (byte)'0', (byte)'5'];
+        int pos = startPos;
+        foreach (byte c in header)
         {
-            int srcAddr = (int)LegacySramLayout.SrmPatternColor + i;
-            ms.WriteByte(srcAddr < sram.Length ? ReadSramByte(sram, srcAddr) : (byte)0);
+            output[pos++] = c;
+            output[pos++] = c;
         }
+        return pos;
     }
 
-    private static int WriteInstrumentBlock(MemoryStream ms, HashSet<int> used, byte[] sram)
+    private static int LogicalToPhysical(int logicalPos)
     {
-        int start = (int)SramV05Layout.InstBlockBase;
-        ms.Position = start;
+        if (logicalPos >= 2 && (logicalPos & 1) != 0)
+            return logicalPos - 2;
+        return logicalPos;
+    }
+
+    private static void WriteByteAtPos(byte[] output, int logicalPos, byte value)
+    {
+        output[LogicalToPhysical(logicalPos)] = value;
+    }
+
+    private static void WriteByteAt(byte[] output, ref int logicalPos, byte value)
+    {
+        WriteByteAtPos(output, logicalPos, value);
+        logicalPos++;
+    }
+
+    private static void WriteWordAt(byte[] output, ref int logicalPos, ushort value)
+    {
+        WriteByteAtPos(output, logicalPos, (byte)(value >> 8));
+        WriteByteAtPos(output, logicalPos + 1, (byte)value);
+        logicalPos += 2;
+    }
+
+    private static int WriteStaticArea(byte[] output, int startPos, byte[] sram)
+    {
+        int pos = startPos;
+
+        // SRAM_GLOBAL_LFO: 3 bytes at logical 12, 13, 14
+        WriteByteAt(output, ref pos, ReadSramByte(sram, (int)LegacySramLayout.SrmLfo));
+        WriteByteAt(output, ref pos, 0);
+        WriteByteAt(output, ref pos, 0);
+
+        // SRAM_PATTERN_MATRIX: 13ch x 250row x 2 bytes = 6500 bytes
+        // v1.04 stores pattern ID as 16-bit word and transpose separately at SrmMatrixTranspose.
+        // v1.05 packs them: bits 0-9 = pattern ID, bits 10-15 = transpose (6-bit signed).
+        int matrixSrcBase = (int)LegacySramLayout.SrmPatternMatrix;
+        int transposeSrcBase = (int)LegacySramLayout.SrmMatrixTranspose;
+        int matrixCellCount = SramV05Layout.MatrixRows * SramV05Layout.MatrixChannels;
+        for (int i = 0; i < matrixCellCount; i++)
+        {
+            int patAddr = matrixSrcBase + i * 2;
+            int patternID = ReadSramWord(sram, patAddr) & 0x3FF;
+            int transpose = (sbyte)ReadSramByte(sram, transposeSrcBase + i);
+            int packed = patternID | ((transpose & 0x3F) << 10);
+            WriteWordAt(output, ref pos, (ushort)packed);
+        }
+
+        // SRAM_TEMPO: 2 bytes
+        int tempo = ReadSramWord(sram, (int)LegacySramLayout.SrmTempo);
+        WriteWordAt(output, ref pos, (ushort)tempo);
+
+        return pos;
+    }
+
+    private static int WriteInstrumentBlock(byte[] output, int startPos, HashSet<int> used, byte[] sram)
+    {
+        int pos = startPos;
 
         var lookup = new byte[256];
         int compactCount = 0;
-
         for (int i = 0; i < 256; i++)
         {
             if (used.Contains(i))
             {
-                lookup[i] = (byte)(compactCount + 1);
+                lookup[i] = SramV05Layout.InstSentinelModified;
                 compactCount++;
             }
         }
 
-        ms.WriteByte((byte)(compactCount & 0xFF));
-        ms.WriteByte((byte)((compactCount >> 8) & 0xFF));
-        ms.Write(lookup);
+        WriteWordAt(output, ref pos, (ushort)compactCount);
 
-        int compactStart = start + 2 + 256;
-        ms.Position = compactStart;
+        for (int i = 0; i < 256; i++)
+            WriteByteAt(output, ref pos, lookup[i]);
 
         for (int i = 0; i < 256; i++)
         {
             if (used.Contains(i))
             {
-                ms.WriteByte((byte)i);
+                WriteByteAt(output, ref pos, (byte)i);
                 int instAddr = (int)LegacySramLayout.SrmInstrumentData + i * LegacySramLayout.InstrumentRecordSize;
                 for (int b = 0; b < 49; b++)
-                    ms.WriteByte(ReadSramByte(sram, instAddr + b));
+                    WriteByteAt(output, ref pos, ReadSramByte(sram, instAddr + b));
                 for (int b = 81; b < 89; b++)
-                    ms.WriteByte(ReadSramByte(sram, instAddr + b));
+                    WriteByteAt(output, ref pos, ReadSramByte(sram, instAddr + b));
             }
         }
 
-        return (int)ms.Position;
+        return pos;
     }
 
-    private static int WriteSequencerBlock(MemoryStream ms, int instEnd, byte[] sram)
+    private static int WriteSequencerBlock(byte[] output, int startPos, byte[] sram)
     {
-        ms.Position = instEnd;
+        int pos = startPos;
 
+        var used = new HashSet<int>();
         for (int i = 0; i < 256; i++)
         {
             int volAddr = (int)LegacySramLayout.SrmSeqVolStart + i * 32;
@@ -124,112 +165,111 @@ public class SaveConverterService
             for (int j = 0; j < 32; j++)
             {
                 if (ReadSramByte(sram, volAddr + j) != 0xFF) hasVol = true;
-                if (ReadSramByte(sram, arpAddr + j) != 0) hasArp = true;
+                if (ReadSramByte(sram, arpAddr + j) != LegacySramLayout.NoteEmpty) hasArp = true;
             }
 
             if (hasVol || hasArp)
+                used.Add(i);
+        }
+
+        WriteWordAt(output, ref pos, (ushort)used.Count);
+        for (int i = 0; i < 256; i++)
+            WriteByteAt(output, ref pos, used.Contains(i) ? SramV05Layout.InstSentinelModified : (byte)0);
+
+        for (int i = 0; i < 256; i++)
+        {
+            if (used.Contains(i))
             {
-                ms.WriteByte((byte)i);
+                int volAddr = (int)LegacySramLayout.SrmSeqVolStart + i * 32;
+                int arpAddr = (int)LegacySramLayout.SrmSeqArpStart + i * 32;
+
+                WriteByteAt(output, ref pos, (byte)i);
                 for (int j = 0; j < 32; j++)
-                    ms.WriteByte(ReadSramByte(sram, volAddr + j));
+                    WriteByteAt(output, ref pos, ReadSramByte(sram, volAddr + j));
                 for (int j = 0; j < 32; j++)
-                    ms.WriteByte(ReadSramByte(sram, arpAddr + j));
+                    WriteByteAt(output, ref pos, ReadSramByte(sram, arpAddr + j));
             }
         }
 
-        return (int)ms.Position;
+        return pos;
     }
 
-    private static void WritePatterns(MemoryStream ms, int seqEnd, byte[] sram)
+    private static int WritePatterns(byte[] output, int startPos, byte[] sram, int maxPattern)
     {
-        ms.Position = seqEnd;
+        int pos = startPos;
 
-        for (int p = 0; p < LegacySramLayout.PatternCount; p++)
+        WriteWordAt(output, ref pos, SramV05Layout.PatternMagic);
+        WriteWordAt(output, ref pos, SramV05Layout.PatternFormatVersion);
+        int regionSizePos = pos;
+        WriteWordAt(output, ref pos, 0);
+
+        for (int p = 0; p <= maxPattern; p++)
         {
+            var events = new List<byte>();
             int patAddr = (int)LegacySramLayout.SrmPatternData + p * LegacySramLayout.PatternBlockSize;
-            long startPos = ms.Position;
 
-            ms.WriteByte((byte)(SramV05Layout.PatternMagic & 0xFF));
-            ms.WriteByte((byte)((SramV05Layout.PatternMagic >> 8) & 0xFF));
-            ms.WriteByte((byte)(SramV05Layout.PatternFormatVersion & 0xFF));
-            ms.WriteByte((byte)((SramV05Layout.PatternFormatVersion >> 8) & 0xFF));
-            ms.WriteByte(32);
-            ms.WriteByte(0);
-            ms.WriteByte(0);
-            ms.WriteByte(0);
-            ms.WriteByte(0);
-            ms.WriteByte(0);
-
-            long dataStart = ms.Position;
-
-            for (int r = 0; r < 32; r++)
+            for (int row = 0; row < LegacySramLayout.PatternRows; row++)
             {
-                int rowAddr = patAddr + r * LegacySramLayout.PatternRowSize;
+                int rowAddr = patAddr + row * LegacySramLayout.PatternRowSize;
                 byte note = ReadSramByte(sram, rowAddr);
+                byte inst = ReadSramByte(sram, rowAddr + 1);
 
-                if (note == LegacySramLayout.NoteEmpty)
+                if (note <= 95 || note == LegacySramLayout.NoteOff || inst != 0)
                 {
-                    ms.WriteByte(6);
-                    continue;
+                    events.Add((byte)(row * SramV05Layout.EvtCount + 0));
+                    events.Add(note);
+                    events.Add(inst);
                 }
 
-                if (note == LegacySramLayout.NoteOff)
+                for (int fx = 0; fx < SramV05Layout.EffectsTotal; fx++)
                 {
-                    ms.WriteByte(2);
-                    ms.WriteByte(0xFF);
-                }
-                else
-                {
-                    ms.WriteByte(1);
-                    ms.WriteByte(note);
-                    ms.WriteByte(ReadSramByte(sram, rowAddr + 1));
-                }
-
-                byte vol = ReadSramByte(sram, rowAddr + 2);
-                if (vol != 0xFF)
-                {
-                    ms.WriteByte(3);
-                    ms.WriteByte(vol);
-                }
-
-                for (int fx = 0; fx < 4; fx++)
-                {
-                    int fxOff = 3 + fx * 3;
-                    int fxLen = fx < 3 ? 3 : 2;
+                    int fxOff = 2 + fx * 2;
                     byte fxType = ReadSramByte(sram, rowAddr + fxOff);
+                    byte fxVal = ReadSramByte(sram, rowAddr + fxOff + 1);
                     if (fxType != 0)
                     {
-                        ms.WriteByte(4);
-                        ms.WriteByte(fxType);
-                        ms.WriteByte(ReadSramByte(sram, rowAddr + fxOff + 1));
-                        ms.WriteByte(fxLen >= 3 ? ReadSramByte(sram, rowAddr + fxOff + 2) : (byte)0);
+                        events.Add((byte)(row * SramV05Layout.EvtCount + 1 + fx));
+                        events.Add(fxType);
+                        events.Add(fxVal);
                     }
                 }
-
-                ms.WriteByte(6);
             }
 
-            long dataEnd = ms.Position;
-            int compressedSize = (int)(dataEnd - dataStart);
-
-            ms.Position = startPos + 4;
-            ms.WriteByte(32);
-            ms.WriteByte(0);
-            ms.WriteByte((byte)(compressedSize & 0xFF));
-            ms.WriteByte((byte)((compressedSize >> 8) & 0xFF));
-            ms.WriteByte((byte)(compressedSize & 0xFF));
-            ms.WriteByte((byte)((compressedSize >> 8) & 0xFF));
-            ms.Position = dataEnd;
+            if (events.Count > 0)
+            {
+                byte color = p < LegacySramLayout.PatternCount
+                    ? (byte)(ReadSramByte(sram, (int)LegacySramLayout.SrmPatternColor + p) & 0x3F)
+                    : (byte)0;
+                WriteWordAt(output, ref pos, (ushort)(p | (color << 10)));
+                WriteWordAt(output, ref pos, (ushort)(events.Count / 3));
+                foreach (byte b in events)
+                    WriteByteAt(output, ref pos, b);
+                if ((events.Count & 1) != 0)
+                    WriteByteAt(output, ref pos, 0);
+            }
         }
+
+        WriteWordAtPos(output, regionSizePos, (ushort)(pos - startPos));
+        return pos;
     }
 
-    private static void PadToSize(MemoryStream ms, long size)
+    private static int ScanMatrixMaxPattern(byte[] sram)
     {
-        if (size > ms.Length)
+        int matrixBase = (int)LegacySramLayout.SrmPatternMatrix;
+        int maxPat = 0;
+        int cellCount = SramV05Layout.MatrixRows * SramV05Layout.MatrixChannels;
+        for (int i = 0; i < cellCount; i++)
         {
-            ms.SetLength(size);
-            ms.Position = size;
+            int pat = ReadSramWord(sram, matrixBase + i * 2) & 0x3FF;
+            if (pat > maxPat) maxPat = pat;
         }
+        return maxPat;
+    }
+
+    private static void WriteWordAtPos(byte[] output, int logicalPos, ushort value)
+    {
+        WriteByteAtPos(output, logicalPos, (byte)(value >> 8));
+        WriteByteAtPos(output, logicalPos + 1, (byte)value);
     }
 
     private static byte ReadSramByte(byte[] sram, int addr)
@@ -240,6 +280,6 @@ public class SaveConverterService
 
     private static int ReadSramWord(byte[] sram, int addr)
     {
-        return ReadSramByte(sram, addr) | (ReadSramByte(sram, addr + 1) << 8);
+        return (ReadSramByte(sram, addr) << 8) | ReadSramByte(sram, addr + 1);
     }
 }

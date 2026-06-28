@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32319.34
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mdteditor", "mdteditor\mdteditor.csproj", "{C565F6C4-2AC0-4754-A49A-9D2BE7FE2591}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C565F6C4-2AC0-4754-A49A-9D2BE7FE2591}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C565F6C4-2AC0-4754-A49A-9D2BE7FE2591}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C565F6C4-2AC0-4754-A49A-9D2BE7FE2591}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C565F6C4-2AC0-4754-A49A-9D2BE7FE2591}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {48501B1E-0F5B-48C2-8261-BF5317A6CCBA}
+	EndGlobalSection
+EndGlobal

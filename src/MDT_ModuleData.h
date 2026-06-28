@@ -105,14 +105,13 @@
 #define SRAM_GLOBAL_LFO         (STATIC_BASE + 0u)       // 3 bytes
 #define SRAM_PATTERN_MATRIX     (STATIC_BASE + 3u)       // 6500 bytes (13ch * 250row * 2, combined patternID + transpose)
 #define SRAM_TEMPO              (STATIC_BASE + 6503u)    // 2 bytes
-#define SRAM_PATTERN_COLOR      (STATIC_BASE + 6505u)    // 897 bytes
-#define STATIC_END              (STATIC_BASE + 7402u)    // = 0x1CF6
+#define STATIC_END              (STATIC_BASE + 6505u)    // = 0x1969
 
 // Block 2: Instruments (at STATIC_END, expandable via compact records)
-#define INST_BLOCK_BASE           STATIC_END              // 0x1CF6 = 7414
+#define INST_BLOCK_BASE           STATIC_END              // 0x1969 = 6517
 #define INST_MOD_COUNT_ADDR       INST_BLOCK_BASE         // word
 #define INST_LOOKUP_TABLE_ADDR    (INST_BLOCK_BASE + 2)   // 256 bytes
-#define INST_COMPACT_START        (INST_BLOCK_BASE + 258) // = 0x1DF8 = 7672
+#define INST_COMPACT_START        (INST_BLOCK_BASE + 258) // = 0x1A77 = 6775
 
 // instBlockEnd = INST_COMPACT_START + modCount * INST_RECORD_SIZE
 

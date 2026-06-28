@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MDTracker.Editor")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+27026415bdcea8a03aac104d78db9f0c7a91a7ef")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0209ff1524c8144714bd158e2524f2443f8a2423")]
 [assembly: System.Reflection.AssemblyProductAttribute("MDTracker.Editor")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MDTracker.Editor")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -1,0 +1,9 @@
+C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdteditor\mdteditor\obj\Debug\net10.0-windows10.0.19041.1\mdteditor.mdtEditor.resources
+C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdteditor\mdteditor\obj\Debug\net10.0-windows10.0.19041.1\mdteditor.Properties.Resources.resources
+C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdteditor\mdteditor\obj\Debug\net10.0-windows10.0.19041.1\mdteditor.csproj.GenerateResource.cache
+C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdteditor\mdteditor\obj\Debug\net10.0-windows10.0.19041.1\mdteditor.GeneratedMSBuildEditorConfig.editorconfig
+C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdteditor\mdteditor\obj\Debug\net10.0-windows10.0.19041.1\mdteditor.csproj.CoreCompileInputs.cache
+C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdteditor\mdteditor\obj\Debug\net10.0-windows10.0.19041.1\mdteditor.sourcelink.json
+C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdteditor\mdteditor\obj\Debug\net10.0-windows10.0.19041.1\MD.Tracker Editor (1.05).dll
+C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdteditor\mdteditor\obj\Debug\net10.0-windows10.0.19041.1\refint\MD.Tracker Editor (1.05).dll
+C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdteditor\mdteditor\obj\Debug\net10.0-windows10.0.19041.1\MD.Tracker Editor (1.05).pdb
