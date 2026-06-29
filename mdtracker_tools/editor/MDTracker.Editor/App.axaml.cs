@@ -17,9 +17,18 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            var vm = new MainWindowViewModel();
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new MainWindowViewModel(),
+                DataContext = vm,
+            };
+            desktop.MainWindow.Closing += (_, _) =>
+            {
+                var settingsVm = vm.SettingsView;
+                if (settingsVm != null)
+                {
+                    settingsVm.SaveNow();
+                }
             };
         }
 

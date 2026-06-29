@@ -3,12 +3,8 @@
   "WorkspaceRootPath": "C:\\GameDev\\SEGA\\project\\mdtracker\\mdtracker_tools\\editor\\MDTracker.Editor\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{EB476D0D-48D8-4D10-9D1A-300E7BF5989E}|MDTracker.Editor.csproj|c:\\gamedev\\sega\\project\\mdtracker\\mdtracker_tools\\editor\\mdtracker.editor\\views\\samplebankview.axaml||{6D5344A2-2FCD-49DE-A09D-6A14FD1B1224}",
-      "RelativeMoniker": "D:0:0:{EB476D0D-48D8-4D10-9D1A-300E7BF5989E}|MDTracker.Editor.csproj|solutionrelative:views\\samplebankview.axaml||{6D5344A2-2FCD-49DE-A09D-6A14FD1B1224}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{EB476D0D-48D8-4D10-9D1A-300E7BF5989E}|MDTracker.Editor.csproj|c:\\gamedev\\sega\\project\\mdtracker\\mdtracker_tools\\editor\\mdtracker.editor\\viewmodels\\samplebankviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{EB476D0D-48D8-4D10-9D1A-300E7BF5989E}|MDTracker.Editor.csproj|solutionrelative:viewmodels\\samplebankviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{EB476D0D-48D8-4D10-9D1A-300E7BF5989E}|MDTracker.Editor.csproj|c:\\gamedev\\sega\\project\\mdtracker\\mdtracker_tools\\editor\\mdtracker.editor\\services\\saveconverterservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{EB476D0D-48D8-4D10-9D1A-300E7BF5989E}|MDTracker.Editor.csproj|solutionrelative:services\\saveconverterservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -18,7 +14,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 2,
           "Children": [
             {
               "$type": "Bookmark",
@@ -30,27 +26,15 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "SampleBankViewModel.cs",
-              "DocumentMoniker": "C:\\GameDev\\SEGA\\project\\mdtracker\\mdtracker_tools\\editor\\MDTracker.Editor\\ViewModels\\SampleBankViewModel.cs",
-              "RelativeDocumentMoniker": "ViewModels\\SampleBankViewModel.cs",
-              "ToolTip": "C:\\GameDev\\SEGA\\project\\mdtracker\\mdtracker_tools\\editor\\MDTracker.Editor\\ViewModels\\SampleBankViewModel.cs",
-              "RelativeToolTip": "ViewModels\\SampleBankViewModel.cs",
-              "ViewState": "AgIAADkAAAAAAAAAAAAkwFEAAAAGAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-28T20:14:54.861Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "SampleBankView.axaml",
-              "DocumentMoniker": "C:\\GameDev\\SEGA\\project\\mdtracker\\mdtracker_tools\\editor\\MDTracker.Editor\\Views\\SampleBankView.axaml",
-              "RelativeDocumentMoniker": "Views\\SampleBankView.axaml",
-              "ToolTip": "C:\\GameDev\\SEGA\\project\\mdtracker\\mdtracker_tools\\editor\\MDTracker.Editor\\Views\\SampleBankView.axaml",
-              "RelativeToolTip": "Views\\SampleBankView.axaml",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2026-06-28T20:10:32.747Z",
+              "Title": "SaveConverterService.cs",
+              "DocumentMoniker": "C:\\GameDev\\SEGA\\project\\mdtracker\\mdtracker_tools\\editor\\MDTracker.Editor\\Services\\SaveConverterService.cs",
+              "RelativeDocumentMoniker": "Services\\SaveConverterService.cs",
+              "ToolTip": "C:\\GameDev\\SEGA\\project\\mdtracker\\mdtracker_tools\\editor\\MDTracker.Editor\\Services\\SaveConverterService.cs",
+              "RelativeToolTip": "Services\\SaveConverterService.cs",
+              "ViewState": "AgIAAMUAAAAAAAAAAAAswOcAAAArAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-29T19:17:36.323Z",
               "EditorCaption": ""
             }
           ]

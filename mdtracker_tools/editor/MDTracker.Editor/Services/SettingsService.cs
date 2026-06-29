@@ -44,4 +44,7 @@ public class SettingsService
             // Silently fail on settings save
         }
     }
+
+    public int SampleSettingsAddr => Settings.SampleSettingsAddr;
+    public int SampleBankAddr => Settings.SampleBankAddr;
 }

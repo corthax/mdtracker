@@ -1,0 +1,6 @@
+\mdtracker_tools\2adpcm\stobin\bin\
+\mdtracker_tools\2adpcm\stobin\obj\
+\mdtracker_tools\editor\MDTracker.Editor\bin\
+\mdtracker_tools\editor\MDTracker.Editor\obj\
+*.o
+*.d

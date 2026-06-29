@@ -1,12 +1,19 @@
 using MDTracker.Editor.Models;
+using MDTracker.Editor.ViewModels;
 
 namespace MDTracker.Editor.Services;
 
 public class RomService
 {
+    private readonly SettingsService _settings;
     private byte[]? _romData;
     public string? RomPath { get; private set; }
     public bool IsLoaded => _romData != null;
+
+    public RomService(SettingsService settings)
+    {
+        _settings = settings;
+    }
 
     public string Load(string path)
     {
@@ -17,41 +24,73 @@ public class RomService
 
     public void PopulateBanks(SampleBank[] banks)
     {
+        int baseAddr = _settings.SampleSettingsAddr;
         for (int i = 0; i < RomConstants.SampleSettingsCount; i++)
         {
-            int offset = RomConstants.SampleSettingsAddr + i * RomConstants.SampleSettingsEntrySize;
+            int offset = baseAddr + i * RomConstants.SampleSettingsEntrySize;
             var slot = banks[i / RomConstants.NotesPerBank].Slots[i % RomConstants.NotesPerBank];
             slot.BankId = _romData![offset];
             slot.NoteId = _romData[offset + 1];
-            slot.StartOffset = Read24(offset + 2);
-            slot.EndOffset = Read24(offset + 5);
-            slot.Pan = _romData[offset + 8];
-            slot.Looped = _romData[offset + 9] != 0;
-            slot.Rate = _romData[offset + 10];
-            slot.Type = _romData[offset + 11];
-            slot.Name = ReadString(offset + 12, RomConstants.SampleNameSize);
+            slot.StartOffset = Read32(offset + 2);
+            slot.EndOffset = Read32(offset + 6);
+            slot.Pan = _romData[offset + 10];
+            slot.Looped = _romData[offset + 11] != 0;
+            slot.Rate = _romData[offset + 12];
+            slot.Type = _romData[offset + 13];
+            slot.Name = ReadString(offset + 14, RomConstants.SampleNameSize);
         }
     }
 
     public void WriteBanks(SampleBank[] banks)
     {
         if (_romData == null) return;
+        int baseAddr = _settings.SampleSettingsAddr;
         for (int i = 0; i < RomConstants.SampleSettingsCount; i++)
         {
             int bankId = i / RomConstants.NotesPerBank;
             int noteId = i % RomConstants.NotesPerBank;
             var slot = banks[bankId].Slots[noteId];
-            int offset = RomConstants.SampleSettingsAddr + i * RomConstants.SampleSettingsEntrySize;
+            int offset = baseAddr + i * RomConstants.SampleSettingsEntrySize;
             _romData[offset] = (byte)slot.BankId;
             _romData[offset + 1] = (byte)slot.NoteId;
-            Write24(offset + 2, slot.StartOffset);
-            Write24(offset + 5, slot.EndOffset);
-            _romData[offset + 8] = (byte)slot.Pan;
-            _romData[offset + 9] = (byte)(slot.Looped ? 1 : 0);
-            _romData[offset + 10] = (byte)slot.Rate;
-            _romData[offset + 11] = (byte)slot.Type;
-            WriteString(offset + 12, slot.Name, RomConstants.SampleNameSize);
+            Write32(offset + 2, slot.StartOffset);
+            Write32(offset + 6, slot.EndOffset);
+            _romData[offset + 10] = (byte)slot.Pan;
+            _romData[offset + 11] = (byte)(slot.Looped ? 1 : 0);
+            _romData[offset + 12] = (byte)slot.Rate;
+            _romData[offset + 13] = (byte)slot.Type;
+            WriteString(offset + 14, slot.Name, RomConstants.SampleNameSize);
         }
+    }
+
+    public void WriteSampleBank(SamplePoolViewModel pool, SampleBank[] banks)
+    {
+        if (_romData == null) return;
+        int bankAddr = _settings.SampleBankAddr;
+        int pos = 0;
+
+        foreach (var file in pool.Samples)
+        {
+            int aligned = file.AlignedSize;
+            file.StartOffset = pos;
+            file.EndOffset = pos + aligned;
+            WriteBlock(bankAddr + pos, file.Data);
+            int pad = aligned - file.OriginalSize;
+            if (pad > 0)
+                Array.Clear(_romData, bankAddr + pos + file.OriginalSize, pad);
+            pos += aligned;
+        }
+
+        foreach (var bank in banks)
+            foreach (var slot in bank.Slots)
+                if (slot.SamplePoolId >= 0 && slot.SamplePoolId < pool.Samples.Count)
+                {
+                    var f = pool.Samples[slot.SamplePoolId];
+                    slot.StartOffset = (int)f.StartOffset;
+                    slot.EndOffset = (int)f.EndOffset;
+                }
+
+        WriteBanks(banks);
     }
 
     public void Save(string? path = null)
@@ -89,16 +128,17 @@ public class RomService
         WriteBlock(addr, data);
     }
 
-    private int Read24(int offset)
+    private int Read32(int offset)
     {
-        return (_romData![offset] << 16) | (_romData[offset + 1] << 8) | _romData[offset + 2];
+        return (_romData![offset] << 24) | (_romData[offset + 1] << 16) | (_romData[offset + 2] << 8) | _romData[offset + 3];
     }
 
-    private void Write24(int offset, int value)
+    private void Write32(int offset, int value)
     {
-        _romData![offset] = (byte)((value >> 16) & 0xFF);
-        _romData[offset + 1] = (byte)((value >> 8) & 0xFF);
-        _romData[offset + 2] = (byte)(value & 0xFF);
+        _romData![offset] = (byte)((value >> 24) & 0xFF);
+        _romData[offset + 1] = (byte)((value >> 16) & 0xFF);
+        _romData[offset + 2] = (byte)((value >> 8) & 0xFF);
+        _romData[offset + 3] = (byte)(value & 0xFF);
     }
 
     private string ReadString(int offset, int maxLen)

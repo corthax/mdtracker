@@ -69,7 +69,7 @@ public partial class MainWindow : Window
             AllowMultiple = true,
             FileTypeFilter =
             [
-                new("Sample files") { Patterns = ["*.wav", "*.pcm", "*.2adpcm"] },
+                new("Sample files") { Patterns = ["*.wav", "*.s8pcm", "*.2adpcm"] },
                 new("All files") { Patterns = ["*.*"] },
             ],
         });
@@ -82,7 +82,7 @@ public partial class MainWindow : Window
             vm.SamplePoolView.AddSample(new SampleFile
             {
                 FileName = file.Path.LocalPath,
-                ShortName = System.IO.Path.GetFileName(file.Path.LocalPath),
+                ShortName = SampleFile.ExtractShortName(file.Path.LocalPath),
                 Data = data,
                 OriginalSize = data.Length,
             });

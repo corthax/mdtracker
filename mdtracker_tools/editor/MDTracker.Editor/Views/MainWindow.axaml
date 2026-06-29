@@ -42,6 +42,9 @@
       <TabItem Header="Save Converter">
         <ContentControl Content="{Binding SaveConverterView}" />
       </TabItem>
+      <TabItem Header="Settings">
+        <ContentControl Content="{Binding SettingsView}" />
+      </TabItem>
     </TabControl>
   </Grid>
 </Window>

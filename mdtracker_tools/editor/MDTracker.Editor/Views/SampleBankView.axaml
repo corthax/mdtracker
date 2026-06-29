@@ -4,7 +4,8 @@
              xmlns:m="using:MDTracker.Editor.Models"
              xmlns:ctl="using:MDTracker.Editor.Controls"
              x:Class="MDTracker.Editor.Views.SampleBankView"
-             x:DataType="vm:SampleBankViewModel">
+             x:DataType="vm:SampleBankViewModel"
+             x:Name="Root">
   <Grid RowDefinitions="Auto,*,Auto" Margin="4" Grid.IsSharedSizeScope="True">
     <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,4">
       <TextBlock Text="Select range:" VerticalAlignment="Center" />
@@ -13,7 +14,7 @@
         <TextBlock Text="to" VerticalAlignment="Center" />
         <ctl:NumericTextBox Text="{Binding RangeEnd, Converter={StaticResource StringToInt}}" Width="60" FontSize="15" />
         <TextBlock Text="Pan:" VerticalAlignment="Center" Margin="8,0,0,0" />
-        <ComboBox ItemsSource="{Binding Source={x:Static m:SampleSlot.PanOptions}}" SelectedItem="{Binding RangePanOption}" Width="70" FontSize="15">
+        <ComboBox x:Name="RangePanCombo" ItemsSource="{Binding Source={x:Static m:SampleSlot.PanOptions}}" Width="70" FontSize="15" SelectionChanged="OnRangePanChanged">
           <ComboBox.ItemTemplate>
             <DataTemplate x:DataType="m:DropdownOption">
               <TextBlock Text="{Binding Label}" />
@@ -21,7 +22,7 @@
           </ComboBox.ItemTemplate>
         </ComboBox>
         <TextBlock Text="Rate:" VerticalAlignment="Center" Margin="4,0,0,0" />
-        <ComboBox ItemsSource="{Binding Source={x:Static m:SampleSlot.RateOptions}}" SelectedItem="{Binding RangeRateOption}" Width="80" FontSize="15">
+        <ComboBox x:Name="RangeRateCombo" ItemsSource="{Binding Source={x:Static m:SampleSlot.RateOptions}}" Width="80" FontSize="15" SelectionChanged="OnRangeRateChanged">
           <ComboBox.ItemTemplate>
             <DataTemplate x:DataType="m:DropdownOption">
               <TextBlock Text="{Binding Label}" />
@@ -30,10 +31,11 @@
         </ComboBox>
         <CheckBox IsChecked="{Binding RangeLoop}" Content="Loop" VerticalAlignment="Center" Margin="4,0,0,0" />
         <Button Content="Apply" Command="{Binding ApplyAutoRangeCommand}" Margin="8,0,0,0" />
+        <Button Content="Assign Samples" Command="{Binding AssignSamplesToRangeCommand}" Margin="8,0,0,0" />
       </StackPanel>
     </Grid>
 
-    <TabControl Grid.Row="1" SelectedIndex="{Binding SelectedBankIndex}">
+    <TabControl Grid.Row="1" SelectionChanged="OnBankSelectionChanged">
       <TabItem Header="Bank 1">
         <Grid>
           <Grid.RowDefinitions>
@@ -81,18 +83,20 @@
                         <ColumnDefinition Width="56" SharedSizeGroup="C6" />
                         <ColumnDefinition Width="350" SharedSizeGroup="C7" />
                       </Grid.ColumnDefinitions>
-                      <Button Content="S" Width="26" Height="22" FontSize="15" ToolTip.Tip="Sync from pool" Margin="1,0" />
+                      <Button Content="S" Width="26" Height="22" FontSize="15" ToolTip.Tip="Sync from pool" Margin="1,0"
+                              Command="{Binding ElementName=Root, Path=DataContext.SyncFromPoolCommand}"
+                              CommandParameter="{Binding}" />
                       <TextBlock Text="{Binding NoteName}" Grid.Column="1" VerticalAlignment="Center" FontSize="15" Margin="2,0" TextAlignment="Left" />
                       <ctl:NumericTextBox Text="{Binding StartOffset, Converter={StaticResource StringToInt}}" Grid.Column="2" Width="72" FontSize="15" Margin="1,0" />
                       <ctl:NumericTextBox Text="{Binding EndOffset, Converter={StaticResource StringToInt}}" Grid.Column="3" Width="72" FontSize="15" Margin="1,0,4,0" />
-                      <ComboBox Grid.Column="4" ItemsSource="{Binding Source={x:Static m:SampleSlot.PanOptions}}" SelectedItem="{Binding PanOption}" HorizontalAlignment="Stretch" FontSize="15">
+                      <ComboBox Grid.Column="4" ItemsSource="{Binding Source={x:Static m:SampleSlot.PanOptions}}" SelectedIndex="{Binding PanIndex}" HorizontalAlignment="Stretch" FontSize="15">
                         <ComboBox.ItemTemplate>
                           <DataTemplate x:DataType="m:DropdownOption">
                             <TextBlock Text="{Binding Label}" />
                           </DataTemplate>
                         </ComboBox.ItemTemplate>
                       </ComboBox>
-                      <ComboBox Grid.Column="5" ItemsSource="{Binding Source={x:Static m:SampleSlot.RateOptions}}" SelectedItem="{Binding RateOption}" HorizontalAlignment="Stretch" FontSize="15">
+                      <ComboBox Grid.Column="5" ItemsSource="{Binding Source={x:Static m:SampleSlot.RateOptions}}" SelectedIndex="{Binding RateIndex}" HorizontalAlignment="Stretch" FontSize="15">
                         <ComboBox.ItemTemplate>
                           <DataTemplate x:DataType="m:DropdownOption">
                             <TextBlock Text="{Binding Label}" />
@@ -156,18 +160,20 @@
                         <ColumnDefinition Width="56" SharedSizeGroup="C6" />
                         <ColumnDefinition Width="350" SharedSizeGroup="C7" />
                       </Grid.ColumnDefinitions>
-                      <Button Content="S" Width="26" Height="22" FontSize="15" ToolTip.Tip="Sync from pool" Margin="1,0" />
+                      <Button Content="S" Width="26" Height="22" FontSize="15" ToolTip.Tip="Sync from pool" Margin="1,0"
+                              Command="{Binding ElementName=Root, Path=DataContext.SyncFromPoolCommand}"
+                              CommandParameter="{Binding}" />
                       <TextBlock Text="{Binding NoteName}" Grid.Column="1" VerticalAlignment="Center" FontSize="15" Margin="2,0" TextAlignment="Left" />
                       <ctl:NumericTextBox Text="{Binding StartOffset, Converter={StaticResource StringToInt}}" Grid.Column="2" Width="72" FontSize="15" Margin="1,0" />
                       <ctl:NumericTextBox Text="{Binding EndOffset, Converter={StaticResource StringToInt}}" Grid.Column="3" Width="72" FontSize="15" Margin="1,0,4,0" />
-                      <ComboBox Grid.Column="4" ItemsSource="{Binding Source={x:Static m:SampleSlot.PanOptions}}" SelectedItem="{Binding PanOption}" HorizontalAlignment="Stretch" FontSize="15">
+                      <ComboBox Grid.Column="4" ItemsSource="{Binding Source={x:Static m:SampleSlot.PanOptions}}" SelectedIndex="{Binding PanIndex}" HorizontalAlignment="Stretch" FontSize="15">
                         <ComboBox.ItemTemplate>
                           <DataTemplate x:DataType="m:DropdownOption">
                             <TextBlock Text="{Binding Label}" />
                           </DataTemplate>
                         </ComboBox.ItemTemplate>
                       </ComboBox>
-                      <ComboBox Grid.Column="5" ItemsSource="{Binding Source={x:Static m:SampleSlot.RateOptions}}" SelectedItem="{Binding RateOption}" HorizontalAlignment="Stretch" FontSize="15">
+                      <ComboBox Grid.Column="5" ItemsSource="{Binding Source={x:Static m:SampleSlot.RateOptions}}" SelectedIndex="{Binding RateIndex}" HorizontalAlignment="Stretch" FontSize="15">
                         <ComboBox.ItemTemplate>
                           <DataTemplate x:DataType="m:DropdownOption">
                             <TextBlock Text="{Binding Label}" />
@@ -231,18 +237,20 @@
                         <ColumnDefinition Width="56" SharedSizeGroup="C6" />
                         <ColumnDefinition Width="350" SharedSizeGroup="C7" />
                       </Grid.ColumnDefinitions>
-                      <Button Content="S" Width="26" Height="22" FontSize="15" ToolTip.Tip="Sync from pool" Margin="1,0" />
+                      <Button Content="S" Width="26" Height="22" FontSize="15" ToolTip.Tip="Sync from pool" Margin="1,0"
+                              Command="{Binding ElementName=Root, Path=DataContext.SyncFromPoolCommand}"
+                              CommandParameter="{Binding}" />
                       <TextBlock Text="{Binding NoteName}" Grid.Column="1" VerticalAlignment="Center" FontSize="15" Margin="2,0" TextAlignment="Left" />
                       <ctl:NumericTextBox Text="{Binding StartOffset, Converter={StaticResource StringToInt}}" Grid.Column="2" Width="72" FontSize="15" Margin="1,0" />
                       <ctl:NumericTextBox Text="{Binding EndOffset, Converter={StaticResource StringToInt}}" Grid.Column="3" Width="72" FontSize="15" Margin="1,0,4,0" />
-                      <ComboBox Grid.Column="4" ItemsSource="{Binding Source={x:Static m:SampleSlot.PanOptions}}" SelectedItem="{Binding PanOption}" HorizontalAlignment="Stretch" FontSize="15">
+                      <ComboBox Grid.Column="4" ItemsSource="{Binding Source={x:Static m:SampleSlot.PanOptions}}" SelectedIndex="{Binding PanIndex}" HorizontalAlignment="Stretch" FontSize="15">
                         <ComboBox.ItemTemplate>
                           <DataTemplate x:DataType="m:DropdownOption">
                             <TextBlock Text="{Binding Label}" />
                           </DataTemplate>
                         </ComboBox.ItemTemplate>
                       </ComboBox>
-                      <ComboBox Grid.Column="5" ItemsSource="{Binding Source={x:Static m:SampleSlot.RateOptions}}" SelectedItem="{Binding RateOption}" HorizontalAlignment="Stretch" FontSize="15">
+                      <ComboBox Grid.Column="5" ItemsSource="{Binding Source={x:Static m:SampleSlot.RateOptions}}" SelectedIndex="{Binding RateIndex}" HorizontalAlignment="Stretch" FontSize="15">
                         <ComboBox.ItemTemplate>
                           <DataTemplate x:DataType="m:DropdownOption">
                             <TextBlock Text="{Binding Label}" />
@@ -306,18 +314,20 @@
                         <ColumnDefinition Width="56" SharedSizeGroup="C6" />
                         <ColumnDefinition Width="350" SharedSizeGroup="C7" />
                       </Grid.ColumnDefinitions>
-                      <Button Content="S" Width="26" Height="22" FontSize="15" ToolTip.Tip="Sync from pool" Margin="1,0" />
+                      <Button Content="S" Width="26" Height="22" FontSize="15" ToolTip.Tip="Sync from pool" Margin="1,0"
+                              Command="{Binding ElementName=Root, Path=DataContext.SyncFromPoolCommand}"
+                              CommandParameter="{Binding}" />
                       <TextBlock Text="{Binding NoteName}" Grid.Column="1" VerticalAlignment="Center" FontSize="15" Margin="2,0" TextAlignment="Left" />
                       <ctl:NumericTextBox Text="{Binding StartOffset, Converter={StaticResource StringToInt}}" Grid.Column="2" Width="72" FontSize="15" Margin="1,0" />
                       <ctl:NumericTextBox Text="{Binding EndOffset, Converter={StaticResource StringToInt}}" Grid.Column="3" Width="72" FontSize="15" Margin="1,0,4,0" />
-                      <ComboBox Grid.Column="4" ItemsSource="{Binding Source={x:Static m:SampleSlot.PanOptions}}" SelectedItem="{Binding PanOption}" HorizontalAlignment="Stretch" FontSize="15">
+                      <ComboBox Grid.Column="4" ItemsSource="{Binding Source={x:Static m:SampleSlot.PanOptions}}" SelectedIndex="{Binding PanIndex}" HorizontalAlignment="Stretch" FontSize="15">
                         <ComboBox.ItemTemplate>
                           <DataTemplate x:DataType="m:DropdownOption">
                             <TextBlock Text="{Binding Label}" />
                           </DataTemplate>
                         </ComboBox.ItemTemplate>
                       </ComboBox>
-                      <ComboBox Grid.Column="5" ItemsSource="{Binding Source={x:Static m:SampleSlot.RateOptions}}" SelectedItem="{Binding RateOption}" HorizontalAlignment="Stretch" FontSize="15">
+                      <ComboBox Grid.Column="5" ItemsSource="{Binding Source={x:Static m:SampleSlot.RateOptions}}" SelectedIndex="{Binding RateIndex}" HorizontalAlignment="Stretch" FontSize="15">
                         <ComboBox.ItemTemplate>
                           <DataTemplate x:DataType="m:DropdownOption">
                             <TextBlock Text="{Binding Label}" />

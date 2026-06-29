@@ -226,7 +226,7 @@ public class SaveConverterService
                     int fxOff = 2 + fx * 2;
                     byte fxType = ReadSramByte(sram, rowAddr + fxOff);
                     byte fxVal = ReadSramByte(sram, rowAddr + fxOff + 1);
-                    if (fxType != 0)
+                    if (fxType != 0 || fxVal != 0)
                     {
                         events.Add((byte)(row * SramV05Layout.EvtCount + 1 + fx));
                         events.Add(fxType);

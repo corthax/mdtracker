@@ -7,7 +7,8 @@ namespace MDTracker.Editor.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
-    private readonly RomService _romService = new();
+    private readonly SettingsService _settingsService = new();
+    private readonly RomService _romService;
 
     public SampleBankViewModel SampleBankView { get; }
     public SamplePoolViewModel SamplePoolView { get; }
@@ -15,6 +16,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public PresetPoolViewModel PresetPoolView { get; }
     public SampleConverterViewModel SampleConverterView { get; }
     public SaveConverterViewModel SaveConverterView { get; }
+    public SettingsViewModel SettingsView { get; }
 
     [ObservableProperty]
     private string _romPath = string.Empty;
@@ -30,12 +32,14 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public MainWindowViewModel()
     {
-        SampleBankView = new SampleBankViewModel(_romService);
+        _romService = new RomService(_settingsService);
         SamplePoolView = new SamplePoolViewModel(_romService);
+        SampleBankView = new SampleBankViewModel(_romService, SamplePoolView);
         InstrumentEditorView = new InstrumentEditorViewModel();
         PresetPoolView = new PresetPoolViewModel();
         SampleConverterView = new SampleConverterViewModel();
         SaveConverterView = new SaveConverterViewModel();
+        SettingsView = new SettingsViewModel(_settingsService);
     }
 
     public void LoadRom(string path)
@@ -56,7 +60,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public void SaveRomToPath(string? path = null)
     {
         if (!_romService.IsLoaded) return;
-        SampleBankView.SaveToRom();
+        _romService.WriteSampleBank(SamplePoolView, SampleBankView.Banks);
         _romService.Save(path);
     }
 

@@ -9,8 +9,10 @@ public partial class SampleSlot : ObservableObject
     [ObservableProperty] private int _startOffset;
     [ObservableProperty] private int _endOffset;
     [ObservableProperty] private int _pan = 192;
+    [ObservableProperty] private int _panIndex = 1;
     [ObservableProperty] private bool _looped;
     [ObservableProperty] private int _rate;
+    [ObservableProperty] private int _rateIndex;
     [ObservableProperty] private int _type;
     [ObservableProperty] private string _name = string.Empty;
 
@@ -34,17 +36,18 @@ public partial class SampleSlot : ObservableObject
         new() { Label = "8000",  Value = 5 },
     ];
 
-    public DropdownOption? PanOption
+    partial void OnPanChanged(int value)
     {
-        get => PanOptions.FirstOrDefault(o => o.Value == Pan);
-        set { if (value is not null) Pan = value.Value; }
+        PanIndex = value switch { 128 => 0, 192 => 1, 64 => 2, _ => 1 };
     }
 
-    public DropdownOption? RateOption
+    partial void OnPanIndexChanged(int value)
     {
-        get => RateOptions.FirstOrDefault(o => o.Value == Rate);
-        set { if (value is not null) Rate = value.Value; }
+        Pan = value switch { 0 => 128, 1 => 192, 2 => 64, _ => 192 };
     }
+
+    partial void OnRateChanged(int value) => RateIndex = value;
+    partial void OnRateIndexChanged(int value) => Rate = value;
 
     public int BankNoteIndex => BankId * RomConstants.NotesPerBank + NoteId;
 

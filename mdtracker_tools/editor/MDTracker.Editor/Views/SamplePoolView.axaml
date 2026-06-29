@@ -9,7 +9,8 @@
 
     <ListBox Grid.Row="1"
              ItemsSource="{Binding Samples}"
-             SelectedItem="{Binding SelectedSample}">
+             SelectionMode="Multiple"
+             SelectionChanged="OnPoolSelectionChanged">
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="m:SampleFile">
           <Grid ColumnDefinitions="Auto,*,Auto">

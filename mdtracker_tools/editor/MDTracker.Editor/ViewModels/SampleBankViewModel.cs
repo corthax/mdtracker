@@ -9,6 +9,7 @@ namespace MDTracker.Editor.ViewModels;
 public partial class SampleBankViewModel : ViewModelBase
 {
     private readonly RomService _romService;
+    private readonly SamplePoolViewModel _pool;
 
     public ObservableCollection<SampleSlot> Bank0Slots { get; }
     public ObservableCollection<SampleSlot> Bank1Slots { get; }
@@ -24,7 +25,7 @@ public partial class SampleBankViewModel : ViewModelBase
     private int _rangeStart;
 
     [ObservableProperty]
-    private int _rangeEnd = 95;
+    private int _rangeEnd = 383;
 
     [ObservableProperty]
     private int _rangePan = 192;
@@ -32,27 +33,32 @@ public partial class SampleBankViewModel : ViewModelBase
     [ObservableProperty]
     private int _rangeRate;
 
-    public DropdownOption? RangePanOption
+    [ObservableProperty]
+    private int _rangePanIndex = 1;
+
+    [ObservableProperty]
+    private int _rangeRateIndex;
+
+    partial void OnRangePanChanged(int value)
     {
-        get => SampleSlot.PanOptions.FirstOrDefault(o => o.Value == RangePan);
-        set { if (value is not null) RangePan = value.Value; }
+        RangePanIndex = value switch { 128 => 0, 192 => 1, 64 => 2, _ => 1 };
     }
 
-    public DropdownOption? RangeRateOption
+    partial void OnRangePanIndexChanged(int value)
     {
-        get => SampleSlot.RateOptions.FirstOrDefault(o => o.Value == RangeRate);
-        set { if (value is not null) RangeRate = value.Value; }
+        RangePan = value switch { 0 => 128, 1 => 192, 2 => 64, _ => 192 };
     }
 
-    partial void OnRangePanChanged(int value) => OnPropertyChanged(nameof(RangePanOption));
-    partial void OnRangeRateChanged(int value) => OnPropertyChanged(nameof(RangeRateOption));
+    partial void OnRangeRateChanged(int value) => RangeRateIndex = value;
+    partial void OnRangeRateIndexChanged(int value) => RangeRate = value;
 
     [ObservableProperty]
     private bool _rangeLoop;
 
-    public SampleBankViewModel(RomService romService)
+    public SampleBankViewModel(RomService romService, SamplePoolViewModel pool)
     {
         _romService = romService;
+        _pool = pool;
         Banks = SampleBank.CreateAll();
         Bank0Slots = Banks[0].Slots;
         Bank1Slots = Banks[1].Slots;
@@ -84,16 +90,56 @@ public partial class SampleBankViewModel : ViewModelBase
     [RelayCommand]
     private void ApplyAutoRange()
     {
-        var active = GetBank(SelectedBankIndex);
-        int start = Math.Clamp(RangeStart, 0, 95);
-        int end = Math.Clamp(RangeEnd, 0, 95);
+        int start = Math.Clamp(RangeStart, 0, RomConstants.NotesTotal - 1);
+        int end = Math.Clamp(RangeEnd, 0, RomConstants.NotesTotal - 1);
         if (start > end) (start, end) = (end, start);
 
         for (int i = start; i <= end; i++)
         {
-            active[i].Pan = RangePan;
-            active[i].Rate = RangeRate;
-            active[i].Looped = RangeLoop;
+            int bank = i / RomConstants.NotesPerBank;
+            int note = i % RomConstants.NotesPerBank;
+            if (bank >= RomConstants.BankCount) break;
+            GetBank(bank)[note].Pan = RangePan;
+            GetBank(bank)[note].Rate = RangeRate;
+            GetBank(bank)[note].Looped = RangeLoop;
+        }
+    }
+
+    [RelayCommand]
+    private void SyncFromPool(SampleSlot slot)
+    {
+        var sample = _pool.SelectedSample;
+        if (sample == null) return;
+        slot.StartOffset = (int)sample.StartOffset;
+        slot.EndOffset = (int)sample.EndOffset;
+        slot.Name = sample.ShortName;
+        slot.SamplePoolId = sample.Id;
+        slot.IsSynced = true;
+    }
+
+    [RelayCommand]
+    private void AssignSamplesToRange()
+    {
+        var selected = _pool.SelectedSamples;
+        if (selected.Count == 0) return;
+
+        int start = Math.Clamp(RangeStart, 0, RomConstants.NotesTotal - 1);
+        int end = Math.Clamp(RangeEnd, 0, RomConstants.NotesTotal - 1);
+        if (start > end) (start, end) = (end, start);
+
+        int si = 0;
+        for (int i = start; i <= end && si < selected.Count; i++, si++)
+        {
+            int bank = i / RomConstants.NotesPerBank;
+            int note = i % RomConstants.NotesPerBank;
+            if (bank >= RomConstants.BankCount) break;
+            var sample = selected[si];
+            var slot = GetBank(bank)[note];
+            slot.StartOffset = (int)sample.StartOffset;
+            slot.EndOffset = (int)sample.EndOffset;
+            slot.Name = sample.ShortName;
+            slot.SamplePoolId = sample.Id;
+            slot.IsSynced = true;
         }
     }
 }

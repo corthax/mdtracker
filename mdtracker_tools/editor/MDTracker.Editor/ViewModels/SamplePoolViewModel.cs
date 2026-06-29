@@ -12,6 +12,9 @@ public partial class SamplePoolViewModel : ViewModelBase
 
     public ObservableCollection<SampleFile> Samples { get; } = [];
 
+    private readonly List<SampleFile> _selectedSamples = [];
+    public IReadOnlyList<SampleFile> SelectedSamples => _selectedSamples;
+
     [ObservableProperty]
     private SampleFile? _selectedSample;
 
@@ -23,11 +26,20 @@ public partial class SamplePoolViewModel : ViewModelBase
         _romService = romService;
     }
 
+    public void UpdateSelection(IEnumerable<SampleFile> selected)
+    {
+        _selectedSamples.Clear();
+        _selectedSamples.AddRange(selected);
+        SelectedSample = selected.FirstOrDefault();
+    }
+
     [RelayCommand]
     private void RemoveSample()
     {
         if (SelectedSample == null) return;
         Samples.Remove(SelectedSample);
+        _selectedSamples.Remove(SelectedSample);
+        RecalculateOffsets();
         RecalculateSize();
     }
 
@@ -35,6 +47,8 @@ public partial class SamplePoolViewModel : ViewModelBase
     private void ClearSamples()
     {
         Samples.Clear();
+        _selectedSamples.Clear();
+        SelectedSample = null;
         TotalSize = 0;
     }
 
@@ -42,7 +56,19 @@ public partial class SamplePoolViewModel : ViewModelBase
     {
         sample.Id = Samples.Count;
         Samples.Add(sample);
+        RecalculateOffsets();
         RecalculateSize();
+    }
+
+    private void RecalculateOffsets()
+    {
+        int offset = 0;
+        foreach (var s in Samples)
+        {
+            s.StartOffset = offset;
+            s.EndOffset = offset + s.AlignedSize;
+            offset += s.AlignedSize;
+        }
     }
 
     private void RecalculateSize()

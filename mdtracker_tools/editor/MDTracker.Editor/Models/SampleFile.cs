@@ -14,4 +14,17 @@ public class SampleFile
     public long EndOffset { get; set; }
     public string Extension => Path.GetExtension(FileName)?.ToLowerInvariant() ?? string.Empty;
     public bool IsAdpcm => Extension == ".2adpcm";
+
+    public static string ExtractShortName(string filePath)
+    {
+        string name = Path.GetFileNameWithoutExtension(filePath);
+        int open = name.IndexOf('(');
+        int close = name.IndexOf(')');
+        if (open != -1 && close != -1 && close > open)
+            name = name.Substring(open + 1, close - open - 1);
+        name = name.Replace("(", "").Replace(")", "");
+        return name.Length > RomConstants.SampleNameSize
+            ? name[..RomConstants.SampleNameSize]
+            : name;
+    }
 }
