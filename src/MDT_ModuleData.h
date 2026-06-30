@@ -103,25 +103,27 @@
 #define STATIC_BASE             12    // after 6-byte header + 6 bytes padding (avoid _Odd overlap)
 
 #define SRAM_GLOBAL_LFO         (STATIC_BASE + 0u)       // 3 bytes
-#define SRAM_PATTERN_MATRIX     (STATIC_BASE + 3u)       // 6500 bytes (13ch * 250row * 2, combined patternID + transpose)
-#define SRAM_TEMPO              (STATIC_BASE + 6503u)    // 2 bytes
-#define STATIC_END              (STATIC_BASE + 6505u)    // = 0x1969
+#define SRAM_TEMPO              (STATIC_BASE + 3u)       // 2 bytes
+#define STATIC_END              (STATIC_BASE + 5u)       // = 17
 
-// Block 2: Instruments (at STATIC_END, expandable via compact records)
-#define INST_BLOCK_BASE           STATIC_END              // 0x1969 = 6517
-#define INST_MOD_COUNT_ADDR       INST_BLOCK_BASE         // word
-#define INST_LOOKUP_TABLE_ADDR    (INST_BLOCK_BASE + 2)   // 256 bytes
-#define INST_COMPACT_START        (INST_BLOCK_BASE + 258) // = 0x1A77 = 6775
+// Block 2: Matrix (compact, at STATIC_END, expandable)
+#define MATRIX_BLOCK_BASE          STATIC_END          // = 17
+// 250 rows x (u16 bitmap + u16 values in channel order)
+// matrixBlockEnd = runtime global (after last row's data)
 
-// instBlockEnd = INST_COMPACT_START + modCount * INST_RECORD_SIZE
+// Block 3: Instruments (at matrixBlockEnd, expandable via compact records)
+// INST_MOD_COUNT_ADDR      = matrixBlockEnd (word)
+// INST_LOOKUP_TABLE_ADDR   = matrixBlockEnd + 2 (256 bytes)
+// INST_COMPACT_START       = matrixBlockEnd + 258
+// instBlockEnd = matrixBlockEnd + 258 + modCount * INST_RECORD_SIZE
 
-// Block 3: Sequencers (at instBlockEnd, expandable via compact records)
+// Block 4: Sequencers (at instBlockEnd, expandable via compact records)
 // SEQ_MOD_COUNT_ADDR      = instBlockEnd (word)
 // SEQ_LOOKUP_TABLE_ADDR   = instBlockEnd + 2 (256 bytes)
 // SEQ_COMPACT_START       = instBlockEnd + 258
 // seqBlockEnd = instBlockEnd + 258 + modCount * SEQ_RECORD_SIZE
 
-// Block 4: Patterns (at seqBlockEnd = patternRegionBase)
+// Block 5: Patterns (at seqBlockEnd = patternRegionBase)
 // PATTERN_REGION_BASE = patternRegionBase (global variable)
 
 //{ Pattern data 14 * 32 bytes

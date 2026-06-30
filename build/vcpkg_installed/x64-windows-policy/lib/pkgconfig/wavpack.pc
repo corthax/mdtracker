@@ -1,0 +1,14 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: wavpack
+Description: wavpack library
+Version: 5.7.0
+Requires:
+Conflicts:
+Libs: "-L${libdir}" -lwavpackdll
+Libs.private: 
+Cflags: "-I${includedir}"
+

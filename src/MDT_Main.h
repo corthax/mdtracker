@@ -135,6 +135,11 @@ extern u8* editBuffer;                         // pattern edit buffer (NULL when
 extern u16 patternEditID;                      // which pattern is in editBuffer (0xFFFF=none)
 extern u16 chEventIdx[CHANNELS_TOTAL];         // per-channel event read pointer
 
+// Matrix block globals
+extern u32 matrixBlockEnd;                     // start of instruments block = end of matrix
+extern u16 matrixCells[CHANNELS_TOTAL * MATRIX_ROWS]; // runtime matrix buffer (compact SRAM on persist)
+extern u8  matrixDirty;                        // 1 = matrixCells[] differs from SRAM
+
 // Instrument block globals
 extern u32 instBlockEnd;                       // start of sequencers block = end of instruments
 extern u32 seqBlockEnd;                        // start of patterns block = end of sequencers
@@ -143,6 +148,35 @@ extern u16 instDataAddr[INSTRUMENTS_TOTAL];    // SRAM addr per modified instrum
 extern u16 seqDataAddr[INSTRUMENTS_TOTAL];     // SRAM addr per modified sequencer's compact record (0=default)
 extern u16 seqEditID;                          // which instrument's SEQ is in seqEditBuffer (0xFFFF=none)
 extern u8  seqEditBuffer[64];                  // SEQ edit buffer: [0..31] VOL, [32..63] ARP
+
+// Matrix inline accessors (RAM buffer, no SRAM I/O)
+static inline u16 SRAM_ReadMatrix(u8 channel, u8 line) {
+    return matrixCells[(u16)channel * MATRIX_ROWS + line];
+}
+static inline void SRAM_WriteMatrix(u8 channel, u8 line, u16 data) {
+    matrixCells[(u16)channel * MATRIX_ROWS + line] = data;
+    matrixDirty = 1;
+}
+// Transpose packed in upper 6 bits: bits 0-9 = patternID, bits 10-15 = transpose (signed 6-bit)
+static inline s8 SRAM_ReadMatrixTranspose(u8 channel, u8 line) {
+    u16 combined = matrixCells[(u16)channel * MATRIX_ROWS + line];
+    u8 raw = (combined >> 10) & 0x3F;
+    return (s8)(raw >= 32 ? raw - 64 : raw);
+}
+static inline void SRAM_WriteMatrixTranspose(u8 channel, u8 line, s8 transpose) {
+    u16 idx = (u16)channel * MATRIX_ROWS + line;
+    matrixCells[idx] = (matrixCells[idx] & 0x3FF) | ((u16)(transpose & 0x3F) << 10);
+    matrixDirty = 1;
+}
+static inline void SRAM_WritePatternID(u8 channel, u8 line, u16 patternID) {
+    u16 idx = (u16)channel * MATRIX_ROWS + line;
+    matrixCells[idx] = (matrixCells[idx] & 0xFC00) | (patternID & 0x3FF);
+    matrixDirty = 1;
+}
+
+// Matrix compact block functions
+void Matrix_LoadFromSRAM();
+void Matrix_CommitToSRAM();
 
 // SRAM block functions
 void SRAM_ResetInstrumentToPreset(u8 id, u8 preset);

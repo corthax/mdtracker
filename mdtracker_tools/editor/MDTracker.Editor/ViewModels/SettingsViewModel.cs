@@ -1,3 +1,4 @@
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using MDTracker.Editor.Services;
 
@@ -8,34 +9,49 @@ public partial class SettingsViewModel : ViewModelBase
     private readonly SettingsService _settingsService;
 
     [ObservableProperty]
-    private int _sampleSettingsAddr;
+    private string _sampleSettingsAddrHex = "0x00000000";
 
     [ObservableProperty]
-    private int _sampleBankAddr;
+    private string _sampleBankAddrHex = "0x00000000";
 
     public SettingsViewModel(SettingsService settingsService)
     {
         _settingsService = settingsService;
-        SampleSettingsAddr = _settingsService.SampleSettingsAddr;
-        SampleBankAddr = _settingsService.SampleBankAddr;
+        _sampleSettingsAddrHex = $"0x{_settingsService.SampleSettingsAddr:X8}";
+        _sampleBankAddrHex = $"0x{_settingsService.SampleBankAddr:X8}";
     }
 
-    partial void OnSampleSettingsAddrChanged(int value)
+    public void SaveSettings(string settingsHex, string bankHex)
     {
-        _settingsService.Settings.SampleSettingsAddr = value;
-        _settingsService.Save();
+        bool changed = false;
+        if (TryParseHex(settingsHex, out var addr))
+        {
+            _settingsService.Settings.SampleSettingsAddr = addr;
+            SampleSettingsAddrHex = $"0x{addr:X8}";
+            changed = true;
+        }
+        if (TryParseHex(bankHex, out var bank))
+        {
+            _settingsService.Settings.SampleBankAddr = bank;
+            SampleBankAddrHex = $"0x{bank:X8}";
+            changed = true;
+        }
+        if (changed)
+            _settingsService.Save();
     }
 
-    partial void OnSampleBankAddrChanged(int value)
+    private static bool TryParseHex(string? s, out int value)
     {
-        _settingsService.Settings.SampleBankAddr = value;
-        _settingsService.Save();
+        value = 0;
+        if (string.IsNullOrEmpty(s)) return false;
+        s = s.Trim();
+        if (s.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+            s = s[2..];
+        return int.TryParse(s, NumberStyles.HexNumber, null, out value);
     }
 
     public void SaveNow()
     {
-        _settingsService.Settings.SampleSettingsAddr = SampleSettingsAddr;
-        _settingsService.Settings.SampleBankAddr = SampleBankAddr;
         _settingsService.Save();
     }
 }

@@ -82,7 +82,5 @@ C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\MDTracker.Editor\obj\De
 C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\MDTracker.Editor\obj\Debug\net10.0-windows7.0\MDTracker.Editor.sourcelink.json
 C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\MDTracker.Editor\obj\Debug\net10.0-windows7.0\MDTracke.F40F6533.Up2Date
 C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\MDTracker.Editor\obj\Debug\net10.0-windows7.0\MDTracker.Editor.dll
-C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\MDTracker.Editor\obj\Debug\net10.0-windows7.0\refint\MDTracker.Editor.dll
 C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\MDTracker.Editor\obj\Debug\net10.0-windows7.0\MDTracker.Editor.pdb
 C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\MDTracker.Editor\obj\Debug\net10.0-windows7.0\MDTracker.Editor.genruntimeconfig.cache
-C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\MDTracker.Editor\obj\Debug\net10.0-windows7.0\ref\MDTracker.Editor.dll

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MDTracker.Editor")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+94126957dcd85a70e37e93f4f987bff8d2f3f68e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+56d7092546064ce9555c280b4a8cd24ba40c4c98")]
 [assembly: System.Reflection.AssemblyProductAttribute("MDTracker.Editor")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MDTracker.Editor")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

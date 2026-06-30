@@ -1,1 +1,0 @@
-C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\MDTracker.Editor\obj\Debug\net10.0-windows10.0.19041.1\MDTracker.Editor.csproj.AssemblyReference.cache

@@ -1,0 +1,9 @@
+{
+    "name": "mdtracker-editor-wx",
+    "version": "1.0.0",
+    "dependencies": [
+        "wxwidgets",
+        "nlohmann-json",
+        "wavpack"
+    ]
+}

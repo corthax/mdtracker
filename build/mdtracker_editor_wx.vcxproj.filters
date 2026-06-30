@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_editor_wx\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_editor_wx\main_frame.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_editor_wx\sample_bank_panel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_editor_wx\instrument_editor_panel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_editor_wx\sample_converter_panel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_editor_wx\save_converter_panel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_editor_wx\settings_panel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_editor_wx\settings_service.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_editor_wx\rom_service.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_editor_wx\save_converter_service.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_editor_wx\sample_converter_service.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_editor_wx\dr_flac.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_editor_wx\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="C:\GameDev\SEGA\project\mdtracker\build\vcpkg_installed\x64-windows-policy\share\nlohmann_json\nlohmann_json.natvis" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{3786AD34-E03D-3742-B6AB-D3CFA33F0A47}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{66AFDA72-3498-3A6E-9BB3-DBA8A1D0CE65}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

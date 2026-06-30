@@ -1,0 +1,10 @@
+^C:\GAMEDEV\SEGA\PROJECT\MDTRACKER\BUILD\CMAKEFILES\0E2D0746F47EB549C801225E2D198369\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/GameDev/SEGA/project/mdtracker/mdtracker_editor_wx -BC:/GameDev/SEGA/project/mdtracker/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/GameDev/SEGA/project/mdtracker/build/mdtracker_editor_wx.slnx
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

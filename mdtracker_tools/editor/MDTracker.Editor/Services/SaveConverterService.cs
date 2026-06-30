@@ -88,29 +88,41 @@ public class SaveConverterService
     {
         int pos = startPos;
 
-        // SRAM_GLOBAL_LFO: 3 bytes at logical 12, 13, 14
+        // LFO: 3 bytes at logical 12-14
         WriteByteAt(output, ref pos, ReadSramByte(sram, (int)LegacySramLayout.SrmLfo));
         WriteByteAt(output, ref pos, 0);
         WriteByteAt(output, ref pos, 0);
 
-        // SRAM_PATTERN_MATRIX: 13ch x 250row x 2 bytes = 6500 bytes
-        // v1.04 stores pattern ID as 16-bit word and transpose separately at SrmMatrixTranspose.
-        // v1.05 packs them: bits 0-9 = pattern ID, bits 10-15 = transpose (6-bit signed).
-        int matrixSrcBase = (int)LegacySramLayout.SrmPatternMatrix;
-        int transposeSrcBase = (int)LegacySramLayout.SrmMatrixTranspose;
-        int matrixCellCount = SramV05Layout.MatrixRows * SramV05Layout.MatrixChannels;
-        for (int i = 0; i < matrixCellCount; i++)
-        {
-            int patAddr = matrixSrcBase + i * 2;
-            int patternID = ReadSramWord(sram, patAddr) & 0x3FF;
-            int transpose = (sbyte)ReadSramByte(sram, transposeSrcBase + i);
-            int packed = patternID | ((transpose & 0x3F) << 10);
-            WriteWordAt(output, ref pos, (ushort)packed);
-        }
-
-        // SRAM_TEMPO: 2 bytes
+        // Tempo: 2 bytes at logical 15-16 (before matrix in v1.05)
         int tempo = ReadSramWord(sram, (int)LegacySramLayout.SrmTempo);
         WriteWordAt(output, ref pos, (ushort)tempo);
+
+        // Matrix: compact bitmap format starting at logical 17
+        // Each row: u16 bitmap + u16 per set channel (channel order)
+        int matrixSrcBase = (int)LegacySramLayout.SrmPatternMatrix;
+        int transposeSrcBase = (int)LegacySramLayout.SrmMatrixTranspose;
+        for (int row = 0; row < SramV05Layout.MatrixRows; row++)
+        {
+            ushort bitmap = 0;
+            ushort[] tmp = new ushort[SramV05Layout.MatrixChannels];
+            int count = 0;
+
+            for (int ch = 0; ch < SramV05Layout.MatrixChannels; ch++)
+            {
+                int i = ch * SramV05Layout.MatrixRows + row;
+                int patternID = ReadSramWord(sram, matrixSrcBase + i * 2) & 0x3FF;
+                if (patternID != 0)
+                {
+                    bitmap |= (ushort)(1u << ch);
+                    int transpose = (sbyte)ReadSramByte(sram, transposeSrcBase + i);
+                    tmp[count++] = (ushort)(patternID | ((transpose & 0x3F) << 10));
+                }
+            }
+
+            WriteWordAt(output, ref pos, bitmap);
+            for (int j = 0; j < count; j++)
+                WriteWordAt(output, ref pos, tmp[j]);
+        }
 
         return pos;
     }

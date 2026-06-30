@@ -248,6 +248,10 @@ Instrument chInst[CHANNELS_TOTAL]; // to apply commands; FM only
 
 u8 midiPreset = 0;
 
+u16 matrixCells[CHANNELS_TOTAL * MATRIX_ROWS];
+u32 matrixBlockEnd;
+u8  matrixDirty = 0;
+
 /*
 u16 msu_drv();
 vu16 *mcd_cmd = (vu16 *) 0xA12010;  // command
@@ -1322,6 +1326,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
     auto void switch_to_pattern_editor()
     {
         CommitSeqEditBuffer();
+        Matrix_CommitToSRAM();
 
         selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow) & 0x3FF;
         if (selectedPatternID != 0x00) // -- pattern should not be editable
@@ -1339,6 +1344,8 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
 
     auto void switch_to_instrument_editor()
     {
+        Matrix_CommitToSRAM();
+
         // Commit editing pattern back to SRAM
         if (patternEditID != 0xFFFF)
         {
@@ -5187,9 +5194,9 @@ void FillRowRight(u8 plane, u8 pal, u8 flipV, u8 flipH, u8 guiSymbol, u8 fillCou
 // ============================================================
 void RecalcAllAddrs()
 {
-    // --- Instrument block ---
-    u16 modCount = SRAMW_readWord(INST_MOD_COUNT_ADDR);
-    u32 ptr = INST_COMPACT_START;
+    // --- Instrument block (at matrixBlockEnd) ---
+    u16 modCount = SRAMW_readWord(matrixBlockEnd);
+    u32 ptr = matrixBlockEnd + 258;   // INST_COMPACT_START
 
     for (u16 i = 0; i < INSTRUMENTS_TOTAL; i++)
         instDataAddr[i] = 0;
@@ -5203,9 +5210,8 @@ void RecalcAllAddrs()
     instBlockEnd = ptr;
 
     // --- Sequencer block ---
-    u32 seqBase = instBlockEnd;
-    u16 seqModCount = SRAMW_readWord(seqBase);
-    ptr = seqBase + 2 + INSTRUMENTS_TOTAL;   // skip modCount + lookup table
+    u16 seqModCount = SRAMW_readWord(instBlockEnd);
+    ptr = instBlockEnd + 2 + INSTRUMENTS_TOTAL;
 
     for (u16 i = 0; i < INSTRUMENTS_TOTAL; i++)
         seqDataAddr[i] = 0;
@@ -5232,7 +5238,7 @@ void RecalcAllAddrs()
 // ============================================================
 u8 SRAM_ReadInstrument(u8 id, u16 param)
 {
-    u8 lookup = SRAMW_readByte(INST_LOOKUP_TABLE_ADDR + id);
+    u8 lookup = SRAMW_readByte(matrixBlockEnd + 2 + id);
     if (lookup != INST_SENTINEL_MODIFIED)
     {
         // Unmodified — ROM preset for data, empty for name
@@ -5269,11 +5275,11 @@ void SRAM_WriteInstrument(u8 id, u16 param, u8 data)
 // ============================================================
 void assimilateInstrument(u8 id)
 {
-    u8 lookup = SRAMW_readByte(INST_LOOKUP_TABLE_ADDR + id);
+    u8 lookup = SRAMW_readByte(matrixBlockEnd + 2 + id);
     if (lookup == INST_SENTINEL_MODIFIED) return;
 
-    u16 modCount = SRAMW_readWord(INST_MOD_COUNT_ADDR);
-    u32 recordAddr = INST_COMPACT_START + modCount * INST_RECORD_SIZE;
+    u16 modCount = SRAMW_readWord(matrixBlockEnd);
+    u32 recordAddr = matrixBlockEnd + 258 + modCount * INST_RECORD_SIZE;
 
     // Shift tail (sequencers + patterns) forward to make room
     u32 regionSize = SRAMW_readWord(patternRegionBase + 4);
@@ -5290,8 +5296,8 @@ void assimilateInstrument(u8 id)
     for (u8 p = 0; p < INST_NAME_SIZE; p++)
         SRAMW_writeByte(recordAddr + 1 + INST_DATA_SIZE + p, 0);
 
-    SRAMW_writeByte(INST_LOOKUP_TABLE_ADDR + id, INST_SENTINEL_MODIFIED);
-    SRAMW_writeWord(INST_MOD_COUNT_ADDR, modCount + 1);
+    SRAMW_writeByte(matrixBlockEnd + 2 + id, INST_SENTINEL_MODIFIED);
+    SRAMW_writeWord(matrixBlockEnd, modCount + 1);
     RecalcAllAddrs();
 }
 
@@ -5302,14 +5308,14 @@ void assimilateInstrument(u8 id)
 // ============================================================
 void SRAM_ResetInstrumentToPreset(u8 id, u8 preset)
 {
-    if (SRAMW_readByte(INST_LOOKUP_TABLE_ADDR + id) == INST_SENTINEL_MODIFIED && instDataAddr[id] != 0)
+    if (SRAMW_readByte(matrixBlockEnd + 2 + id) == INST_SENTINEL_MODIFIED && instDataAddr[id] != 0)
     {
-        u16 oldModCount = SRAMW_readWord(INST_MOD_COUNT_ADDR);
+        u16 oldModCount = SRAMW_readWord(matrixBlockEnd);
         u32 delAddr = instDataAddr[id];
 
         // Shift remaining instrument compact records backward
         u32 tailStart = delAddr + INST_RECORD_SIZE;
-        u32 tailEnd = INST_COMPACT_START + oldModCount * INST_RECORD_SIZE;
+        u32 tailEnd = matrixBlockEnd + 258 + oldModCount * INST_RECORD_SIZE;
         for (u32 i = 0; i < tailEnd - tailStart; i++)
             SRAMW_writeByte(delAddr + i, SRAMW_readByte(tailStart + i));
 
@@ -5320,10 +5326,10 @@ void SRAM_ResetInstrumentToPreset(u8 id, u8 preset)
         for (u32 i = 0; i < dataTailLen; i++)
             SRAMW_writeByte(instBlockEnd - INST_RECORD_SIZE + i, SRAMW_readByte(instBlockEnd + i));
 
-        SRAMW_writeWord(INST_MOD_COUNT_ADDR, oldModCount - 1);
+        SRAMW_writeWord(matrixBlockEnd, oldModCount - 1);
     }
 
-    SRAMW_writeByte(INST_LOOKUP_TABLE_ADDR + id, preset);
+    SRAMW_writeByte(matrixBlockEnd + 2 + id, preset);
     instDataAddr[id] = 0;
     RecalcAllAddrs();
 }
@@ -5482,6 +5488,107 @@ void LoadSeqEditBuffer(u8 id)
         seqEditBuffer[SEQ_STEPS + s] = SRAM_ReadSEQ_ARP(id, s);
     }
     seqEditID = id;
+}
+
+// ============================================================
+// Matrix compact block — channel-bitmap format.
+// 250 rows x (u16 bitmap + u16 values per set bit in channel order).
+// matrixCells[] is the runtime buffer; SRAM is only touched on
+// load (Matrix_LoadFromSRAM) and on editor-exit (Matrix_CommitToSRAM).
+// ============================================================
+void Matrix_LoadFromSRAM()
+{
+    memset(matrixCells, 0, sizeof(matrixCells));
+    u32 ptr = MATRIX_BLOCK_BASE;
+    for (u16 row = 0; row < MATRIX_ROWS; row++)
+    {
+        u16 bitmap = SRAMW_readWord(ptr); ptr += 2;
+        if (bitmap == 0) continue;
+        for (u8 ch = 0; ch < CHANNELS_TOTAL; ch++)
+        {
+            if (bitmap & (1u << ch))
+            {
+                matrixCells[(u16)ch * MATRIX_ROWS + row] = SRAMW_readWord(ptr);
+                ptr += 2;
+            }
+        }
+    }
+    matrixBlockEnd = ptr;
+    matrixDirty = 0;
+}
+
+void Matrix_CommitToSRAM()
+{
+    if (!matrixDirty) return;
+
+    u32 oldBlockEnd = matrixBlockEnd;
+
+    // First pass: compute new block size
+    u32 newSize = 0;
+    for (u16 row = 0; row < MATRIX_ROWS; row++)
+    {
+        newSize += 2;  // bitmap
+        for (u8 ch = 0; ch < CHANNELS_TOTAL; ch++)
+        {
+            if (matrixCells[(u16)ch * MATRIX_ROWS + row] != 0)
+                newSize += 2;
+        }
+    }
+    u32 newBlockEnd = MATRIX_BLOCK_BASE + newSize;
+    s32 delta = (s32)newBlockEnd - (s32)oldBlockEnd;
+
+    // Tail-shift everything after matrix block (INST + SEQ + patterns)
+    if (delta != 0)
+    {
+        u32 regionSize = SRAMW_readWord(patternRegionBase + 4);
+        u32 tailEnd = patternRegionBase + regionSize;
+        u32 tailLen = tailEnd - oldBlockEnd;
+
+        if (delta > 0)
+        {
+            // Growing: shift tail forward first, then write matrix
+            for (s32 i = (s32)tailLen - 1; i >= 0; i--)
+                SRAMW_writeByte(newBlockEnd + i, SRAMW_readByte(oldBlockEnd + i));
+        }
+        // else shrinking: write matrix first (it fits), then shift tail backward
+    }
+
+    // Write compact block
+    u32 ptr = MATRIX_BLOCK_BASE;
+    u16 tmp[CHANNELS_TOTAL];
+    for (u16 row = 0; row < MATRIX_ROWS; row++)
+    {
+        u16 bitmap = 0;
+        u8 count = 0;
+        for (u8 ch = 0; ch < CHANNELS_TOTAL; ch++)
+        {
+            u16 val = matrixCells[(u16)ch * MATRIX_ROWS + row];
+            if (val != 0)
+            {
+                bitmap |= (1u << ch);
+                tmp[count++] = val;
+            }
+        }
+        SRAMW_writeWord(ptr, bitmap); ptr += 2;
+        for (u8 i = 0; i < count; i++)
+        {
+            SRAMW_writeWord(ptr, tmp[i]); ptr += 2;
+        }
+    }
+
+    if (delta < 0)
+    {
+        // Shrinking: shift tail backward
+        u32 regionSize = SRAMW_readWord(patternRegionBase + 4);
+        u32 tailEnd = patternRegionBase + regionSize;
+        u32 tailLen = tailEnd - oldBlockEnd;
+        for (u32 i = 0; i < tailLen; i++)
+            SRAMW_writeByte(newBlockEnd + i, SRAMW_readByte(oldBlockEnd + i));
+    }
+
+    matrixBlockEnd = newBlockEnd;
+    matrixDirty = 0;
+    RecalcAllAddrs();
 }
 
 // pattern - new event-based format
@@ -5799,29 +5906,6 @@ void SRAM_WritePatternColor(u16 id, u8 color) {
     SRAMW_writeWord(offset, (raw & 0x3FF) | ((u16)(color & 0x3F) << 10));
 }
 
-u16 SRAM_ReadMatrix(u8 channel, u8 line) { return SRAMW_readWord((u32)SRAM_PATTERN_MATRIX + ((channel * MATRIX_ROWS) + line) * 2); }
-void SRAM_WriteMatrix(u8 channel, u8 line, u16 data) { SRAMW_writeWord((u32)SRAM_PATTERN_MATRIX + ((channel * MATRIX_ROWS) + line) * 2, data); }
-
-// Transpose is packed into upper 6 bits of combined pattern matrix cell.
-// Bits 0-9: pattern ID, Bits 10-15: transpose (signed 6-bit, -32..+31).
-static u8 transposeUnpack(u16 combined) {
-    u8 raw = (combined >> 10) & 0x3F;
-    return (raw >= 32) ? raw - 64 : raw;
-}
-static u16 transposePack(s8 transpose) {
-    return (u16)(transpose & 0x3F) << 10;
-}
-
-s8 SRAM_ReadMatrixTranspose(u8 channel, u8 line) { return (s8)transposeUnpack(SRAM_ReadMatrix(channel, line)); }
-void SRAM_WriteMatrixTranspose(u8 channel, u8 line, s8 transpose) {
-    u16 combined = SRAM_ReadMatrix(channel, line);
-    SRAM_WriteMatrix(channel, line, (combined & 0x3FF) | transposePack(transpose));
-}
-void SRAM_WritePatternID(u8 channel, u8 line, u16 patternID) {
-    u16 combined = SRAM_ReadMatrix(channel, line);
-    SRAM_WriteMatrix(channel, line, (combined & 0xFC00) | (patternID & 0x3FF));
-}
-
 // MUTE_CHANNEL is RAM-only (channelFlags[])
 u8 SRAM_ReadMatrixChannelEnabled(u8 channel) { return channelFlags[channel]; }
 void SRAM_WriteMatrixChannelEnabled(u8 channel, u8 state) { channelFlags[channel] = state; }
@@ -5963,42 +6047,46 @@ void InitTracker()
         SetBPM(DEFAULT_TEMPO);
         SRAMW_writeByte(SRAM_GLOBAL_LFO, 7);
 
-        // --- Block 2: Instruments ---
-        SRAMW_writeWord(INST_MOD_COUNT_ADDR, 0);
+        // --- Block 2: Matrix (compact, empty) ---
+        memset(matrixCells, 0, sizeof(matrixCells));
+        for (u16 row = 0; row < MATRIX_ROWS; row++)
+            SRAMW_writeWord(MATRIX_BLOCK_BASE + row * 2, 0);  // all bitmaps = 0
+        matrixBlockEnd = MATRIX_BLOCK_BASE + MATRIX_ROWS * 2;
+
+        // --- Block 3: Instruments ---
+        SRAMW_writeWord(matrixBlockEnd, 0);  // instModCount = 0
         for (u16 inst = 0; inst <= INSTRUMENTS_LAST; inst++)
-            SRAMW_writeByte(INST_LOOKUP_TABLE_ADDR + inst, 0);
+            SRAMW_writeByte(matrixBlockEnd + 2 + inst, 0);  // lookup table
 
-        // No name block or SEQ data — defaults are implicit
+        instBlockEnd = matrixBlockEnd + 258;  // modCount=0, no compact records
 
-        instBlockEnd = INST_COMPACT_START;  // modCount=0, no compact records
-
-        // --- Block 3: Sequencers ---
+        // --- Block 4: Sequencers ---
         SRAMW_writeWord(instBlockEnd, 0);  // seqModCount = 0
         for (u16 inst = 0; inst <= INSTRUMENTS_LAST; inst++)
             SRAMW_writeByte(instBlockEnd + 2 + inst, 0);
 
-        seqBlockEnd = instBlockEnd + 2 + INSTRUMENTS_TOTAL;  // = instBlockEnd + 258
+        seqBlockEnd = instBlockEnd + 2 + INSTRUMENTS_TOTAL;
         patternRegionBase = seqBlockEnd;
 
-        // --- Block 4: Patterns ---
+        // --- Block 5: Patterns ---
         SRAMW_writeWord(patternRegionBase, PATTERN_MAGIC);
         SRAMW_writeWord(patternRegionBase + 2, PATTERN_FORMAT_VERSION);
         SRAMW_writeWord(patternRegionBase + 4, 6);
 
-        // Matrix (static data continued)
+        // Initialize channelFlags
         for (u8 channel = CHANNEL_FM1; channel < CHANNELS_TOTAL; channel++)
         {
             channelFlags[channel] = TRUE;
             VDP_fillTileMapRect(BG_B, NULL, (channel * 3) + 1, 1, 2, 1);
-            for (u8 row = 0; row < MATRIX_ROWS; row++)
-                SRAM_WriteMatrix(channel, row, NULL);
         }
 
+        matrixDirty = 0;
         RecalcAllAddrs();
         FileWriteHeader();
     }
     else
     {
+        Matrix_LoadFromSRAM();
         RecalcAllAddrs();
         SetBPM(NULL);
     }

@@ -1,6 +1,7 @@
-\mdtracker_tools\2adpcm\stobin\bin\
-\mdtracker_tools\2adpcm\stobin\obj\
-\mdtracker_tools\editor\MDTracker.Editor\bin\
-\mdtracker_tools\editor\MDTracker.Editor\obj\
-*.o
-*.d
+test/
+
+mdtracker_tools/editor/MDTracker.Editor/
+mdtracker_tools/editor/MDTracker.Editor.7z
+
+mdtracker_tools/editor/mdtracker_editor_wx/build/.vs/
+mdtracker_tools/editor/mdtracker_editor_wx/build/vcpkg_installed/
