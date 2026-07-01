@@ -3143,10 +3143,8 @@ static void SetChannelVolume(u8 mtxCh)
 
             if (bWriteRegs)
             {
-                YM2612_writeRegBatchBegin();
                 YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, (u8)vol[2]);
                 YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)vol[3]);
-                YM2612_writeRegBatchEnd();
             }
             chInst[mtxCh].TL3 = (u8)vol[2];
             chInst[mtxCh].TL4 = (u8)vol[3];
@@ -3176,11 +3174,9 @@ static void SetChannelVolume(u8 mtxCh)
 
             if (bWriteRegs)
             {
-                YM2612_writeRegBatchBegin();
                 YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + ymCh, (u8)vol[1]);
                 YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, (u8)vol[2]);
                 YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)vol[3]);
-                YM2612_writeRegBatchEnd();
             }
             chInst[mtxCh].TL2 = (u8)vol[1];
             chInst[mtxCh].TL3 = (u8)vol[2];
@@ -3218,12 +3214,10 @@ static void SetChannelVolume(u8 mtxCh)
 
             if (bWriteRegs)
             {
-                YM2612_writeRegBatchBegin();
                 YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0 + ymCh, (u8)vol[0]);
                 YM2612_writeRegZ80(port, YM2612REG_OP2_TL_CH0 + ymCh, (u8)vol[1]);
                 YM2612_writeRegZ80(port, YM2612REG_OP3_TL_CH0 + ymCh, (u8)vol[2]);
                 YM2612_writeRegZ80(port, YM2612REG_OP4_TL_CH0 + ymCh, (u8)vol[3]);
-                YM2612_writeRegBatchEnd();
             }
             chInst[mtxCh].TL1 = (u8)vol[0];
             chInst[mtxCh].TL2 = (u8)vol[1];
@@ -3441,7 +3435,6 @@ static void SetPitchFM(u8 mtxCh, u8 note)
         part1 = ((noteOctave[(u8)key]) << 3) | (noteMicrotone_YM[noteFreqID[(u8)key]][(u8)channelFinalPitch[mtxCh]] >> 8);
         part2 = 0b0000000011111111 & noteMicrotone_YM[noteFreqID[(u8)key]][(u8)channelFinalPitch[mtxCh]];
 
-        YM2612_writeRegBatchBegin();
         switch (mtxCh)
         {
         case CHANNEL_FM1:
@@ -3583,7 +3576,6 @@ static void SetPitchFM(u8 mtxCh, u8 note)
             break;
             default: break;
         }
-        YM2612_writeRegBatchEnd();
     }
     else
     {
@@ -3971,7 +3963,6 @@ static void WriteYM2612(u8 mtxCh)
     switch (ymCh)
     {
     case 0:
-        YM2612_writeRegBatchBegin();
         YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH0, chInst[mtxCh].FB_ALG);
 
         YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH0, chInst[mtxCh].TL1);
@@ -4010,10 +4001,8 @@ static void WriteYM2612(u8 mtxCh)
         YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH0, chInst[mtxCh].SSGEG2);
         YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH0, chInst[mtxCh].SSGEG3);
         YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH0, chInst[mtxCh].SSGEG4);
-        YM2612_writeRegBatchEnd();
         break;
     case 1:
-        YM2612_writeRegBatchBegin();
         YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH1, chInst[mtxCh].FB_ALG);
 
         YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH1, chInst[mtxCh].TL1);
@@ -4052,10 +4041,8 @@ static void WriteYM2612(u8 mtxCh)
         YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH1, chInst[mtxCh].SSGEG2);
         YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH1, chInst[mtxCh].SSGEG3);
         YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH1, chInst[mtxCh].SSGEG4);
-        YM2612_writeRegBatchEnd();
         break;
     case 2:
-        YM2612_writeRegBatchBegin();
         YM2612_writeRegZ80(port, YM2612REG_FB_ALG_CH2, chInst[mtxCh].FB_ALG);
 
         YM2612_writeRegZ80(port, YM2612REG_OP1_TL_CH2, chInst[mtxCh].TL1);
@@ -4094,7 +4081,6 @@ static void WriteYM2612(u8 mtxCh)
         YM2612_writeRegZ80(port, YM2612REG_OP2_SSGEG_CH2, chInst[mtxCh].SSGEG2);
         YM2612_writeRegZ80(port, YM2612REG_OP3_SSGEG_CH2, chInst[mtxCh].SSGEG3);
         YM2612_writeRegZ80(port, YM2612REG_OP4_SSGEG_CH2, chInst[mtxCh].SSGEG4);
-        YM2612_writeRegBatchEnd();
         break;
     default: break;
     }
@@ -5911,25 +5897,12 @@ u8 SRAM_ReadMatrixChannelEnabled(u8 channel) { return channelFlags[channel]; }
 void SRAM_WriteMatrixChannelEnabled(u8 channel, u8 state) { channelFlags[channel] = state; }
 
 // other
-static u8 ym2612Z80BatchDepth = 0;
 
 void YM2612_writeRegZ80(u16 part, u8 reg, u8 data)
 {
-    if (!ym2612Z80BatchDepth) RequestZ80();
-    YM2612_writeReg(part, reg, data);
-    if (!ym2612Z80BatchDepth) ReleaseZ80();
-}
-
-void YM2612_writeRegBatchBegin()
-{
     RequestZ80();
-    ym2612Z80BatchDepth++;
-}
-
-void YM2612_writeRegBatchEnd()
-{
-    ym2612Z80BatchDepth--;
-    if (!ym2612Z80BatchDepth) ReleaseZ80();
+    YM2612_writeReg(part, reg, data);
+    ReleaseZ80();
 }
 
 void InitTracker()
@@ -6036,7 +6009,11 @@ void InitTracker()
     //ReColorsAndTranspose(); // need SRAM
 
     // Check if valid save file exists by reading header string (SRAM[0..5]) directly
+#if MDT_VERSION == MDT_VERSION_PRO_BLASTEM
+    for (u8 i = 0; i < 6; i++) str[i] = SRAM_readByte_Even(i);
+#elif MDT_VERSION == MDT_VERSION_EDMDV3
     for (u8 i = 0; i < 6; i++) str[i] = SRAM_readByte_Odd(i);
+#endif
 
     if (strcmp(str, MDT_HEADER) != 0)
     {
@@ -6194,8 +6171,13 @@ void FileWriteHeader()
 {
     for (u8 i = 0; i < 6; i++)
     {
+
+#if MDT_VERSION == MDT_VERSION_PRO_BLASTEM
+        SRAM_writeByte_Even(i, MDT_HEADER[i]); // write file version
+        SRAM_writeByte_Odd(i, 0); // clean spaces
+#elif MDT_VERSION == MDT_VERSION_EDMDV3
         SRAM_writeByte_Odd(i, MDT_HEADER[i]); // write file version
-        SRAM_writeByte(i, 0); // clean spaces
+#endif
     }
 }
 

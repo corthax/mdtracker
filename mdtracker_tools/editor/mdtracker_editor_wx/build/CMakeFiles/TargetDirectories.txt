@@ -1,3 +1,0 @@
-C:/GameDev/SEGA/project/mdtracker/mdtracker_editor_wx/build/CMakeFiles/mdtracker_editor_wx.dir
-C:/GameDev/SEGA/project/mdtracker/mdtracker_editor_wx/build/CMakeFiles/ALL_BUILD.dir
-C:/GameDev/SEGA/project/mdtracker/mdtracker_editor_wx/build/CMakeFiles/ZERO_CHECK.dir

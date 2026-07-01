@@ -17,6 +17,9 @@
 //Path to a program.
 CMAKE_AR:FILEPATH=C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/lib.exe
 
+//No help, variable specified on the command line.
+CMAKE_BUILD_TYPE:UNINITIALIZED=RelWithDebInfo
+
 //Semicolon separated list of supported configuration types, only
 // supports Debug, Release, MinSizeRel, and RelWithDebInfo, anything
 // else will be ignored.
@@ -206,7 +209,7 @@ VCPKG_INSTALLED_DIR:PATH=C:/GameDev/SEGA/project/mdtracker/build/vcpkg_installed
 VCPKG_INSTALL_OPTIONS:STRING=
 
 //The path to the vcpkg manifest directory.
-VCPKG_MANIFEST_DIR:PATH=C:/GameDev/SEGA/project/mdtracker/mdtracker_editor_wx
+VCPKG_MANIFEST_DIR:PATH=C:/GameDev/SEGA/project/mdtracker/mdtracker_tools/editor/mdtracker_editor_wx
 
 //Install the dependencies listed in your manifest:
 //\n    If this is off, you will have to manually install your dependencies.
@@ -222,7 +225,7 @@ VCPKG_MANIFEST_MODE:BOOL=ON
 VCPKG_OVERLAY_PORTS:STRING=
 
 //Overlay triplets to use for vcpkg install in manifest mode
-VCPKG_OVERLAY_TRIPLETS:STRING=C:\Users\Snowdrop\vcpkg\triplets\community
+VCPKG_OVERLAY_TRIPLETS:STRING=
 
 //Appends the vcpkg paths to CMAKE_PREFIX_PATH, CMAKE_LIBRARY_PATH
 // and CMAKE_FIND_ROOT_PATH so that vcpkg libraries/packages are
@@ -443,7 +446,7 @@ mdtracker_editor_wx_BINARY_DIR:STATIC=C:/GameDev/SEGA/project/mdtracker/build
 mdtracker_editor_wx_IS_TOP_LEVEL:STATIC=ON
 
 //Value Computed by CMake
-mdtracker_editor_wx_SOURCE_DIR:STATIC=C:/GameDev/SEGA/project/mdtracker/mdtracker_editor_wx
+mdtracker_editor_wx_SOURCE_DIR:STATIC=C:/GameDev/SEGA/project/mdtracker/mdtracker_tools/editor/mdtracker_editor_wx
 
 //The directory containing a CMake configuration file for nlohmann_json.
 nlohmann_json_DIR:PATH=C:/GameDev/SEGA/project/mdtracker/build/vcpkg_installed/x64-windows-policy/share/nlohmann_json
@@ -517,7 +520,7 @@ CMAKE_GENERATOR_PLATFORM:INTERNAL=
 CMAKE_GENERATOR_TOOLSET:INTERNAL=
 //Source directory with the top level CMakeLists.txt file for this
 // project
-CMAKE_HOME_DIRECTORY:INTERNAL=C:/GameDev/SEGA/project/mdtracker/mdtracker_editor_wx
+CMAKE_HOME_DIRECTORY:INTERNAL=C:/GameDev/SEGA/project/mdtracker/mdtracker_tools/editor/mdtracker_editor_wx
 //ADVANCED property for variable: CMAKE_LINKER
 CMAKE_LINKER-ADVANCED:INTERNAL=1
 //Name of CMakeLists files to read

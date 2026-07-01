@@ -2,7 +2,7 @@ out/src/main.o: src/main.c inc/genesis.h inc/types.h inc/config.h \
  inc/asm.h inc/sys.h inc/sram.h inc/mapper.h inc/memory.h \
  inc/memory_base.h inc/tools.h inc/bmp.h inc/maths.h inc/vdp.h inc/pal.h \
  inc/dma.h inc/vdp_tile.h inc/vdp_bg.h inc/map.h inc/pool.h inc/object.h \
- inc/font.h C:/GameDev/SEGA/sgdk/res/libres.h inc/string.h inc/tab_cnv.h \
+ inc/font.h C:/gamedev/sega/sgdk/res/libres.h inc/string.h inc/tab_cnv.h \
  inc/maths3D.h inc/vdp_spr.h inc/vdp_pal.h inc/vram.h inc/sprite_eng.h \
  inc/sprite_eng_legacy.h inc/z80_ctrl.h inc/ym2612.h inc/psg.h \
  inc/snd/sound.h inc/snd/xgm.h inc/snd/xgm2.h inc/snd/smp_null.h \

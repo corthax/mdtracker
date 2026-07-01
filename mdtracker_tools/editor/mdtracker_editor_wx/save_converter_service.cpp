@@ -2,6 +2,44 @@
 #include <algorithm>
 #include <cstring>
 
+SaveConverterService::SramFormat SaveConverterService::DetectFormat(const std::vector<u8>& data) {
+    if (data.size() == 65536 &&
+        data.size() >= 12 &&
+        data[1] == 'M' && data[3] == 'D' && data[5] == 'T' &&
+        data[7] == '1' && data[9] == '0' && data[11] == '5')
+        return SramFormat::Format8Bit;
+
+    if (data.size() == 524288 &&
+        data.size() >= 12 &&
+        data[0] == 'M' && data[2] == 'D' && data[4] == 'T' &&
+        data[6] == '1' && data[8] == '0' && data[10] == '5')
+        return SramFormat::Format16Bit;
+
+    return SramFormat::Unknown;
+}
+
+std::vector<u8> SaveConverterService::Convert16To8(const std::vector<u8>& input) {
+    constexpr int outSize = 65536;
+    const int limit = std::min(static_cast<int>(input.size()), outSize / 2);
+    std::vector<u8> output(outSize, 0);
+    for (int i = 0; i < 12 && i < limit; i += 2)
+        output[i + 1] = input[i];
+    for (int i = 12; i < limit; i++)
+        output[2 * i + 1] = input[i];
+    return output;
+}
+
+std::vector<u8> SaveConverterService::Convert8To16(const std::vector<u8>& input) {
+    constexpr int outSize = 524288;
+    std::vector<u8> output(outSize, 0);
+    const int limit = std::min(static_cast<int>(input.size()) / 2, outSize);
+    for (int i = 0; i < 12; i += 2)
+        output[i] = input[i + 1];
+    for (int i = 12; i < limit; i++)
+        output[i] = input[2 * i + 1];
+    return output;
+}
+
 std::unordered_set<int> SaveConverterService::ScanUsedInstruments(const std::vector<u8>& sram) {
     std::unordered_set<int> used;
     for (int p = 0; p < LegacySramLayout::PatternCount; p++) {
@@ -48,8 +86,6 @@ int SaveConverterService::WriteHeader(std::vector<u8>& output, int startPos) {
 }
 
 int SaveConverterService::LogicalToPhysical(int logicalPos) {
-    if (logicalPos >= 2 && (logicalPos & 1) != 0)
-        return logicalPos - 2;
     return logicalPos;
 }
 

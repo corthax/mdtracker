@@ -241,6 +241,7 @@ struct LegacySramLayout {
     static constexpr u8 NoteEmpty = 0xFE;
     static constexpr u8 NoteOff = 0xFF;
 
+    // Legacy 1.04 SRAM had byte-swapped odd offsets via old SRAMW_writeByte redirect
     static uint32_t WordSwapOffset(uint32_t offset) {
         if (offset < 2) return 0;
         if ((offset & 1) == 1) offset -= 2;
@@ -269,6 +270,6 @@ struct SramV05Layout {
 };
 
 struct AppSettings {
-    int sampleSettingsAddr = 0x0003E500;
-    int sampleBankAddr = 0x00040F00;
+    int sampleSettingsAddr = 0x0003C600;
+    int sampleBankAddr = 0x0003F000;
 };

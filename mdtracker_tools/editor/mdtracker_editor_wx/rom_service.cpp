@@ -29,8 +29,9 @@ void RomService::PopulateBanks(std::vector<SampleBank>& banks) {
         int rawEnd = Read32(offset + 6);
         if (rawStart >= static_cast<int>(romData.size()) || rawEnd >= static_cast<int>(romData.size()))
             continue;
-        slot.startOffset = rawStart;
-        slot.endOffset = rawEnd;
+        // Firmware stores offsets relative to sample_bank_1; convert to absolute ROM address
+        slot.startOffset = rawStart + settings->SampleBankAddr();
+        slot.endOffset = rawEnd + settings->SampleBankAddr();
         int rawPan = romData[offset + 10];
         slot.pan = (rawPan == 128 || rawPan == 64) ? rawPan : 192;
         slot.looped = romData[offset + 11] == 1;
@@ -51,8 +52,9 @@ void RomService::WriteBanks(const std::vector<SampleBank>& banks) {
         int offset = baseAddr + i * RomConstants::SampleSettingsEntrySize;
         romData[offset] = static_cast<u8>(slot.bankId);
         romData[offset + 1] = static_cast<u8>(slot.noteId);
-        Write32(offset + 2, slot.startOffset);
-        Write32(offset + 6, slot.endOffset);
+        // Firmware expects offsets relative to sample_bank_1
+        Write32(offset + 2, slot.startOffset - settings->SampleBankAddr());
+        Write32(offset + 6, slot.endOffset - settings->SampleBankAddr());
         romData[offset + 10] = static_cast<u8>(slot.pan);
         romData[offset + 11] = slot.looped ? u8(1) : u8(0);
         romData[offset + 12] = static_cast<u8>(slot.rate);
@@ -82,8 +84,8 @@ void RomService::WriteSampleBank(const std::vector<SampleFile>& pool, std::vecto
         for (auto& slot : bank.slots)
             if (slot.samplePoolId >= 0 && slot.samplePoolId < static_cast<int>(pool.size())) {
                 const auto& f = pool[slot.samplePoolId];
-                slot.startOffset = static_cast<int>(f.startOffset);
-                slot.endOffset = static_cast<int>(f.endOffset);
+                slot.startOffset = bankAddr + static_cast<int>(f.startOffset);
+                slot.endOffset = bankAddr + static_cast<int>(f.endOffset);
             }
 
     WriteBanks(banks);

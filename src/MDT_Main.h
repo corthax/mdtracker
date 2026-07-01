@@ -196,8 +196,6 @@ void DrawHex(u8 pal, u8 number, u8 x, u8 y);
 void DrawHex2(u8 pal, u16 number, u8 x, u8 y);
 void FillRowRight(u8 plane, u8 pal, u8 flipV, u8 flipH, u8 guiSymbol, u8 fillCount, u8 startX, u8 y);
 
-void YM2612_writeRegBatchBegin();
-void YM2612_writeRegBatchEnd();
 void CalculateCombined(u8 mtxCh, u8 reg);
 void ForceResetVariables();
 

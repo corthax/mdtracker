@@ -15,6 +15,7 @@ class SampleBankPanel : public wxPanel {
 public:
     SampleBankPanel(wxWindow* parent, MainFrame* mainFrame);
     void RefreshBanks(const std::vector<SampleBank>& banks);
+    std::vector<SampleBank>& GetBanks() { return currentBanks; }
     void RefreshPool();
 
 private:

@@ -1,9 +1,0 @@
-﻿  instrument_editor_panel.cpp
-  main.cpp
-  main_frame.cpp
-  sample_bank_panel.cpp
-  sample_converter_panel.cpp
-  save_converter_panel.cpp
-  settings_panel.cpp
-  Generating Code...
-  mdtracker_editor_wx.vcxproj -> C:\GameDev\SEGA\project\mdtracker\mdtracker_editor_wx\build\Debug\mdtracker_editor_wx.exe

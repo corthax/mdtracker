@@ -90,7 +90,7 @@ void MainFrame::OnOpenRom(wxCommandEvent&) {
 
 void MainFrame::OnSaveRom(wxCommandEvent&) {
     if (!romService->IsLoaded()) return;
-    romService->WriteSampleBank(samplePool, banks);
+    romService->WriteSampleBank(samplePool, sampleBankPanel->GetBanks());
     romService->Save();
     statusBar->SetStatusText("Saved: " + wxString(romService->RomPath()));
 }
@@ -103,7 +103,7 @@ void MainFrame::OnSaveRomAs(wxCommandEvent&) {
         wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
     if (dlg.ShowModal() == wxID_CANCEL) return;
-    romService->WriteSampleBank(samplePool, banks);
+    romService->WriteSampleBank(samplePool, sampleBankPanel->GetBanks());
     romService->Save(dlg.GetPath().ToStdString());
     statusBar->SetStatusText("Saved: " + dlg.GetPath());
 }

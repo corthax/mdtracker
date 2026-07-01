@@ -143,6 +143,7 @@ SampleBankPanel::SampleBankPanel(wxWindow* parent, MainFrame* frame)
     grid->SetRowLabelSize(0);
     grid->SetGridLineColour(*wxLIGHT_GREY);
     grid->EnableEditing(true);
+    grid->DisableDragRowSize();
 
     splitBox->Add(grid, 1, wxEXPAND);
 
@@ -161,8 +162,11 @@ SampleBankPanel::SampleBankPanel(wxWindow* parent, MainFrame* frame)
 void SampleBankPanel::WriteSlotToGrid(int row, const SampleSlot& slot) {
     grid->SetCellValue(row, COL_SYNC, slot.isSynced ? "(S)" : "S");
     grid->SetCellValue(row, COL_NOTE, slot.NoteName());
-    grid->SetCellValue(row, COL_START, wxString::Format("%d", slot.startOffset));
-    grid->SetCellValue(row, COL_END, wxString::Format("%d", slot.endOffset));
+    int bankBase = mainFrame->GetSettingsService()->SampleBankAddr();
+    int startRel = (slot.startOffset >= bankBase) ? slot.startOffset - bankBase : 0;
+    int endRel = (slot.endOffset >= bankBase) ? slot.endOffset - bankBase : 0;
+    grid->SetCellValue(row, COL_START, wxString::Format("%d", startRel));
+    grid->SetCellValue(row, COL_END, wxString::Format("%d", endRel));
 
     int panIdx = (slot.pan == 128) ? 0 : (slot.pan == 192) ? 1 : 2;
     grid->SetCellValue(row, COL_PAN, SampleSlot::PanLabels[panIdx]);
@@ -170,7 +174,7 @@ void SampleBankPanel::WriteSlotToGrid(int row, const SampleSlot& slot) {
     int rateIdx = (slot.rate >= 0 && slot.rate < 6) ? slot.rate : 0;
     grid->SetCellValue(row, COL_RATE, SampleSlot::RateLabels[rateIdx]);
 
-    grid->SetCellValue(row, COL_LOOP, slot.looped ? "1" : "0");
+    grid->SetCellValue(row, COL_LOOP, slot.looped ? "1" : "");
     grid->SetCellValue(row, COL_NAME, wxString(slot.name));
 }
 
@@ -221,12 +225,13 @@ void SampleBankPanel::OnGridCellChanged(wxGridEvent& event) {
     if (row < 0 || row >= 96) return;
     auto& slot = currentBanks[selBank].slots[row];
 
+    int bankBase = mainFrame->GetSettingsService()->SampleBankAddr();
     switch (col) {
         case COL_START:
-            slot.startOffset = wxAtoi(grid->GetCellValue(row, col));
+            slot.startOffset = bankBase + wxAtoi(grid->GetCellValue(row, col));
             break;
         case COL_END:
-            slot.endOffset = wxAtoi(grid->GetCellValue(row, col));
+            slot.endOffset = bankBase + wxAtoi(grid->GetCellValue(row, col));
             break;
         case COL_PAN: {
             wxString val = grid->GetCellValue(row, col);
@@ -253,9 +258,23 @@ void SampleBankPanel::OnGridCellChanged(wxGridEvent& event) {
 }
 
 void SampleBankPanel::OnGridCellLeftClick(wxGridEvent& event) {
-    if (event.GetCol() == COL_SYNC)
+    int col = event.GetCol();
+    if (col == COL_SYNC) {
         SyncSlotFromPool(event.GetRow());
-    event.Skip();
+        event.Skip();
+    } else if (col == COL_PAN || col == COL_RATE) {
+        event.Skip();
+        CallAfter([this]() { grid->EnableCellEditControl(true); });
+    } else if (col == COL_LOOP) {
+        int selBank = bankChoice->GetSelection();
+        if (selBank >= 0) {
+            auto& slot = currentBanks[selBank].slots[event.GetRow()];
+            slot.looped = !slot.looped;
+            WriteSlotToGrid(event.GetRow(), slot);
+        }
+    } else {
+        event.Skip();
+    }
 }
 
 void SampleBankPanel::SyncSlotFromPool(int slotIndex) {
@@ -276,8 +295,8 @@ void SampleBankPanel::SyncSlotFromPool(int slotIndex) {
     slot.samplePoolId = sf.id;
     slot.isSynced = true;
     slot.name = sf.shortName;
-    slot.startOffset = static_cast<int>(sf.startOffset);
-    slot.endOffset = static_cast<int>(sf.endOffset);
+    slot.startOffset = mainFrame->GetSettingsService()->SampleBankAddr() + static_cast<int>(sf.startOffset);
+    slot.endOffset = mainFrame->GetSettingsService()->SampleBankAddr() + static_cast<int>(sf.endOffset);
 
     WriteSlotToGrid(slotIndex, slot);
 }
@@ -337,8 +356,8 @@ void SampleBankPanel::OnAssignSamples(wxCommandEvent&) {
         slot.samplePoolId = sf.id;
         slot.isSynced = true;
         slot.name = sf.shortName;
-        slot.startOffset = static_cast<int>(sf.startOffset);
-        slot.endOffset = static_cast<int>(sf.endOffset);
+        slot.startOffset = mainFrame->GetSettingsService()->SampleBankAddr() + static_cast<int>(sf.startOffset);
+        slot.endOffset = mainFrame->GetSettingsService()->SampleBankAddr() + static_cast<int>(sf.endOffset);
         WriteSlotToGrid(i, slot);
     }
 }

@@ -39,6 +39,8 @@ SettingsPanel::SettingsPanel(wxWindow* parent, MainFrame* frame)
     SetSizer(outer);
 
     saveBtn->Bind(wxEVT_BUTTON, &SettingsPanel::OnSaveSettings, this);
+
+    RefreshSettings(mainFrame->GetSettingsService()->settings);
 }
 
 void SettingsPanel::RefreshSettings(const AppSettings& settings) {

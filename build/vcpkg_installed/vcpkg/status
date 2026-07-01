@@ -22,6 +22,15 @@ Abi: 41455a16ffdde6970847f2b67a23fae3dcb3055fb20a5f925e3390e99ecd61e3
 Description: JSON for Modern C++
 Status: install ok installed
 
+Package: wavpack
+Version: 5.7.0
+Depends: vcpkg-cmake:x64-windows, vcpkg-cmake-config:x64-windows
+Architecture: x64-windows-policy
+Multi-Arch: same
+Abi: 21a08cfb25634198c80e23f8dc6cb7aa6bce215c7f6fb689872a3a6b50642eec
+Description: WavPack encode/decode library, command-line programs, and several plugins
+Status: install ok installed
+
 Package: zlib
 Version: 1.3.1
 Depends: vcpkg-cmake:x64-windows
@@ -187,14 +196,5 @@ Feature: sound
 Architecture: x64-windows-policy
 Multi-Arch: same
 Description: Build wxSound support
-Status: install ok installed
-
-Package: wavpack
-Version: 5.7.0
-Depends: vcpkg-cmake:x64-windows, vcpkg-cmake-config:x64-windows
-Architecture: x64-windows-policy
-Multi-Arch: same
-Abi: 21a08cfb25634198c80e23f8dc6cb7aa6bce215c7f6fb689872a3a6b50642eec
-Description: WavPack encode/decode library, command-line programs, and several plugins
 Status: install ok installed
 

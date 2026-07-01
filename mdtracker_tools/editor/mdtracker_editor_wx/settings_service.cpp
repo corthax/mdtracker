@@ -25,8 +25,8 @@ void SettingsService::Load() {
     try {
         json j;
         f >> j;
-        settings.sampleSettingsAddr = j.value("SampleSettingsAddr", 0x0003E500);
-        settings.sampleBankAddr = j.value("SampleBankAddr", 0x00040F00);
+        settings.sampleSettingsAddr = j.value("SampleSettingsAddr", 0x0003C600);
+        settings.sampleBankAddr = j.value("SampleBankAddr", 0x0003F000);
     } catch (...) {}
 }
 

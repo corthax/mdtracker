@@ -1,6 +1,6 @@
-^C:\GAMEDEV\SEGA\PROJECT\MDTRACKER\MDTRACKER_EDITOR_WX\CMAKELISTS.TXT
+^C:\GAMEDEV\SEGA\PROJECT\MDTRACKER\MDTRACKER_TOOLS\EDITOR\MDTRACKER_EDITOR_WX\CMAKELISTS.TXT
 setlocal
-"C:\Program Files\CMake\bin\cmake.exe" -SC:/GameDev/SEGA/project/mdtracker/mdtracker_editor_wx -BC:/GameDev/SEGA/project/mdtracker/build --check-stamp-file C:/GameDev/SEGA/project/mdtracker/build/CMakeFiles/generate.stamp
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/GameDev/SEGA/project/mdtracker/mdtracker_tools/editor/mdtracker_editor_wx -BC:/GameDev/SEGA/project/mdtracker/build --check-stamp-file C:/GameDev/SEGA/project/mdtracker/build/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone

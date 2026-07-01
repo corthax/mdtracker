@@ -11,8 +11,8 @@ C:/GameDev/SEGA/project/mdtracker/build/vcpkg_installed/x64-windows-policy/share
 C:/GameDev/SEGA/project/mdtracker/build/vcpkg_installed/x64-windows-policy/share/wavpack/wavpack-targets-release.cmake
 C:/GameDev/SEGA/project/mdtracker/build/vcpkg_installed/x64-windows-policy/share/wavpack/wavpack-targets.cmake
 C:/GameDev/SEGA/project/mdtracker/build/vcpkg_installed/x64-windows-policy/share/wxwidgets/vcpkg-cmake-wrapper.cmake
-C:/GameDev/SEGA/project/mdtracker/mdtracker_editor_wx/CMakeLists.txt
-C:/GameDev/SEGA/project/mdtracker/mdtracker_editor_wx/vcpkg.json
+C:/GameDev/SEGA/project/mdtracker/mdtracker_tools/editor/mdtracker_editor_wx/CMakeLists.txt
+C:/GameDev/SEGA/project/mdtracker/mdtracker_tools/editor/mdtracker_editor_wx/vcpkg.json
 C:/Program Files/CMake/share/cmake-4.3/Modules/CMakeCXXCompiler.cmake.in
 C:/Program Files/CMake/share/cmake-4.3/Modules/CMakeCXXCompilerABI.cpp
 C:/Program Files/CMake/share/cmake-4.3/Modules/CMakeCXXInformation.cmake

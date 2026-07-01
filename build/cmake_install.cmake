@@ -1,4 +1,4 @@
-# Install script for directory: C:/GameDev/SEGA/project/mdtracker/mdtracker_editor_wx
+# Install script for directory: C:/GameDev/SEGA/project/mdtracker/mdtracker_tools/editor/mdtracker_editor_wx
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

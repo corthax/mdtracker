@@ -5,7 +5,13 @@
 
 class SaveConverterService {
 public:
+    enum class SramFormat { Unknown, Format16Bit, Format8Bit };
+
     static constexpr long long OutputSizes[] = {65536, 131072, 262144, 524288};
+
+    static SramFormat DetectFormat(const std::vector<u8>& data);
+    static std::vector<u8> Convert16To8(const std::vector<u8>& input);
+    static std::vector<u8> Convert8To16(const std::vector<u8>& input);
 
     static std::unordered_set<int> ScanUsedInstruments(const std::vector<u8>& sram);
     static std::vector<u8> Convert(const std::vector<u8>& sram, long long outputSize);
