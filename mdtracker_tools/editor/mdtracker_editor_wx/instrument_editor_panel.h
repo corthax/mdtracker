@@ -3,6 +3,7 @@
 #include <wx/spinctrl.h>
 #include <wx/stattext.h>
 #include <wx/choice.h>
+#include <wx/textctrl.h>
 #include "models.h"
 
 class MainFrame;
@@ -19,11 +20,14 @@ private:
     void OnParamChanged(wxSpinEvent& event);
     void OnReadFromRom(wxCommandEvent& event);
     void OnWriteToRom(wxCommandEvent& event);
+    void OnImport(wxCommandEvent& event);
+    void OnExport(wxCommandEvent& event);
 
     MainFrame* mainFrame;
     int currentPreset = 0;
 
     wxSpinCtrl* presetIndexCtrl;
+    wxTextCtrl* nameCtrl;
     wxSpinCtrl* algorithmCtrl;
     wxSpinCtrl* feedbackCtrl;
     wxSpinCtrl* stereoCtrl;

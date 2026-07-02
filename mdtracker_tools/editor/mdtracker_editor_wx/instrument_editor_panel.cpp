@@ -1,10 +1,15 @@
 #include "instrument_editor_panel.h"
 #include "main_frame.h"
 #include "rom_service.h"
+#include "tfi_parser.h"
+#include "vgi_parser.h"
 #include <wx/button.h>
 #include <wx/statbox.h>
 #include <wx/sizer.h>
 #include <wx/msgdlg.h>
+#include <wx/filedlg.h>
+#include <wx/filename.h>
+#include <fstream>
 
 wxBEGIN_EVENT_TABLE(InstrumentEditorPanel, wxPanel)
     EVT_SPINCTRL(wxID_ANY, InstrumentEditorPanel::OnParamChanged)
@@ -42,14 +47,26 @@ InstrumentEditorPanel::InstrumentEditorPanel(wxWindow* parent, MainFrame* frame)
     presetIndexCtrl->SetRange(0, 255);
     topRow->Add(presetIndexCtrl, 0, wxRIGHT, 8);
 
+    topRow->Add(new wxStaticText(this, wxID_ANY, "Name:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+    nameCtrl = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(130, -1));
+    nameCtrl->SetMaxLength(13);
+    topRow->Add(nameCtrl, 0, wxRIGHT, 8);
+
     auto* readBtn = new wxButton(this, wxID_ANY, "Read from ROM");
     auto* writeBtn = new wxButton(this, wxID_ANY, "Write to ROM");
     topRow->Add(readBtn, 0, wxRIGHT, 4);
-    topRow->Add(writeBtn, 0);
+    topRow->Add(writeBtn, 0, wxRIGHT, 8);
+
+    auto* importBtn = new wxButton(this, wxID_ANY, "Import");
+    auto* exportBtn = new wxButton(this, wxID_ANY, "Export");
+    topRow->Add(importBtn, 0, wxRIGHT, 4);
+    topRow->Add(exportBtn, 0);
     outer->Add(topRow, 0, wxALL, 8);
 
     readBtn->Bind(wxEVT_BUTTON, &InstrumentEditorPanel::OnReadFromRom, this);
     writeBtn->Bind(wxEVT_BUTTON, &InstrumentEditorPanel::OnWriteToRom, this);
+    importBtn->Bind(wxEVT_BUTTON, &InstrumentEditorPanel::OnImport, this);
+    exportBtn->Bind(wxEVT_BUTTON, &InstrumentEditorPanel::OnExport, this);
     presetIndexCtrl->Bind(wxEVT_SPINCTRL, &InstrumentEditorPanel::OnPresetIndexChanged, this);
 
     auto* paramsSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -100,6 +117,7 @@ void InstrumentEditorPanel::LoadPreset(int index) {
 
 void InstrumentEditorPanel::RefreshFromModel(const InstrumentPreset& preset) {
     updating = true;
+    nameCtrl->SetValue(preset.name);
     algorithmCtrl->SetValue(preset.algorithm);
     feedbackCtrl->SetValue(preset.feedback);
     stereoCtrl->SetValue(preset.stereo);
@@ -147,6 +165,7 @@ void InstrumentEditorPanel::OnWriteToRom(wxCommandEvent&) {
 
     InstrumentPreset preset;
     preset.id = currentPreset;
+    preset.name = nameCtrl->GetValue().ToStdString();
     preset.algorithm = algorithmCtrl->GetValue();
     preset.feedback = feedbackCtrl->GetValue();
     preset.stereo = stereoCtrl->GetValue();
@@ -170,4 +189,91 @@ void InstrumentEditorPanel::OnWriteToRom(wxCommandEvent&) {
 
     mainFrame->GetRomService()->WritePreset(currentPreset, preset);
     mainFrame->GetSettingsService()->Save();
+}
+
+void InstrumentEditorPanel::OnImport(wxCommandEvent&) {
+    if (!mainFrame->GetRomService()->IsLoaded()) {
+        wxMessageBox("No ROM loaded.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    wxFileDialog dlg(this, "Import Instrument", "", "",
+        "Instrument files (*.tfi;*.vgi)|*.tfi;*.vgi",
+        wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    if (dlg.ShowModal() == wxID_CANCEL) return;
+
+    std::ifstream f(dlg.GetPath().ToStdString(), std::ios::binary | std::ios::ate);
+    if (!f.is_open()) {
+        wxMessageBox("Failed to open file.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    std::streamsize size = f.tellg();
+    f.seekg(0, std::ios::beg);
+    std::vector<u8> buf(static_cast<size_t>(size));
+    if (!f.read(reinterpret_cast<char*>(buf.data()), size)) {
+        wxMessageBox("Failed to read file.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    InstrumentPreset preset;
+    wxString path = dlg.GetPath();
+    if (path.Lower().EndsWith(".tfi") && size == TfiParser::FileSize)
+        preset = TfiParser::Parse(buf.data(), buf.size());
+    else if (path.Lower().EndsWith(".vgi") && size == VgiParser::FileSize)
+        preset = VgiParser::Parse(buf.data(), buf.size());
+    else {
+        wxMessageBox("Unrecognized or invalid instrument file.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    wxFileName fn(dlg.GetPath());
+    wxString name = fn.GetName();
+    if (name.Length() > 13) name = name.Left(13);
+    preset.name = name.ToStdString();
+
+    RefreshFromModel(preset);
+}
+
+void InstrumentEditorPanel::OnExport(wxCommandEvent&) {
+    wxFileDialog dlg(this, "Export Instrument", "", "",
+        "TFI files (*.tfi)|*.tfi|VGI files (*.vgi)|*.vgi",
+        wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+    if (dlg.ShowModal() == wxID_CANCEL) return;
+
+    InstrumentPreset preset;
+    preset.name = nameCtrl->GetValue().ToStdString();
+    preset.algorithm = algorithmCtrl->GetValue();
+    preset.feedback = feedbackCtrl->GetValue();
+    preset.stereo = stereoCtrl->GetValue();
+    preset.ams = amsCtrl->GetValue();
+    preset.fms = fmsCtrl->GetValue();
+
+    for (int op = 0; op < 4; op++) {
+        auto& p = preset.operators[op];
+        p.multiple = opControls[op].multiple->GetValue();
+        p.detune = opControls[op].detune->GetValue();
+        p.totalLevel = opControls[op].totalLevel->GetValue();
+        p.rateScaling = opControls[op].rateScaling->GetValue();
+        p.attackRate = opControls[op].attackRate->GetValue();
+        p.firstDecayRate = opControls[op].firstDecayRate->GetValue();
+        p.secondaryDecayRate = opControls[op].secondaryDecayRate->GetValue();
+        p.releaseRate = opControls[op].releaseRate->GetValue();
+        p.secondaryAmplitude = opControls[op].secondaryAmplitude->GetValue();
+        p.amplitudeModulation = opControls[op].amplitudeModulation->GetValue();
+        p.ssgEg = opControls[op].ssgEg->GetValue();
+    }
+
+    std::vector<u8> data;
+    wxString path = dlg.GetPath();
+    if (path.Lower().EndsWith(".tfi"))
+        data = TfiParser::Serialize(preset);
+    else if (path.Lower().EndsWith(".vgi"))
+        data = VgiParser::Serialize(preset);
+    else
+        return;
+
+    std::ofstream f(path.ToStdString(), std::ios::binary);
+    if (f.is_open())
+        f.write(reinterpret_cast<const char*>(data.data()), data.size());
 }

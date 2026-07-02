@@ -14,5 +14,5 @@ out/src/main.o: src/main.c inc/genesis.h inc/types.h inc/config.h \
  src/MDT_Main.h src/MDT_SRAM.h src/MDT_Chips.h src/MDT_NoteTables.h \
  src/MDT_ModuleData.h src/MDT_GUI.h src/MDT_PCM.h \
  src/MDT_SampleSettings.h src/MDT_Info.h src/MDT_Presets.h \
- src/MDT_Version.h src/midi/comm_midi.h src/midi/midi_rx.h \
- src/midi/midi_sync.h
+ res/preset_names.h src/MDT_Version.h src/midi/comm_midi.h \
+ src/midi/midi_rx.h src/midi/midi_sync.h

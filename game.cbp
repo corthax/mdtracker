@@ -80,6 +80,7 @@
 		<Unit filename="inc/z80_vgm.h" />
 		<Unit filename="res/fontdata.res" />
 		<Unit filename="res/graphics.res" />
+		<Unit filename="res/preset_names.res" />
 		<Unit filename="res/samples.res" />
 		<Unit filename="src/MDT_Chips.h" />
 		<Unit filename="src/MDT_GUI.c">

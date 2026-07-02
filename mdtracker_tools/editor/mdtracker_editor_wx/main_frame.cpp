@@ -12,8 +12,9 @@ wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
 wxEND_EVENT_TABLE()
 
 MainFrame::MainFrame()
-    : wxFrame(nullptr, wxID_ANY, "MDTracker Editor (wx)", wxDefaultPosition, wxSize(960, 720))
+    : wxFrame(nullptr, wxID_ANY, "MD.Tracker Editor", wxDefaultPosition, wxSize(960, 720))
     , settingsService(std::make_unique<SettingsService>())
+    , romService(std::make_unique<RomService>(settingsService.get()))
     , banks(SampleBank::CreateAll())
 {
     wxMenu* fileMenu = new wxMenu;
@@ -39,8 +40,8 @@ MainFrame::MainFrame()
     saveConverterPanel = new SaveConverterPanel(notebook, this);
     settingsPanel = new SettingsPanel(notebook, this);
 
-    notebook->AddPage(instrumentPanel, "Instrument Editor");
-    notebook->AddPage(sampleBankPanel, "Sample Bank");
+    notebook->AddPage(sampleBankPanel, "Sample Bank Editor");
+    notebook->AddPage(instrumentPanel, "Instrument Preset Editor");
     notebook->AddPage(sampleConverterPanel, "Sample Converter");
     notebook->AddPage(saveConverterPanel, "Save Converter");
     notebook->AddPage(settingsPanel, "Settings");
@@ -54,8 +55,6 @@ MainFrame::MainFrame()
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     sizer->Add(notebook, 1, wxEXPAND);
     SetSizer(sizer);
-
-    romService = std::make_unique<RomService>(settingsService.get());
 }
 
 MainFrame::~MainFrame() {
@@ -113,8 +112,8 @@ void MainFrame::OnQuit(wxCommandEvent&) {
 }
 
 void MainFrame::OnAbout(wxCommandEvent&) {
-    wxMessageBox("MDTracker Editor (wxWidgets port)\n\n"
+    wxMessageBox("MD.Tracker Editor by Corthax\n\n"
                  "A tool for editing SEGA Mega Drive / Genesis\n"
-                 "MDTracker ROM files.",
-                 "About MDTracker Editor", wxOK | wxICON_INFORMATION);
+                 "MD.Tracker ROM and save files.",
+                 "About MD.Tracker Editor", wxOK | wxICON_INFORMATION);
 }

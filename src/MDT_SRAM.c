@@ -7,7 +7,7 @@
 
 //! offset must be > 1
 
-#if MDT_VERSION == MDT_VERSION_PRO_BLASTEM
+#if MDT_VERSION == MDT_VERSION_MEDPRO
 
 u8 SRAMW_readByte(u32 offset)
 {

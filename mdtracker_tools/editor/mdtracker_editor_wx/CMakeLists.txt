@@ -15,6 +15,8 @@ add_executable(mdtracker_editor_wx
     main_frame.cpp
     sample_bank_panel.cpp
     instrument_editor_panel.cpp
+    tfi_parser.cpp
+    vgi_parser.cpp
     sample_converter_panel.cpp
     save_converter_panel.cpp
     settings_panel.cpp
@@ -23,8 +25,10 @@ add_executable(mdtracker_editor_wx
     save_converter_service.cpp
     sample_converter_service.cpp
     dr_flac.h
+    resource.rc
 )
 
 target_include_directories(mdtracker_editor_wx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(mdtracker_editor_wx PRIVATE ${wxWidgets_LIBRARIES} nlohmann_json::nlohmann_json WavPack::WavPack)
 set_target_properties(mdtracker_editor_wx PROPERTIES WIN32_EXECUTABLE TRUE)
+target_compile_definitions(mdtracker_editor_wx PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)

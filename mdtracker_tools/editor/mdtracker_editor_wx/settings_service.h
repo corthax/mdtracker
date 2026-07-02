@@ -10,8 +10,12 @@ public:
     void Load();
     void Save();
 
-    int SampleSettingsAddr() const { return settings.sampleSettingsAddr; }
-    int SampleBankAddr() const { return settings.sampleBankAddr; }
+    const RomAddressConfig* AddressForType(RomType type) const {
+        return type == RomType::MEDPro ? &settings.medPro : &settings.edmdv3;
+    }
+    RomAddressConfig* AddressForType(RomType type) {
+        return type == RomType::MEDPro ? &settings.medPro : &settings.edmdv3;
+    }
 
 private:
     std::string GetFilePath() const;

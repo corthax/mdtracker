@@ -269,7 +269,17 @@ struct SramV05Layout {
     static constexpr int MatrixChannels = 13;
 };
 
-struct AppSettings {
+enum class RomType { MEDPro, EDMDV3 };
+
+struct RomAddressConfig {
     int sampleSettingsAddr = 0x0003C600;
     int sampleBankAddr = 0x0003F000;
+    int presetNameAddr = 0x0003A000;
+    int presetNameEntrySize = 14;
+    int presetNameMaxLen = 13;
+};
+
+struct AppSettings {
+    RomAddressConfig medPro;
+    RomAddressConfig edmdv3;
 };

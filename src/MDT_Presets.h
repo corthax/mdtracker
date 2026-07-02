@@ -1,5 +1,6 @@
 #ifndef PRESETS_H_INCLUDED
 #define PRESETS_H_INCLUDED
+#include "res/preset_names.h"
 
 struct Preset_FM
 {
@@ -2132,7 +2133,8 @@ void InitPresets()
     M_BANK_0[254] = &P_BANK_0_INST_126;
     M_BANK_0[255] = &P_BANK_0_INST_127;
 
-    //{ presets
+    //{ presets (kept for reference, now served from preset_name_table)
+#if 0
     presetName[0x00] = "PIANO GRAND  ";
     presetName[0x01] = "PIANO BRIGHT ";
     presetName[0x02] = "PIANO ELECTRO";
@@ -2390,6 +2392,9 @@ void InitPresets()
     presetName[0xFD] = "DEFAULT      ";
     presetName[0xFE] = "DEFAULT      ";
     presetName[0xFF] = "DEFAULT      ";
+#endif
+    for (int i = 0; i < 256; i++)
+        presetName[i] = (const char*)&preset_name_table[i * 14];
     //}
 }
 

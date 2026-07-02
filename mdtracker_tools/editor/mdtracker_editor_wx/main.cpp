@@ -5,6 +5,7 @@ class MDTrackerApp : public wxApp {
 public:
     bool OnInit() override {
         auto* frame = new MainFrame();
+        frame->SetIcon(wxIcon("IDI_ICON1"));
         frame->Show(true);
         return true;
     }

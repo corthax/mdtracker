@@ -14,11 +14,16 @@ bool RomService::Load(const std::string& path) {
     romData.resize(static_cast<size_t>(size));
     f.read(reinterpret_cast<char*>(romData.data()), size);
     romPath = path;
+
+    // Detect ROM type from header serial (file offset 0x180)
+    std::string serial = ReadString(0x180, 14);
+    romType = (serial == "AI 00000000-01") ? RomType::EDMDV3 : RomType::MEDPro;
     return true;
 }
 
 void RomService::PopulateBanks(std::vector<SampleBank>& banks) {
-    int baseAddr = settings->SampleSettingsAddr();
+    auto* cfg = settings->AddressForType(romType);
+    int baseAddr = cfg->sampleSettingsAddr;
     for (int i = 0; i < RomConstants::SampleSettingsCount; i++) {
         int offset = baseAddr + i * RomConstants::SampleSettingsEntrySize;
         // Validate entry: bankId must be 0-3, noteId must be 0-95
@@ -30,8 +35,9 @@ void RomService::PopulateBanks(std::vector<SampleBank>& banks) {
         if (rawStart >= static_cast<int>(romData.size()) || rawEnd >= static_cast<int>(romData.size()))
             continue;
         // Firmware stores offsets relative to sample_bank_1; convert to absolute ROM address
-        slot.startOffset = rawStart + settings->SampleBankAddr();
-        slot.endOffset = rawEnd + settings->SampleBankAddr();
+        auto* cfg = settings->AddressForType(romType);
+        slot.startOffset = rawStart + cfg->sampleBankAddr;
+        slot.endOffset = rawEnd + cfg->sampleBankAddr;
         int rawPan = romData[offset + 10];
         slot.pan = (rawPan == 128 || rawPan == 64) ? rawPan : 192;
         slot.looped = romData[offset + 11] == 1;
@@ -44,7 +50,8 @@ void RomService::PopulateBanks(std::vector<SampleBank>& banks) {
 
 void RomService::WriteBanks(const std::vector<SampleBank>& banks) {
     if (romData.empty()) return;
-    int baseAddr = settings->SampleSettingsAddr();
+    auto* cfg = settings->AddressForType(romType);
+    int baseAddr = cfg->sampleSettingsAddr;
     for (int i = 0; i < RomConstants::SampleSettingsCount; i++) {
         int bankId = i / RomConstants::NotesPerBank;
         int noteId = i % RomConstants::NotesPerBank;
@@ -53,8 +60,9 @@ void RomService::WriteBanks(const std::vector<SampleBank>& banks) {
         romData[offset] = static_cast<u8>(slot.bankId);
         romData[offset + 1] = static_cast<u8>(slot.noteId);
         // Firmware expects offsets relative to sample_bank_1
-        Write32(offset + 2, slot.startOffset - settings->SampleBankAddr());
-        Write32(offset + 6, slot.endOffset - settings->SampleBankAddr());
+        auto* cfg = settings->AddressForType(romType);
+        Write32(offset + 2, slot.startOffset - cfg->sampleBankAddr);
+        Write32(offset + 6, slot.endOffset - cfg->sampleBankAddr);
         romData[offset + 10] = static_cast<u8>(slot.pan);
         romData[offset + 11] = slot.looped ? u8(1) : u8(0);
         romData[offset + 12] = static_cast<u8>(slot.rate);
@@ -65,7 +73,8 @@ void RomService::WriteBanks(const std::vector<SampleBank>& banks) {
 
 void RomService::WriteSampleBank(const std::vector<SampleFile>& pool, std::vector<SampleBank>& banks) {
     if (romData.empty()) return;
-    int bankAddr = settings->SampleBankAddr();
+    auto* cfg = settings->AddressForType(romType);
+    int bankAddr = cfg->sampleBankAddr;
     int pos = 0;
 
     for (auto& file : const_cast<std::vector<SampleFile>&>(pool)) {
@@ -116,7 +125,9 @@ InstrumentPreset RomService::ReadPreset(int index) const {
     int addr; bool isMelodic;
     RomConstants::GetPresetAddress(index, addr, isMelodic);
     auto data = ReadBlock(addr, InstrumentPreset::StructSize);
-    return InstrumentPreset::Deserialize(data.data());
+    auto preset = InstrumentPreset::Deserialize(data.data());
+    preset.name = ReadPresetName(index);
+    return preset;
 }
 
 void RomService::WritePreset(int index, const InstrumentPreset& preset) {
@@ -124,6 +135,19 @@ void RomService::WritePreset(int index, const InstrumentPreset& preset) {
     RomConstants::GetPresetAddress(index, addr, isMelodic);
     auto data = preset.Serialize();
     WriteBlock(addr, data);
+    WritePresetName(index, preset.name);
+}
+
+std::string RomService::ReadPresetName(int index) const {
+    auto* cfg = settings->AddressForType(romType);
+    int addr = cfg->presetNameAddr + index * cfg->presetNameEntrySize;
+    return ReadString(addr, cfg->presetNameMaxLen);
+}
+
+void RomService::WritePresetName(int index, const std::string& name) {
+    auto* cfg = settings->AddressForType(romType);
+    int addr = cfg->presetNameAddr + index * cfg->presetNameEntrySize;
+    WriteString(addr, name, cfg->presetNameMaxLen);
 }
 
 int RomService::Read32(int offset) const {

@@ -51,7 +51,7 @@ SampleBankPanel::SampleBankPanel(wxWindow* parent, MainFrame* frame)
     rangeRateChoice = new wxChoice(this, wxID_ANY);
     for (int r : SampleSlot::RateOptions)
         rangeRateChoice->Append(wxString::Format("%d", r));
-    rangeRateChoice->SetSelection(1);
+    rangeRateChoice->SetSelection(0);
     rangeBox->Add(rangeRateChoice, 0, wxRIGHT, 4);
 
     rangeLoopCheck = new wxCheckBox(this, wxID_ANY, "Loop");
@@ -162,7 +162,7 @@ SampleBankPanel::SampleBankPanel(wxWindow* parent, MainFrame* frame)
 void SampleBankPanel::WriteSlotToGrid(int row, const SampleSlot& slot) {
     grid->SetCellValue(row, COL_SYNC, slot.isSynced ? "(S)" : "S");
     grid->SetCellValue(row, COL_NOTE, slot.NoteName());
-    int bankBase = mainFrame->GetSettingsService()->SampleBankAddr();
+    int bankBase = mainFrame->GetSettingsService()->AddressForType(mainFrame->GetRomService()->GetRomType())->sampleBankAddr;
     int startRel = (slot.startOffset >= bankBase) ? slot.startOffset - bankBase : 0;
     int endRel = (slot.endOffset >= bankBase) ? slot.endOffset - bankBase : 0;
     grid->SetCellValue(row, COL_START, wxString::Format("%d", startRel));
@@ -225,7 +225,7 @@ void SampleBankPanel::OnGridCellChanged(wxGridEvent& event) {
     if (row < 0 || row >= 96) return;
     auto& slot = currentBanks[selBank].slots[row];
 
-    int bankBase = mainFrame->GetSettingsService()->SampleBankAddr();
+    int bankBase = mainFrame->GetSettingsService()->AddressForType(mainFrame->GetRomService()->GetRomType())->sampleBankAddr;
     switch (col) {
         case COL_START:
             slot.startOffset = bankBase + wxAtoi(grid->GetCellValue(row, col));
@@ -295,8 +295,8 @@ void SampleBankPanel::SyncSlotFromPool(int slotIndex) {
     slot.samplePoolId = sf.id;
     slot.isSynced = true;
     slot.name = sf.shortName;
-    slot.startOffset = mainFrame->GetSettingsService()->SampleBankAddr() + static_cast<int>(sf.startOffset);
-    slot.endOffset = mainFrame->GetSettingsService()->SampleBankAddr() + static_cast<int>(sf.endOffset);
+    slot.startOffset = mainFrame->GetSettingsService()->AddressForType(mainFrame->GetRomService()->GetRomType())->sampleBankAddr + static_cast<int>(sf.startOffset);
+    slot.endOffset = mainFrame->GetSettingsService()->AddressForType(mainFrame->GetRomService()->GetRomType())->sampleBankAddr + static_cast<int>(sf.endOffset);
 
     WriteSlotToGrid(slotIndex, slot);
 }
@@ -356,8 +356,8 @@ void SampleBankPanel::OnAssignSamples(wxCommandEvent&) {
         slot.samplePoolId = sf.id;
         slot.isSynced = true;
         slot.name = sf.shortName;
-        slot.startOffset = mainFrame->GetSettingsService()->SampleBankAddr() + static_cast<int>(sf.startOffset);
-        slot.endOffset = mainFrame->GetSettingsService()->SampleBankAddr() + static_cast<int>(sf.endOffset);
+        slot.startOffset = mainFrame->GetSettingsService()->AddressForType(mainFrame->GetRomService()->GetRomType())->sampleBankAddr + static_cast<int>(sf.startOffset);
+        slot.endOffset = mainFrame->GetSettingsService()->AddressForType(mainFrame->GetRomService()->GetRomType())->sampleBankAddr + static_cast<int>(sf.endOffset);
         WriteSlotToGrid(i, slot);
     }
 }
@@ -393,7 +393,7 @@ void SampleBankPanel::OnAddSamples(wxCommandEvent&) {
                 auto wav = svc.ParseWav(fileData);
                 auto samples = svc.DecodeSamples(wav);
                 auto resampled = svc.Resample(samples, wav.sampleRate, 22050);
-                pcm8 = svc.EncodePcm8(resampled);
+                pcm8 = svc.EncodePcm8(resampled, true);
             } catch (const std::exception& e) {
                 wxMessageBox(wxString::Format("Failed to parse %s:\n%s", path, e.what()),
                              "Error", wxOK | wxICON_ERROR);
@@ -403,7 +403,7 @@ void SampleBankPanel::OnAddSamples(wxCommandEvent&) {
             try {
                 auto samples = svc.DecodeFlac(fileData);
                 auto resampled = svc.Resample(samples, 44100, 22050);
-                pcm8 = svc.EncodePcm8(resampled);
+                pcm8 = svc.EncodePcm8(resampled, true);
             } catch (const std::exception& e) {
                 wxMessageBox(wxString::Format("Failed to decode %s:\n%s", path, e.what()),
                              "Error", wxOK | wxICON_ERROR);
@@ -414,7 +414,7 @@ void SampleBankPanel::OnAddSamples(wxCommandEvent&) {
                 int sr = 0;
                 auto samples = svc.DecodeWavpack(fileData, sr);
                 auto resampled = svc.Resample(samples, sr, 22050);
-                pcm8 = svc.EncodePcm8(resampled);
+                pcm8 = svc.EncodePcm8(resampled, true);
             } catch (const std::exception& e) {
                 wxMessageBox(wxString::Format("Failed to decode %s:\n%s", path, e.what()),
                              "Error", wxOK | wxICON_ERROR);

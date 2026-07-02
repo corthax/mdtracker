@@ -13,6 +13,12 @@
     <ClCompile Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdtracker_editor_wx\instrument_editor_panel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdtracker_editor_wx\tfi_parser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdtracker_editor_wx\vgi_parser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdtracker_editor_wx\sample_converter_panel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -45,6 +51,11 @@
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="C:\GameDev\SEGA\project\mdtracker\build\vcpkg_installed\x64-windows-policy\share\nlohmann_json\nlohmann_json.natvis" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdtracker_editor_wx\resource.rc">
+      <Filter>Source Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">

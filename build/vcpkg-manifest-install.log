@@ -2,74 +2,8 @@ Detecting compiler hash for triplet x64-windows...
 Compiler found: C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe
 Detecting compiler hash for triplet x64-windows-policy...
 Compiler found: C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe
-The following packages will be built and installed:
-  * egl-registry:x64-windows-policy@2024-01-25
-  * expat:x64-windows-policy@2.6.4
-  * libjpeg-turbo:x64-windows-policy@3.1.0#1
-  * liblzma:x64-windows-policy@5.6.3
-  * libpng:x64-windows-policy@1.6.45
-  * nanosvg:x64-windows-policy@2023-12-29
-    nlohmann-json:x64-windows-policy@3.11.3#1
-  * opengl:x64-windows-policy@2022-12-04#3
-  * opengl-registry:x64-windows-policy@2024-02-10#1
-  * pcre2[core,jit,platform-default-features]:x64-windows-policy@10.43
-  * tiff[core,jpeg,lzma,zip]:x64-windows-policy@4.7.0
-  * vcpkg-cmake:x64-windows@2024-04-23
-  * vcpkg-cmake-config:x64-windows@2024-05-23
-    wavpack:x64-windows-policy@5.7.0
-    wxwidgets[core,debug-support,sound]:x64-windows-policy@3.2.6
-  * zlib:x64-windows-policy@1.3.1
-Additional packages (*) will be modified to complete this operation.
-Restored 16 package(s) from C:\Users\Snowdrop\AppData\Local\vcpkg\archives in 4.8 s. Use --debug to see more details.
-Installing 1/16 vcpkg-cmake-config:x64-windows@2024-05-23...
-Elapsed time to handle vcpkg-cmake-config:x64-windows: 8.82 ms
-vcpkg-cmake-config:x64-windows package ABI: f80822ebd4460006320aae2875934a100d3579e9a3171e4ec50b449983859f98
-Installing 2/16 vcpkg-cmake:x64-windows@2024-04-23...
-Elapsed time to handle vcpkg-cmake:x64-windows: 10 ms
-vcpkg-cmake:x64-windows package ABI: 79e35b4a32e3eee86301bab224cbe2655125668573f051973d7ed5770d10edbe
-Installing 3/16 nlohmann-json:x64-windows-policy@3.11.3#1...
-Elapsed time to handle nlohmann-json:x64-windows-policy: 54.2 ms
-nlohmann-json:x64-windows-policy package ABI: 41455a16ffdde6970847f2b67a23fae3dcb3055fb20a5f925e3390e99ecd61e3
-Installing 4/16 wavpack:x64-windows-policy@5.7.0...
-Elapsed time to handle wavpack:x64-windows-policy: 22.2 ms
-wavpack:x64-windows-policy package ABI: 21a08cfb25634198c80e23f8dc6cb7aa6bce215c7f6fb689872a3a6b50642eec
-Installing 5/16 zlib:x64-windows-policy@1.3.1...
-Elapsed time to handle zlib:x64-windows-policy: 18 ms
-zlib:x64-windows-policy package ABI: 0937e139a4752108477efe0eb02411a3c43b42fe5d5c3ed4da912467cfd092e3
-Installing 6/16 liblzma:x64-windows-policy@5.6.3...
-Elapsed time to handle liblzma:x64-windows-policy: 47.5 ms
-liblzma:x64-windows-policy package ABI: 2600ddc7d60b8b6ae519511bd2371a3c931d86869dfa8ab941a0c31ddc603e79
-Installing 7/16 libjpeg-turbo:x64-windows-policy@3.1.0#1...
-Elapsed time to handle libjpeg-turbo:x64-windows-policy: 31 ms
-libjpeg-turbo:x64-windows-policy package ABI: 10bb0e81aa5bd1bb431e7c13cb7334005b0eb8d5bd003249d862f81f9ed013cf
-Installing 8/16 tiff[core,jpeg,lzma,zip]:x64-windows-policy@4.7.0...
-Elapsed time to handle tiff:x64-windows-policy: 27 ms
-tiff:x64-windows-policy package ABI: 10d0f0eb576bd5cfb5170702e6596decb91690ff274417cf8923d794e6b6d387
-Installing 9/16 pcre2[core,jit,platform-default-features]:x64-windows-policy@10.43...
-Elapsed time to handle pcre2:x64-windows-policy: 45.8 ms
-pcre2:x64-windows-policy package ABI: 19266995f7b84205495661b4abe50bef83ead1d665e679d35cff0c981f086219
-Installing 10/16 egl-registry:x64-windows-policy@2024-01-25...
-Elapsed time to handle egl-registry:x64-windows-policy: 13.1 ms
-egl-registry:x64-windows-policy package ABI: 56dbfa5ab27e460ce3d89a034ac65cf3c7564fbffac0f67e417d8c99fc15d7e9
-Installing 11/16 opengl-registry:x64-windows-policy@2024-02-10#1...
-Elapsed time to handle opengl-registry:x64-windows-policy: 33.2 ms
-opengl-registry:x64-windows-policy package ABI: 6820018e9416ba0dcb41ce040572b74c9131904133f1ac66aa07ae3714c023fd
-Installing 12/16 opengl:x64-windows-policy@2022-12-04#3...
-Elapsed time to handle opengl:x64-windows-policy: 17.4 ms
-opengl:x64-windows-policy package ABI: 4e5f22bbc4df32f5e28d1ab3dcb0666bf3cf2c4446f6c4318cfe8fe1406d4660
-Installing 13/16 nanosvg:x64-windows-policy@2023-12-29...
-Elapsed time to handle nanosvg:x64-windows-policy: 17.4 ms
-nanosvg:x64-windows-policy package ABI: 21e965ce160dacc688fe6ffe994fdb61110d039b277c9a94a8ae42a5cf44bad4
-Installing 14/16 libpng:x64-windows-policy@1.6.45...
-Elapsed time to handle libpng:x64-windows-policy: 30.4 ms
-libpng:x64-windows-policy package ABI: fc739d3fbf3ac8411d6a89cf35e722a93601360da41658ca41beb0d1c28ea2be
-Installing 15/16 expat:x64-windows-policy@2.6.4...
-Elapsed time to handle expat:x64-windows-policy: 22.9 ms
-expat:x64-windows-policy package ABI: f52cf397e3c83d0968f0f6732b56b4269343a241c21773f44ae95b3354cdb6d0
-Installing 16/16 wxwidgets[core,debug-support,sound]:x64-windows-policy@3.2.6...
-Elapsed time to handle wxwidgets:x64-windows-policy: 1.3 s
-wxwidgets:x64-windows-policy package ABI: 49e432dfa200dc7cad19dec3082683ffbc1e5c478b86010ec41bb8ef198c7882
-Total install time: 1.7 s
+All requested packages are currently installed.
+Total install time: 1.19 ms
 The package nlohmann-json provides CMake targets:
 
     find_package(nlohmann_json CONFIG REQUIRED)

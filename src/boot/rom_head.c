@@ -27,7 +27,7 @@ const struct
 */
 const ROMHeader rom_header = {
 //    "SEGA MEGADRIVE  "	Mega Drive
-//    "SEGA GENESIS    "	Mega Drive (blastem 0.6.3-pre may need it too)
+//    "SEGA GENESIS    "	Mega Drive
 //    "SEGA 32X        "	Mega Drive + 32X
 //    "SEGA EVERDRIVE  "	Mega Drive (Everdrive extensions)
 //    "SEGA EVERDRIVEXX"    Not sure if its relevant anymore
@@ -39,23 +39,23 @@ const ROMHeader rom_header = {
 //    "SEGA TERA68K    "	Tera Drive (boot from 68000 side)
 //    "SEGA TERA286    "	Tera Drive (boot from x86 side)
 
-#if MDT_VERSION == MDT_VERSION_PRO_BLASTEM
+#if MDT_VERSION == MDT_VERSION_MEDPRO
 
-    "SEGA MEGADRIVE  ", // BlastEm 0.6.3-pre, PicoDrive.
-    //"SEGA SSF        ", // Change to SEGA SSF on MED PRO!
+    "SEGA MEGADRIVE  ", // for fast testing on BlastEm 0.6.3+
+    //"SEGA SSF        ", // Mega Everdrive PRO
 
 #elif MDT_VERSION == MDT_VERSION_EDMDV3
 
-    "SEGA EVERDRIVE  ", // Old EDMD-v3
+    "SEGA EVERDRIVE  ", // EDMD-v3
 
 #endif
 
     "(C)Corthax 2026 ",
 
-#if MDT_VERSION == MDT_VERSION_PRO_BLASTEM
+#if MDT_VERSION == MDT_VERSION_MEDPRO
 
     "MD.Tracker (1.5b)                               ",
-    "MD.Tracker for MED PRO / BlastEm                ",
+    "MD.Tracker for Mega Everdrive PRO               ",
 
 #elif MDT_VERSION == MDT_VERSION_EDMDV3
 
@@ -68,8 +68,18 @@ const ROMHeader rom_header = {
 //    "AI"	Educational Aid
 //    "OS"	Boot ROM (TMSS)
 //    "BR"	Boot ROM (Sega CD)
+#if MDT_VERSION == MDT_VERSION_MEDPRO
+
     "AI 00000000-00",
+
+#elif MDT_VERSION == MDT_VERSION_EDMDV3
+
+    "AI 00000000-01",
+
+#endif // MDT_VERSION
+
     0x0000, // checksum
+
 //"J"	3-button controller
 //"6"	6-button controller
 //"0"	Master System controller
@@ -99,7 +109,7 @@ const ROMHeader rom_header = {
 
 // SRAM mode; EDMD-v3 doesn't care, always odd; matters for BlastEm, will not r/w other address.
 // !!! Always load SRAM file manually after it's replaced, or it will be overwriten when ROM loads with battery ram content!!!
-#if MDT_VERSION == MDT_VERSION_PRO_BLASTEM
+#if MDT_VERSION == MDT_VERSION_MEDPRO
 
     0xE020,     // 16 bit SRAM mode
 
@@ -110,7 +120,7 @@ const ROMHeader rom_header = {
 
 #endif
 
-#if MDT_VERSION == MDT_VERSION_PRO_BLASTEM
+#if MDT_VERSION == MDT_VERSION_MEDPRO
 
     0x00380000, // SRAM start; 0x00200000 default
 
@@ -121,7 +131,7 @@ const ROMHeader rom_header = {
 
 #endif
 
-#if MDT_VERSION == MDT_VERSION_PRO_BLASTEM
+#if MDT_VERSION == MDT_VERSION_MEDPRO
 
     0x003FFFFF, // SRAM end 512K
 

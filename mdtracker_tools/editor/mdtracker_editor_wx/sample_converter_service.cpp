@@ -1,12 +1,23 @@
+#define _USE_MATH_DEFINES
 #include "sample_converter_service.h"
 #define DR_FLAC_IMPLEMENTATION
 #include "dr_flac.h"
 #include <wavpack/wavpack.h>
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <random>
+#include <regex>
 #include <stdexcept>
 #include <string>
+#include <thread>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 WavInfo SampleConverterService::ParseWav(const std::vector<u8>& data) const {
     int pos = 12;
@@ -173,85 +184,315 @@ std::vector<short> SampleConverterService::DecodeWavpack(const std::vector<u8>& 
     return mono;
 }
 
-std::vector<short> SampleConverterService::Resample(const std::vector<short>& input, int inputRate, int outputRate) const {
+static double SincP(double x) {
+    if (std::abs(x) < 1e-8) return 1.0;
+    return std::sin(M_PI * x) / (M_PI * x);
+}
+
+std::vector<short> SampleConverterService::Resample(const std::vector<short>& input, int inputRate, int outputRate, bool linear) const {
     if (inputRate == outputRate) return input;
-    int outLen = static_cast<int>((static_cast<long long>(input.size()) * outputRate) / inputRate);
+
+    double ratio = static_cast<double>(outputRate) / inputRate;
+    int outLen = static_cast<int>(input.size() * ratio + 0.5);
+    if (outLen < 1) outLen = 1;
+
     std::vector<short> output(outLen);
 
-    for (int i = 0; i < outLen; i++) {
-        double srcPos = static_cast<double>(i) * inputRate / outputRate;
-        int srcIdx = static_cast<int>(srcPos);
-        double frac = srcPos - srcIdx;
-        int nextIdx = std::min(srcIdx + 1, static_cast<int>(input.size()) - 1);
-        output[i] = static_cast<short>(input[srcIdx] * (1.0 - frac) + input[nextIdx] * frac + 0.5);
+    if (linear) {
+        for (int i = 0; i < outLen; i++) {
+            double srcPos = static_cast<double>(i) * inputRate / outputRate;
+            int srcIdx = static_cast<int>(srcPos);
+            double frac = srcPos - srcIdx;
+            int nextIdx = std::min(srcIdx + 1, static_cast<int>(input.size()) - 1);
+            output[i] = static_cast<short>(input[srcIdx] * (1.0 - frac) + input[nextIdx] * frac + 0.5);
+        }
+    } else {
+        double fc = std::min(1.0, ratio) * 0.48;
+        const double beta = 6.5;
+        const int halfLen = 32;
+        const double i0beta = std::cyl_bessel_i(0, beta);
+
+        for (int i = 0; i < outLen; i++) {
+            double pos = i / ratio;
+            int center = static_cast<int>(pos);
+            double frac = pos - center;
+
+            double val = 0;
+            double wsum = 0;
+
+            for (int j = -halfLen; j <= halfLen; j++) {
+                int idx = center + j;
+                if (idx < 0 || idx >= static_cast<int>(input.size())) continue;
+
+                double t = frac - j;
+                double tx = t / halfLen;
+                if (std::abs(tx) >= 1.0) continue;
+                double arg = beta * std::sqrt(1.0 - tx * tx);
+                double w = 2.0 * fc * SincP(2.0 * fc * t) * (std::cyl_bessel_i(0, arg) / i0beta);
+                val += input[idx] * w;
+                wsum += w;
+            }
+
+            if (wsum > 1e-10)
+                output[i] = static_cast<short>(std::clamp(val / wsum, -32768.0, 32767.0));
+            else
+                output[i] = 0;
+        }
     }
+
     return output;
 }
 
-std::vector<u8> SampleConverterService::EncodePcm8(const std::vector<short>& samples) const {
+std::vector<u8> SampleConverterService::EncodePcm8(const std::vector<short>& samples, bool clampTo254) const {
     std::vector<u8> pcm(samples.size());
+    int maxVal = clampTo254 ? 254 : 255;
+
     for (size_t i = 0; i < samples.size(); i++) {
-        int s = (samples[i] >> 8) + 128;
-        pcm[i] = static_cast<u8>(std::clamp(s, 0, 255));
+        int s = samples[i] >> 8;
+        pcm[i] = static_cast<u8>(std::clamp(s, -128, maxVal));
     }
     return pcm;
 }
 
-std::vector<u8> SampleConverterService::EncodeAdpcm(const std::vector<short>& samples) const {
-    int outLen = (static_cast<int>(samples.size()) + 1) / 2;
-    std::vector<u8> output(outLen);
+std::vector<u8> SampleConverterService::dpcmPack(const std::vector<u8>& pcm8) const {
+    static const int delta_tab[] = {-34, -21, -13, -8, -5, -3, -2, -1, 0, 1, 2, 3, 5, 8, 13, 21};
 
-    const int stepTable[] = {
-        7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 19, 21, 23, 25, 28, 31,
-        34, 37, 41, 45, 50, 55, 60, 66, 73, 80, 88, 97, 107, 118, 130, 143,
-        157, 173, 190, 209, 230, 253, 279, 307, 337, 371, 408, 449, 494, 544, 598, 658,
-        724, 796, 876, 963, 1060, 1166, 1282, 1411, 1552, 1707, 1878, 2066, 2272, 2499, 2749, 3024,
-        3327, 3660, 4026, 4428, 4871, 5358, 5894, 6484, 7132, 7845, 8630, 9493, 10442, 11487, 12635, 13899,
-        15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794, 32767
+    auto getBestDeltaIndex = [&](int wantedLevel, int curLevel) -> int {
+        int wdelta = wantedLevel - curLevel;
+        int ind = 0;
+        int mindiff = std::abs(wdelta - delta_tab[ind]);
+        for (int i = 1; i < 16; i++) {
+            int diff = std::abs(wdelta - delta_tab[i]);
+            if (diff < mindiff) { mindiff = diff; ind = i; }
+        }
+        int newLevel = delta_tab[ind] + curLevel;
+        if (newLevel > 127)  return ind - 1;
+        if (newLevel < -128) return ind + 1;
+        return ind;
     };
-    const int stepIndexTable[] = {-1, -1, -1, -1, 2, 4, 6, 8};
 
-    int predictor = 0;
-    int stepIndex = 0;
+    size_t outLen = (pcm8.size() / 2) + (pcm8.size() & 1);
+    std::vector<u8> result(outLen);
+    int curLevel = 0;
 
-    for (int i = 0; i < static_cast<int>(samples.size()); i++) {
-        int diff = samples[i] - predictor;
-        int sign = diff < 0 ? 1 : 0;
-        int absDiff = diff < 0 ? -diff : diff;
-        int step = stepTable[stepIndex];
-        int quantized = 0;
-        int stepSize = step >> 3;
+    for (size_t off = 0; off < pcm8.size(); off += 2) {
+        int wanted0 = static_cast<int>(static_cast<signed char>(pcm8[off]));
+        int ind = getBestDeltaIndex(wanted0, curLevel);
+        curLevel += delta_tab[ind];
+        int outVal = ind;
 
-        if (absDiff >= step) { quantized |= 4; absDiff -= step; }
-        if (absDiff >= step >> 1) { quantized |= 2; absDiff -= step >> 1; }
-        if (absDiff >= step >> 2) { quantized |= 1; }
+        if (off + 1 < pcm8.size()) {
+            int wanted1 = static_cast<int>(static_cast<signed char>(pcm8[off + 1]));
+            ind = getBestDeltaIndex(wanted1, curLevel);
+            curLevel += delta_tab[ind];
+            outVal |= (ind << 4);
+        }
 
-        int nibble = (sign << 3) | quantized;
+        result[off / 2] = static_cast<u8>(outVal);
+    }
 
-        int delta = (step >> 3);
-        if ((quantized & 4) != 0) delta += step;
-        if ((quantized & 2) != 0) delta += step >> 1;
-        if ((quantized & 1) != 0) delta += step >> 2;
-        delta >>= 3;
+    return result;
+}
 
-        if (sign == 1) predictor -= delta;
-        else predictor += delta;
-        predictor = std::clamp(predictor, static_cast<int>(SHRT_MIN), static_cast<int>(SHRT_MAX));
+std::vector<u8> SampleConverterService::EncodeAdpcm(const std::vector<short>& samples) const {
+    std::vector<u8> pcm8(samples.size());
+    for (size_t i = 0; i < samples.size(); i++)
+        pcm8[i] = static_cast<u8>(std::clamp(samples[i] >> 8, -128, 255));
+    return dpcmPack(pcm8);
+}
 
-        stepIndex += stepIndexTable[quantized];
-        stepIndex = std::clamp(stepIndex, 0, static_cast<int>(sizeof(stepTable) / sizeof(stepTable[0])) - 1);
+std::vector<u8> SampleConverterService::ConvertPcmToAdpcm(const std::vector<u8>& pcmData) const {
+    return dpcmPack(pcmData);
+}
 
-        if ((i & 1) == 0)
-            output[i >> 1] = static_cast<u8>(nibble << 4);
-        else
-            output[i >> 1] |= static_cast<u8>(nibble);
+void SampleConverterService::CalcLowShelf(double freq, int sampleRate, double q, double gainDB,
+    double& b0, double& b1, double& b2, double& a1, double& a2) const
+{
+    double A = std::pow(10.0, gainDB / 40.0);
+    double w0 = 2.0 * M_PI * freq / sampleRate;
+    double alpha = std::sin(w0) / (2.0 * q);
+    double twoSqrtA = 2.0 * std::sqrt(A);
+
+    b0 = A * ((A + 1.0) - (A - 1.0) * std::cos(w0) + twoSqrtA * alpha);
+    b1 = 2.0 * A * ((A - 1.0) - (A + 1.0) * std::cos(w0));
+    b2 = A * ((A + 1.0) - (A - 1.0) * std::cos(w0) - twoSqrtA * alpha);
+    double a0 = ((A + 1.0) + (A - 1.0) * std::cos(w0) + twoSqrtA * alpha);
+    a1 = -2.0 * ((A - 1.0) + (A + 1.0) * std::cos(w0));
+    a2 = ((A + 1.0) + (A - 1.0) * std::cos(w0) - twoSqrtA * alpha);
+
+    b0 /= a0; b1 /= a0; b2 /= a0; a1 /= a0; a2 /= a0;
+}
+
+void SampleConverterService::CalcPeak(double freq, int sampleRate, double q, double gainDB,
+    double& b0, double& b1, double& b2, double& a1, double& a2) const
+{
+    double A = std::pow(10.0, gainDB / 40.0);
+    double w0 = 2.0 * M_PI * freq / sampleRate;
+    double alpha = std::sin(w0) / (2.0 * q);
+
+    b0 = 1.0 + alpha * A;
+    b1 = -2.0 * std::cos(w0);
+    b2 = 1.0 - alpha * A;
+    double a0 = 1.0 + alpha / A;
+    a1 = -2.0 * std::cos(w0);
+    a2 = 1.0 - alpha / A;
+
+    b0 /= a0; b1 /= a0; b2 /= a0; a1 /= a0; a2 /= a0;
+}
+
+void SampleConverterService::CalcHighShelf(double freq, int sampleRate, double q, double gainDB,
+    double& b0, double& b1, double& b2, double& a1, double& a2) const
+{
+    double A = std::pow(10.0, gainDB / 40.0);
+    double w0 = 2.0 * M_PI * freq / sampleRate;
+    double alpha = std::sin(w0) / (2.0 * q);
+    double twoSqrtA = 2.0 * std::sqrt(A);
+
+    b0 = A * ((A + 1.0) + (A - 1.0) * std::cos(w0) + twoSqrtA * alpha);
+    b1 = -2.0 * A * ((A - 1.0) + (A + 1.0) * std::cos(w0));
+    b2 = A * ((A + 1.0) + (A - 1.0) * std::cos(w0) - twoSqrtA * alpha);
+    double a0 = ((A + 1.0) - (A - 1.0) * std::cos(w0) + twoSqrtA * alpha);
+    a1 = 2.0 * ((A - 1.0) - (A + 1.0) * std::cos(w0));
+    a2 = ((A + 1.0) - (A - 1.0) * std::cos(w0) - twoSqrtA * alpha);
+
+    b0 /= a0; b1 /= a0; b2 /= a0; a1 /= a0; a2 /= a0;
+}
+
+std::vector<short> SampleConverterService::ProcessBiquad(const std::vector<short>& input,
+    double b0, double b1, double b2, double a1, double a2) const
+{
+    std::vector<short> output(input.size());
+    double x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+
+    for (size_t i = 0; i < input.size(); i++) {
+        double x0 = input[i];
+        double y0 = b0 * x0 + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+        output[i] = static_cast<short>(std::clamp(y0, -32768.0, 32767.0));
+        x2 = x1; x1 = x0;
+        y2 = y1; y1 = y0;
     }
     return output;
 }
 
-std::vector<u8> SampleConverterService::ConvertPcmToAdpcm(const std::vector<u8>& pcmData) const {
-    std::vector<short> samples(pcmData.size());
-    for (size_t i = 0; i < pcmData.size(); i++)
-        samples[i] = static_cast<short>((pcmData[i] - 128) << 8);
-    return EncodeAdpcm(samples);
+std::vector<short> SampleConverterService::ApplyEQ(const std::vector<short>& input, int sampleRate, const EQConfig& eq) const {
+    double b0, b1, b2, a1, a2;
+
+    CalcLowShelf(eq.lowShelf.freqHz, sampleRate, eq.lowShelf.q, eq.lowShelf.gainDB, b0, b1, b2, a1, a2);
+    auto out = ProcessBiquad(input, b0, b1, b2, a1, a2);
+
+    CalcPeak(eq.peak.freqHz, sampleRate, eq.peak.q, eq.peak.gainDB, b0, b1, b2, a1, a2);
+    out = ProcessBiquad(out, b0, b1, b2, a1, a2);
+
+    CalcHighShelf(eq.highShelf.freqHz, sampleRate, eq.highShelf.q, eq.highShelf.gainDB, b0, b1, b2, a1, a2);
+    out = ProcessBiquad(out, b0, b1, b2, a1, a2);
+
+    return out;
+}
+
+std::string SampleConverterService::FindRescompJar() const {
+#ifdef _WIN32
+    char path[MAX_PATH];
+    if (GetModuleFileNameA(NULL, path, MAX_PATH) == 0) return "";
+    std::string exePath(path);
+    size_t pos = exePath.find_last_of("\\/");
+    if (pos == std::string::npos) return "";
+    std::string dir = exePath.substr(0, pos);
+    std::string jarPath = dir + "\\rescomp.jar";
+    std::ifstream f(jarPath);
+    if (f.good()) return jarPath;
+#endif
+    return "";
+}
+
+bool SampleConverterService::RescompAvailable() const {
+    return !FindRescompJar().empty();
+}
+
+std::string SampleConverterService::WriteTempWav(const std::vector<short>& samples, int sampleRate, const std::string& dir) const {
+    std::string wavPath = dir + "\\input.wav";
+    std::ofstream f(wavPath, std::ios::binary);
+    int dataSize = static_cast<int>(samples.size()) * 2;
+
+    auto write32 = [&](int v) { f.write(reinterpret_cast<const char*>(&v), 4); };
+    auto write16 = [&](short v) { f.write(reinterpret_cast<const char*>(&v), 2); };
+
+    f.write("RIFF", 4);
+    write32(36 + dataSize);
+    f.write("WAVE", 4);
+    f.write("fmt ", 4);
+    write32(16);
+    write16(1);
+    write16(1);
+    write32(sampleRate);
+    write32(sampleRate * 2);
+    write16(2);
+    write16(16);
+    f.write("data", 4);
+    write32(dataSize);
+    f.write(reinterpret_cast<const char*>(samples.data()), static_cast<size_t>(dataSize));
+
+    return wavPath;
+}
+
+std::vector<u8> SampleConverterService::ConvertViaRescomp(const std::vector<short>& samples, int sampleRate,
+                                                            const std::string& format, int targetRate) const
+{
+    std::string jar = FindRescompJar();
+    if (jar.empty())
+        throw std::runtime_error("rescomp.jar not found next to executable");
+
+    namespace fs = std::filesystem;
+    int pid = GetCurrentProcessId();
+    thread_local std::mt19937 rng(std::random_device{}());
+    std::string tmpName = "mdtracker_rescomp_" + std::to_string(pid) + "_" + std::to_string(rng());
+    fs::path tmpDir = fs::temp_directory_path() / fs::path(tmpName);
+    fs::create_directories(tmpDir);
+
+    try {
+        std::string dirS = tmpDir.string();
+        WriteTempWav(samples, sampleRate, dirS);
+
+        std::string resPath = dirS + "\\input.res";
+        {
+            std::ofstream rf(resPath);
+            rf << "WAV input \"input.wav\" " << format << " " << targetRate;
+        }
+
+        std::string cmd = "java -jar \"" + jar + "\" \"" + resPath + "\" -noheader";
+        int ret = std::system(cmd.c_str());
+        if (ret != 0)
+            throw std::runtime_error("rescomp.jar failed with exit code " + std::to_string(ret));
+
+        std::string asmPath = dirS + "\\input.s";
+        std::string asmText;
+        {
+            std::ifstream asmFile(asmPath);
+            if (!asmFile.good())
+                throw std::runtime_error("rescomp.jar did not produce expected output file");
+            asmText.assign((std::istreambuf_iterator<char>(asmFile)), std::istreambuf_iterator<char>());
+        }
+
+        std::vector<u8> result;
+        std::regex hexRx(R"(\b0x([0-9a-fA-F]{2})\b)");
+        auto it = std::sregex_iterator(asmText.begin(), asmText.end(), hexRx);
+        auto end = std::sregex_iterator();
+        for (; it != end; ++it)
+            result.push_back(static_cast<u8>(std::stoi((*it)[1].str(), nullptr, 16)));
+
+        for (int attempt = 0; attempt < 3; attempt++) {
+            std::error_code ec;
+            fs::remove_all(tmpDir, ec);
+            if (!ec) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(50 * (attempt + 1)));
+        }
+        return result;
+    } catch (...) {
+        for (int attempt = 0; attempt < 3; attempt++) {
+            std::error_code ec;
+            fs::remove_all(tmpDir, ec);
+            if (!ec) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(50 * (attempt + 1)));
+        }
+        throw;
+    }
 }

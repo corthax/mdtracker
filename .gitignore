@@ -10,3 +10,8 @@ build/
 # vcpkg artifacts
 **/vcpkg_installed/
 .vs/
+
+SGDK-2.11/
+
+*.zip
+*.7z

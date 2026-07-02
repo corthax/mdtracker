@@ -6009,7 +6009,7 @@ void InitTracker()
     //ReColorsAndTranspose(); // need SRAM
 
     // Check if valid save file exists by reading header string (SRAM[0..5]) directly
-#if MDT_VERSION == MDT_VERSION_PRO_BLASTEM
+#if MDT_VERSION == MDT_VERSION_MEDPRO
     for (u8 i = 0; i < 6; i++) str[i] = SRAM_readByte_Even(i);
 #elif MDT_VERSION == MDT_VERSION_EDMDV3
     for (u8 i = 0; i < 6; i++) str[i] = SRAM_readByte_Odd(i);
@@ -6172,7 +6172,7 @@ void FileWriteHeader()
     for (u8 i = 0; i < 6; i++)
     {
 
-#if MDT_VERSION == MDT_VERSION_PRO_BLASTEM
+#if MDT_VERSION == MDT_VERSION_MEDPRO
         SRAM_writeByte_Even(i, MDT_HEADER[i]); // write file version
         SRAM_writeByte_Odd(i, 0); // clean spaces
 #elif MDT_VERSION == MDT_VERSION_EDMDV3

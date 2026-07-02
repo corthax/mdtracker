@@ -2,6 +2,8 @@ C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdtracker_editor_wx\mai
 C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdtracker_editor_wx\main_frame.cpp;C:\GameDev\SEGA\project\mdtracker\build\mdtracker_editor_wx.dir\Debug\main_frame.obj
 C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdtracker_editor_wx\sample_bank_panel.cpp;C:\GameDev\SEGA\project\mdtracker\build\mdtracker_editor_wx.dir\Debug\sample_bank_panel.obj
 C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdtracker_editor_wx\instrument_editor_panel.cpp;C:\GameDev\SEGA\project\mdtracker\build\mdtracker_editor_wx.dir\Debug\instrument_editor_panel.obj
+C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdtracker_editor_wx\tfi_parser.cpp;C:\GameDev\SEGA\project\mdtracker\build\mdtracker_editor_wx.dir\Debug\tfi_parser.obj
+C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdtracker_editor_wx\vgi_parser.cpp;C:\GameDev\SEGA\project\mdtracker\build\mdtracker_editor_wx.dir\Debug\vgi_parser.obj
 C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdtracker_editor_wx\sample_converter_panel.cpp;C:\GameDev\SEGA\project\mdtracker\build\mdtracker_editor_wx.dir\Debug\sample_converter_panel.obj
 C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdtracker_editor_wx\save_converter_panel.cpp;C:\GameDev\SEGA\project\mdtracker\build\mdtracker_editor_wx.dir\Debug\save_converter_panel.obj
 C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdtracker_editor_wx\settings_panel.cpp;C:\GameDev\SEGA\project\mdtracker\build\mdtracker_editor_wx.dir\Debug\settings_panel.obj
