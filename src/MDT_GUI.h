@@ -178,6 +178,7 @@
 #define GUI_PPS                     60
 #define GUI_SRAM                    58
 #define GUI_PPL                     62
+#define GUI_UNSAVED                 2
 // -----------------------------------------------------------
 #define GUI_NAVIGATION_SPEED_COUNTER    3
 #define GUI_NAVIGATION_DELAY            15
@@ -257,7 +258,7 @@ void DisplayPatternMatrix();
 void DisplayPatternEditor();
 void DisplayInstrumentEditor();
 void DrawSelectionCursor(u8 x, u8 y, u8 bClear);
-void DrawMatrixPlaybackCursor(u8 bClear);
+void DrawMatrixPlaybackCursor(u8 bClear, u8 palette, s8 offset);
 void ClearPatternPlaybackCursor();
 void DrawPatternPlaybackCursor();
 void NavigateMatrix(u8 direction);
@@ -267,5 +268,6 @@ void RedrawMarks();
 void ReColorsAndTranspose();
 void DisplaySampleName(u8 xPos, u8 yPos, u8 note, u8 bank);
 void ForceResetGUI();
+//void DrawUnsavedMark(u8 dirty, u8 screen);
 
 #endif // MDT_GUI_H_INCLUDED

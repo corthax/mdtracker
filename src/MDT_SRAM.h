@@ -30,9 +30,6 @@ s8 SRAM_ReadMatrixTranspose(u8 channel, u8 line);
 void SRAM_WriteMatrixTranspose(u8 channel, u8 line, s8 transpose);
 void SRAM_WritePatternID(u8 channel, u8 line, u16 patternID);
 
-u8 SRAM_ReadMatrixChannelEnabled(u8 channel);
-void SRAM_WriteMatrixChannelEnabled(u8 channel, u8 state);
-
 //seq
 u8 SRAM_ReadSEQ_PAR(u8 id, u8 step);
 void SRAM_WriteSEQ_PAR(u8 id, u8 step, u8 data);

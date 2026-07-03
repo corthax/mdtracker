@@ -45,6 +45,7 @@ bool bWriteRegs = TRUE;
 u8 loopStart = OXFF; // matrix loop region
 u8 loopEnd = OXFF;
 
+u8 lastJumpRow = 0; // jump with mode
 u8 playingMatrixRow = 0; // current played line
 u8 selectedMatrixScreenRow = 0; // selected matrix line on SCREEN
 u8 selectedMatrixRow = 0; // selected pattern matrix index according to page
@@ -250,7 +251,9 @@ u8 midiPreset = 0;
 
 u16 matrixCells[CHANNELS_TOTAL * MATRIX_ROWS];
 u32 matrixBlockEnd;
-u8  matrixDirty = 0;
+u8  matrixDirty = FALSE;
+//u8  patternDirty = FALSE;
+//u8  instrumentDirty = FALSE;
 
 /*
 u16 msu_drv();
@@ -1002,7 +1005,7 @@ static void DoEngine()
             // set frame length
             maxPulse = (playingPatternRow & 1)? ppl_1 : ppl_2;
 
-            DrawMatrixPlaybackCursor(FALSE);
+            DrawMatrixPlaybackCursor(FALSE, PAL0, 0);
             hIntCounter = 0;// hIntToSkip * !useExternalSync; // reset h-int counter
             bDoPulse = FALSE; // do not trigger external pulse if button was pressed before playback start
 
@@ -1052,13 +1055,13 @@ static void DoEngine()
                 // jump to next...
                 if (playingPatternRow > patternSize || patternRowJumpTo != OXFF)
                 {
-                    DrawMatrixPlaybackCursor(TRUE); // erase
+                    DrawMatrixPlaybackCursor(TRUE, PAL0, 0); // erase
 
                     if (currentScreen == SCREEN_MATRIX)
                     {
                         if (loopStart != OXFF && loopEnd != OXFF)
                         {
-                            if (playingMatrixRow == loopEnd) playingMatrixRow = loopStart-1;
+                            if (playingMatrixRow == loopEnd-1) playingMatrixRow = loopStart-1;
                         }
                         else if (matrixRowJumpTo != OXFF)
                         {
@@ -1088,7 +1091,7 @@ static void DoEngine()
                         patternRowJumpTo = OXFF;
                     }
 
-                    DrawMatrixPlaybackCursor(FALSE);
+                    DrawMatrixPlaybackCursor(FALSE, PAL0, 0);
 
                     //BPM = ((getTimer(1, TRUE) / 32 * 240) / 18432); DrawBPM();
                 }
@@ -1129,7 +1132,7 @@ static void DoEngine()
         //YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00000000);
         StopAllSound();
         ClearPatternPlaybackCursor();
-        DrawMatrixPlaybackCursor(TRUE);
+        DrawMatrixPlaybackCursor(TRUE, PAL0, 0);
 
         VDP_setTextPalette(PAL0); VDP_drawTextBG(BG_B, "    ", 29, 27); VDP_drawTextBG(BG_B, "    ", 69, 27);
 
@@ -1407,7 +1410,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
         switch (state)
         {
         case BUTTON_START:
-            if (bPlayback == FALSE) // play from beginning
+            if (bPlayback == FALSE)
             {
                 pulseCounter = 0;
                 playingPatternRow = 0; // start from the first line of current pattern
@@ -1416,28 +1419,45 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
             }
             else
             {
+                playingMatrixRow = lastJumpRow;
+                DrawMatrixPlaybackCursor(true, PAL0, 0);
                 stop_playback();
             }
             break;
 
         case BUTTON_MODE:
-            if (bPlayback == FALSE && !useExternalSync && midi_sync_get_mode() == MIDI_SYNC_OFF) // play from current line
+            if (currentScreen == SCREEN_PATTERN)
             {
-                pulseCounter = 0;
-                if (selectedPatternColumn < PATTERN_COLUMNS) playingPatternRow = selectedPatternRow; // start from the current selected pattern line
-                else playingPatternRow = selectedPatternRow + PATTEN_ROWS_PER_SIDE;
-                playingMatrixRow = selectedMatrixRow; // actual line in array
-                bPlayback = TRUE;
+                if (bPlayback == FALSE && !useExternalSync && midi_sync_get_mode() == MIDI_SYNC_OFF) // play from current pattern row
+                {
+                    pulseCounter = 0;
+                    if (selectedPatternColumn < PATTERN_COLUMNS) playingPatternRow = selectedPatternRow; // start from the current selected pattern row
+                    else playingPatternRow = selectedPatternRow + PATTEN_ROWS_PER_SIDE;
+                    playingMatrixRow = selectedMatrixRow;
+                    bPlayback = TRUE;
+                }
+                else
+                {
+                    bDoPulse = (useExternalSync && midi_sync_get_mode() == MIDI_SYNC_OFF); // one pulse advance
+                }
             }
-            else
+            else if (currentScreen == SCREEN_MATRIX)
             {
-                bDoPulse = (useExternalSync && midi_sync_get_mode() == MIDI_SYNC_OFF); // external sync from gamepad;
+                if (bPlayback)
+                {
+                    // queue next matrix row
+                    DrawMatrixPlaybackCursor(true, PAL0, 0);
+
+                    playingMatrixRow = lastJumpRow;
+                    DrawMatrixPlaybackCursor(true, PAL0, 0);
+
+                    playingMatrixRow = selectedMatrixRow-1;
+                    DrawMatrixPlaybackCursor(false, PAL3, 1);
+
+                    lastJumpRow = selectedMatrixRow;
+                }
             }
             break;
-
-        /*case BUTTON_B:
-            bDoPulse = useExternalSync;
-            break;*/
         }
         if (selectedPatternColumn >= PATTERN_COLUMNS) patternColumnShift = PATTEN_ROWS_PER_SIDE; else patternColumnShift = 0;
         /// -------------------------------------------------------------------------------------------------------------------
@@ -1475,13 +1495,12 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         for (u8 mtxCh = 0; mtxCh < CHANNELS_TOTAL; mtxCh++)
                         {
                             channelFlags[mtxCh] = TRUE; // un-mute all
-                            SRAM_WriteMatrixChannelEnabled(mtxCh, TRUE);
                             DrawMute(mtxCh);
                         }
                     }
                     else
                     {
-                        SRAM_WriteMatrixChannelEnabled(selectedMatrixChannel, FALSE);
+                        channelFlags[selectedMatrixChannel] = FALSE;
                         DrawMute(selectedMatrixChannel);
                     }
                     break;
@@ -1494,19 +1513,16 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         {
                             channelFlags[mtxCh] = FALSE; // mute all
                             if (mtxCh != selectedMatrixChannel) DrawMute(mtxCh); // set all marks (except selected)
-                            SRAM_WriteMatrixChannelEnabled(mtxCh, FALSE);
                         }
                     }
                     channelFlags[selectedMatrixChannel] = TRUE; // un-mute selected
-                    SRAM_WriteMatrixChannelEnabled(selectedMatrixChannel, TRUE);
                     DrawMute(selectedMatrixChannel);
                     break;
 
-                case BUTTON_Y: // un-mute all
+                case BUTTON_A: // un-mute all
                     for (u8 mtxCh = 0; mtxCh < CHANNELS_TOTAL; mtxCh++)
                     {
                         channelFlags[mtxCh] = TRUE; // un-mute all
-                        SRAM_WriteMatrixChannelEnabled(mtxCh, TRUE);
                         DrawMute(mtxCh); // clear all marks
                     }
                     break;
@@ -1594,7 +1610,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         RedrawMarks();
                     }
                     break;
-
+                // Z+U/D - set loop region
                 case BUTTON_UP:
                     if (selectedMatrixRow == loopEnd) loopEnd = OXFF;
                     loopStart = selectedMatrixRow;
@@ -1603,6 +1619,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     break;
 
                 case BUTTON_DOWN:
+                    if (selectedMatrixRow == 0) break;
                     if (selectedMatrixRow == loopStart) loopStart = OXFF;
                     loopEnd = selectedMatrixRow;
                     bRefreshScreen = bInitScreen = TRUE;
@@ -2476,6 +2493,8 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
 
     bRefreshScreen = TRUE;
 
+    //patternDirty = TRUE;
+
     auto void write_note(u8 column)
     {
         row = selectedPatternRow + 16 * column;
@@ -2817,6 +2836,8 @@ static void ChangeInstrumentParameter(s8 modifier, u8 changeAll)
 
     bRefreshScreen = TRUE;
     instrumentParameterToRefresh = selectedInstrumentParameter;
+
+    //instrumentDirty = TRUE;
 
     switch (selectedInstrumentParameter)
     {
@@ -5442,7 +5463,7 @@ void CommitSeqEditBuffer()
     bool allDefault = TRUE;
     for (u8 s = 0; s < SEQ_STEPS; s++)
     {
-        if (seqEditBuffer[s] != SEQ_SKIP)         { allDefault = FALSE; break; }
+        if (seqEditBuffer[s] != SEQ_SKIP)               { allDefault = FALSE; break; }
         if (seqEditBuffer[SEQ_STEPS + s] != NOTE_EMPTY) { allDefault = FALSE; break; }
     }
 
@@ -5500,7 +5521,7 @@ void Matrix_LoadFromSRAM()
         }
     }
     matrixBlockEnd = ptr;
-    matrixDirty = 0;
+    matrixDirty = FALSE;
 }
 
 void Matrix_CommitToSRAM()
@@ -5573,7 +5594,7 @@ void Matrix_CommitToSRAM()
     }
 
     matrixBlockEnd = newBlockEnd;
-    matrixDirty = 0;
+    matrixDirty = FALSE;
     RecalcAllAddrs();
 }
 
@@ -5773,6 +5794,7 @@ static void writeBlockToSRAM(u32 sramOffset, u16 id, u16 numEvents, u8* events, 
 // Shift subsequent blocks in SRAM to accommodate size change.
 void SRAM_CommitBuffer(u16 id)
 {
+    //patternDirty = FALSE;
     // Temp buffer for packed events (max 148 events * 3 bytes = 444, plus 4 header = 448)
     // We know packed never exceeds 448 bytes (threshold for raw format)
     u8 packed[448];
@@ -5891,10 +5913,6 @@ void SRAM_WritePatternColor(u16 id, u8 color) {
     u16 raw = SRAMW_readWord(offset);
     SRAMW_writeWord(offset, (raw & 0x3FF) | ((u16)(color & 0x3F) << 10));
 }
-
-// MUTE_CHANNEL is RAM-only (channelFlags[])
-u8 SRAM_ReadMatrixChannelEnabled(u8 channel) { return channelFlags[channel]; }
-void SRAM_WriteMatrixChannelEnabled(u8 channel, u8 state) { channelFlags[channel] = state; }
 
 // other
 
@@ -6057,7 +6075,7 @@ void InitTracker()
             VDP_fillTileMapRect(BG_B, NULL, (channel * 3) + 1, 1, 2, 1);
         }
 
-        matrixDirty = 0;
+        matrixDirty = FALSE;
         RecalcAllAddrs();
         FileWriteHeader();
     }

@@ -30,7 +30,7 @@ Emulators:
 ////////////////////////////////////
 
 Flashcarts: 
-	Mega Everdrive Pro - use [mdt***-medpro] version.
+	Mega Everdrive Pro - use [mdt***-medpro] version. [mdt***-blastem] also should work.
 		ISSUES: (May be fixed in latest OS)
 		Replaced .srm file may be not reloaded on rom start.
 		To dump save file from SRAM to SD card, reset console BEFORE power off.
@@ -56,7 +56,7 @@ Features
 Additional 32 step ARP and SEQ tick sequencers.
 FM (YM2612/YM3438) CSM and CH3 Special/CSM Modes support, CH6 DAC support (PCM, 4PCM, 2ADPCM drivers of choise).
 PSG (SN76489) support.
-895 patterns.
+1022 patterns.
 384 samples (96 notes * 4 banks).
 6 commands per row.
 
@@ -228,12 +228,12 @@ Instrument Editor
 
 	Sample:
 	
-	Bank			Select bank for editing.
-	Note			Select note in bank, which region is edited.
-	Region Start	Playback start time (samples, HEX).
-	Region End		Playback end time (samples, HEX). Should be greater than start time.
-	Loop			Is sample playback oneshot or looped.
-	Pan				Default sample pan, L/C/R.
+	Bank			
+	Note			
+	Region Start	
+	Region End		
+	Loop			
+	Pan				
 	
 	Mute, Un-mute, Solo: (State)
 	
@@ -748,7 +748,6 @@ Changelog:
 		Sound muted due Z80 reset after DAC driver change command.
 		Correct BPM display.
 		Register changes of currently edited instrument now applied during playback, not only at start.
-		Better performance (batched register writes/Z80 requests, pitch set optimization, less divisions).
 		Instant playback start (was a bit delayed due caching).
 		
 	Changes:
@@ -759,11 +758,14 @@ Changelog:
 		No DAC sample parameters pre-editing available now. But can be overriden using pattern commands. Sample related instrument editing block is disabled.
 		Displaying used SRAM.
 		Pattern mark colors increased from 15 to 63 preset colors (some are used also by GUI).
-		Maximum patterns now 1023 (0x3FF).
+		Maximum patterns now 1022 (0x3FF max, 0 is empty).
+		Pressing MODE in MATRIX EDITOR (at playback only) will set next matrix row to jump after current is finished.
 	
-	MD.Tracker Editor 1.05 and tools:
-		Save conversion 1.04 to 1.05 via MD.Tracker Editor.
+	MD.Tracker Editor 1.05:
+		Save conversion 1.04 to 1.05.
 		Sample related data now is ROM read-only. All default setup (note, default pan, rate, loop) only via editor.
+		Instrument preset import/export (vgi, tfi). Currently only to/from ROM preset bank.
+		Sample conversion to desired driver format (pcm, adpcm). Built-in simple 3 band EQ before conversion, may be useful to compensate brightness loss after conversion.
 --------------------------------
 1.04
 	Bugs:
