@@ -1005,7 +1005,7 @@ static void DoEngine()
             // set frame length
             maxPulse = (playingPatternRow & 1)? ppl_1 : ppl_2;
 
-            DrawMatrixPlaybackCursor(FALSE, PAL0, 0);
+            DrawMatrixPlaybackCursor(FALSE, PAL0, 0, playingMatrixRow);
             hIntCounter = 0;// hIntToSkip * !useExternalSync; // reset h-int counter
             bDoPulse = FALSE; // do not trigger external pulse if button was pressed before playback start
 
@@ -1055,7 +1055,7 @@ static void DoEngine()
                 // jump to next...
                 if (playingPatternRow > patternSize || patternRowJumpTo != OXFF)
                 {
-                    DrawMatrixPlaybackCursor(TRUE, PAL0, 0); // erase
+                    DrawMatrixPlaybackCursor(TRUE, PAL0, 0, playingMatrixRow); // erase
 
                     if (currentScreen == SCREEN_MATRIX)
                     {
@@ -1091,7 +1091,7 @@ static void DoEngine()
                         patternRowJumpTo = OXFF;
                     }
 
-                    DrawMatrixPlaybackCursor(FALSE, PAL0, 0);
+                    DrawMatrixPlaybackCursor(FALSE, PAL0, 0, playingMatrixRow);
 
                     //BPM = ((getTimer(1, TRUE) / 32 * 240) / 18432); DrawBPM();
                 }
@@ -1132,7 +1132,7 @@ static void DoEngine()
         //YM2612_writeRegZ80(PORT_1, YM2612REG_CH3_TIMERS, CH3_NORMAL | 0b00000000);
         StopAllSound();
         ClearPatternPlaybackCursor();
-        DrawMatrixPlaybackCursor(TRUE, PAL0, 0);
+        DrawMatrixPlaybackCursor(TRUE, PAL0, 0, playingMatrixRow);
 
         VDP_setTextPalette(PAL0); VDP_drawTextBG(BG_B, "    ", 29, 27); VDP_drawTextBG(BG_B, "    ", 69, 27);
 
@@ -1419,8 +1419,8 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
             }
             else
             {
-                playingMatrixRow = lastJumpRow;
-                DrawMatrixPlaybackCursor(true, PAL0, 0);
+                DrawMatrixPlaybackCursor(TRUE, PAL0, 0, playingMatrixRow);
+                DrawMatrixPlaybackCursor(TRUE, PAL0, 0, lastJumpRow);
                 stop_playback();
             }
             break;
@@ -1446,14 +1446,11 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 if (bPlayback)
                 {
                     // queue next matrix row
-                    DrawMatrixPlaybackCursor(true, PAL0, 0);
-
-                    playingMatrixRow = lastJumpRow;
-                    DrawMatrixPlaybackCursor(true, PAL0, 0);
+                    DrawMatrixPlaybackCursor(TRUE, PAL0, 0, playingMatrixRow);
+                    DrawMatrixPlaybackCursor(TRUE, PAL0, 0, lastJumpRow);
+                    DrawMatrixPlaybackCursor(FALSE, PAL3, 1, selectedMatrixRow-1);
 
                     playingMatrixRow = selectedMatrixRow-1;
-                    DrawMatrixPlaybackCursor(false, PAL3, 1);
-
                     lastJumpRow = selectedMatrixRow;
                 }
             }

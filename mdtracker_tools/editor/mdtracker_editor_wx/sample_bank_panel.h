@@ -41,6 +41,7 @@ private:
     wxSpinCtrl* rangeEnd;
     wxChoice* rangePanChoice;
     wxChoice* rangeRateChoice;
+    wxChoice* rangeTypeChoice;
     wxCheckBox* rangeLoopCheck;
     wxButton* applyRangeBtn;
     wxButton* assignSamplesBtn;
@@ -58,6 +59,7 @@ private:
         COL_END,
         COL_PAN,
         COL_RATE,
+        COL_TYPE,
         COL_LOOP,
         COL_NAME,
         COL_COUNT

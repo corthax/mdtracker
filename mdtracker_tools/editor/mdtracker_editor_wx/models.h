@@ -125,6 +125,10 @@ struct SampleSlot {
 
     SampleSlot() { name.resize(14, ' '); }
 
+    static constexpr int TypePcm8 = 0;
+    static constexpr int TypeAdpcm = 1;
+    static constexpr const char* TypeLabels[] = {"S8PCM", "2ADPCM"};
+
     static constexpr int PanOptions[] = {128, 192, 64};
     static constexpr const char* PanLabels[] = {"L", "C", "R"};
     static constexpr int RateOptions[] = {32000, 22050, 16000, 13400, 11025, 8000};
@@ -148,6 +152,7 @@ struct SampleFile {
     std::string shortName;
     std::vector<u8> data;
     int originalSize{};
+    int type{}; // 0 = S8PCM, 1 = 2ADPCM
     long long startOffset{};
     long long endOffset{};
 
@@ -282,4 +287,5 @@ struct RomAddressConfig {
 struct AppSettings {
     RomAddressConfig medPro;
     RomAddressConfig edmdv3;
+    int defaultConversionType{}; // 0 = S8PCM, 1 = 2ADPCM
 };

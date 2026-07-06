@@ -48,6 +48,14 @@ SettingsPanel::SettingsPanel(wxWindow* parent, MainFrame* frame)
 
     box->Add(grid, 0, wxALL, 8);
 
+    auto* convRow = new wxBoxSizer(wxHORIZONTAL);
+    convRow->Add(new wxStaticText(this, wxID_ANY, "Default WAV/FLAC/WV Conversion:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+    defaultConvChoice = new wxChoice(this, wxID_ANY);
+    defaultConvChoice->Append("S8PCM");
+    defaultConvChoice->Append("2ADPCM");
+    convRow->Add(defaultConvChoice, 0);
+    box->Add(convRow, 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
+
     auto* saveBtn = new wxButton(this, wxID_ANY, "Save Settings");
     box->Add(saveBtn, 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
 
@@ -67,6 +75,7 @@ void SettingsPanel::RefreshSettings(const AppSettings& settings) {
     settingsAddrCtrl->SetValue(wxString::Format("%08X", cfg->sampleSettingsAddr));
     bankAddrCtrl->SetValue(wxString::Format("%08X", cfg->sampleBankAddr));
     presetNameAddrCtrl->SetValue(wxString::Format("%08X", cfg->presetNameAddr));
+    defaultConvChoice->SetSelection(settings.defaultConversionType);
 }
 
 void SettingsPanel::SaveCurrentType() {
@@ -96,5 +105,6 @@ void SettingsPanel::OnRomTypeChanged(wxCommandEvent&) {
 
 void SettingsPanel::OnSaveSettings(wxCommandEvent&) {
     SaveCurrentType();
+    mainFrame->GetSettingsService()->settings.defaultConversionType = defaultConvChoice->GetSelection();
     mainFrame->GetSettingsService()->Save();
 }

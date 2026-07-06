@@ -28,17 +28,24 @@
 #define GUI_INST_PARAM_ARPSEQ       18
 #define GUI_INST_PARAM_PCM_BANK     19
 #define GUI_INST_PARAM_PCM_NOTE     20
-#define GUI_INST_PARAM_PCM_START    21
-#define GUI_INST_PARAM_PCM_END      22
-#define GUI_INST_PARAM_PCM_LOOP     23
-#define GUI_INST_PARAM_PCM_RATE     24
-#define GUI_INST_PARAM_PCM_PAN      25
-#define GUI_INST_PARAM_PRESET       26
-#define GUI_INST_PARAM_NAME         27
-#define GUI_INST_PARAM_COPY         28
-#define GUI_INST_PARAM_STATE        29
+//#define GUI_INST_PARAM_PCM_START    21
+//#define GUI_INST_PARAM_PCM_END      22
+//#define GUI_INST_PARAM_PCM_TYPE     21
+//#define GUI_INST_PARAM_PCM_LOOP     22
+//#define GUI_INST_PARAM_PCM_RATE     23
+//#define GUI_INST_PARAM_PCM_PAN      24
+#define GUI_INST_PARAM_PRESET       21
+#define GUI_INST_PARAM_NAME         22
+#define GUI_INST_PARAM_COPY         23
+#define GUI_INST_PARAM_STATE        24
+#define GUI_INST_MAX_PARAMETER      23
 
-#define GUI_INST_MAX_PARAMETER      28
+#define GUI_INST_POSY_SAMPLE_TYPE   3
+#define GUI_INST_POSY_SAMPLE_LOOP   4
+#define GUI_INST_POSY_SAMPLE_RATE   5
+#define GUI_INST_POSY_SAMPLE_PAN    6
+#define GUI_INST_POSY_SAMPLE_NAME   8
+
 // -----------------------------------------------------------
 #define GUI_PATTERN_L_NOTE          0
 #define GUI_PATTERN_L_INST          1
@@ -258,7 +265,7 @@ void DisplayPatternMatrix();
 void DisplayPatternEditor();
 void DisplayInstrumentEditor();
 void DrawSelectionCursor(u8 x, u8 y, u8 bClear);
-void DrawMatrixPlaybackCursor(u8 bClear, u8 palette, s8 offset);
+void DrawMatrixPlaybackCursor(u8 bClear, u8 palette, s8 offset, u8 row);
 void ClearPatternPlaybackCursor();
 void DrawPatternPlaybackCursor();
 void NavigateMatrix(u8 direction);

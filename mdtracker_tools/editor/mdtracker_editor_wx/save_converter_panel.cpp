@@ -114,7 +114,7 @@ void SaveConverterPanel::OnConvertFormat(wxCommandEvent&) {
 
     bool to8Bit = directionRadio->GetSelection() == 0;
 
-    wxString defaultName = to8Bit ? "converted_8bit.srm" : "converted_16bit.srm";
+    wxString defaultName = to8Bit ? "save_8bit.sram" : "save_16bit.sram";
     wxString desc = to8Bit
         ? "8-bit SRAM (*.srm;*.sram;*.bin;*.bram)|*.srm;*.sram;*.bin;*.bram|All files (*.*)|*.*"
         : "16-bit SRAM (*.srm;*.sram;*.bin;*.bram)|*.srm;*.sram;*.bin;*.bram|All files (*.*)|*.*";
@@ -149,7 +149,7 @@ void SaveConverterPanel::OnConvert(wxCommandEvent&) {
     auto result = SaveConverterService::Convert(sramData, outputSize);
 
     wxFileDialog dlg(this, "Save converted SRAM",
-        wxEmptyString, "converted.srm",
+        wxEmptyString, "save.sram",
         "SRAM files (*.srm;*.sram;*.bin;*.bram)|*.srm;*.sram;*.bin;*.bram|All files (*.*)|*.*",
         wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (dlg.ShowModal() == wxID_CANCEL) return;

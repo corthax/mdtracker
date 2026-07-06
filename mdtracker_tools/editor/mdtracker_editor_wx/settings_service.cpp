@@ -40,6 +40,7 @@ void SettingsService::Load() {
         f >> j;
         LoadOne(j, "MEDPro", settings.medPro);
         LoadOne(j, "EDMDV3", settings.edmdv3);
+        settings.defaultConversionType = j.value("DefaultConversionType", 0);
     } catch (...) {}
 }
 
@@ -47,6 +48,7 @@ void SettingsService::Save() {
     json j;
     SaveOne(j, "MEDPro", settings.medPro);
     SaveOne(j, "EDMDV3", settings.edmdv3);
+    j["DefaultConversionType"] = settings.defaultConversionType;
 
     std::string path = GetFilePath();
     std::ofstream f(path);

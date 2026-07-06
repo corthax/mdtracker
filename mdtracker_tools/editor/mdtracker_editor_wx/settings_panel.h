@@ -21,6 +21,7 @@ private:
 
     MainFrame* mainFrame;
     wxChoice* romTypeChoice;
+    wxChoice* defaultConvChoice;
     wxTextCtrl* settingsAddrCtrl;
     wxTextCtrl* bankAddrCtrl;
     wxTextCtrl* presetNameAddrCtrl;

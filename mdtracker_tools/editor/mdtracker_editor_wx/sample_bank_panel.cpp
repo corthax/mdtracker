@@ -54,6 +54,13 @@ SampleBankPanel::SampleBankPanel(wxWindow* parent, MainFrame* frame)
     rangeRateChoice->SetSelection(0);
     rangeBox->Add(rangeRateChoice, 0, wxRIGHT, 4);
 
+    rangeBox->Add(new wxStaticText(this, wxID_ANY, "Type:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 2);
+    rangeTypeChoice = new wxChoice(this, wxID_ANY);
+    rangeTypeChoice->Append("S8PCM");
+    rangeTypeChoice->Append("2ADPCM");
+    rangeTypeChoice->SetSelection(0);
+    rangeBox->Add(rangeTypeChoice, 0, wxRIGHT, 4);
+
     rangeLoopCheck = new wxCheckBox(this, wxID_ANY, "Loop");
     rangeBox->Add(rangeLoopCheck, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
 
@@ -76,11 +83,12 @@ SampleBankPanel::SampleBankPanel(wxWindow* parent, MainFrame* frame)
     poolHeader->Add(addSamplesBtn, 0);
     poolSizer->Add(poolHeader, 0, wxEXPAND | wxALL, 4);
 
-    poolList = new wxListView(poolPanel, wxID_ANY, wxDefaultPosition, wxSize(220, -1),
+    poolList = new wxListView(poolPanel, wxID_ANY, wxDefaultPosition, wxSize(255, -1),
         wxLC_REPORT | wxLC_NO_HEADER);
-    poolList->AppendColumn("ID", wxLIST_FORMAT_LEFT, 30);
-    poolList->AppendColumn("Name", wxLIST_FORMAT_LEFT, 130);
-    poolList->AppendColumn("Size", wxLIST_FORMAT_RIGHT, 60);
+    poolList->AppendColumn("ID", wxLIST_FORMAT_LEFT, 28);
+    poolList->AppendColumn("Name", wxLIST_FORMAT_LEFT, 105);
+    poolList->AppendColumn("Size", wxLIST_FORMAT_RIGHT, 50);
+    poolList->AppendColumn("Type", wxLIST_FORMAT_LEFT, 70);
     poolSizer->Add(poolList, 1, wxEXPAND | wxALL, 4);
 
     auto* poolButtons = new wxBoxSizer(wxHORIZONTAL);
@@ -105,6 +113,7 @@ SampleBankPanel::SampleBankPanel(wxWindow* parent, MainFrame* frame)
     grid->SetColLabelValue(COL_END, "End");
     grid->SetColLabelValue(COL_PAN, "Pan");
     grid->SetColLabelValue(COL_RATE, "Rate");
+    grid->SetColLabelValue(COL_TYPE, "Type");
     grid->SetColLabelValue(COL_LOOP, "Loop");
     grid->SetColLabelValue(COL_NAME, "Name");
 
@@ -114,6 +123,7 @@ SampleBankPanel::SampleBankPanel(wxWindow* parent, MainFrame* frame)
     grid->SetColSize(COL_END, 80);
     grid->SetColSize(COL_PAN, 45);
     grid->SetColSize(COL_RATE, 60);
+    grid->SetColSize(COL_TYPE, 55);
     grid->SetColSize(COL_LOOP, 35);
     grid->SetColSize(COL_NAME, 160);
 
@@ -126,11 +136,17 @@ SampleBankPanel::SampleBankPanel(wxWindow* parent, MainFrame* frame)
     for (int r : SampleSlot::RateOptions)
         rateChoices.Add(wxString::Format("%d", r));
 
+    wxArrayString typeChoices;
+    typeChoices.Add("S8PCM");
+    typeChoices.Add("2ADPCM");
+
     for (int row = 0; row < 96; row++) {
         grid->SetCellEditor(row, COL_PAN, new wxGridCellChoiceEditor(panChoices));
         grid->SetCellAlignment(row, COL_PAN, wxALIGN_CENTER, wxALIGN_CENTRE);
         grid->SetCellEditor(row, COL_RATE, new wxGridCellChoiceEditor(rateChoices));
         grid->SetCellAlignment(row, COL_RATE, wxALIGN_CENTER, wxALIGN_CENTRE);
+        grid->SetCellEditor(row, COL_TYPE, new wxGridCellChoiceEditor(typeChoices));
+        grid->SetCellAlignment(row, COL_TYPE, wxALIGN_CENTER, wxALIGN_CENTRE);
         grid->SetCellEditor(row, COL_LOOP, new wxGridCellBoolEditor);
         grid->SetCellRenderer(row, COL_LOOP, new wxGridCellBoolRenderer);
         grid->SetCellAlignment(row, COL_LOOP, wxALIGN_CENTER, wxALIGN_CENTRE);
@@ -174,6 +190,9 @@ void SampleBankPanel::WriteSlotToGrid(int row, const SampleSlot& slot) {
     int rateIdx = (slot.rate >= 0 && slot.rate < 6) ? slot.rate : 0;
     grid->SetCellValue(row, COL_RATE, SampleSlot::RateLabels[rateIdx]);
 
+    int typeIdx = (slot.type >= 0 && slot.type < 2) ? slot.type : 0;
+    grid->SetCellValue(row, COL_TYPE, SampleSlot::TypeLabels[typeIdx]);
+
     grid->SetCellValue(row, COL_LOOP, slot.looped ? "1" : "");
     grid->SetCellValue(row, COL_NAME, wxString(slot.name));
 }
@@ -206,6 +225,8 @@ void SampleBankPanel::RefreshPool() {
         poolList->SetItem(idx, 1, wxString(sf.shortName));
         int sz = sf.originalSize;
         poolList->SetItem(idx, 2, wxString::Format("%d", sz));
+        int typeIdx = (sf.type >= 0 && sf.type < 2) ? sf.type : 0;
+        poolList->SetItem(idx, 3, SampleSlot::TypeLabels[typeIdx]);
         totalSize += sz;
     }
 
@@ -248,6 +269,11 @@ void SampleBankPanel::OnGridCellChanged(wxGridEvent& event) {
             }
             break;
         }
+        case COL_TYPE: {
+            wxString val = grid->GetCellValue(row, col);
+            slot.type = (val == "2ADPCM") ? 1 : 0;
+            break;
+        }
         case COL_LOOP:
             slot.looped = (grid->GetCellValue(row, col) == "1");
             break;
@@ -262,7 +288,7 @@ void SampleBankPanel::OnGridCellLeftClick(wxGridEvent& event) {
     if (col == COL_SYNC) {
         SyncSlotFromPool(event.GetRow());
         event.Skip();
-    } else if (col == COL_PAN || col == COL_RATE) {
+    } else if (col == COL_PAN || col == COL_RATE || col == COL_TYPE) {
         event.Skip();
         CallAfter([this]() { grid->EnableCellEditControl(true); });
     } else if (col == COL_LOOP) {
@@ -295,6 +321,7 @@ void SampleBankPanel::SyncSlotFromPool(int slotIndex) {
     slot.samplePoolId = sf.id;
     slot.isSynced = true;
     slot.name = sf.shortName;
+    slot.type = sf.type;
     slot.startOffset = mainFrame->GetSettingsService()->AddressForType(mainFrame->GetRomService()->GetRomType())->sampleBankAddr + static_cast<int>(sf.startOffset);
     slot.endOffset = mainFrame->GetSettingsService()->AddressForType(mainFrame->GetRomService()->GetRomType())->sampleBankAddr + static_cast<int>(sf.endOffset);
 
@@ -312,12 +339,14 @@ void SampleBankPanel::OnApplyRange(wxCommandEvent&) {
     int panVal = (rangePanChoice->GetSelection() == 0) ? 128 :
                  (rangePanChoice->GetSelection() == 1) ? 192 : 64;
     int rateIdx = rangeRateChoice->GetSelection();
+    int typeIdx = rangeTypeChoice->GetSelection();
     bool looped = rangeLoopCheck->GetValue();
 
     for (int i = start; i <= end; i++) {
         auto& slot = currentBanks[selBank].slots[i];
         slot.pan = panVal;
         slot.rate = rateIdx;
+        slot.type = typeIdx;
         slot.looped = looped;
         WriteSlotToGrid(i, slot);
     }
@@ -356,6 +385,7 @@ void SampleBankPanel::OnAssignSamples(wxCommandEvent&) {
         slot.samplePoolId = sf.id;
         slot.isSynced = true;
         slot.name = sf.shortName;
+        slot.type = sf.type;
         slot.startOffset = mainFrame->GetSettingsService()->AddressForType(mainFrame->GetRomService()->GetRomType())->sampleBankAddr + static_cast<int>(sf.startOffset);
         slot.endOffset = mainFrame->GetSettingsService()->AddressForType(mainFrame->GetRomService()->GetRomType())->sampleBankAddr + static_cast<int>(sf.endOffset);
         WriteSlotToGrid(i, slot);
@@ -370,6 +400,7 @@ void SampleBankPanel::OnAddSamples(wxCommandEvent&) {
     if (dlg.ShowModal() == wxID_CANCEL) return;
 
     SampleConverterService svc;
+    int defaultType = mainFrame->GetSettingsService()->settings.defaultConversionType;
     wxArrayString paths;
     dlg.GetPaths(paths);
 
@@ -392,8 +423,11 @@ void SampleBankPanel::OnAddSamples(wxCommandEvent&) {
             try {
                 auto wav = svc.ParseWav(fileData);
                 auto samples = svc.DecodeSamples(wav);
-                auto resampled = svc.Resample(samples, wav.sampleRate, 22050);
-                pcm8 = svc.EncodePcm8(resampled, true);
+                auto resampled = svc.Resample(samples, wav.sampleRate, 32000);
+                if (defaultType == 1)
+                    pcm8 = svc.EncodeAdpcm(resampled);
+                else
+                    pcm8 = svc.EncodePcm8(resampled, true);
             } catch (const std::exception& e) {
                 wxMessageBox(wxString::Format("Failed to parse %s:\n%s", path, e.what()),
                              "Error", wxOK | wxICON_ERROR);
@@ -402,8 +436,11 @@ void SampleBankPanel::OnAddSamples(wxCommandEvent&) {
         } else if (ext == "flac") {
             try {
                 auto samples = svc.DecodeFlac(fileData);
-                auto resampled = svc.Resample(samples, 44100, 22050);
-                pcm8 = svc.EncodePcm8(resampled, true);
+                auto resampled = svc.Resample(samples, 44100, 32000);
+                if (defaultType == 1)
+                    pcm8 = svc.EncodeAdpcm(resampled);
+                else
+                    pcm8 = svc.EncodePcm8(resampled, true);
             } catch (const std::exception& e) {
                 wxMessageBox(wxString::Format("Failed to decode %s:\n%s", path, e.what()),
                              "Error", wxOK | wxICON_ERROR);
@@ -413,8 +450,11 @@ void SampleBankPanel::OnAddSamples(wxCommandEvent&) {
             try {
                 int sr = 0;
                 auto samples = svc.DecodeWavpack(fileData, sr);
-                auto resampled = svc.Resample(samples, sr, 22050);
-                pcm8 = svc.EncodePcm8(resampled, true);
+                auto resampled = svc.Resample(samples, sr, 32000);
+                if (defaultType == 1)
+                    pcm8 = svc.EncodeAdpcm(resampled);
+                else
+                    pcm8 = svc.EncodePcm8(resampled, true);
             } catch (const std::exception& e) {
                 wxMessageBox(wxString::Format("Failed to decode %s:\n%s", path, e.what()),
                              "Error", wxOK | wxICON_ERROR);
@@ -432,6 +472,7 @@ void SampleBankPanel::OnAddSamples(wxCommandEvent&) {
         sf.shortName = SampleFile::ExtractShortName(path.ToStdString());
         sf.data = std::move(pcm8);
         sf.originalSize = static_cast<int>(sf.data.size());
+        sf.type = (ext == "2adpcm") ? 1 : (ext == "s8pcm") ? 0 : defaultType;
         pool.push_back(std::move(sf));
     }
 

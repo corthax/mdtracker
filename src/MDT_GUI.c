@@ -328,8 +328,8 @@ void NavigateInstrument(u8 direction)
         }
 
         if (selectedInstrumentParameter > 0) selectedInstrumentParameter--; else selectedInstrumentParameter = GUI_INST_MAX_PARAMETER;
-        if (selectedInstrumentParameter >= GUI_INST_PARAM_PCM_START && selectedInstrumentParameter <= GUI_INST_PARAM_PCM_PAN)
-            selectedInstrumentParameter = GUI_INST_PARAM_PCM_NOTE;
+        /*if (selectedInstrumentParameter >= GUI_INST_PARAM_PCM_TYPE && selectedInstrumentParameter <= GUI_INST_PARAM_PCM_PAN)
+            selectedInstrumentParameter = GUI_INST_PARAM_PCM_NOTE;*/
         DrawSelectionCursor(selectedInstrumentOperator, selectedInstrumentParameter, FALSE);
         break;
 
@@ -345,8 +345,8 @@ void NavigateInstrument(u8 direction)
         }
 
         if (selectedInstrumentParameter < GUI_INST_MAX_PARAMETER) selectedInstrumentParameter++; else selectedInstrumentParameter = 0;
-        if (selectedInstrumentParameter >= GUI_INST_PARAM_PCM_START && selectedInstrumentParameter <= GUI_INST_PARAM_PCM_PAN)
-            selectedInstrumentParameter = GUI_INST_PARAM_PRESET;
+        /*if (selectedInstrumentParameter >= GUI_INST_PARAM_PCM_TYPE && selectedInstrumentParameter <= GUI_INST_PARAM_PCM_PAN)
+            selectedInstrumentParameter = GUI_INST_PARAM_PRESET;*/
         DrawSelectionCursor(selectedInstrumentOperator, selectedInstrumentParameter, FALSE);
         break;
     }
@@ -412,15 +412,15 @@ void DrawInfo()
 }
 
 // cursors
-void DrawMatrixPlaybackCursor(u8 bClear, u8 palette, s8 offset)
+void DrawMatrixPlaybackCursor(u8 bClear, u8 palette, s8 offset, u8 row)
 {
     static u8 playingPage = 0;
 
-    playingPage = playingMatrixRow / MATRIX_ROWS_ONPAGE;
+    playingPage = row / MATRIX_ROWS_ONPAGE;
     if (playingPage == currentPage)
     {
-        if (bClear) { VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[0] + playingMatrixRow), 39, playingMatrixRow - MATRIX_ROWS_ONPAGE * playingPage + 2 + offset); }
-        else if (bPlayback) { VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(palette, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PLAYCURSOR), 39, playingMatrixRow - MATRIX_ROWS_ONPAGE * playingPage + 2 + offset); }
+        if (bClear) { VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[0] + row), 39, row - MATRIX_ROWS_ONPAGE * playingPage + 2 + offset); }
+        else if (bPlayback) { VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(palette, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PLAYCURSOR), 39, row - MATRIX_ROWS_ONPAGE * playingPage + 2 + offset); }
     }
 }
 
@@ -440,8 +440,8 @@ void DrawPatternPlaybackCursor()
 
     line = playingPatternRow - 1;
     if (line == -1) line = patternSize;
-    if (line < 16) VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL3, 1, FALSE, TRUE, bgBaseTileIndex[2] + GUI_PLAYCURSOR), 40, line+4);
-    else VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL3, 1, FALSE, TRUE, bgBaseTileIndex[2] + GUI_PLAYCURSOR), 60, line-12);
+    if (line < 16) VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, TRUE, bgBaseTileIndex[2] + GUI_PLAYCURSOR), 40, line+4);
+    else VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, TRUE, bgBaseTileIndex[2] + GUI_PLAYCURSOR), 60, line-12);
 }
 
 void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
@@ -556,7 +556,7 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
             offset_x = 80+36; offset_y = -GUI_INST_PARAM_PCM_NOTE; width = 0; selectedInstrumentOperator = 0;
             break;
         case GUI_INST_PARAM_PRESET:
-            offset_x = 80+33; offset_y = GUI_INST_PARAM_PRESET-3; width = 0; selectedInstrumentOperator = 0;
+            offset_x = 80+33; offset_y = GUI_INST_PARAM_PRESET+7; width = 0; selectedInstrumentOperator = 0;
             break;
         default: break;
         }
@@ -763,7 +763,7 @@ void DisplayPatternMatrix()
                 {
                     line = 0;
                     bRefreshScreen = FALSE;
-                    DrawMatrixPlaybackCursor(FALSE, PAL0, 0);
+                    DrawMatrixPlaybackCursor(FALSE, PAL0, 0, playingMatrixRow);
                 }
             }
             else
@@ -901,35 +901,43 @@ inline void DisplayInstrumentEditor()
     {
         const struct SampleSettings* s = GetSampleSettings(selectedSampleBank, selectedSampleNote);
 
-        DrawHex2(PAL0, (s->startOffset >> 16) & 0xFF, 113, 3);
+        // start
+        /*DrawHex2(PAL0, (s->startOffset >> 16) & 0xFF, 113, 3);
         DrawHex2(PAL0, (s->startOffset >> 8) & 0xFF, 115, 3);
-        DrawHex2(PAL0, s->startOffset & 0xFF, 117, 3);
+        DrawHex2(PAL0, s->startOffset & 0xFF, 117, 3);*/
 
-        DrawHex2(PAL0, (s->endOffset >> 16) & 0xFF, 113, 4);
+        // end
+        /*DrawHex2(PAL0, (s->endOffset >> 16) & 0xFF, 113, 4);
         DrawHex2(PAL0, (s->endOffset >> 8) & 0xFF, 115, 4);
-        DrawHex2(PAL0, s->endOffset & 0xFF, 117, 4);
+        DrawHex2(PAL0, s->endOffset & 0xFF, 117, 4);*/
 
-        if (s->looped == FALSE) FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_BIGDOT, 2, 113, 5);
-        else DrawText(BG_A, PAL0, "ON", 113, 5);
+        if (s->type == 0) { VDP_setTextPalette(PAL1); VDP_drawTextBG(BG_A, "PCM  ", 113, GUI_INST_POSY_SAMPLE_TYPE); }
+        else { VDP_setTextPalette(PAL1); VDP_drawTextBG(BG_A, "ADPCM", 113, GUI_INST_POSY_SAMPLE_TYPE); }
+
+        /*if (s->looped == FALSE) FillRowRight(BG_A, PAL1, FALSE, FALSE, GUI_BIGDOT, 2, 113, GUI_INST_POSY_SAMPLE_LOOP);
+        else DrawText(BG_A, PAL1, "ON", 113, GUI_INST_POSY_SAMPLE_LOOP);*/
+
+        if (s->looped == FALSE) { VDP_setTextPalette(PAL1); VDP_drawTextBG(BG_A, "NO ", 113, GUI_INST_POSY_SAMPLE_LOOP); }
+        else { VDP_setTextPalette(PAL1); VDP_drawTextBG(BG_A, "YES", 113, GUI_INST_POSY_SAMPLE_LOOP); }
 
         switch (s->rate)
         {
-            case SOUND_PCM_RATE_32000: DrawNum(BG_A, PAL1, "32000", 114, 6); break;
-            case SOUND_PCM_RATE_22050: DrawNum(BG_A, PAL1, "22050", 114, 6); break;
-            case SOUND_PCM_RATE_16000: DrawNum(BG_A, PAL1, "16000", 114, 6); break;
-            case SOUND_PCM_RATE_13400: DrawNum(BG_A, PAL1, "13400", 114, 6); break;
-            case SOUND_PCM_RATE_11025: DrawNum(BG_A, PAL1, "11025", 114, 6); break;
-            case SOUND_PCM_RATE_8000: DrawNum(BG_A, PAL1, "8000", 114, 6);
-                VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, NULL), 118, 6); break;
+            case SOUND_PCM_RATE_32000: DrawNum(BG_A, PAL1, "32000", 113, GUI_INST_POSY_SAMPLE_RATE); break;
+            case SOUND_PCM_RATE_22050: DrawNum(BG_A, PAL1, "22050", 113, GUI_INST_POSY_SAMPLE_RATE); break;
+            case SOUND_PCM_RATE_16000: DrawNum(BG_A, PAL1, "16000", 113, GUI_INST_POSY_SAMPLE_RATE); break;
+            case SOUND_PCM_RATE_13400: DrawNum(BG_A, PAL1, "13400", 113, GUI_INST_POSY_SAMPLE_RATE); break;
+            case SOUND_PCM_RATE_11025: DrawNum(BG_A, PAL1, "11025", 113, GUI_INST_POSY_SAMPLE_RATE); break;
+            case SOUND_PCM_RATE_8000: DrawNum(BG_A, PAL1, "8000", 113, GUI_INST_POSY_SAMPLE_RATE);
+                VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, NULL), 113+4, GUI_INST_POSY_SAMPLE_RATE); break;
             default: DrawNum(BG_A, PAL1, "-----", 114, 6); break;
         }
 
         switch (s->pan)
         {
-            case SOUND_PAN_CENTER: VDP_setTextPalette(PAL1); VDP_drawText("C", 114, 7); break;
-            case SOUND_PAN_LEFT: VDP_setTextPalette(PAL1); VDP_drawText("L", 114, 7); break;
-            case SOUND_PAN_RIGHT: VDP_setTextPalette(PAL1); VDP_drawText("R", 114, 7); break;
-            default: VDP_setTextPalette(PAL1); VDP_drawText("-", 114, 7); break;
+            case SOUND_PAN_CENTER: VDP_setTextPalette(PAL1); VDP_drawText("C", 113, GUI_INST_POSY_SAMPLE_PAN); break;
+            case SOUND_PAN_LEFT: VDP_setTextPalette(PAL1); VDP_drawText("L", 113, GUI_INST_POSY_SAMPLE_PAN); break;
+            case SOUND_PAN_RIGHT: VDP_setTextPalette(PAL1); VDP_drawText("R", 113, GUI_INST_POSY_SAMPLE_PAN); break;
+            default: VDP_setTextPalette(PAL1); VDP_drawText("-", 113, GUI_INST_POSY_SAMPLE_PAN); break;
         }
     }
 
@@ -1401,23 +1409,24 @@ void DrawStaticGUI()
     DrawText(BG_A, PAL3, "COPY", 91, 1); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 95, 1);
     DrawText(BG_A, PAL3, "OK", 97, 1); VDP_setTextPalette(PAL2); VDP_drawText("(B)", 99, 1);
 
-    DrawText(BG_A, PAL3, "SAMPLE", 106, 0);
+    //DrawText(BG_A, PAL3, "SAMPLE", 106, 0);
+    VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "S.BANK", 106, 0);
 
-    DrawText(BG_A, PAL3, "REGION", 113, 2);
-    DrawText(BG_A, PAL3, "START", 106, 3);
-    DrawText(BG_A, PAL3, "END", 106, 4);
-    DrawText(BG_A, PAL3, "LOOP", 106, 5);
-    DrawText(BG_A, PAL3, "RATE", 106, 6); VDP_setTextPalette(PAL1); VDP_drawText(">", 113, 6);
-    DrawText(BG_A, PAL3, "PAN", 106, 7); VDP_setTextPalette(PAL1); VDP_drawText(">", 113, 7);
-    for (u8 y=3; y<8; y++) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 111, y);
+    DrawText(BG_A, PAL3, "TYPE", 106, GUI_INST_POSY_SAMPLE_TYPE);
+    DrawText(BG_A, PAL3, "LOOP", 106, GUI_INST_POSY_SAMPLE_LOOP);
+    DrawText(BG_A, PAL3, "RATE", 106, GUI_INST_POSY_SAMPLE_RATE); //VDP_setTextPalette(PAL1); VDP_drawText(">", 113, GUI_INST_POSY_SAMPLE_RATE);
+    DrawText(BG_A, PAL3, "PAN", 106, GUI_INST_POSY_SAMPLE_PAN); //VDP_setTextPalette(PAL1); VDP_drawText(">", 113, GUI_INST_POSY_SAMPLE_PAN);
+    DrawText(BG_A, PAL3, "NAME", 106, GUI_INST_POSY_SAMPLE_NAME);
+    DisplaySampleName(106, GUI_INST_POSY_SAMPLE_NAME+1, 0, 0);
 
-    DrawText(BG_A, PAL3, "NAME", 106, 9);
-    DisplaySampleName(106, 10, 0, 0);
+    for (u8 y=3; y<7; y++) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 111, y);
 
     VDP_setTextPalette(PAL0); VDP_drawText("PRESET", 106, 17);
-    VDP_setTextPalette(PAL1); VDP_drawText(">", 113, 17); VDP_drawText("000", 114, 17);
-    VDP_drawText(presetName[0], 106, 18);
+    VDP_setTextPalette(PAL1);
+        VDP_drawText(">", 113, 17); VDP_drawText("000", 114, 17);
+        VDP_drawText(presetName[0], 106, 18);
     VDP_setTextPalette(PAL2); VDP_drawText("(B)", 117, 17);
+
 
     DrawText(BG_A, PAL3, "STATE", 106, 20); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 111, 20);
     DrawText(BG_A, PAL0, "PLAY", 113, 20);
