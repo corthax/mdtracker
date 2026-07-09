@@ -13,27 +13,45 @@ Powered by SGDK
 ░░░░░     ░░░░░ ░░░░░░░░░░   ░░    ░░░░░    ░░░░░      ░░░░░░░░  ░░░░░░  ░░░░ ░░░░░  ░░░░░░  ░░░░░     
 
 ////////////////////////////////////
-Works in:
+Tested on:
+////////////////////////////////////
+[mdt***-medpro]
+
+PicoDrive (RetroArch)
+BlastEm (RetroArch)
+
+Mega Everdrive Pro
+
+////////////////////////////////////
+[mdt***-blastem]
+
+BlastEm (Standalone 0.6.3+)
+
+Mega Everdrive Pro
+
+////////////////////////////////////
+[mdt***-edmdv3]
+
+BlastEm (Standalone 0.6.3+)
+
+Mega Everdrive Pro
+EDMD-v3
+
+////////////////////////////////////
+ISSUES:
 ////////////////////////////////////
 
-Emulators: 
-	PicoDrive (RetroArch) - use [mdt***-medpro] version.
-		Possible issues:
-		PSG Noise channel wrong pitch.
-		FM CH.6 DAC pan not working.
-		FM CH.3 Special+CSM mode not working.
-		
-	BlastEm (RetroArch) - use [mdt***-medpro] version.
+PicoDrive (RetroArch)
+	PSG Noise channel wrong pitch.
+	FM CH.6 DAC pan not working.
+	FM CH.3 Special+CSM mode not working.
 
-	BlastEm (Standalone 0.6.3+) - use [mdt***-blastem] version.
+Mega Everdrive Pro
+	Replaced .srm file may be not reloaded on rom start.
+	To dump save file from SRAM to SD card, reset console BEFORE power off.
 	
-////////////////////////////////////
-
-Flashcarts: 
-	Mega Everdrive Pro - use [mdt***-medpro] version. [mdt***-blastem] also should work.
-		ISSUES: (May be fixed in latest OS)
-		Replaced .srm file may be not reloaded on rom start.
-		To dump save file from SRAM to SD card, reset console BEFORE power off.
+EDMD-v3
+	SRAM saved on SD when new rom flashed.
 		
 ////////////////////////////////////
 
@@ -363,7 +381,7 @@ SPECIAL:
 SPECIAL+CSM:
 	Instrument OP AR need to be set to 31 to produce any sound.
 	Pitch is far from perfect, especially for higher notes.
-	No ARP or VOL sequences applied.
+	No ARP or SEQ sequences applied.
 	Pitch commands acting as "filtering" effect.
 	Kill previous note just a tick before enabling SPECIAL+CSM mode to not introduce noticable click.
 	FM3 Channels: Use command 55xx to set each operator base note (frequency). It will affect it's "filtering" effect.

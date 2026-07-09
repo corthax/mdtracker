@@ -22,7 +22,7 @@
 				<Option type="4" />
 				<Option compiler="sgdk" />
 				<Option parameters="C:\GameDev\SEGA\project\mdtracker\out\rom.bin" />
-				<Option host_application="d:/Games/_console/sega/genesis/BlastEm/blastem-win64-0.6.3-pre-6404643aca38/blastem.exe" />
+				<Option host_application="d:/Games/_console/sega/genesis/BlastEm/latest/blastem.exe" />
 				<Option run_host_application_in_terminal="0" />
 				<Compiler>
 					<Add option="-O2" />
@@ -120,18 +120,6 @@
 		<Unit filename="src/main.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="src/ssf.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="src/midi/ring_buf.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="src/midi/serial.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="src/midi/comm_serial.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Unit filename="src/midi/comm_everdrive.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -141,10 +129,22 @@
 		<Unit filename="src/midi/comm_midi.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="src/midi/comm_serial.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="src/midi/midi_rx.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/midi/midi_sync.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/midi/ring_buf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/midi/serial.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/ssf.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Extensions>

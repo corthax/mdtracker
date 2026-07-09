@@ -365,3 +365,7 @@ ltuns:
         move.l  %d3,%d0
         move.l  %a2,%d3           /* restore d3 */
         rts
+
+.global msu_drv
+msu_drv:
+.incbin "src/boot/msu-drv.bin"

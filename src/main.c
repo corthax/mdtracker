@@ -118,6 +118,10 @@ u8 FM_CH3_OpNoteStatus = 0b00000010; // ch3 each of operators status, note on or
 u8 PSG_NoiseMode = PSG_NOISE_TYPE_PERIODIC;
 
 bool bPlayback = FALSE;
+#define FM_BUF_MAX 128
+typedef struct { u8 port; u8 reg; u8 data; } FMRegWrite;
+FMRegWrite fmBuf[FM_BUF_MAX];
+u16 fmBufPos = 0;
 u8 ppl_1 = PPL_DEFAULT; // pulse per line
 u8 ppl_2 = PPL_DEFAULT;
 u8 maxPulse = PPL_DEFAULT;
@@ -252,17 +256,8 @@ u8 midiPreset = 0;
 u16 matrixCells[CHANNELS_TOTAL * MATRIX_ROWS];
 u32 matrixBlockEnd;
 u8  matrixDirty = FALSE;
-//u8  patternDirty = FALSE;
-//u8  instrumentDirty = FALSE;
-
-/*
-u16 msu_drv();
-vu16 *mcd_cmd = (vu16 *) 0xA12010;  // command
-vu32 *mcd_arg = (vu32 *) 0xA12012;  // argument
-vu8 *mcd_cmd_ck = (vu8 *) 0xA1201F; // increment for command execution
-vu8 *mcd_stat = (vu8 *) 0xA12020;   // Driver ready for commands processing when 0xA12020 sets to 0
-u16 msu_resp;
-*/
+u8  patternDirty = FALSE;
+u8  instrumentDirty = FALSE;
 
 // static forward declarations (engine-internal)
 static void DoEngine();
@@ -292,8 +287,18 @@ static void RequestZ80();
 static void ReleaseZ80();
 static void JoyEvent(u16 joy, u16 changed, u16 state);
 static void YM2612_writeRegZ80(u16 part, u8 reg, u8 data);
+static void FM_flushBuffer();
 static s16 FindUnusedPattern();
 static void ReadMatrixRow();
+
+// MSU-MD
+u16 msu_drv();
+
+vu16 *mcd_cmd = (vu16 *) 0xA12010;  // command
+vu32 *mcd_arg = (vu32 *) 0xA12012;  // argument
+vu8 *mcd_cmd_ck = (vu8 *) 0xA1201F; // increment for command execution
+vu8 *mcd_stat = (vu8 *) 0xA12020;   // Driver ready for commands processing when 0xA12020 sets to 0
+bool bMsuReady = FALSE;
 
 int main(bool hardReset)
 {
@@ -558,16 +563,6 @@ static void DoEngine()
         {
             SRAM_ReadRowToBuffer(channelPlayingPatternID[mtxCh], playingPatternRow, _rowData);
 
-            // detect per-row ARP (0x30) and VOL (0x40) effects for auto-clearing
-            u8 hasArpOnRow = 0, hasParOnRow = 0;
-            for (u8 _eff = 0; _eff < EFFECTS_TOTAL; _eff++)
-            {
-                u8 _ft = _rowData[DATA_FX1_TYPE + _eff*2];
-                u8 _fv = _rowData[DATA_FX1_VALUE + _eff*2];
-                if (_ft == 0x30 || (!_ft && _fv && channelPreviousEffectType[mtxCh][_eff] == 0x30)) hasArpOnRow = 1;
-                if (_ft == 0x40 || (!_ft && _fv && channelPreviousEffectType[mtxCh][_eff] == 0x40)) hasParOnRow = 1;
-            }
-
             auto void command(u8 type, u8 val, u8 effect) { // slow!
                 //if (channelDoEffects[mtxCh])
                 //{
@@ -694,9 +689,7 @@ static void DoEngine()
                 apply_commands();
             }
 
-            // clear per-row sequencer flags when command absent (FM only; PSG uses instrument default)
-            if (!hasArpOnRow && mtxCh < CHANNEL_PSG1) { channelArpSeqActive[mtxCh] = 0; channelSEQCounter_ARP[mtxCh] = 0; }
-            if (!hasParOnRow && mtxCh < CHANNEL_PSG1) { channelParSeqActive[mtxCh] = 0; channelSEQCounter_PAR[mtxCh] = 0; }
+        // clear per-row sequencer flags when command absent (FM only; PSG uses instrument default)
 
             // --------- trigger note playback; check empty note later; pass note id: 0..95, 254, 255
             /*if (mtxCh == CHANNEL_FM6_DAC &&
@@ -1139,6 +1132,8 @@ static void DoEngine()
         SYS_enableInts();
         VDP_setHInterrupt(FALSE);
     }
+
+    FM_flushBuffer();
 }
 
 static void ReadMatrixRow()
@@ -1209,6 +1204,7 @@ static void ProcessMidiSync()
     switch (cmd) {
     case MIDI_TRANSPORT_START:
         if (!bPlayback) {
+            fmBufPos = 0;
             playingPatternRow = 0;
             playingMatrixRow = selectedMatrixRow;
             bPlayback = TRUE;
@@ -1216,12 +1212,14 @@ static void ProcessMidiSync()
         break;
     case MIDI_TRANSPORT_STOP:
         if (bPlayback) {
+            FM_flushBuffer();
             pulseCounter = 0;
             bPlayback = FALSE;
         }
         break;
     case MIDI_TRANSPORT_CONTINUE:
         if (!bPlayback) {
+            fmBufPos = 0;
             bPlayback = TRUE;
         }
         break;
@@ -1313,6 +1311,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
 
     auto void stop_playback()
     {
+        FM_flushBuffer();
         pulseCounter = 0;
         bPlayback = FALSE;
     }
@@ -1398,10 +1397,10 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
 
     auto void set_range()
     {
-        if (patternCopyRangeStart != NOTHING)
+        if (patternSelectionRangeStart != NOTHING)
         {
-            _rangeStart = patternCopyRangeStart;
-            _rangeEnd = patternCopyRangeEnd;
+            _rangeStart = patternSelectionRangeStart;
+            _rangeEnd = patternSelectionRangeEnd;
         }
     }
 
@@ -1412,6 +1411,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
         case BUTTON_START:
             if (bPlayback == FALSE)
             {
+                fmBufPos = 0;
                 pulseCounter = 0;
                 playingPatternRow = 0; // start from the first line of current pattern
                 playingMatrixRow = selectedMatrixRow; // actual line in array
@@ -1430,6 +1430,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
             {
                 if (bPlayback == FALSE && !useExternalSync && midi_sync_get_mode() == MIDI_SYNC_OFF) // play from current pattern row
                 {
+                    fmBufPos = 0;
                     pulseCounter = 0;
                     if (selectedPatternColumn < PATTERN_COLUMNS) playingPatternRow = selectedPatternRow; // start from the current selected pattern row
                     else playingPatternRow = selectedPatternRow + PATTEN_ROWS_PER_SIDE;
@@ -1769,9 +1770,9 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
 
                 // paste all data from selection
                 case BUTTON_B:
-                    if (patternCopyRangeStart != NOTHING)
+                    if (patternSelectionRangeStart != NOTHING)
                     {
-                        for (u8 cnt = patternCopyRangeStart; cnt < patternCopyRangeEnd; cnt++)
+                        for (u8 cnt = patternSelectionRangeStart; cnt < patternSelectionRangeEnd; cnt++)
                         {
                             row = selectedPatternRow + patternColumnShift + inc;
                             if (row <= PATTERN_ROW_LAST) {
@@ -1801,9 +1802,9 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
 
                 // paste selected
                 case BUTTON_C:
-                    if (patternCopyRangeStart != NOTHING)
+                    if (patternSelectionRangeStart != NOTHING)
                     {
-                        for (u8 cnt = patternCopyRangeStart; cnt < patternCopyRangeEnd; cnt++)
+                        for (u8 cnt = patternSelectionRangeStart; cnt < patternSelectionRangeEnd; cnt++)
                         {
                             switch (selectedPatternColumn)
                             {
@@ -2098,17 +2099,17 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 // selected to nothing
                 case BUTTON_Z: // pressed
                     inc = 0;
-                    if (patternCopyRangeStart != NOTHING) { selection_clear(); }
-                    patternCopyRangeStart = patternCopyRangeEnd = NOTHING;
+                    if (patternSelectionRangeStart != NOTHING) { selection_clear(); }
+                    patternSelectionRangeStart = patternSelectionRangeEnd = NOTHING;
                     VDP_setTextPalette(PAL1); VDP_drawText("---", 65, 0);
                     break;
                 // select all
                 case BUTTON_UP:
-                    if (patternCopyRangeStart == NOTHING)
+                    if (patternSelectionRangeStart == NOTHING)
                     {
                         patternCopyFrom = selectedPatternID;
-                        patternCopyRangeStart = 0;
-                        patternCopyRangeEnd = PATTERN_ROW_LAST + 1;
+                        patternSelectionRangeStart = 0;
+                        patternSelectionRangeEnd = PATTERN_ROW_LAST + 1;
 
                         for (u8 y=4; y<20; y++)
                         {
@@ -2120,26 +2121,26 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     break;
                 // set selection
                 case BUTTON_DOWN:
-                    if (patternCopyRangeStart == NOTHING)
+                    if (patternSelectionRangeStart == NOTHING)
                     {
                         patternCopyFrom = selectedPatternID;
-                        patternCopyRangeStart = selectedPatternRow + patternColumnShift;
-                        patternCopyRangeEnd = patternCopyRangeStart + 1;
+                        patternSelectionRangeStart = selectedPatternRow + patternColumnShift;
+                        patternSelectionRangeEnd = patternSelectionRangeStart + 1;
 
-                        if (patternCopyRangeEnd < 16)
-                            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 44, patternCopyRangeStart+4);
-                        else VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 64, patternCopyRangeStart-12);
+                        if (patternSelectionRangeEnd < 16)
+                            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 44, patternSelectionRangeStart+4);
+                        else VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 64, patternSelectionRangeStart-12);
 
                         intToHex(selectedPatternID, str, 3); VDP_setTextPalette(PAL1); VDP_drawText(str, 65, 0);
                     }
                     else
                     {
-                        if (patternCopyRangeEnd < PATTERN_ROWS)
+                        if (patternSelectionRangeEnd < PATTERN_ROWS)
                         {
-                            if (patternCopyRangeEnd < 16)
-                                VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 44, patternCopyRangeEnd+4);
-                            else VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 64, patternCopyRangeEnd-12);
-                            patternCopyRangeEnd++;
+                            if (patternSelectionRangeEnd < 16)
+                                VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 44, patternSelectionRangeEnd+4);
+                            else VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 64, patternSelectionRangeEnd-12);
+                            patternSelectionRangeEnd++;
                         }
                     }
                     break;
@@ -2490,7 +2491,7 @@ static void ChangePatternParameter(s8 noteMod, s8 parameterMod)
 
     bRefreshScreen = TRUE;
 
-    //patternDirty = TRUE;
+    patternDirty = TRUE;
 
     auto void write_note(u8 column)
     {
@@ -2834,7 +2835,7 @@ static void ChangeInstrumentParameter(s8 modifier, u8 changeAll)
     bRefreshScreen = TRUE;
     instrumentParameterToRefresh = selectedInstrumentParameter;
 
-    //instrumentDirty = TRUE;
+    instrumentDirty = TRUE;
 
     switch (selectedInstrumentParameter)
     {
@@ -3092,7 +3093,7 @@ static void ChangeInstrumentParameter(s8 modifier, u8 changeAll)
         if (value > SAMPLE_BANK_LAST) value = 0;
         else if (value < 0) value = SAMPLE_BANK_LAST;
         selectedSampleBank = value;
-        DisplaySampleName(106, 10, selectedSampleNote, selectedSampleBank);
+        DisplaySampleName(106, GUI_INST_POSY_SAMPLE_NAME, selectedSampleNote, selectedSampleBank);
         break;
     case GUI_INST_PARAM_PCM_NOTE:
         value = selectedSampleNote + modifier;
@@ -3479,8 +3480,9 @@ static void SetPitchFM(u8 mtxCh, u8 note)
                 break;
             case CH3_SPECIAL_CSM:
                 // Timer A to note pitch
-                YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_A_MSB, (u8)(csmMicrotone[note] >> 2));
-                YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_A_LSB, (u8)(csmMicrotone[note] & 0b0000000000000011));
+                u16 _csmTimerA = csmMicrotone_Table[note][(u8)channelMicrotone[mtxCh]];
+                YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_A_MSB, (u8)(_csmTimerA >> 2));
+                YM2612_writeRegZ80(PORT_1, YM2612REG_TIMER_A_LSB, (u8)(_csmTimerA & 3));
 
                 // play CSM note
                 // bb: Ch3 mode, Reset B, Reset A, Enable B, Enable A, Load B, Load A
@@ -4470,7 +4472,8 @@ static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
         break;
 
     // MSU MD CD audio PLAY ONCE
-    /*case 0x20:
+    case 0x20:
+        if (!bMsuReady) break;
         if (!fxValue)
         {
             *mcd_cmd = MSU_PAUSE;
@@ -4482,10 +4485,11 @@ static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
             *mcd_cmd = MSU_PLAY | fxValue; // track number
             *mcd_cmd_ck = *mcd_cmd_ck + 1;
         }
-        break;*/
+        break;
 
     // MSU MD CD audio PLAY LOOP
-    /*case 0x21:
+    case 0x21:
+        if (!bMsuReady) break;
         if (!fxValue)
         {
             *mcd_cmd = MSU_PAUSE;
@@ -4497,10 +4501,11 @@ static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
             *mcd_cmd = MSU_PLAY_LOOP | fxValue;
             *mcd_cmd_ck = *mcd_cmd_ck + 1;
         }
-        break;*/
+        break;
 
     // MSU MD CD audio SEEK TIME EMULATION
-    /*case 0x22:
+    case 0x22:
+        if (!bMsuReady) break;
         if (!fxValue)
         {
             *mcd_cmd = MSU_SEEK_OFF;
@@ -4511,7 +4516,14 @@ static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
             *mcd_cmd = MSU_SEEK_ON;
             *mcd_cmd_ck = *mcd_cmd_ck + 1;
         }
-        break;*/
+        break;
+
+        // MSU MD CDDA VOLUME
+    case 0x23:
+        if (!bMsuReady) break;
+        *mcd_cmd = MSU_VOL | fxValue;
+        *mcd_cmd_ck = *mcd_cmd_ck + 1;
+        break;
 
     // Smooth PCM pan
     //case 0x2C:
@@ -5479,6 +5491,7 @@ void CommitSeqEditBuffer()
         }
     }
     seqEditID = 0xFFFF;
+    instrumentDirty = FALSE;
 }
 
 // ============================================================
@@ -5791,7 +5804,7 @@ static void writeBlockToSRAM(u32 sramOffset, u16 id, u16 numEvents, u8* events, 
 // Shift subsequent blocks in SRAM to accommodate size change.
 void SRAM_CommitBuffer(u16 id)
 {
-    //patternDirty = FALSE;
+    patternDirty = FALSE;
     // Temp buffer for packed events (max 148 events * 3 bytes = 444, plus 4 header = 448)
     // We know packed never exceeds 448 bytes (threshold for raw format)
     u8 packed[448];
@@ -5915,9 +5928,31 @@ void SRAM_WritePatternColor(u16 id, u8 color) {
 
 void YM2612_writeRegZ80(u16 part, u8 reg, u8 data)
 {
+    if (bPlayback && fmBufPos < FM_BUF_MAX)
+    {
+        fmBuf[fmBufPos].port = (u8)part;
+        fmBuf[fmBufPos].reg  = reg;
+        fmBuf[fmBufPos].data = data;
+        fmBufPos++;
+    }
+    else
+    {
+        RequestZ80();
+        YM2612_writeReg(part, reg, data);
+        ReleaseZ80();
+    }
+}
+
+void FM_flushBuffer()
+{
+    if (!fmBufPos) return;
+
     RequestZ80();
-    YM2612_writeReg(part, reg, data);
+    for (u16 i = 0; i < fmBufPos; i++)
+        YM2612_writeReg(fmBuf[i].port, fmBuf[i].reg, fmBuf[i].data);
     ReleaseZ80();
+
+    fmBufPos = 0;
 }
 
 void InitTracker()
@@ -6006,10 +6041,18 @@ void InitTracker()
     Z80_init();
 
     Z80_loadDriver(Z80_DRIVER_PCM, TRUE);
-    //Z80_loadDriver(Z80_DRIVER_DPCM2, TRUE);
-    //Z80_loadDriver(Z80_DRIVER_PCM4, TRUE);
-    //Z80_loadDriver(Z80_DRIVER_XGM, TRUE);
-    //Z80_loadCustomDriver((u8*)0x61E, (u16)0x1B36); // dualpcm_drv in symbols.txt, bin file size
+
+    // init MSU-MD CD audio driver
+    u16 resp;
+    resp = msu_drv();
+
+    if (!resp)
+    {
+        //! do not wait, or it will hang rom in BlastEm. usually init is instant
+        //while (*mcd_stat != 1);
+        //while (*mcd_stat == 1); //wait till sub cpu finis initialization
+        bMsuReady = TRUE;
+    }
 
     Z80_setForceDelayDMA(TRUE);
     //Z80_enableBusProtection(); // for XGM
@@ -6213,6 +6256,8 @@ void ForceResetVariables()
     pulseCounter=
     PSG_NoiseMode=
     bPlayback=
+    fmBufPos=
+    bMsuReady=
     FM_CH3_Mode=
     bPsgIsPlayingNote[0]=
     bPsgIsPlayingNote[1]=

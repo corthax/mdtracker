@@ -83,10 +83,10 @@ SampleBankPanel::SampleBankPanel(wxWindow* parent, MainFrame* frame)
     poolHeader->Add(addSamplesBtn, 0);
     poolSizer->Add(poolHeader, 0, wxEXPAND | wxALL, 4);
 
-    poolList = new wxListView(poolPanel, wxID_ANY, wxDefaultPosition, wxSize(255, -1),
+    poolList = new wxListView(poolPanel, wxID_ANY, wxDefaultPosition, wxSize(280, -1),
         wxLC_REPORT | wxLC_NO_HEADER);
-    poolList->AppendColumn("ID", wxLIST_FORMAT_LEFT, 28);
-    poolList->AppendColumn("Name", wxLIST_FORMAT_LEFT, 105);
+    poolList->AppendColumn("ID", wxLIST_FORMAT_LEFT, 30);
+    poolList->AppendColumn("Name", wxLIST_FORMAT_LEFT, 110);
     poolList->AppendColumn("Size", wxLIST_FORMAT_RIGHT, 50);
     poolList->AppendColumn("Type", wxLIST_FORMAT_LEFT, 70);
     poolSizer->Add(poolList, 1, wxEXPAND | wxALL, 4);
@@ -118,9 +118,9 @@ SampleBankPanel::SampleBankPanel(wxWindow* parent, MainFrame* frame)
     grid->SetColLabelValue(COL_NAME, "Name");
 
     grid->SetColSize(COL_SYNC, 30);
-    grid->SetColSize(COL_NOTE, 85);
-    grid->SetColSize(COL_START, 80);
-    grid->SetColSize(COL_END, 80);
+    grid->SetColSize(COL_NOTE, 80);
+    grid->SetColSize(COL_START, 70);
+    grid->SetColSize(COL_END, 70);
     grid->SetColSize(COL_PAN, 45);
     grid->SetColSize(COL_RATE, 60);
     grid->SetColSize(COL_TYPE, 55);

@@ -12,4 +12,4 @@ out/src/MDT_GUI.o: src/MDT_GUI.c inc/genesis.h inc/types.h inc/config.h \
  inc/ext/console.h inc/config.h inc/string.h inc/maths.h inc/dma.h \
  inc/sram.h src/MDT_GUI.h src/MDT_Main.h src/MDT_SRAM.h \
  src/MDT_ModuleData.h res/samples.h src/MDT_SampleSettings.h \
- src/midi/midi_sync.h
+ src/midi/midi_sync.h src/MDT_Version.h

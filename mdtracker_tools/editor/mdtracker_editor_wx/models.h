@@ -141,7 +141,7 @@ struct SampleSlot {
         int octave = noteId / 12;
         int note = noteId % 12;
         char buf[32];
-        snprintf(buf, sizeof(buf), "%d: %s%d", BankNoteIndex(), noteNames[note], octave);
+        snprintf(buf, sizeof(buf), "%d (%d): %s%d", noteId, BankNoteIndex(), noteNames[note], octave);
         return buf;
     }
 };

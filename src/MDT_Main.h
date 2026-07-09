@@ -117,7 +117,7 @@
 #define MSU_SEEK_OFF	0x1601
 #define MSU_PLAYOF 	    0x1A00 // #1 = decimal no. of track (1-99) #2 = offset in sectors from the start of the track to apply when looping; play cdda track and loop from specified sector offset
 
-#define DEFAULT_TEMPO   0x0D   // ~120 BPM / 0x20 h-int skips
+#define DEFAULT_TEMPO   0x0D   // 121.14 BPM / 0x20 h-int skips
 #define VIBRATO_PHASE   0
 #define TREMOLO_PHASE   512
 
@@ -139,8 +139,8 @@ extern u16 chEventIdx[CHANNELS_TOTAL];         // per-channel event read pointer
 extern u32 matrixBlockEnd;                     // start of instruments block = end of matrix
 extern u16 matrixCells[CHANNELS_TOTAL * MATRIX_ROWS]; // runtime matrix buffer (compact SRAM on persist)
 extern u8  matrixDirty;                        // 1 = matrixCells[] differs from SRAM
-//extern u8  patternDirty;
-//extern u8  instrumentDirty;
+extern u8  patternDirty;
+extern u8  instrumentDirty;
 
 // Instrument block globals
 extern u32 instBlockEnd;                       // start of sequencers block = end of instruments

@@ -1,4 +1,5 @@
 #include <genesis.h>
+#include "MDT_Version.h"
 
 #ifndef MDT_INFO_H_INCLUDED
 #define MDT_INFO_H_INCLUDED
@@ -37,19 +38,19 @@ void InitInfo()
     infoCommands[0x14] = "PATTERN ROW RESOLUTION (PULSES) ";
     infoCommands[0x15] = "PSG CH.4 NOISE MODE             ";
     infoCommands[0x16] = "DAC SET MAIN BANK               ";
-    infoCommands[0x17] = "CHANNEL TRANSPOSE               ";
+    infoCommands[0x17] = "CHANNEL TRANSPOSE SEMITONES     ";
     infoCommands[0x18] = "CHANNEL FINETUNE                ";
     infoCommands[0x19] = "CHANNEL SEQ SPEED               ";
     infoCommands[0x1A] = "CHANNEL ARP SPEED               ";
-    infoCommands[0x1B] = "";
+    infoCommands[0x1B] = "CHANNEL TRANSPOSE OCTAVES       ";
     infoCommands[0x1C] = "";
     infoCommands[0x1D] = "";
     infoCommands[0x1E] = "NOTE TRIGGER TYPE               ";
     infoCommands[0x1F] = "";
-    infoCommands[0x20] = "";//"MSU MD: CD AUDIO - PLAY ONCE    ";
-    infoCommands[0x21] = "";//"MSU MD: CD AUDIO - PLAY LOOP    ";
-    infoCommands[0x22] = "";//"MSU MD: CD AUDIO - SEEK TIME    ";
-    infoCommands[0x23] = "";
+    infoCommands[0x20] = "MSU MD: CD AUDIO - PLAY ONCE    ";
+    infoCommands[0x21] = "MSU MD: CD AUDIO - PLAY LOOP    ";
+    infoCommands[0x22] = "MSU MD: CD AUDIO - SEEK TIME    ";
+    infoCommands[0x23] = "MSU MD: CD AUDIO - VOLUME       ";
     infoCommands[0x24] = "";
     infoCommands[0x25] = "";
     infoCommands[0x26] = "";
@@ -159,14 +160,14 @@ void InitInfo()
     infoCommands[0x8E] = "";
     infoCommands[0x8F] = "";
     infoCommands[0x90] = "";
-    infoCommands[0x91] = "";
-    infoCommands[0x92] = "";
-    infoCommands[0x93] = "";
-    infoCommands[0x94] = "";
-    infoCommands[0x95] = "";
-    infoCommands[0x96] = "";
-    infoCommands[0x97] = "";
-    infoCommands[0x98] = "";
+    infoCommands[0x91] = "CSM PITCH SLIDE UP              ";
+    infoCommands[0x92] = "CSM PITCH SLIDE DOWN            ";
+    infoCommands[0x93] = "CSM VIBRATO                     ";
+    infoCommands[0x94] = "CSM VIBRATO SPEED               ";
+    infoCommands[0x95] = "CSM VIBRATO DEPTH               ";
+    infoCommands[0x96] = "CSM VIBRATO MODE                ";
+    infoCommands[0x97] = "CSM PITCH SLIDE SKIP PULSES     ";
+    infoCommands[0x98] = "CSM CHANNEL AUTO GLIDE          ";
     infoCommands[0x99] = "";
     infoCommands[0x9A] = "";
     infoCommands[0x9B] = "";
@@ -300,15 +301,15 @@ void InitInfo()
     infoDescriptions[0x18] = "ADD 00..1F MICROTONES TO CHANNEL     ";
     infoDescriptions[0x19] = "XX: PULSES TO SKIP                   ";
     infoDescriptions[0x1A] = "XX: PULSES TO SKIP                   ";
-    infoDescriptions[0x1B] = "";
+    infoDescriptions[0x1B] = "X: 1=UP, 2=DOWN; Y: OCTAVES;         ";
     infoDescriptions[0x1C] = "";
     infoDescriptions[0x1D] = "";
     infoDescriptions[0x1E] = "00: RETRIGGER, 01: PITCH ONLY        ";
     infoDescriptions[0x1F] = "";
-    infoDescriptions[0x20] = "";//01..63 TRACK NUMBER, 00: PAUSE       ";
-    infoDescriptions[0x21] = "";//01..63 TRACK NUMBER, 00: PAUSE       ";
-    infoDescriptions[0x22] = "";//01..FF ENABLE, 00: DISABLE           ";
-    infoDescriptions[0x23] = "";
+    infoDescriptions[0x20] = "01..63 TRACK NUMBER, 00: PAUSE       ";
+    infoDescriptions[0x21] = "01..63 TRACK NUMBER, 00: PAUSE       ";
+    infoDescriptions[0x22] = "01..FF ENABLE, 00: DISABLE           ";
+    infoDescriptions[0x23] = "00..FF                               ";
     infoDescriptions[0x24] = "";
     infoDescriptions[0x25] = "";
     infoDescriptions[0x26] = "";
@@ -418,14 +419,14 @@ void InitInfo()
     infoDescriptions[0x8E] = "";
     infoDescriptions[0x8F] = "";
     infoDescriptions[0x90] = "";
-    infoDescriptions[0x91] = "";
-    infoDescriptions[0x92] = "";
-    infoDescriptions[0x93] = "";
-    infoDescriptions[0x94] = "";
-    infoDescriptions[0x95] = "";
-    infoDescriptions[0x96] = "";
-    infoDescriptions[0x97] = "";
-    infoDescriptions[0x98] = "";
+    infoDescriptions[0x91] = "01..7F, 00: OFF, FF=RESET, FE=HOLD   ";
+    infoDescriptions[0x92] = "01..7F, 00: OFF, FF=RESET, FE=HOLD   ";
+    infoDescriptions[0x93] = "X=SPEED, Y=DEPTH, 00: OFF            ";
+    infoDescriptions[0x94] = "00: RESET                [DEFAULT 08]";
+    infoDescriptions[0x95] = "00: RESET                [DEFAULT 02]";
+    infoDescriptions[0x96] = "01=UP, 02=DOWN, 00: UP AND DOWN      ";
+    infoDescriptions[0x97] = "[XX] PULSES TO SKIP; 00: NOTHING     ";
+    infoDescriptions[0x98] = "00: OFF; 01..FF: GLIDE TICKS         ";
     infoDescriptions[0x99] = "";
     infoDescriptions[0x9A] = "";
     infoDescriptions[0x9B] = "";

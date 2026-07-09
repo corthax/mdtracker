@@ -41,7 +41,7 @@ const ROMHeader rom_header = {
 
 #if MDT_VERSION == MDT_VERSION_MEDPRO
 
-    "SEGA MEGADRIVE  ", // for fast testing on BlastEm 0.6.3+
+    "SEGA EVERDRIVE  ", // for fast testing on BlastEm 0.6.3+
     //"SEGA SSF        ", // Mega Everdrive PRO
 
 #elif MDT_VERSION == MDT_VERSION_EDMDV3
@@ -54,13 +54,13 @@ const ROMHeader rom_header = {
 
 #if MDT_VERSION == MDT_VERSION_MEDPRO
 
-    "MD.Tracker (1.5b)                               ",
-    "MD.Tracker for Mega Everdrive PRO               ",
+    "MD.Tracker (1.5)                                ",
+    "MD.Tracker 512k for Mega Everdrive PRO          ",
 
 #elif MDT_VERSION == MDT_VERSION_EDMDV3
 
-    "MD.Tracker (1.5b)                               ",
-    "MD.Tracker for EDMD-v3                          ",
+    "MD.Tracker (1.5)                                ",
+    "MD.Tracker 32k for EDMD-v3                      ",
 
 #endif
 

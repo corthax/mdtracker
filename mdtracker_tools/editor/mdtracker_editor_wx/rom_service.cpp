@@ -85,7 +85,7 @@ void RomService::WriteSampleBank(const std::vector<SampleFile>& pool, std::vecto
         int pad = aligned - file.originalSize;
         if (pad > 0)
             std::fill(romData.begin() + bankAddr + pos + file.originalSize,
-                      romData.begin() + bankAddr + pos + aligned, 0);
+                      romData.begin() + bankAddr + pos + aligned, file.type == 1 ? 0x88 : 0);
         pos += aligned;
     }
 

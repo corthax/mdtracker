@@ -11,6 +11,7 @@ extern const char* presetName[256];
 #include "samples.h"
 #include "MDT_SampleSettings.h"
 #include "midi/midi_sync.h"
+#include "MDT_Version.h"
 
 // ---------------------------------------------------------------------------
 // GUI-owned globals
@@ -25,8 +26,8 @@ s8 buttonCounter = GUI_NAVIGATION_DELAY;
 bool bDoCount = FALSE;
 u8 navigationDirection = BUTTON_RIGHT;
 u16 patternCopyFrom = 1;
-s8 patternCopyRangeStart = NOTHING;
-s8 patternCopyRangeEnd = NOTHING;
+s8 patternSelectionRangeStart = NOTHING;
+s8 patternSelectionRangeEnd = NOTHING;
 char sampleName[] = "--------------";
 bool bReColorsAndTranspose = TRUE;
 u8 rcat_ch = CHANNEL_FM1;
@@ -556,28 +557,33 @@ void DrawSelectionCursor(u8 pos_x, u8 pos_y, u8 bClear)
             offset_x = 80+36; offset_y = -GUI_INST_PARAM_PCM_NOTE; width = 0; selectedInstrumentOperator = 0;
             break;
         case GUI_INST_PARAM_PRESET:
-            offset_x = 80+33; offset_y = GUI_INST_PARAM_PRESET+7; width = 0; selectedInstrumentOperator = 0;
+            offset_x = 80+33; offset_y = 17-GUI_INST_PARAM_PRESET; width = 0; selectedInstrumentOperator = 0;
             break;
         default: break;
         }
     }
 
+    u16 dirtyPal = PAL0;
+    if (currentScreen == SCREEN_MATRIX && matrixDirty) dirtyPal = PAL3;
+    else if (currentScreen == SCREEN_PATTERN && patternDirty) dirtyPal = PAL3;
+    else if (currentScreen == SCREEN_INSTRUMENT && instrumentDirty) dirtyPal = PAL3;
+
     auto void draw_cursor_1(u8 x, u8 y)
     {
-        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x, y);
+        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(dirtyPal, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x, y);
     }
 
     auto void draw_cursor_2(u8 x, u8 y)
     {
-        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x, y);
-        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x + 1, y);
+        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(dirtyPal, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x, y);
+        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(dirtyPal, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x + 1, y);
     }
 
     auto void draw_cursor_3(u8 x, u8 y)
     {
-        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x, y);
-        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x + 1, y);
-        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x + 2, y);
+        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(dirtyPal, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x, y);
+        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(dirtyPal, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x + 1, y);
+        VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(dirtyPal, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), x + 2, y);
     }
 
     auto void clear_cursor_1(u8 x, u8 y)
@@ -763,6 +769,7 @@ void DisplayPatternMatrix()
                 {
                     line = 0;
                     bRefreshScreen = FALSE;
+                    DrawSelectionCursor(selectedMatrixChannel, selectedMatrixScreenRow, FALSE);
                     DrawMatrixPlaybackCursor(FALSE, PAL0, 0, playingMatrixRow);
                 }
             }
@@ -770,6 +777,7 @@ void DisplayPatternMatrix()
             {
                 matrixRowToRefresh = OXFFFF;
                 bRefreshScreen = FALSE;
+                DrawSelectionCursor(selectedMatrixChannel, selectedMatrixScreenRow, FALSE);
                 chan = 0;
             }
         }
@@ -881,12 +889,14 @@ void DisplayPatternEditor()
             {
                 line = 0;
                 bRefreshScreen = FALSE;
+                DrawSelectionCursor(selectedPatternColumn, selectedPatternRow, FALSE);
             }
         }
         else
         {
             patternRowToRefresh = OXFF;
             bRefreshScreen = FALSE;
+            DrawSelectionCursor(selectedPatternColumn, selectedPatternRow, FALSE);
         }
     }
 }
@@ -1173,7 +1183,11 @@ inline void DisplayInstrumentEditor()
         }
 
         instrumentParameterToRefresh--;
-        if (instrumentParameterToRefresh < 235) bRefreshScreen = FALSE;
+        if (instrumentParameterToRefresh < 235)
+        {
+            bRefreshScreen = FALSE;
+            DrawSelectionCursor(selectedInstrumentOperator, selectedInstrumentParameter, FALSE);
+        }
     }
 }
 
@@ -1263,6 +1277,15 @@ void DrawStaticGUI()
     // MD.Tracker logo
     for (u8 i=0; i<7; i++) VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_LOGO + i), i, 0);
 
+    // build version
+#if MDT_VERSION == MDT_VERSION_EDMDV3
+    VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_32K), 8, 0);
+    VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_32K + 1), 9, 0);
+#elif MDT_VERSION == MDT_VERSION_MEDPRO
+    VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_512K), 8, 0);
+    VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_512K + 1), 9, 0);
+#endif // MDT_VERSION
+
     // top line
     FillRowRight(BG_A, PAL0, FALSE, TRUE, GUI_LOWLINE, 27, 0, 0);
     FillRowRight(BG_A, PAL0, FALSE, TRUE, GUI_SLASH, 2, 27, 0);
@@ -1273,7 +1296,7 @@ void DrawStaticGUI()
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_LETTER_A), 32, 0);
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_LETTER_G), 33, 0);
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_LETTER_E), 34, 0);
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON),    35, 0);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON),    35, 0);
 
     // fm1 .. fm3
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_FM),      1, 1);
@@ -1416,8 +1439,8 @@ void DrawStaticGUI()
     DrawText(BG_A, PAL3, "LOOP", 106, GUI_INST_POSY_SAMPLE_LOOP);
     DrawText(BG_A, PAL3, "RATE", 106, GUI_INST_POSY_SAMPLE_RATE); //VDP_setTextPalette(PAL1); VDP_drawText(">", 113, GUI_INST_POSY_SAMPLE_RATE);
     DrawText(BG_A, PAL3, "PAN", 106, GUI_INST_POSY_SAMPLE_PAN); //VDP_setTextPalette(PAL1); VDP_drawText(">", 113, GUI_INST_POSY_SAMPLE_PAN);
-    DrawText(BG_A, PAL3, "NAME", 106, GUI_INST_POSY_SAMPLE_NAME);
-    DisplaySampleName(106, GUI_INST_POSY_SAMPLE_NAME+1, 0, 0);
+    DrawText(BG_A, PAL3, "NAME", 106, GUI_INST_POSY_SAMPLE_NAME-1);
+    DisplaySampleName(106, GUI_INST_POSY_SAMPLE_NAME, 0, 0);
 
     for (u8 y=3; y<7; y++) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 111, y);
 
@@ -1428,7 +1451,7 @@ void DrawStaticGUI()
     VDP_setTextPalette(PAL2); VDP_drawText("(B)", 117, 17);
 
 
-    DrawText(BG_A, PAL3, "STATE", 106, 20); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 111, 20);
+    DrawText(BG_A, PAL3, "STATE", 106, 20); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 111, 20);
     DrawText(BG_A, PAL0, "PLAY", 113, 20);
 
     for (u8 i=0; i<4; i++)
@@ -1509,8 +1532,8 @@ void ForceResetGUI()
     bDoCount = FALSE;
     navigationDirection = BUTTON_RIGHT;
     patternCopyFrom = 1;
-    patternCopyRangeStart = NOTHING;
-    patternCopyRangeEnd = NOTHING;
+    patternSelectionRangeStart = NOTHING;
+    patternSelectionRangeEnd = NOTHING;
     instCopyTo = 0x01;
     asciiBaseLetters = 0;
     asciiBaseNumbers = 0;

@@ -44,7 +44,7 @@
 #define GUI_INST_POSY_SAMPLE_LOOP   4
 #define GUI_INST_POSY_SAMPLE_RATE   5
 #define GUI_INST_POSY_SAMPLE_PAN    6
-#define GUI_INST_POSY_SAMPLE_NAME   8
+#define GUI_INST_POSY_SAMPLE_NAME   9
 
 // -----------------------------------------------------------
 #define GUI_PATTERN_L_NOTE          0
@@ -132,6 +132,8 @@
 #define GUI_PLUS                    40
 #define GUI_SEPARATOR               41
 #define GUI_FM_CH3                  48
+#define GUI_32K                     56
+#define GUI_512K                    58
 // -----------------------------------------------------------
 #define GUI_DIGIT_0                 0
 #define GUI_DIGIT_1                 1
@@ -246,8 +248,8 @@ extern s8 buttonCounter;
 extern bool bDoCount;
 extern u8 navigationDirection;
 extern u16 patternCopyFrom;
-extern s8 patternCopyRangeStart;
-extern s8 patternCopyRangeEnd;
+extern s8 patternSelectionRangeStart;
+extern s8 patternSelectionRangeEnd;
 extern char sampleName[14];
 extern bool bReColorsAndTranspose;
 extern u8 rcat_ch;
