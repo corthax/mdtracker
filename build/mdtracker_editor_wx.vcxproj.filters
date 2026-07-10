@@ -45,6 +45,7 @@
     <ClInclude Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdtracker_editor_wx\dr_flac.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\mdtracker_tools\editor\mdtracker_editor_wx\resource.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="C:\GameDev\SEGA\project\mdtracker\mdtracker_tools\editor\mdtracker_editor_wx\CMakeLists.txt" />
@@ -64,5 +65,11 @@
     <Filter Include="Source Files">
       <UniqueIdentifier>{66AFDA72-3498-3A6E-9BB3-DBA8A1D0CE65}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\mdtracker_tools\editor\mdtracker_editor_wx\mdtracker_logo2.ico" />
+    <Image Include="..\mdtracker_tools\editor\mdtracker_editor_wx\icon1.ico" />
+    <Image Include="mdtracker_logo2.ico" />
+    <Image Include="..\res\graphics\mdtracker_icon_tp.png" />
   </ItemGroup>
 </Project>

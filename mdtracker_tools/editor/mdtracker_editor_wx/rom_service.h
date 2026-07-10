@@ -16,6 +16,7 @@ public:
     bool IsLoaded() const { return !romData.empty(); }
     const std::string& RomPath() const { return romPath; }
     RomType GetRomType() const { return romType; }
+    const std::vector<u8>& GetRomData() const { return romData; }
 
     std::vector<u8> ReadBlock(int address, int size) const;
     void WriteBlock(int address, const std::vector<u8>& data);

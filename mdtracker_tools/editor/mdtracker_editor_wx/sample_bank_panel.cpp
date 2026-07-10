@@ -6,6 +6,7 @@
 #include <wx/stattext.h>
 #include <wx/msgdlg.h>
 #include <wx/filedlg.h>
+#include <wx/filename.h>
 #include <fstream>
 
 wxBEGIN_EVENT_TABLE(SampleBankPanel, wxPanel)
@@ -163,6 +164,29 @@ SampleBankPanel::SampleBankPanel(wxWindow* parent, MainFrame* frame)
 
     splitBox->Add(grid, 1, wxEXPAND);
 
+    auto* bulkPanel = new wxPanel(this);
+    auto* bulkSizer = new wxBoxSizer(wxVERTICAL);
+
+    auto* bulkHeader = new wxBoxSizer(wxHORIZONTAL);
+    bulkRomLabel = new wxStaticText(bulkPanel, wxID_ANY, "Bulk ROMs: 0 loaded");
+    bulkHeader->Add(bulkRomLabel, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
+    clearBulkBtn = new wxButton(bulkPanel, wxID_ANY, "Clear");
+    bulkHeader->Add(clearBulkBtn, 0);
+    bulkSizer->Add(bulkHeader, 0, wxEXPAND | wxALL, 4);
+
+    bulkRomList = new wxListView(bulkPanel, wxID_ANY, wxDefaultPosition, wxSize(260, -1),
+        wxLC_REPORT | wxLC_NO_HEADER);
+    bulkRomList->AppendColumn("Filename", wxLIST_FORMAT_LEFT, 260);
+    bulkSizer->Add(bulkRomList, 1, wxEXPAND | wxALL, 4);
+
+    auto* bulkButtons = new wxBoxSizer(wxHORIZONTAL);
+    removeBulkBtn = new wxButton(bulkPanel, wxID_ANY, "Remove");
+    bulkButtons->Add(removeBulkBtn, 0);
+    bulkSizer->Add(bulkButtons, 0, wxLEFT | wxRIGHT | wxBOTTOM, 4);
+
+    bulkPanel->SetSizer(bulkSizer);
+    splitBox->Add(bulkPanel, 0, wxEXPAND | wxLEFT, 4);
+
     outer->Add(splitBox, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
 
     SetSizer(outer);
@@ -173,6 +197,23 @@ SampleBankPanel::SampleBankPanel(wxWindow* parent, MainFrame* frame)
     addSamplesBtn->Bind(wxEVT_BUTTON, &SampleBankPanel::OnAddSamples, this);
     removeBtn->Bind(wxEVT_BUTTON, &SampleBankPanel::OnRemoveSample, this);
     clearBtn->Bind(wxEVT_BUTTON, &SampleBankPanel::OnClearSamples, this);
+    removeBulkBtn->Bind(wxEVT_BUTTON, &SampleBankPanel::OnRemoveBulkRom, this);
+    clearBulkBtn->Bind(wxEVT_BUTTON, &SampleBankPanel::OnClearBulkRoms, this);
+    bulkRomList->Bind(wxEVT_MOTION, [this](wxMouseEvent& event) {
+        wxPoint pt = event.GetPosition();
+        int flags = 0;
+        long item = bulkRomList->HitTest(pt, flags);
+        auto& paths = mainFrame->GetBulkRomPaths();
+        static long lastItem = -1;
+        if (item != lastItem) {
+            lastItem = item;
+            if (item >= 0 && item < static_cast<long>(paths.size()))
+                bulkRomList->SetToolTip(paths[item]);
+            else
+                bulkRomList->UnsetToolTip();
+        }
+        event.Skip();
+    });
 }
 
 void SampleBankPanel::WriteSlotToGrid(int row, const SampleSlot& slot) {
@@ -231,6 +272,31 @@ void SampleBankPanel::RefreshPool() {
     }
 
     poolTotalLabel->SetLabel(wxString::Format("Total: %d bytes", totalSize));
+}
+
+void SampleBankPanel::RefreshBulkRomList() {
+    auto& paths = mainFrame->GetBulkRomPaths();
+    bulkRomList->DeleteAllItems();
+    for (size_t i = 0; i < paths.size(); i++) {
+        wxFileName fn = wxFileName(wxString(paths[i]));
+        long idx = bulkRomList->InsertItem(static_cast<long>(i), fn.GetFullName());
+    }
+    bulkRomLabel->SetLabel(wxString::Format("Bulk ROMs: %zu loaded", paths.size()));
+}
+
+void SampleBankPanel::OnRemoveBulkRom(wxCommandEvent&) {
+    long item = bulkRomList->GetFirstSelected();
+    if (item == -1) return;
+    auto& paths = mainFrame->GetBulkRomPaths();
+    if (item >= 0 && item < static_cast<long>(paths.size())) {
+        paths.erase(paths.begin() + item);
+        RefreshBulkRomList();
+    }
+}
+
+void SampleBankPanel::OnClearBulkRoms(wxCommandEvent&) {
+    mainFrame->GetBulkRomPaths().clear();
+    RefreshBulkRomList();
 }
 
 void SampleBankPanel::OnBankChoice(wxCommandEvent&) {

@@ -288,4 +288,5 @@ struct AppSettings {
     RomAddressConfig medPro;
     RomAddressConfig edmdv3;
     int defaultConversionType{}; // 0 = S8PCM, 1 = 2ADPCM
+    bool darkMode = false;
 };

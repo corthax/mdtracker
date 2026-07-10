@@ -41,6 +41,7 @@ void SettingsService::Load() {
         LoadOne(j, "MEDPro", settings.medPro);
         LoadOne(j, "EDMDV3", settings.edmdv3);
         settings.defaultConversionType = j.value("DefaultConversionType", 0);
+        settings.darkMode = j.value("DarkMode", false);
     } catch (...) {}
 }
 
@@ -49,6 +50,7 @@ void SettingsService::Save() {
     SaveOne(j, "MEDPro", settings.medPro);
     SaveOne(j, "EDMDV3", settings.edmdv3);
     j["DefaultConversionType"] = settings.defaultConversionType;
+    j["DarkMode"] = settings.darkMode;
 
     std::string path = GetFilePath();
     std::ofstream f(path);

@@ -56,6 +56,11 @@ SettingsPanel::SettingsPanel(wxWindow* parent, MainFrame* frame)
     convRow->Add(defaultConvChoice, 0);
     box->Add(convRow, 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
 
+    auto* darkRow = new wxBoxSizer(wxHORIZONTAL);
+    darkModeCheck = new wxCheckBox(this, wxID_ANY, "Dark Mode");
+    darkRow->Add(darkModeCheck, 0);
+    box->Add(darkRow, 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
+
     auto* saveBtn = new wxButton(this, wxID_ANY, "Save Settings");
     box->Add(saveBtn, 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
 
@@ -65,6 +70,10 @@ SettingsPanel::SettingsPanel(wxWindow* parent, MainFrame* frame)
 
     romTypeChoice->Bind(wxEVT_CHOICE, &SettingsPanel::OnRomTypeChanged, this);
     saveBtn->Bind(wxEVT_BUTTON, &SettingsPanel::OnSaveSettings, this);
+    darkModeCheck->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
+        mainFrame->GetSettingsService()->settings.darkMode = darkModeCheck->GetValue();
+        mainFrame->ApplyTheme();
+    });
 
     activeTypeIndex = 0;
     RefreshSettings(mainFrame->GetSettingsService()->settings);
@@ -76,6 +85,7 @@ void SettingsPanel::RefreshSettings(const AppSettings& settings) {
     bankAddrCtrl->SetValue(wxString::Format("%08X", cfg->sampleBankAddr));
     presetNameAddrCtrl->SetValue(wxString::Format("%08X", cfg->presetNameAddr));
     defaultConvChoice->SetSelection(settings.defaultConversionType);
+    darkModeCheck->SetValue(settings.darkMode);
 }
 
 void SettingsPanel::SaveCurrentType() {
@@ -105,6 +115,8 @@ void SettingsPanel::OnRomTypeChanged(wxCommandEvent&) {
 
 void SettingsPanel::OnSaveSettings(wxCommandEvent&) {
     SaveCurrentType();
-    mainFrame->GetSettingsService()->settings.defaultConversionType = defaultConvChoice->GetSelection();
+    auto& s = mainFrame->GetSettingsService()->settings;
+    s.defaultConversionType = defaultConvChoice->GetSelection();
+    s.darkMode = darkModeCheck->GetValue();
     mainFrame->GetSettingsService()->Save();
 }

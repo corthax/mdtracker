@@ -1,1 +1,4 @@
+#include "resource.h"
+
+IDB_PNG1 PNG "C:\\GameDev\\SEGA\\project\\mdtracker\\res\\graphics\\mdtracker_icon_tp.png"
 IDI_ICON1 ICON "mdtracker_logo2.ico"

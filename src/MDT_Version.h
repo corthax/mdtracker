@@ -6,10 +6,10 @@
 1 = EDMD-v3 (64KB SRAM, 8-bit odd-byte access only)
 */
 
-#define MDT_VERSION_MEDPRO  0
-#define MDT_VERSION_EDMDV3  1
+#define MDT_VERSION_MEDPRO  0 // 512k
+#define MDT_VERSION_EDMDV3  1 // 32k
 
-#define MDT_VERSION 0 // REBUILD if changed!
+#define MDT_VERSION 1 // REBUILD if changed!
 
 extern const char *MDT_HEADER;
 

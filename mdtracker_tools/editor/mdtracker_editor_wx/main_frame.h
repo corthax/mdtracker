@@ -20,11 +20,15 @@ public:
     RomService* GetRomService() { return romService.get(); }
     SettingsService* GetSettingsService() { return settingsService.get(); }
     std::vector<SampleFile>& GetSamplePool() { return samplePool; }
+    std::vector<std::string>& GetBulkRomPaths() { return bulkRomPaths; }
+
+    void ApplyTheme();
 
 private:
     void OnOpenRom(wxCommandEvent& event);
     void OnSaveRom(wxCommandEvent& event);
     void OnSaveRomAs(wxCommandEvent& event);
+    void OnOpenBulkRoms(wxCommandEvent& event);
     void OnQuit(wxCommandEvent& event);
     void OnAbout(wxCommandEvent& event);
 
@@ -32,6 +36,7 @@ private:
     std::unique_ptr<RomService> romService;
     std::vector<SampleBank> banks;
     std::vector<SampleFile> samplePool;
+    std::vector<std::string> bulkRomPaths;
 
     wxNotebook* notebook;
     SampleBankPanel* sampleBankPanel;

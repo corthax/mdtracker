@@ -17,6 +17,7 @@ public:
     void RefreshBanks(const std::vector<SampleBank>& banks);
     std::vector<SampleBank>& GetBanks() { return currentBanks; }
     void RefreshPool();
+    void RefreshBulkRomList();
 
 private:
     void OnBankChoice(wxCommandEvent& event);
@@ -27,6 +28,8 @@ private:
     void OnAddSamples(wxCommandEvent& event);
     void OnRemoveSample(wxCommandEvent& event);
     void OnClearSamples(wxCommandEvent& event);
+    void OnRemoveBulkRom(wxCommandEvent& event);
+    void OnClearBulkRoms(wxCommandEvent& event);
     void SyncSlotFromPool(int slotIndex);
     void WriteSlotToGrid(int row, const SampleSlot& slot);
     void PopulateGrid();
@@ -47,10 +50,15 @@ private:
     wxButton* assignSamplesBtn;
 
     wxListView* poolList;
+    wxListView* bulkRomList;
     wxButton* addSamplesBtn;
     wxButton* removeBtn;
     wxButton* clearBtn;
     wxStaticText* poolTotalLabel;
+
+    wxStaticText* bulkRomLabel;
+    wxButton* removeBulkBtn;
+    wxButton* clearBulkBtn;
 
     enum Cols {
         COL_SYNC = 0,
