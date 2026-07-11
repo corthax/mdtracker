@@ -1331,7 +1331,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
         Matrix_CommitToSRAM();
 
         selectedPatternID = SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow) & 0x3FF;
-        if (selectedPatternID != 0x00) // -- pattern should not be editable
+        if (selectedPatternID != NULL) // -- pattern should not be editable
         {
             // Unpack pattern from SRAM event stream to RAM edit buffer
             SRAM_UnpackToBuffer(selectedPatternID);
@@ -1409,6 +1409,9 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
         switch (state)
         {
         case BUTTON_START:
+
+            if (selectedMatrixScreenRow == MATRIX_ROWS_ONPAGE) break;
+
             if (bPlayback == FALSE)
             {
                 fmBufPos = 0;
@@ -1442,18 +1445,15 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     bDoPulse = (useExternalSync && midi_sync_get_mode() == MIDI_SYNC_OFF); // one pulse advance
                 }
             }
-            else if (currentScreen == SCREEN_MATRIX)
+            else if (currentScreen == SCREEN_MATRIX && bPlayback && selectedMatrixScreenRow != MATRIX_ROWS_ONPAGE)
             {
-                if (bPlayback)
-                {
-                    // queue next matrix row
-                    DrawMatrixPlaybackCursor(TRUE, PAL0, 0, playingMatrixRow);
-                    DrawMatrixPlaybackCursor(TRUE, PAL0, 0, lastJumpRow);
-                    DrawMatrixPlaybackCursor(FALSE, PAL3, 1, selectedMatrixRow-1);
+                // queue next matrix row
+                DrawMatrixPlaybackCursor(TRUE, PAL0, 0, playingMatrixRow);
+                DrawMatrixPlaybackCursor(TRUE, PAL0, 0, lastJumpRow);
+                DrawMatrixPlaybackCursor(FALSE, PAL3, 1, selectedMatrixRow-1);
 
-                    playingMatrixRow = selectedMatrixRow-1;
-                    lastJumpRow = selectedMatrixRow;
-                }
+                playingMatrixRow = selectedMatrixRow-1;
+                lastJumpRow = selectedMatrixRow;
             }
             break;
         }
@@ -1474,6 +1474,8 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
             switch (state)
             {
             case BUTTON_X:
+                if (selectedMatrixScreenRow == MATRIX_ROWS_ONPAGE) break;
+
                 switch (changed)
                 {
                 // X+L/R - switch screen
@@ -1517,7 +1519,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     DrawMute(selectedMatrixChannel);
                     break;
 
-                case BUTTON_A: // un-mute all
+                case BUTTON_Y: // un-mute all
                     for (u8 mtxCh = 0; mtxCh < CHANNELS_TOTAL; mtxCh++)
                     {
                         channelFlags[mtxCh] = TRUE; // un-mute all
@@ -1528,6 +1530,8 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 break;
 
             case BUTTON_Y:
+                if (selectedMatrixScreenRow == MATRIX_ROWS_ONPAGE) break;
+
                 switch(changed)
                 {
                 case BUTTON_LEFT: // pattern colors
@@ -1578,7 +1582,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         if (col != 0)
                         {
                             SRAM_WritePatternColor(selectedPatternID, 0);
-                        RedrawMarks();
+                            RedrawMarks();
                         }
                     }
                     break;
@@ -1586,6 +1590,8 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 break;
 
             case BUTTON_Z:
+                if (selectedMatrixScreenRow == MATRIX_ROWS_ONPAGE) break;
+
                 switch (changed)
                 {
                 // Z+L/R - pattern matrix page select
@@ -1636,7 +1642,9 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 // A+L/R/U/D - change pattern in matrix
                 switch (changed)
                 {
-                case BUTTON_B:
+                case BUTTON_B: // find unused pattern
+                    if (selectedMatrixScreenRow == MATRIX_ROWS_ONPAGE) break;
+
                     if (!(SRAM_ReadMatrix(selectedMatrixChannel, selectedMatrixRow) & 0x3FF))
                     {
                         u16 value = FindUnusedPattern();
@@ -1660,50 +1668,42 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 }
                 break;
 
-            case BUTTON_B:
+            case BUTTON_B | BUTTON_C:
 
-                if (bPlayback) break; // no adding/removing rows during playback allowed
+                if (bPlayback || selectedMatrixScreenRow == MATRIX_ROWS_ONPAGE || selectedMatrixRow == 0) break; // no adding/removing rows during playback allowed
 
                 switch (changed)
                 {
                 case BUTTON_UP: // delete selected matrix row
-                    if (selectedMatrixScreenRow < MATRIX_ROWS_ONPAGE)
+                    for (u8 row = selectedMatrixRow; row < MATRIX_ROW_LAST-1; row++)
                     {
-                        if (selectedMatrixRow == 0) break;
-                        for (u8 row = selectedMatrixRow; row < MATRIX_ROW_LAST-1; row++)
-                        {
-                            for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
-                            {
-                                SRAM_WriteMatrix(channel, row, SRAM_ReadMatrix(channel, row+1));
-                            }
-                        }
-
-                        // always clear last row
                         for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
                         {
-                            SRAM_WriteMatrix(channel, MATRIX_ROWS-1, 0);
+                            SRAM_WriteMatrix(channel, row, SRAM_ReadMatrix(channel, row+1));
                         }
-
-                        matrixRowToRefresh = OXFFFF;
-                        bRefreshScreen = TRUE;
                     }
+
+                    // always clear last row
+                    for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
+                    {
+                        SRAM_WriteMatrix(channel, MATRIX_ROWS-1, 0);
+                    }
+
+                    matrixRowToRefresh = OXFFFF;
+                    bRefreshScreen = TRUE;
                     break;
 
                 case BUTTON_DOWN: // copy and insert selected matrix row
-                    if (selectedMatrixScreenRow < MATRIX_ROWS_ONPAGE)
+                    for (u8 row = MATRIX_ROWS-2; row >= selectedMatrixRow; row--)
                     {
-                        if (selectedMatrixRow == 0) break;
-                        for (u8 row = MATRIX_ROWS-2; row >= selectedMatrixRow; row--)
+                        for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
                         {
-                            for (u8 channel = 0; channel < CHANNELS_TOTAL; channel++)
-                            {
-                                SRAM_WriteMatrix(channel, row+1, SRAM_ReadMatrix(channel, row));
-                            }
+                            SRAM_WriteMatrix(channel, row+1, SRAM_ReadMatrix(channel, row));
                         }
-
-                        matrixRowToRefresh = OXFFFF;
-                        bRefreshScreen = TRUE;
                     }
+
+                    matrixRowToRefresh = OXFFFF;
+                    bRefreshScreen = TRUE;
                     break;
                 }
                 break;
@@ -2113,8 +2113,8 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
 
                         for (u8 y=4; y<20; y++)
                         {
-                            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 44, y);
-                            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 64, y);
+                            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 44, y);
+                            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 64, y);
                         }
                         intToHex(selectedPatternID, str, 3); VDP_setTextPalette(PAL1); VDP_drawText(str, 65, 0);
                     }
@@ -2128,8 +2128,8 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         patternSelectionRangeEnd = patternSelectionRangeStart + 1;
 
                         if (patternSelectionRangeEnd < 16)
-                            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 44, patternSelectionRangeStart+4);
-                        else VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 64, patternSelectionRangeStart-12);
+                            VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 44, patternSelectionRangeStart+4);
+                        else VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 64, patternSelectionRangeStart-12);
 
                         intToHex(selectedPatternID, str, 3); VDP_setTextPalette(PAL1); VDP_drawText(str, 65, 0);
                     }
@@ -2138,8 +2138,8 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                         if (patternSelectionRangeEnd < PATTERN_ROWS)
                         {
                             if (patternSelectionRangeEnd < 16)
-                                VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 44, patternSelectionRangeEnd+4);
-                            else VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 64, patternSelectionRangeEnd-12);
+                                VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 44, patternSelectionRangeEnd+4);
+                            else VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 64, patternSelectionRangeEnd-12);
                             patternSelectionRangeEnd++;
                         }
                     }
@@ -3726,6 +3726,9 @@ static void StopChannelSound(u8 mtxCh)
 
     case CHANNEL_FM6_DAC:
         YM2612_writeRegZ80(PORT_1, YM2612REG_KEY, 6);
+
+        if (bMsuReady) StopCDAudio();
+
         switch (Z80_getLoadedDriver())
         {
         case Z80_DRIVER_PCM:
@@ -4391,6 +4394,13 @@ static void ApplyCommand_Common(u8 mtxCh, u8 fxParam, u8 fxValue)
     }
 }
 
+void StopCDAudio()
+{
+    *mcd_cmd = MSU_PAUSE;
+    *mcd_arg = 0;
+    *mcd_cmd_ck = *mcd_cmd_ck + 1;
+}
+
 static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
 {
     auto void dac_play(u8 channel, u8 channel_mask, u8 bank)
@@ -4476,9 +4486,7 @@ static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
         if (!bMsuReady) break;
         if (!fxValue)
         {
-            *mcd_cmd = MSU_PAUSE;
-            *mcd_arg = 0;
-            *mcd_cmd_ck = *mcd_cmd_ck + 1;
+            StopCDAudio();
         }
         else
         {
@@ -4492,9 +4500,7 @@ static void ApplyCommand_DAC(u8 fxParam, u8 fxValue)
         if (!bMsuReady) break;
         if (!fxValue)
         {
-            *mcd_cmd = MSU_PAUSE;
-            *mcd_arg = 0;
-            *mcd_cmd_ck = *mcd_cmd_ck + 1;
+            StopCDAudio();
         }
         else
         {

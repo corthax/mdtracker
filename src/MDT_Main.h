@@ -205,6 +205,8 @@ void FileWriteHeader();
 //static void CountPulses();
 u32 GetSampleStartAddress(u8 bank, u8 note);
 
+void StopCDAudio();
+
 // temporal instrument storage
 struct Instrument
 {

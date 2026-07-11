@@ -47,10 +47,10 @@ void InitInfo()
     infoCommands[0x1D] = "";
     infoCommands[0x1E] = "NOTE TRIGGER TYPE               ";
     infoCommands[0x1F] = "";
-    infoCommands[0x20] = "MSU MD: CD AUDIO - PLAY ONCE    ";
-    infoCommands[0x21] = "MSU MD: CD AUDIO - PLAY LOOP    ";
-    infoCommands[0x22] = "MSU MD: CD AUDIO - SEEK TIME    ";
-    infoCommands[0x23] = "MSU MD: CD AUDIO - VOLUME       ";
+    infoCommands[0x20] = "MSU MD: PLAY ONCE               ";
+    infoCommands[0x21] = "MSU MD: PLAY LOOP               ";
+    infoCommands[0x22] = "MSU MD: SEEK TIME EMULATION     ";
+    infoCommands[0x23] = "MSU MD: VOLUME                  ";
     infoCommands[0x24] = "";
     infoCommands[0x25] = "";
     infoCommands[0x26] = "";
@@ -308,7 +308,7 @@ void InitInfo()
     infoDescriptions[0x1F] = "";
     infoDescriptions[0x20] = "01..63 TRACK NUMBER, 00: PAUSE       ";
     infoDescriptions[0x21] = "01..63 TRACK NUMBER, 00: PAUSE       ";
-    infoDescriptions[0x22] = "01..FF ENABLE, 00: DISABLE           ";
+    infoDescriptions[0x22] = "00: ENABLE (DEFAULT), 01: DISABLE    ";
     infoDescriptions[0x23] = "00..FF                               ";
     infoDescriptions[0x24] = "";
     infoDescriptions[0x25] = "";

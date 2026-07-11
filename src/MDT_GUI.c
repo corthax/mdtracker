@@ -707,8 +707,6 @@ void DisplayPatternMatrix()
     static u16 num2 = 0;
     static u16 num3 = 0;
 
-    //DrawUnsavedMark(matrixDirty, SCREEN_MATRIX);
-
     if (bInitScreen)
     {
         bInitScreen = FALSE;
