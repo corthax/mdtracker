@@ -1,21 +1,18 @@
-# mdtracker
- Native music tracker for SEGA MEGA DRIVE / GENESIS / NOMAD
+# MD.Tracker
+
+ Native music tracker for SEGA MEGADRIVE / GENESIS / NOMAD
  
- Works on:
+ Tested on:
  
 	BlastEm (RetroArch)
 	
-	BlastEm (Standalone 0.6.3-pre)
-	
-	Mega Everdrive Pro
-	
- Partially:
- 
+	BlastEm (Standalone 0.6.3+)
+
 	PicoDrive (RetroArch)
 	
-	- No CSM
-	- No DAC panning
-	- Wrong PSG noise pitch
+	Mega Everdrive Pro
+
+	EDMD-v3
 	
 ---
 
@@ -29,15 +26,11 @@ Code::Blocks 20.03
 
 	rom.bin - Latest test build.
 
-	rom-pro.bin - Main version for Mega Everdrive Pro. Also should work in RetroArch (BlastEm core).
+	rom-512k.bin - Main version for Mega Everdrive Pro. Also should work in RetroArch (BlastEm core).
 
-	rom-x7.bin - Stripped down version for Mega Everdrive X7. [wip]
-
-	rom-blastem.bin - Version for standalone BlastEm emulator (modified rom header).
+	rom-32k.bin - Version for EDMD-v3. Should work almost everywhere.
 	
 	/releases - All releases. Also the newest wip release preparation goes there.
-	
-	/cd - CD audio exapmle, not used. [using both msu-md driver and ssf2 mapper is not possible on MED PRO]
 
 /inc - Copied SGDK headers. Fast and dirty way to make code completion in Code::Blocks work.
 
@@ -45,22 +38,24 @@ Code::Blocks 20.03
 
 /src - Source code.
 
-See "MD.Tracker Readme.txt" for help on commands etc.
+See MD.Tracker readme for help on commands and controls.
 
 ---
 
 Discord: https://discord.gg/CE22HNNk5y
 
-Demo music (recorded from sega nomad + guitars + vocals): https://youtu.be/evPza2j4I88
+Demo music (v1.4) (recorded from sega nomad + guitars + vocals): https://youtu.be/evPza2j4I88
 
----
+Pattern Matrix
 
-Pattern matrix
-![mtx](https://github.com/corthax/mdtracker/assets/36992223/33f80f19-ddb0-41cb-8bf0-a5939ea235f1)
+<img width="1282" height="992" alt="mdtracker matrix" src="https://github.com/user-attachments/assets/01d223c1-a273-44b3-8034-d282068ba541" />
 
-Pattern editor
-![ptn](https://github.com/corthax/mdtracker/assets/36992223/ce5a0937-9419-46b0-a068-4add7f041287)
+Pattern Editor
 
-Instrument editor
-![inst](https://github.com/corthax/mdtracker/assets/36992223/aeece754-a6d9-40f4-b04a-656ac43c8ab5)
+<img width="1282" height="992" alt="mdtracker pattern" src="https://github.com/user-attachments/assets/b0ceac23-65ab-4c29-9953-25f6471a232e" />
+
+Instrument Editor
+
+<img width="1282" height="992" alt="mdtracker instrument" src="https://github.com/user-attachments/assets/18ad85fb-9853-4796-9c52-40e8bca99a15" />
+
 
