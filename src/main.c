@@ -179,7 +179,7 @@ u8 channelNoteDelayCounter[CHANNELS_TOTAL];
 
 u8 FM_CH3_OpFreq[4];
 
-u8 instrumentIsMuted[INSTRUMENTS_TOTAL]; // 1 = mute
+u8 instrumentState[INSTRUMENTS_TOTAL]; // 1 = mute
 
 // FM CH6 DAC
 u32 samplesSize = 0;
@@ -702,7 +702,7 @@ static void DoEngine()
                 channelCurrentRowNote[mtxCh] != NOTE_OFF)
                     channelCurrentRowNote[mtxCh] = 0; // default C-0*/
 
-            if (channelCurrentRowNote[mtxCh] == NOTE_OFF || instrumentIsMuted[channelPreviousInstrument[mtxCh]] == INST_MUTE) // there is OFF
+            if (channelCurrentRowNote[mtxCh] == NOTE_OFF || instrumentState[channelPreviousInstrument[mtxCh]] == INST_MUTE) // there is OFF
             {
                 channelPreviousNote[mtxCh] = channelArp[mtxCh] = NOTE_OFF;
                 //if (channelNoteRetrigger[mtxCh])
@@ -1668,7 +1668,7 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 }
                 break;
 
-            case BUTTON_B | BUTTON_C:
+            case BUTTON_B | BUTTON_Y:
 
                 if (bPlayback || selectedMatrixScreenRow == MATRIX_ROWS_ONPAGE || selectedMatrixRow == 0) break; // no adding/removing rows during playback allowed
 
@@ -2121,13 +2121,13 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                     break;
                 // set selection
                 case BUTTON_DOWN:
-                    if (patternSelectionRangeStart == NOTHING)
+                    if (patternSelectionRangeStart == NOTHING) // first select
                     {
                         patternCopyFrom = selectedPatternID;
                         patternSelectionRangeStart = selectedPatternRow + patternColumnShift;
                         patternSelectionRangeEnd = patternSelectionRangeStart + 1;
 
-                        if (patternSelectionRangeEnd < 16)
+                        if (patternSelectionRangeEnd <= 16) // prevent selection mark shifting to the right side
                             VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 44, patternSelectionRangeStart+4);
                         else VDP_setTileMapXY(BG_B, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_CURSOR), 64, patternSelectionRangeStart-12);
 
@@ -2259,22 +2259,6 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 case BUTTON_LEFT:
                     switch_to_pattern_editor();
                     break;
-
-                case BUTTON_UP: // mute instrument
-                    instrumentIsMuted[selectedInstrumentID] = INST_MUTE;
-                    bRefreshScreen = TRUE; instrumentParameterToRefresh = GUI_INST_PARAM_STATE;
-                    break;
-
-                case BUTTON_DOWN: // solo instrument
-                    for (u8 i = 0; i < INSTRUMENTS_LAST; i++) instrumentIsMuted[i] = INST_MUTE; // mute all
-                    instrumentIsMuted[selectedInstrumentID] = INST_SOLO; // set to solo
-                    bRefreshScreen = TRUE; instrumentParameterToRefresh = GUI_INST_PARAM_STATE;
-                    break;
-
-                case BUTTON_Y: // un-mute all instruments
-                    for (u8 i = 0; i < INSTRUMENTS_LAST; i++) instrumentIsMuted[i] = INST_PLAY;
-                    bRefreshScreen = TRUE; instrumentParameterToRefresh = GUI_INST_PARAM_STATE;
-                    break;
                 }
                 break;
 
@@ -2302,13 +2286,31 @@ static void JoyEvent(u16 joy, u16 changed, u16 state)
                 }
                 break;
 
-            /*case BUTTON_Z:
+            case BUTTON_Z:
                 switch (changed)
                 {
-                    case ???:
+                case BUTTON_UP: // mute instrument
+                    instrumentState[selectedInstrumentID] = INST_MUTE;
+                    bRefreshScreen = TRUE; instrumentParameterToRefresh = GUI_INST_PARAM_STATE;
+                    break;
+
+                case BUTTON_DOWN: // solo instrument, mute all other
+                    for (u8 i = 0; i < INSTRUMENTS_LAST; i++) instrumentState[i] = INST_MUTE; // mute all
+                    instrumentState[selectedInstrumentID] = INST_SOLO; // set to solo
+                    bRefreshScreen = TRUE; instrumentParameterToRefresh = GUI_INST_PARAM_STATE;
+                    break;
+
+                case BUTTON_RIGHT: // set play state
+                    instrumentState[selectedInstrumentID] = INST_PLAY;
+                    bRefreshScreen = TRUE; instrumentParameterToRefresh = GUI_INST_PARAM_STATE;
+                    break;
+
+                case BUTTON_C: // un-mute all instruments
+                    for (u8 i = 0; i < INSTRUMENTS_LAST; i++) instrumentState[i] = INST_PLAY;
+                    bRefreshScreen = TRUE; instrumentParameterToRefresh = GUI_INST_PARAM_STATE;
                     break;
                 }
-                break;*/
+                break;
 
             case BUTTON_A:
                 // A + D-Pad: change parameter value
@@ -5300,6 +5302,8 @@ void assimilateInstrument(u8 id)
     u8 lookup = SRAMW_readByte(matrixBlockEnd + 2 + id);
     if (lookup == INST_SENTINEL_MODIFIED) return;
 
+    if (sramUsed + INST_RECORD_SIZE > SRAM_LIMIT) { return; }
+
     u16 modCount = SRAMW_readWord(matrixBlockEnd);
     u32 recordAddr = matrixBlockEnd + 258 + modCount * INST_RECORD_SIZE;
 
@@ -5412,6 +5416,8 @@ void assimilateSeq(u8 id)
 {
     u8 lookup = SRAMW_readByte(instBlockEnd + 2 + id);
     if (lookup == SEQ_SENTINEL_MODIFIED) return;
+
+    if (sramUsed + SEQ_RECORD_SIZE > SRAM_LIMIT) { return; }
 
     u16 modCount = SRAMW_readWord(instBlockEnd);  // SEQ_MOD_COUNT_ADDR
     u32 recordAddr = instBlockEnd + 2 + INSTRUMENTS_TOTAL + modCount * SEQ_RECORD_SIZE;
@@ -5546,7 +5552,7 @@ void Matrix_CommitToSRAM()
 
     u32 oldBlockEnd = matrixBlockEnd;
 
-    // First pass: compute new block size
+    // First pass: compute new block size and check for overflow
     u32 newSize = 0;
     for (u16 row = 0; row < MATRIX_ROWS; row++)
     {
@@ -5559,6 +5565,8 @@ void Matrix_CommitToSRAM()
     }
     u32 newBlockEnd = MATRIX_BLOCK_BASE + newSize;
     s32 delta = (s32)newBlockEnd - (s32)oldBlockEnd;
+
+    if (delta > 0 && sramUsed + (u32)delta > SRAM_LIMIT) { return; }
 
     // Tail-shift everything after matrix block (INST + SEQ + patterns)
     if (delta != 0)
@@ -5811,9 +5819,8 @@ static void writeBlockToSRAM(u32 sramOffset, u16 id, u16 numEvents, u8* events, 
 void SRAM_CommitBuffer(u16 id)
 {
     patternDirty = FALSE;
-    // Temp buffer for packed events (max 148 events * 3 bytes = 444, plus 4 header = 448)
-    // We know packed never exceeds 448 bytes (threshold for raw format)
-    u8 packed[448];
+    // Temp buffer for packed events (max 224 events * 3 bytes = 672)
+    u8 packed[672];
     u16 numEvents = 0, oldNumEvents;
     u32 regionBase = patternRegionBase;
     u32 regionSize, newOffset, tailStart, tailLen, oldBlockSize, newBlockSize;
@@ -5840,6 +5847,8 @@ void SRAM_CommitBuffer(u16 id)
         oldNumEvents = SRAMW_readWord(absOffset + 2);
         oldBlockSize = 4 + oldNumEvents * 3 + (oldNumEvents & 1);
         delta = newBlockSize - oldBlockSize;
+
+        if (delta > 0 && regionBase + regionSize + (u32)delta > SRAM_LIMIT) { return; }
 
         if (delta > 0)
         {
@@ -5879,6 +5888,7 @@ void SRAM_CommitBuffer(u16 id)
     else
     {
         // New pattern - append at end with color 0
+        if (regionBase + regionSize + newBlockSize > SRAM_LIMIT) { return; }
         newOffset = regionBase + regionSize;
         writeBlockToSRAM(newOffset, id, numEvents, packed, 0);
         patternOffset[id] = (u16)((newOffset - regionBase) / 2);
@@ -6193,7 +6203,7 @@ void InitTracker()
     for (u16 id = 0; id <= INSTRUMENTS_LAST; id++)
     {
         CacheInstrumentToRAM(id);
-        instrumentIsMuted[id] = INST_PLAY;
+        instrumentState[id] = INST_PLAY;
 
         for (u8 step = 0; step <= SEQ_STEP_LAST; step++)
         {
@@ -6314,12 +6324,12 @@ void ForceResetVariables()
 
     patternSize = 0x1F;
 
-    for (u16 in=0; in<=INSTRUMENTS_LAST; in++)
+    for (u16 in = 0; in <= INSTRUMENTS_LAST; in++)
     {
-        instrumentIsMuted[in]=INST_PLAY;
+        instrumentState[in] = INST_PLAY;
     }
 
-    for (u8 ch=0; ch<CHANNELS_TOTAL; ch++)
+    for (u8 ch = 0; ch < CHANNELS_TOTAL; ch++)
     {
         channelTranspose[ch]=
         channelPreviousNote[ch]=

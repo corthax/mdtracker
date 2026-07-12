@@ -405,11 +405,15 @@ void DrawInfo()
     DrawHex(PAL1, ppl_1, 12, 27); DrawHex(PAL1, ppl_2, 14, 27);
     DrawHex(PAL1, ppl_1, 52, 27); DrawHex(PAL1, ppl_2, 54, 27);
 
-    u32 _ds = sramUsed >= 999999 ? 999999 : sramUsed;
-    uintToStr(_ds, str, 6);
-    VDP_setTextPalette(PAL1);
-    VDP_drawTextBG(BG_A, str, 18, 27);
-    VDP_drawTextBG(BG_A, str, 58, 27);
+    if (sramUsed >= SRAM_LIMIT)
+    {
+        VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "LIMIT!", 18, 27); VDP_drawTextBG(BG_A, "LIMIT!", 58, 27);
+    }
+    else
+    {
+        uintToStr(sramUsed, str, 6);
+        VDP_setTextPalette(PAL1); VDP_drawTextBG(BG_A, str, 18, 27); VDP_drawTextBG(BG_A, str, 58, 27);
+    }
 }
 
 // cursors
@@ -1100,7 +1104,7 @@ inline void DisplayInstrumentEditor()
 
                 if (value == SEQ_SKIP)
                 {
-                    if (i%4==0) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_MINUS), stepDrawPos, 25);
+                    if (i%4==0) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_MINUS), stepDrawPos, 25);
                     else VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_MINUS), stepDrawPos, 25);
                 }
                 else if (value == 0)
@@ -1121,26 +1125,26 @@ inline void DisplayInstrumentEditor()
                 stepDrawPos = 85 + i + (i/8);
                 if (value == 100)
                 {
-                    if (i%4==0) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_BIGDOT), stepDrawPos, 26);
+                    if (i%4==0) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_BIGDOT), stepDrawPos, 26);
                     else VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_BIGDOT), stepDrawPos, 26);
                     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, NULL), stepDrawPos, 27);
                 }
                 else if (value == NOTE_EMPTY)
                 {
-                    if (i%4==0) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_MINUS), stepDrawPos, 26);
+                    if (i%4==0) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_MINUS), stepDrawPos, 26);
                     else VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL2, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_MINUS), stepDrawPos, 26);
                     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, NULL), stepDrawPos, 27);
                 }
                 else if (value > 100)
                 {
                     if (i%4==0) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[0] + value - 100), stepDrawPos, 26);
-                    else VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[0] + value - 100), stepDrawPos, 26);
+                    else VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[0] + value - 100), stepDrawPos, 26);
                     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_UP1), stepDrawPos, 27);
                 }
                 else
                 {
                     if (i%4==0) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[0] + 100 - value), stepDrawPos, 26);
-                    else VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[0] + 100 - value), stepDrawPos, 26);
+                    else VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[0] + 100 - value), stepDrawPos, 26);
                     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_DOWN1), stepDrawPos, 27);
                 }
             }
@@ -1152,7 +1156,7 @@ inline void DisplayInstrumentEditor()
             }
             break;
         case GUI_INST_PARAM_STATE: case 235:
-            switch(instrumentIsMuted[selectedInstrumentID])
+            switch(instrumentState[selectedInstrumentID])
             {
                 case INST_MUTE: DrawText(BG_A, PAL0, "MUTE", 113, 20); break;
                 case INST_PLAY: DrawText(BG_A, PAL0, "PLAY", 113, 20); break;
@@ -1298,32 +1302,32 @@ void DrawStaticGUI()
 
     // fm1 .. fm3
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_FM),      1, 1);
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_1), 2, 1);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_1), 2, 1);
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_FM),      4, 1);
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_2), 5, 1);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_2), 5, 1);
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_FM),      7, 1);
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_3), 8, 1);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_3), 8, 1);
 
     // special mode title
     for (u8 i=0; i<8; i++) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_FM_CH3 + i), i + 10, 1);
 
     // fm4 .. fm6
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_FM),      19, 1);
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_4), 20, 1);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_4), 20, 1);
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_FM),      22, 1);
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_5), 23, 1);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_5), 23, 1);
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_FM),      25, 1);
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_6), 26, 1);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_6), 26, 1);
 
     // psg
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PSG_SQUARE),  28, 1);
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_1),     29, 1);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_1),     29, 1);
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PSG_SQUARE),  31, 1);
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_2),     32, 1);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_2),     32, 1);
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PSG_SQUARE),  34, 1);
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_3),     35, 1);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_3),     35, 1);
     VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_PSG_NOISE),   37, 1);
-    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_4),     38, 1);
+    VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL1, 1, FALSE, FALSE, bgBaseTileIndex[1] + GUI_DIGIT_4),     38, 1);
 
     FillRowRight(BG_A, PAL0, FALSE, FALSE, GUI_SLASH, 3, 34, 27);
     FillRowRight(BG_A, PAL0, FALSE, FALSE, GUI_LOWLINE, 3, 37, 27);
@@ -1355,7 +1359,7 @@ void DrawStaticGUI()
     for (u8 y=4; y<20; y++)
     {
         u8 pal;
-        if (y%4) pal = PAL3; else pal = PAL0;
+        if (y%4) pal = PAL1; else pal = PAL0;
         VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(pal, 1, FALSE, FALSE, bgBaseTileIndex[0] + y-4), 44, y);
         VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(pal, 1, FALSE, FALSE, bgBaseTileIndex[0] + y+12), 64, y);
 
@@ -1430,19 +1434,18 @@ void DrawStaticGUI()
     DrawText(BG_A, PAL3, "COPY", 91, 1); VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 95, 1);
     DrawText(BG_A, PAL3, "OK", 97, 1); VDP_setTextPalette(PAL2); VDP_drawText("(B)", 99, 1);
 
-    //DrawText(BG_A, PAL3, "SAMPLE", 106, 0);
     VDP_setTextPalette(PAL3); VDP_drawTextBG(BG_A, "S.BANK", 106, 0);
 
-    DrawText(BG_A, PAL3, "TYPE", 106, GUI_INST_POSY_SAMPLE_TYPE);
-    DrawText(BG_A, PAL3, "LOOP", 106, GUI_INST_POSY_SAMPLE_LOOP);
-    DrawText(BG_A, PAL3, "RATE", 106, GUI_INST_POSY_SAMPLE_RATE); //VDP_setTextPalette(PAL1); VDP_drawText(">", 113, GUI_INST_POSY_SAMPLE_RATE);
-    DrawText(BG_A, PAL3, "PAN", 106, GUI_INST_POSY_SAMPLE_PAN); //VDP_setTextPalette(PAL1); VDP_drawText(">", 113, GUI_INST_POSY_SAMPLE_PAN);
-    DrawText(BG_A, PAL3, "NAME", 106, GUI_INST_POSY_SAMPLE_NAME-1);
+    DrawText(BG_A, PAL0, "TYPE", 106, GUI_INST_POSY_SAMPLE_TYPE);
+    DrawText(BG_A, PAL0, "LOOP", 106, GUI_INST_POSY_SAMPLE_LOOP);
+    DrawText(BG_A, PAL0, "RATE", 106, GUI_INST_POSY_SAMPLE_RATE);
+    DrawText(BG_A, PAL0, "PAN", 106, GUI_INST_POSY_SAMPLE_PAN);
+    DrawText(BG_A, PAL0, "NAME", 106, GUI_INST_POSY_SAMPLE_NAME-1);
     DisplaySampleName(106, GUI_INST_POSY_SAMPLE_NAME, 0, 0);
 
     for (u8 y=3; y<7; y++) VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL3, 1, FALSE, FALSE, bgBaseTileIndex[2] + GUI_COLON), 111, y);
 
-    VDP_setTextPalette(PAL0); VDP_drawText("PRESET", 106, 17);
+    VDP_setTextPalette(PAL3); VDP_drawText("PRESET", 106, 17);
     VDP_setTextPalette(PAL1);
         VDP_drawText(">", 113, 17); VDP_drawText("000", 114, 17);
         VDP_drawText(presetName[0], 106, 18);

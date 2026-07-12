@@ -25,8 +25,8 @@ SettingsPanel::SettingsPanel(wxWindow* parent, MainFrame* frame)
     auto* topRow = new wxBoxSizer(wxHORIZONTAL);
     topRow->Add(new wxStaticText(this, wxID_ANY, "ROM Type:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
     romTypeChoice = new wxChoice(this, wxID_ANY);
-    romTypeChoice->Append("MED Pro");
-    romTypeChoice->Append("EDMD-V3");
+    romTypeChoice->Append("512KB (MED Pro)");
+    romTypeChoice->Append("32KB (EDMD-v3) ");
     romTypeChoice->SetSelection(0);
     topRow->Add(romTypeChoice, 0);
     box->Add(topRow, 0, wxALL, 8);

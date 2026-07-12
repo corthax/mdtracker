@@ -27,8 +27,8 @@ SaveConverterPanel::SaveConverterPanel(wxWindow* parent, MainFrame* frame)
     outer->Add(sep1, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
 
     const wxString dirs[] = {
-        "16-bit (Mega Everdrive Pro/BlastEm) -> 8-bit (EDMD-V3)",
-        "8-bit (EDMD-V3) -> 16-bit (Mega Everdrive Pro/BlastEm)"
+        "16-bit (512KB) -> 8-bit (64KB)",
+        "8-bit (64KB) -> 16-bit (512KB)"
     };
     directionRadio = new wxRadioBox(this, wxID_ANY, "Direction", wxDefaultPosition, wxDefaultSize,
         WXSIZEOF(dirs), dirs, 1, wxRA_SPECIFY_COLS);
@@ -88,12 +88,12 @@ void SaveConverterPanel::OnOpenSrm(wxCommandEvent&) {
     bool enableConv = false;
     switch (fmt) {
     case SaveConverterService::SramFormat::Format16Bit:
-        fmtStr = "Detected: 16-bit (Everdrive Pro / BlastEm) - header at even addresses";
+        fmtStr = "Detected: 16-bit (MED Pro / BlastEm) - header at even addresses";
         directionRadio->SetSelection(0);
         enableConv = true;
         break;
     case SaveConverterService::SramFormat::Format8Bit:
-        fmtStr = "Detected: 8-bit (EDMD-V3) - header at odd addresses";
+        fmtStr = "Detected: 8-bit (EDMD-v3) - header at odd addresses";
         directionRadio->SetSelection(1);
         enableConv = true;
         break;
@@ -128,10 +128,10 @@ void SaveConverterPanel::OnConvertFormat(wxCommandEvent&) {
     const char* label;
     if (to8Bit) {
         result = SaveConverterService::Convert16To8(sramData);
-        label = "8-bit (EDMD-V3)";
+        label = "8-bit (EDMD-v3)";
     } else {
         result = SaveConverterService::Convert8To16(sramData);
-        label = "16-bit (Mega Everdrive Pro / BlastEm)";
+        label = "16-bit (MED Pro / BlastEm)";
     }
 
     std::ofstream f(dlg.GetPath().ToStdString(), std::ios::binary);

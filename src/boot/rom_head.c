@@ -42,7 +42,7 @@ const ROMHeader rom_header = {
 #if MDT_VERSION == MDT_VERSION_MEDPRO
 
     "SEGA EVERDRIVE  ", // for fast testing on BlastEm 0.6.3+
-    //"SEGA SSF        ", // Mega Everdrive PRO
+    //"SEGA SSF        ", //? Mega Everdrive PRO
 
 #elif MDT_VERSION == MDT_VERSION_EDMDV3
 
@@ -54,13 +54,13 @@ const ROMHeader rom_header = {
 
 #if MDT_VERSION == MDT_VERSION_MEDPRO
 
-    "MD.Tracker (1.5)                                ",
-    "MD.Tracker 512k for Mega Everdrive PRO          ",
+    "MD.Tracker 512k (1.05 REV 01)                   ",
+    "MD.Tracker 512k (1.05 REV 01)                   ",
 
 #elif MDT_VERSION == MDT_VERSION_EDMDV3
 
-    "MD.Tracker (1.5)                                ",
-    "MD.Tracker 32k for EDMD-v3                      ",
+    "MD.Tracker 32k (1.05 REV 01)                    ",
+    "MD.Tracker 32k (1.05 REV 01)                    ",
 
 #endif
 
@@ -143,7 +143,11 @@ const ROMHeader rom_header = {
 #endif
 
     "            ",                             // modem
-    "MUSIC TRACKER                           ", // memo
+#if MDT_VERSION == MDT_VERSION_MEDPRO
+    "MUSIC TRACKER for Mega Everdrive PRO    ", // memo
+#elif MDT_VERSION == MDT_VERSION_EDMDV3
+    "MUSIC TRACKER for EDMD-v3               ", // memo
+#endif // MDT_VERSION
     "W               "                          // country
 };
 /*

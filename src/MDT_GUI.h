@@ -231,7 +231,7 @@ extern u8 ppl_2;
 extern u8 useExternalSync;
 extern u32 sramUsed;
 extern u8 channelFlags[];
-extern u8 instrumentIsMuted[];
+extern u8 instrumentState[];
 extern u8 midiPreset;
 
 // ---------------------------------------------------------------------------
