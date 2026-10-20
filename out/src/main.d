@@ -2,17 +2,17 @@ out/src/main.o: src/main.c inc/genesis.h inc/types.h inc/config.h \
  inc/asm.h inc/sys.h inc/sram.h inc/mapper.h inc/memory.h \
  inc/memory_base.h inc/tools.h inc/bmp.h inc/maths.h inc/vdp.h inc/pal.h \
  inc/dma.h inc/vdp_tile.h inc/vdp_bg.h inc/map.h inc/pool.h inc/object.h \
- inc/font.h C:/gamedev/sega/sgdk/res/libres.h inc/string.h inc/tab_cnv.h \
- inc/maths3D.h inc/vdp_spr.h inc/vdp_pal.h inc/vram.h inc/sprite_eng.h \
- inc/sprite_eng_legacy.h inc/z80_ctrl.h inc/ym2612.h inc/psg.h \
- inc/snd/sound.h inc/snd/xgm.h inc/snd/xgm2.h inc/snd/smp_null.h \
- inc/snd/smp_null_dpcm.h inc/snd/pcm/snd_pcm.h inc/snd/pcm/snd_dpcm2.h \
- inc/snd/pcm/snd_pcm4.h inc/joy.h inc/timer.h inc/task.h inc/task_cst.h \
- inc/ext/flash-save/flash.h inc/types.h inc/ext/flash-save/saveman.h \
- inc/ext/console.h inc/config.h inc/string.h inc/maths.h inc/dma.h \
- inc/sram.h inc/ssf.h res/fontdata.h res/samples.h res/graphics.h \
- src/MDT_Main.h src/MDT_SRAM.h src/MDT_Chips.h src/MDT_NoteTables.h \
- src/MDT_ModuleData.h src/MDT_GUI.h src/MDT_PCM.h \
+ inc/font.h /media/data2/GameDev/SEGA/sgdk/res/libres.h inc/string.h \
+ inc/tab_cnv.h inc/maths3D.h inc/vdp_spr.h inc/vdp_pal.h inc/vram.h \
+ inc/sprite_eng.h inc/sprite_eng_legacy.h inc/z80_ctrl.h inc/ym2612.h \
+ inc/psg.h inc/snd/sound.h inc/snd/xgm.h inc/snd/xgm2.h \
+ inc/snd/smp_null.h inc/snd/smp_null_dpcm.h inc/snd/pcm/snd_pcm.h \
+ inc/snd/pcm/snd_dpcm2.h inc/snd/pcm/snd_pcm4.h inc/joy.h inc/timer.h \
+ inc/task.h inc/task_cst.h inc/ext/flash-save/flash.h inc/types.h \
+ inc/ext/flash-save/saveman.h inc/ext/console.h inc/config.h inc/string.h \
+ inc/maths.h inc/dma.h inc/sram.h inc/ssf.h res/fontdata.h res/samples.h \
+ res/graphics.h src/MDT_Main.h src/MDT_SRAM.h src/MDT_Chips.h \
+ src/MDT_NoteTables.h src/MDT_ModuleData.h src/MDT_GUI.h src/MDT_PCM.h \
  src/MDT_SampleSettings.h src/MDT_Info.h src/MDT_Version.h \
  src/MDT_Presets.h res/preset_names.h src/midi/comm_midi.h \
  src/midi/midi_rx.h src/midi/midi_sync.h

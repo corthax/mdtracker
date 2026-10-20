@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="mdtracker" />
+		<Option makefile="/media/data2/GameDev/SEGA/sgdk/makefile.gen" />
+		<Option makefile_is_custom="1" />
+		<Option execution_dir="/media/data2/GameDev/SEGA/project/mdtracker" />
+		<Option pch_mode="2" />
+		<Option compiler="sgdk" />
+		<Option virtualFolders="/media/data2/GameDev/SEGA/sgdk/inc/" />
+		<MakeCommands>
+			<Build command="$make -f $makefile" />
+			<CompileFile command="$make -f $makefile $file" />
+			<Clean command="$make -f $makefile clean" />
+			<DistClean command="$make -f $makefile distclean$target" />
+			<AskRebuildNeeded command="$make -f $makefile clean" />
+			<SilentBuild command="$make -f $makefile &gt; $(CMD_NULL)" />
+		</MakeCommands>
+		<Build>
+			<Target title="default">
+				<Option type="4" />
+				<Option compiler="sgdk" />
+				<Option parameters="/media/data2/GameDev/SEGA/project/mdtracker/out/rom.bin" />
+				<Option host_application="/media/data2/GameDev/SEGA/toolchains/sgdk-tools/blastem-run" />
+				<Option run_host_application_in_terminal="0" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+		</Compiler>
+		<Unit filename="inc/asm.h" />
+		<Unit filename="inc/bmp.h" />
+		<Unit filename="inc/config.h" />
+		<Unit filename="inc/dma.h" />
+		<Unit filename="inc/everdrive.h" />
+		<Unit filename="inc/fat16.h" />
+		<Unit filename="inc/font.h" />
+		<Unit filename="inc/genesis.h" />
+		<Unit filename="inc/joy.h" />
+		<Unit filename="inc/kdebug.h" />
+		<Unit filename="inc/map.h" />
+		<Unit filename="inc/mapper.h" />
+		<Unit filename="inc/maths.h" />
+		<Unit filename="inc/maths3D.h" />
+		<Unit filename="inc/memory.h" />
+		<Unit filename="inc/pal.h" />
+		<Unit filename="inc/psg.h" />
+		<Unit filename="inc/segalib.h" />
+		<Unit filename="inc/smp_null.h" />
+		<Unit filename="inc/smp_null_pcm.h" />
+		<Unit filename="inc/sound.h" />
+		<Unit filename="inc/sprite_eng.h" />
+		<Unit filename="inc/sram.h" />
+		<Unit filename="inc/ssf.h" />
+		<Unit filename="inc/string.h" />
+		<Unit filename="inc/sys.h" />
+		<Unit filename="inc/tab_cnv.h" />
+		<Unit filename="inc/tab_vol.h" />
+		<Unit filename="inc/timer.h" />
+		<Unit filename="inc/tools.h" />
+		<Unit filename="inc/types.h" />
+		<Unit filename="inc/vdp.h" />
+		<Unit filename="inc/vdp_bg.h" />
+		<Unit filename="inc/vdp_dma.h" />
+		<Unit filename="inc/vdp_pal.h" />
+		<Unit filename="inc/vdp_spr.h" />
+		<Unit filename="inc/vdp_tile.h" />
+		<Unit filename="inc/vram.h" />
+		<Unit filename="inc/xgm.h" />
+		<Unit filename="inc/ym2612.h" />
+		<Unit filename="inc/z80_ctrl.h" />
+		<Unit filename="inc/z80_mvsc.h" />
+		<Unit filename="inc/z80_vgm.h" />
+		<Unit filename="res/fontdata.res" />
+		<Unit filename="res/graphics.res" />
+		<Unit filename="res/preset_names.res" />
+		<Unit filename="res/samples.res" />
+		<Unit filename="src/MDT_Chips.h" />
+		<Unit filename="src/MDT_GUI.c">
+			<Option compilerVar="CC" />
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="src/MDT_GUI.h" />
+		<Unit filename="src/MDT_Info.c">
+			<Option compilerVar="CC" />
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="src/MDT_Info.h" />
+		<Unit filename="src/MDT_Main.h" />
+		<Unit filename="src/MDT_ModuleData.h" />
+		<Unit filename="src/MDT_NoteTables.h" />
+		<Unit filename="src/MDT_PCM.h" />
+		<Unit filename="src/MDT_Presets.c">
+			<Option compilerVar="CC" />
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="src/MDT_Presets.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="src/MDT_SRAM.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/MDT_SRAM.h" />
+		<Unit filename="src/MDT_Version.h" />
+		<Unit filename="src/boot/msu-drv.bin" />
+		<Unit filename="src/boot/rom_head.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/boot/sega.s" />
+		<Unit filename="src/dualpcm.s">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="src/main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/midi/comm_everdrive.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/midi/comm_everdrive_pro.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/midi/comm_midi.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/midi/comm_serial.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/midi/midi_rx.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/midi/midi_sync.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/midi/ring_buf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/midi/serial.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/ssf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Extensions>
+			<code_completion>
+				<search_path add="/media/data2/GameDev/SEGA/sgdk/inc" />
+			</code_completion>
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
